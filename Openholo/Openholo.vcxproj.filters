@@ -1,0 +1,75 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="__Header Files">
+      <UniqueIdentifier>{33b5616a-340a-4262-9499-faf20a9d50b1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="__graphics">
+      <UniqueIdentifier>{fc5a12bc-5422-4c35-8143-6312e52f5fd0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="__graphics\header">
+      <UniqueIdentifier>{fce53f13-010a-44ee-8889-ed8ef617be4b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="__graphics\cpp">
+      <UniqueIdentifier>{09329c4c-6be0-4bf8-a59c-6d60a726f8a0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="_1_Openholo">
+      <UniqueIdentifier>{9079d193-651a-4406-97ae-72d39b9b4c3e}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\Base.h">
+      <Filter>__Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\define.h">
+      <Filter>__Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\enumerator.h">
+      <Filter>__Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\struct.h">
+      <Filter>__Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Openholo.h">
+      <Filter>_1_Openholo</Filter>
+    </ClInclude>
+    <ClInclude Include="src\typedef.h">
+      <Filter>__Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include.h">
+      <Filter>__Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\complex.h">
+      <Filter>__graphics\header</Filter>
+    </ClInclude>
+    <ClInclude Include="src\epsilon.h">
+      <Filter>__graphics\header</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ivec.h">
+      <Filter>__graphics\header</Filter>
+    </ClInclude>
+    <ClInclude Include="src\real.h">
+      <Filter>__graphics\header</Filter>
+    </ClInclude>
+    <ClInclude Include="src\sys.h">
+      <Filter>__graphics\header</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vec.h">
+      <Filter>__graphics\header</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Openholo.cpp">
+      <Filter>_1_Openholo</Filter>
+    </ClCompile>
+    <ClCompile Include="src\epsilon.cpp">
+      <Filter>__graphics\cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="src\sys.cpp">
+      <Filter>__graphics\cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="src\vec.cpp">
+      <Filter>__graphics\cpp</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>
