@@ -1,18 +1,7 @@
-/*!
-* \file Base.h
-* \date 2018/04/10
-*
-* \author Kim Ryeonwoo
-* Contact: kimlw90@keti.re.kr
-*
-* \brief
-*
-* TODO: Top class.
-		Check reference count for prevention memory leak,		
-		if reference to this object, must call addRef(),
-		call release() must be called after the call is finished.
-*
-* \note
+/**
+* @mainpage Base
+* @brief Top class
+* @details Class for prevention memory leak
 */
 
 
@@ -27,15 +16,29 @@
 
 class OPH_DLL Base {
 public:
+	/**
+	* @brief Constructor
+	* @details Initialize variable.
+	*/
 	inline Base(void) : refCnt(0) {}
 protected:
+	/**
+	* @brief Destructor
+	*/
 	inline virtual ~Base(void) {}
 
 protected:
 	unsigned long refCnt;
 
 public:
+	/**
+	* @brief If referenced this(Base's child class, not abstract class) instance, must call this method.
+	*/
 	inline unsigned long addRef(void) { return ++refCnt; }
+
+	/**
+	* @brief Call release() when reference is finished.
+	*/
 	inline unsigned long release(void) {
 		if (!refCnt)
 		{
@@ -47,6 +50,10 @@ public:
 	}
 
 protected:
+	/**
+	* @brief When refCnt is 0 (zero), it is called inside release () when release () is called. 
+	* @details A class inheriting from Base can override this method.
+	*/
 	virtual void ophFree(void) = 0 {}
 };
 

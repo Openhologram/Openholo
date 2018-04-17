@@ -1,3 +1,8 @@
+/**
+* @mainpage OphCoreProcessing
+* @brief Abstract class for core processing classes
+*/
+
 #ifndef __OphCoreProcessing_h
 #define __OphCoreProcessing_h
 
@@ -12,12 +17,21 @@
 class COREPROCSS_DLL OphCoreProcessing : public Openholo
 {
 public:
+	/**
+	* @brief Constructor
+	*/
 	OphCoreProcessing(void);
 
 protected:
+	/**
+	* @brief Destructor
+	*/
 	virtual ~OphCoreProcessing(void);
 
 protected:
+	/**
+	* @brief Pure virtual function for override in child classes
+	*/
 	virtual void ophFree(void) = 0;
 };
 
