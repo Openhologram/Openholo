@@ -3,21 +3,22 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.27130.2027
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Openholo", "Openholo\Openholo.vcxproj", "{F87DA845-513D-4F3B-9F72-16BB2C18A782}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "openholo", "openholo\openholo.vcxproj", "{F87DA845-513D-4F3B-9F72-16BB2C18A782}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OphGeneration", "OphGeneration\OphGeneration.vcxproj", "{272C3F0A-E929-4A98-8307-D9D01D5DA1F2}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ophrec", "ophrec\ophrec.vcxproj", "{D0F04385-3806-46B2-93C2-26ECED076074}"
+	ProjectSection(ProjectDependencies) = postProject
+		{F87DA845-513D-4F3B-9F72-16BB2C18A782} = {F87DA845-513D-4F3B-9F72-16BB2C18A782}
+	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OphReconstruction", "OphReconstruction\OphReconstruction.vcxproj", "{D0F04385-3806-46B2-93C2-26ECED076074}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ophsig", "ophsig\ophsig.vcxproj", "{37973A95-102B-491C-BE36-F9203D2B6EDA}"
+	ProjectSection(ProjectDependencies) = postProject
+		{F87DA845-513D-4F3B-9F72-16BB2C18A782} = {F87DA845-513D-4F3B-9F72-16BB2C18A782}
+	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OphCoreProcessing", "OphCoreProcessing\OphCoreProcessing.vcxproj", "{37973A95-102B-491C-BE36-F9203D2B6EDA}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "_0_Openholo", "_0_Openholo", "{CAFD11D7-B881-4F79-8467-2C9EEDEB6309}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "_2_OphReconstruction", "_2_OphReconstruction", "{7000FB00-A538-4A77-9159-C1BC01E5E7C8}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "_3_OphCoreProcessing", "_3_OphCoreProcessing", "{632E17E7-FA4C-40CA-B1BC-2F19A69AA3A7}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "_1_OphGeneration", "_1_OphGeneration", "{BB4CDB5D-28EF-4AE6-98F2-1E10A8B20533}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ophgen", "ophgen\ophgen.vcxproj", "{272C3F0A-E929-4A98-8307-D9D01D5DA1F2}"
+	ProjectSection(ProjectDependencies) = postProject
+		{F87DA845-513D-4F3B-9F72-16BB2C18A782} = {F87DA845-513D-4F3B-9F72-16BB2C18A782}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -35,12 +36,6 @@ Global
 		{F87DA845-513D-4F3B-9F72-16BB2C18A782}.Release|x64.Build.0 = Release|x64
 		{F87DA845-513D-4F3B-9F72-16BB2C18A782}.Release|x86.ActiveCfg = Release|Win32
 		{F87DA845-513D-4F3B-9F72-16BB2C18A782}.Release|x86.Build.0 = Release|Win32
-		{272C3F0A-E929-4A98-8307-D9D01D5DA1F2}.Debug|x64.ActiveCfg = Debug|x64
-		{272C3F0A-E929-4A98-8307-D9D01D5DA1F2}.Debug|x64.Build.0 = Debug|x64
-		{272C3F0A-E929-4A98-8307-D9D01D5DA1F2}.Debug|x86.ActiveCfg = Debug|x64
-		{272C3F0A-E929-4A98-8307-D9D01D5DA1F2}.Release|x64.ActiveCfg = Release|x64
-		{272C3F0A-E929-4A98-8307-D9D01D5DA1F2}.Release|x64.Build.0 = Release|x64
-		{272C3F0A-E929-4A98-8307-D9D01D5DA1F2}.Release|x86.ActiveCfg = Release|x64
 		{D0F04385-3806-46B2-93C2-26ECED076074}.Debug|x64.ActiveCfg = Debug|x64
 		{D0F04385-3806-46B2-93C2-26ECED076074}.Debug|x64.Build.0 = Debug|x64
 		{D0F04385-3806-46B2-93C2-26ECED076074}.Debug|x86.ActiveCfg = Debug|x64
@@ -53,15 +48,15 @@ Global
 		{37973A95-102B-491C-BE36-F9203D2B6EDA}.Release|x64.ActiveCfg = Release|x64
 		{37973A95-102B-491C-BE36-F9203D2B6EDA}.Release|x64.Build.0 = Release|x64
 		{37973A95-102B-491C-BE36-F9203D2B6EDA}.Release|x86.ActiveCfg = Release|x64
+		{272C3F0A-E929-4A98-8307-D9D01D5DA1F2}.Debug|x64.ActiveCfg = Debug|x64
+		{272C3F0A-E929-4A98-8307-D9D01D5DA1F2}.Debug|x64.Build.0 = Debug|x64
+		{272C3F0A-E929-4A98-8307-D9D01D5DA1F2}.Debug|x86.ActiveCfg = Debug|x64
+		{272C3F0A-E929-4A98-8307-D9D01D5DA1F2}.Release|x64.ActiveCfg = Release|x64
+		{272C3F0A-E929-4A98-8307-D9D01D5DA1F2}.Release|x64.Build.0 = Release|x64
+		{272C3F0A-E929-4A98-8307-D9D01D5DA1F2}.Release|x86.ActiveCfg = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
-	EndGlobalSection
-	GlobalSection(NestedProjects) = preSolution
-		{F87DA845-513D-4F3B-9F72-16BB2C18A782} = {CAFD11D7-B881-4F79-8467-2C9EEDEB6309}
-		{272C3F0A-E929-4A98-8307-D9D01D5DA1F2} = {BB4CDB5D-28EF-4AE6-98F2-1E10A8B20533}
-		{D0F04385-3806-46B2-93C2-26ECED076074} = {7000FB00-A538-4A77-9159-C1BC01E5E7C8}
-		{37973A95-102B-491C-BE36-F9203D2B6EDA} = {632E17E7-FA4C-40CA-B1BC-2F19A69AA3A7}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {A963A6B4-A23B-4B78-9CFF-98A24ED7F698}

@@ -1,0 +1,74 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="_1_Generation">
+      <UniqueIdentifier>{dfea2ebb-3b19-4387-80e6-7f45263c5f13}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="_2_Display I/O Interface">
+      <UniqueIdentifier>{b4902fcf-3bd6-4a0c-920a-ece98a6b66a3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="_3_Encoding">
+      <UniqueIdentifier>{7aa65a4c-6e83-49fa-9c0d-18893c89147b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="_4_WRP">
+      <UniqueIdentifier>{3d94c96f-3c96-4534-9f8d-0933ac2f84a5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="__Header Files">
+      <UniqueIdentifier>{82ea7e39-2225-497c-a698-1e1ce25438d8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="__ophGen">
+      <UniqueIdentifier>{921179b7-6b62-4fc6-83ab-ff62fa80d57f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="_1_Generation\_ophDepthMap">
+      <UniqueIdentifier>{39a6e860-534a-4613-bc6b-269e5d1ee8ba}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="_1_Generation\_ophLF">
+      <UniqueIdentifier>{6299f6da-572a-4882-9b26-1b9033ed2127}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="_1_Generation\_ophPointCloud">
+      <UniqueIdentifier>{196d0bdf-ebd2-499d-bf46-71f8abd602d9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="_1_Generation\_ophTriangle">
+      <UniqueIdentifier>{f7251fc7-2938-44bb-80cf-9066fa9a62b9}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\fftw3.h">
+      <Filter>__Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ophDepthMap.h">
+      <Filter>_1_Generation\_ophDepthMap</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ophGen.h">
+      <Filter>__ophGen</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ophPointCloud.h">
+      <Filter>_1_Generation\_ophPointCloud</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\ophDepthMap.cpp">
+      <Filter>_1_Generation\_ophDepthMap</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ophDepthMap_CPU.cpp">
+      <Filter>_1_Generation\_ophDepthMap</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ophDepthMap_GPU.cpp">
+      <Filter>_1_Generation\_ophDepthMap</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ophGen.cpp">
+      <Filter>__ophGen</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ophPointCloud.cpp">
+      <Filter>_1_Generation\_ophPointCloud</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="src\ophDMKernel.cu">
+      <Filter>_1_Generation\_ophDepthMap</Filter>
+    </CudaCompile>
+    <CudaCompile Include="src\ophPCKernel.cu">
+      <Filter>_1_Generation\_ophPointCloud</Filter>
+    </CudaCompile>
+  </ItemGroup>
+</Project>
