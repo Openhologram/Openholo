@@ -133,7 +133,6 @@ __global__ void getFringe(int nx, int ny, cufftDoubleComplex* in_filed, cufftDou
 		if (sig_locationy != 0)
 		{
 			int r = tid / nx;
-			int c = tid % nx;
 			double yy = (ssy / 2.0) - (ppy)*(double)r - ppy;
 
 			cuDoubleComplex val = make_cuDoubleComplex(0, 0);
@@ -149,7 +148,6 @@ __global__ void getFringe(int nx, int ny, cufftDoubleComplex* in_filed, cufftDou
 
 		if (sig_locationx != 0)
 		{
-			int r = tid / nx;
 			int c = tid % nx;
 			double xx = (-ssx / 2.0) - (ppx)*(double)c - ppx;
 

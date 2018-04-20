@@ -331,8 +331,6 @@ private:
 	int						sim_step_num_;					///< reconstruction variable for testing
 	double*					sim_final_;						///< reconstruction variable for testing
 	oph::Complex*			hh_complex_;					///< reconstruction variable for testing
-
 };
-
 
 #endif

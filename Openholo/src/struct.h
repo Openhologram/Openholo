@@ -58,23 +58,23 @@ namespace oph
 				return;
 			}
 
-			this->pointCloudScaleX = static_cast<float>(atof(Value[0].c_str()));
-			this->pointCloudScaleY = static_cast<float>(atof(Value[1].c_str()));
-			this->pointCloudScaleZ = static_cast<float>(atof(Value[2].c_str()));
-			this->offsetDepth = static_cast<float>(atof(Value[3].c_str()));
-			this->samplingPitchX = static_cast<float>(atof(Value[4].c_str()));
-			this->samplingPitchY = static_cast<float>(atof(Value[5].c_str()));
-			this->nx = atoi(Value[6].c_str());
-			this->ny = atoi(Value[7].c_str());
+			this->pointCloudScaleX = stof(Value[0]);
+			this->pointCloudScaleY = stof(Value[1]);
+			this->pointCloudScaleZ = stof(Value[2]);
+			this->offsetDepth = stof(Value[3]);
+			this->samplingPitchX = stof(Value[4]);
+			this->samplingPitchY = stof(Value[5]);
+			this->nx = stoi(Value[6]);
+			this->ny = stoi(Value[7]);
 			this->filterShapeFlag = (char*)Value[8].c_str();
-			this->filterXwidth = static_cast<float>(atof(Value[9].c_str()));
-			this->filterYwidth = static_cast<float>(atof(Value[10].c_str()));
-			this->focalLengthLensIn = static_cast<float>(atof(Value[11].c_str()));
-			this->focalLengthLensOut = static_cast<float>(atof(Value[12].c_str()));
-			this->focalLengthLensEyePiece = static_cast<float>(atof(Value[13].c_str()));
-			this->lambda = static_cast<float>(atof(Value[14].c_str()));
-			this->tiltAngleX = static_cast<float>(atof(Value[15].c_str()));
-			this->tiltAngleY = static_cast<float>(atof(Value[16].c_str()));
+			this->filterXwidth = stof(Value[9]);
+			this->filterYwidth = stof(Value[10]);
+			this->focalLengthLensIn = stof(Value[11]);
+			this->focalLengthLensOut = stof(Value[12]);
+			this->focalLengthLensEyePiece = stof(Value[13]);
+			this->lambda = stof(Value[14]);
+			this->tiltAngleX = stof(Value[15]);
+			this->tiltAngleY = stof(Value[16]);
 			File.close();
 		}
 

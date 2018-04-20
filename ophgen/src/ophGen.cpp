@@ -82,23 +82,23 @@ bool ophGen::readConfigFile(const std::string InputConfigFile, oph::ConfigParams
 		return false;
 	}
 
-	configParams.pointCloudScaleX = static_cast<float>(atof(Value[0].c_str()));
-	configParams.pointCloudScaleY = static_cast<float>(atof(Value[1].c_str()));
-	configParams.pointCloudScaleZ = static_cast<float>(atof(Value[2].c_str()));
-	configParams.offsetDepth = static_cast<float>(atof(Value[3].c_str()));
-	configParams.samplingPitchX = static_cast<float>(atof(Value[4].c_str()));
-	configParams.samplingPitchY = static_cast<float>(atof(Value[5].c_str()));
-	configParams.nx = atoi(Value[6].c_str());
-	configParams.ny = atoi(Value[7].c_str());
+	configParams.pointCloudScaleX = stof(Value[0]);
+	configParams.pointCloudScaleY = stof(Value[1]);
+	configParams.pointCloudScaleZ = stof(Value[2]);
+	configParams.offsetDepth = stof(Value[3]);
+	configParams.samplingPitchX = stof(Value[4]);
+	configParams.samplingPitchY = stof(Value[5]);
+	configParams.nx = stoi(Value[6]);
+	configParams.ny = stoi(Value[7]);
 	configParams.filterShapeFlag = (char*)Value[8].c_str();
-	configParams.filterXwidth = static_cast<float>(atof(Value[9].c_str()));
-	configParams.filterYwidth = static_cast<float>(atof(Value[10].c_str()));
-	configParams.focalLengthLensIn = static_cast<float>(atof(Value[11].c_str()));
-	configParams.focalLengthLensOut = static_cast<float>(atof(Value[12].c_str()));
-	configParams.focalLengthLensEyePiece = static_cast<float>(atof(Value[13].c_str()));
-	configParams.lambda = static_cast<float>(atof(Value[14].c_str()));
-	configParams.tiltAngleX = static_cast<float>(atof(Value[15].c_str()));
-	configParams.tiltAngleY = static_cast<float>(atof(Value[16].c_str()));
+	configParams.filterXwidth = stof(Value[9]);
+	configParams.filterYwidth = stof(Value[10]);
+	configParams.focalLengthLensIn = stof(Value[11]);
+	configParams.focalLengthLensOut = stof(Value[12]);
+	configParams.focalLengthLensEyePiece = stof(Value[13]);
+	configParams.lambda = stof(Value[14]);
+	configParams.tiltAngleX = stof(Value[15]);
+	configParams.tiltAngleY = stof(Value[16]);
 	File.close();
 	return true;
 }

@@ -32,7 +32,6 @@ void ophPointCloud::setMode(bool isCPU)
 	this->bIsCPU = isCPU;
 }
 
-
 int ophPointCloud::loadPointCloud(const std::string InputModelFile)
 {
 	//std::ifstream File(InputModelFile, std::ios::in);
