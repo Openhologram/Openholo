@@ -26,6 +26,98 @@ namespace oph {
 #define MINREAL _MINDOUBLE;
 #define MAXREAL _MAXDOUBLE;
 
+	//template<class T = double>
+	//struct real {
+	//	using realnum = typename std::enable_if<std::is_same<double, T>::value || std::is_same<float, T>::value, T>::type;
+
+	//	realnum t;
+
+	//	real() { }
+	//	real(realnum p) { t = p; }
+
+	//	~real() { }
+
+	//	bool operator == (const real<T>& p) { return t == p.t; }
+	//	bool operator == (double p) { return t == p; }
+	//	bool operator == (float p) { return t == p; }
+
+	//	bool operator > (const real<T>& p) { return t > p.t; }
+	//	bool operator > (double p) { return t > p; }
+	//	bool operator > (float p) { return t > p; }
+
+	//	bool operator >= (const real<T>& p) { return t >= p.t; }
+	//	bool operator >= (double p) { return t > p; }
+	//	bool operator >= (float p) { return t > p; }
+
+	//	bool operator < (const real<T>& p) { return t < p.t; }
+	//	bool operator < (double p) { return t < p; }
+	//	bool operator < (float p) { return t < p; }
+
+	//	bool operator <= (const real<T>& p) { return t <= p.t; }
+	//	bool operator <= (double p) { return t <= p; }
+	//	bool operator <= (float p) { return t <= p; }
+
+	//	real<T>& operator = (const real<T>& b) { t = b.t; return *this; }
+	//	real<T>& operator = (double b) { t = b; return *this; }
+	//	real<T>& operator = (float b) { t = b; return *this; }
+
+	//	realnum operator += (const real<T>& p) { return t += p.t; }
+	//	double operator += (double p) { return t += p; }
+	//	realnum operator += (float p) { return t += p; }
+
+	//	realnum operator -= (const real<T>& p) { return t -= p.t; }
+	//	double operator -= (double p) { return t -= p; }
+	//	realnum operator -= (float p) { return t -= p; }
+
+	//	realnum operator *= (const real<T>& p) { return t *= p.t; }
+	//	double operator *= (double p) { return t *= p; }
+	//	realnum operator *= (float p) { return t *= p; }
+
+	//	realnum operator /= (const real<T>& p) { return t /= p.t; }
+	//	double operator /= (double p) { return t /= p; }
+	//	realnum operator /= (float p) { return t /= p; }
+
+	//	realnum operator + (const real<T>& p) { return t + p.t; }
+	//	realnum operator + (float p) { return t + p; }
+	//	double operator + (double p) { return t + p; }
+
+	//	realnum operator - (const real<T>& p) { return t - p.t; }
+	//	double operator - (double p) { return t - p; }
+	//	realnum operator - (float p) { return t - p; }
+
+	//	realnum operator * (const real<T>& p) { return t * p.t; }
+	//	double operator * (double p) { return t * p; }
+	//	realnum operator * (float p) { return t * p; }
+
+	//	realnum operator / (const real<T>& p) { return t / p.t; }
+	//	double operator / (double p) { return t / p; }
+	//	realnum operator / (float p) { return t / p; }
+
+	//	realnum operator () () { return t; }
+
+	//	friend bool operator < (double a, const real<T>&b) { return a < b.t; }
+	//	friend bool operator <= (double a, const real<T>&b) { return a <= b.t; }
+	//	//friend bool operator < (const real<T>&a, double b) { return a.t < b; }
+	//	//friend bool operator <= (const real<T>&a, double b) { return a.t <= b; }
+
+	//	friend bool operator > (double a, const real<T>&b) { return a > b.t; }
+	//	friend bool operator >= (double a, const real<T>&b) { return a >= b.t; }
+	//	//friend bool operator > (const real<T>&a, double b) { return a.t > b; }
+	//	//friend bool operator >= (const real<T>&a, double b) { return a.t >= b; }
+
+	//	friend bool operator == (double a, const real<T>&b) { return a == b.t; }
+
+	//	friend double operator + (double a, const real<T>&b) { return a + b.t; }
+	//	friend double operator - (double a, const real<T>&b) { return a - b.t; }
+	//	friend double operator * (double a, const real<T>&b) { return a * b.t; }
+	//	friend double operator / (double a, const real<T>&b) { return a / b.t; }
+	//	friend T operator = (double a, const real<T>&b) { return a = b.t; }
+	//	friend T operator = (float a, const real<T>&b) { return a = b.t; }
+
+	//	friend std::ostream& operator << (std::ostream& os, const real<T>&p) { os << p.t; return os; }
+	//	friend std::ostream& operator >> (std::ostream& os, const real<T>&p) { os >> p.t; return os; }
+	//};
+
 
 };
 

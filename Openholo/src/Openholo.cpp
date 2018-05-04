@@ -1,51 +1,207 @@
 #include "Openholo.h"
 
+#include <windows.h>
+#include <fileapi.h>
+
+#include "sys.h"
+
 Openholo::Openholo(void)
 {
+	initialize();
 }
 
 Openholo::~Openholo(void)
 {
 }
-int Openholo::createBitmapFile(unsigned char * pixelbuffer, int pic_width, int pic_height, uint16_t bitsperpixel, const char * file_name)
+
+void Openholo::initialize(void)
 {
-	int _height = pic_height;
-	int _width = pic_width;
+	context_ = { 0 };
+	p_hologram = nullptr;
+}
+
+int Openholo::save(const char * fname, uint8_t bitsperpixel, void* src, int pic_width, int pic_height)
+{
+	if (checkExtension(fname, ".ohf"))	// save as *.ohf
+		return saveAsOhf(fname, bitsperpixel, src, pic_width, pic_height);
+	else								// save as image file - (bmp)
+	{
+		if (checkExtension(fname, ".bmp"))		// when the extension is bmp
+			return saveAsImg(fname, bitsperpixel, src, pic_width, pic_height);
+		else									// when extension is not .ohf, .bmp - force bmp
+		{
+			char buf[256];
+			memset(buf, 0x00, sizeof(char) * 256);
+			sprintf(buf, "%s.bmp", fname);
+
+			return saveAsImg(buf, bitsperpixel, src, pic_width, pic_height);
+		}
+	}
+}
+
+int Openholo::load(const char * fname, void* dst)
+{
+	if (p_hologram != nullptr)
+	{
+		free(p_hologram);
+		p_hologram = nullptr;
+	}
+
+	// load as .ohf file
+	if (checkExtension(fname, ".ohf"))
+	{
+		if (dst != nullptr)
+			return loadAsOhf(fname, dst);
+		else
+			return loadAsOhf(fname, p_hologram);
+	}
+	// load image file
+	else
+	{
+		if (checkExtension(fname, ".bmp"))
+		{
+			if (dst != nullptr)
+				return loadAsImg(fname, dst);
+			else
+				return loadAsImg(fname, p_hologram);
+		}
+		else			// when extension is not .ohf, .bmp
+		{
+			// how to load another image file format?
+		}
+	}
+
+	return 0;
+}
+
+int Openholo::checkExtension(const char * fname, const char * ext)
+{	
+	//return	1	: the extension of "fname" and "ext" is the same
+	//			0	: the extension of "fname" and "ext" is not the same
+
+	std::string filename(fname);
+	size_t pos = filename.find(ext);
+	if (pos == std::string::npos)
+		//when there is no search string
+		return 0;
+	else
+		return 1;
+}
+
+int Openholo::saveAsOhf(const char * fname, uint8_t bitsperpixel, void* src, int pic_width, int pic_height)
+{
+	//OphContext tmp = getContext();
+
+	//int _height = pic_width;
+	//int _width = pic_height;
+
+	//if (pic_width == 0)
+	//	_width = tmp.pixel_number.v[0];
+	//if ( pic_height == 0)
+	//	_height = tmp.pixel_number.v[1];
+
+	//int _pixelbytesize = _height * _width * bitsperpixel / 8;
+	//int _filesize = _pixelbytesize + sizeof(ohfdata);
+
+	//FILE *fp;
+	//fopen_s(&fp, fname, "wb");
+	//if (fp == nullptr) return -1;
+
+	//ohfdata *ohf = (ohfdata*)calloc(1, sizeof(ohfdata));
+	//memset(ohf, 0x00, sizeof(ohfdata));
+
+	//ohf->file_header.signature[0] = 'O';
+	//ohf->file_header.signature[1] = 'H';
+	//ohf->file_header.signature[2] = 'F';
+
+	//ohf->file_header.filesize = _filesize;
+	//ohf->file_header.offsetbits = sizeof(ohfdata);
+
+	//ohf->field_header.headersize = sizeof(ohffieldheader);
+
+	//ohf->field_header.pixelnum_x = _width;
+	//ohf->field_header.pixelnum_y = _height;
+
+	//ohf->field_header.pixelpitch_x = tmp.pixel_pitch.v[0];
+	//ohf->field_header.pixelpitch_y = tmp.pixel_pitch.v[1];
+
+	//ohf->field_header.pitchunit[0] = 'm';
+	//ohf->field_header.pitchunit[1] = 't';
+
+	//ohf->field_header.colortype[0] = 'G';
+	//ohf->field_header.colortype[1] = 'R';
+	//ohf->field_header.colortype[2] = 'Y';
+
+	//ohf->field_header.wavelength = tmp.lambda;
+	//ohf->field_header.wavelengthunit[0] = 'm';
+	//ohf->field_header.wavelengthunit[1] = 't';
+
+	//ohf->field_header.complexfieldtype[0] = 'i';
+	//ohf->field_header.complexfieldtype[1] = 'm';
+	//ohf->field_header.complexfieldtype[2] = 'a';
+	//ohf->field_header.complexfieldtype[3] = 'g';
+	//ohf->field_header.complexfieldtype[4] = 'e';
+	////ohf->field_header.complexfieldtype[5] = '\0';
+
+	//ohf->field_header.fieldtype[0] = 'A';
+	//ohf->field_header.fieldtype[1] = 'P';
+
+	//ohf->field_header.imageformat[0] = 'b';
+	//ohf->field_header.imageformat[1] = 'm';
+	//ohf->field_header.imageformat[2] = 'p';
+	////ohf->field_header.imageformat[3] = '\0';
+	////ohf->field_header.imageformat[4] = '\0';
+	////ohf->field_header.imageformat[5] = '\0';
+	////ohf->field_header.imageformat[6] = '\0';
+	////ohf->field_header.imageformat[7] = '\0';
+	////ohf->field_header.imageformat[8] = '\0';
+	////ohf->field_header.imageformat[9] = '\0';
+
+	//fwrite(ohf, 1, sizeof(ohfdata), fp);
+
+	//if (src == nullptr)
+	//	fwrite(p_hologram, 1, _pixelbytesize, fp);
+	//else
+	//	fwrite(src, 1, _pixelbytesize, fp);
+	//fclose(fp);
+	//free(ohf);
+
+	return 1;
+}
+
+int Openholo::saveAsImg(const char * fname, uint8_t bitsperpixel, void* src, int pic_width, int pic_height)
+{
+	OphContext tmp = getContext();
+
+	int _width = pic_width, _height = pic_height;
+
+	if (pic_width == 0)
+		_width = tmp.pixel_number.v[0];
+
+	if (pic_height == 0)
+		_height = tmp.pixel_number.v[1];
+
 	int _pixelbytesize = _height * _width*bitsperpixel / 8;
 	int _filesize = _pixelbytesize + sizeof(bitmap);
 
-	char bmpFile[256];
-	std::string fname(file_name);
-	size_t pos = fname.find(".bmp");
-	if (pos == std::string::npos)
-		sprintf_s(bmpFile, "%s.bmp", fname.c_str());
-	else
-	{
-		if (strcmp(fname.substr(pos).c_str(), ".bmp") == 0)
-			sprintf_s(bmpFile, "%s", fname.c_str());
-		else
-			sprintf_s(bmpFile, "%s.bmp", fname.c_str());
-	}
-
-
 	FILE *fp;
-	fopen_s(&fp, bmpFile, "wb");
+	fopen_s(&fp, fname, "wb");
+	if (fp == nullptr) return -1;
+
 	bitmap *pbitmap = (bitmap*)calloc(1, sizeof(bitmap));
 	memset(pbitmap, 0x00, sizeof(bitmap));
 
-	// 파일헤더
 	pbitmap->fileheader.signature[0] = 'B';
 	pbitmap->fileheader.signature[1] = 'M';
 	pbitmap->fileheader.filesize = _filesize;
 	pbitmap->fileheader.fileoffset_to_pixelarray = sizeof(bitmap);
 
-	// 팔레트 초기화: 흑백으로 만들어 줍니다.
 	for (int i = 0; i < 256; i++) {
 		pbitmap->rgbquad[i].rgbBlue = i;
 		pbitmap->rgbquad[i].rgbGreen = i;
 		pbitmap->rgbquad[i].rgbRed = i;
 	}
-	// 이미지 헤더
+
 	pbitmap->bitmapinfoheader.dibheadersize = sizeof(bitmapinfoheader);
 	pbitmap->bitmapinfoheader.width = _width;
 	pbitmap->bitmapinfoheader.height = _height;
@@ -58,24 +214,85 @@ int Openholo::createBitmapFile(unsigned char * pixelbuffer, int pic_width, int p
 	pbitmap->bitmapinfoheader.numcolorspallette = 256;
 	fwrite(pbitmap, 1, sizeof(bitmap), fp);
 
-	// data upside down
-	//unsigned char* img_tmp = (unsigned char*)malloc(sizeof(unsigned char)*_pixelbytesize);
-	//int rowsz = _width * (bitsperpixel / 8);
-	//for (int k = 0; k < _pixelbytesize; k++)
-	//{
-	//	int r = k / rowsz;
-	//	int c = k % rowsz;
-	//	img_tmp[(_height - r - 1)*rowsz + c] = pixelbuffer[r*rowsz + c];
-	//}
-
-
-	fwrite(pixelbuffer, 1, _pixelbytesize, fp);
+	if (src == nullptr)
+		fwrite(p_hologram, 1, _pixelbytesize, fp);
+	else
+		fwrite(src, 1, _pixelbytesize, fp);
 	fclose(fp);
 	free(pbitmap);
 	return 1;
 }
 
-int Openholo::getBitmapSize(int & w, int & h, int & bytesperpixel, const char * file_name)
+int Openholo::loadAsOhf(const char * fname, void* dst)
+{
+	FILE *infile;
+	fopen_s(&infile, fname, "rb");
+	if (infile == nullptr) { printf("No such file"); return 0; }
+
+	ohfheader hf;
+	ohffieldheader fHeader;
+	fread(&hf, sizeof(ohfheader), 1, infile);
+	if (hf.signature[0] != 'O' || hf.signature[1] != 'H' || hf.signature[2] != 'F') { printf("Not OHF File"); return 0; }
+
+	fread(&fHeader, sizeof(ohffieldheader), 1, infile);
+
+	int n_x = context_.pixel_number.v[0];
+	int n_y = context_.pixel_number.v[1];
+
+	p_hologram = (oph::uchar*)calloc(1, sizeof(oph::uchar)*n_x*n_y);
+
+	fread(dst, sizeof(oph::uchar*), fHeader.pixelnum_x * fHeader.pixelnum_y, infile);
+
+	fclose(infile);
+
+	return 0;
+}
+
+int Openholo::loadAsImg(const char * fname, void* dst)
+{
+	FILE *infile;
+	fopen_s(&infile, fname, "rb");
+	if (infile == nullptr) { printf("No such file"); return 0; }
+
+	// BMP Header Information
+	fileheader hf;
+	bitmapinfoheader hInfo;
+	fread(&hf, sizeof(fileheader), 1, infile);
+	if (hf.signature[0] != 'B' || hf.signature[1] != 'M') { printf("Not BMP File");  return 0; }
+
+	fread(&hInfo, sizeof(bitmapinfoheader), 1, infile);
+	fseek(infile, hf.fileoffset_to_pixelarray, SEEK_SET);
+
+	oph::uchar* img_tmp;
+	if (hInfo.imagesize == 0)
+	{
+		img_tmp = (oph::uchar*)malloc(sizeof(oph::uchar)*hInfo.width*hInfo.height*(hInfo.bitsperpixel / 8));
+		fread(img_tmp, sizeof(oph::uchar), hInfo.width*hInfo.height*(hInfo.bitsperpixel / 8), infile);
+	}
+	else 
+	{
+		img_tmp = (oph::uchar*)malloc(hInfo.imagesize);
+		fread(img_tmp, sizeof(oph::uchar), hInfo.imagesize, infile);
+	}
+	fclose(infile);
+
+	// data upside down
+	int bytesperpixel = hInfo.bitsperpixel / 8;
+	int rowsz = bytesperpixel * hInfo.width;
+
+	for (oph::uint k = 0; k < hInfo.height*rowsz; k++)
+	{
+		int r = k / rowsz;
+		int c = k % rowsz;
+		((oph::uchar*)dst)[(hInfo.height - r - 1)*rowsz + c] = img_tmp[r*rowsz + c];
+	}
+
+	free(img_tmp);
+
+	return 1;
+}
+
+int Openholo::getImgSize(int & w, int & h, int & bytesperpixel, const char * file_name)
 {
 	char bmpFile[256];
 	sprintf_s(bmpFile, "%s", file_name);
@@ -97,68 +314,6 @@ int Openholo::getBitmapSize(int & w, int & h, int & bytesperpixel, const char * 
 
 	fclose(infile);
 
-	return 1;
-}
-
-int Openholo::loadBitmapFile(unsigned char * pixelbuffer, const char * file_name)
-{
-	char bmpFile[256];
-
-	std::string fname(file_name);
-	size_t pos = fname.find(".bmp");
-	if (pos == std::string::npos)
-		sprintf_s(bmpFile, "%s.bmp", fname.c_str());
-	else
-	{
-		if (strcmp(fname.substr(pos).c_str(), ".bmp") == 0)
-			sprintf_s(bmpFile, "%s", fname.c_str());
-		else
-			sprintf_s(bmpFile, "%s.bmp", fname.c_str());
-	}
-
-	FILE *infile;
-	fopen_s(&infile, bmpFile, "rb");
-	if (infile == NULL) { printf("No Image File"); return 0; }
-
-	// BMP Header Information
-	fileheader hf;
-	bitmapinfoheader hInfo;
-	fread(&hf, sizeof(fileheader), 1, infile);
-	if (hf.signature[0] != 'B' || hf.signature[1] != 'M') return 0;
-	fread(&hInfo, sizeof(bitmapinfoheader), 1, infile);
-	//if (hInfo.bitsperpixel != 8) { printf("Bad File Format!!"); return 0; }
-
-	// BMP Pallete
-	//rgbquad hRGB[256];
-	//fread(hRGB, sizeof(rgbquad), 256, infile);
-
-	// Memory
-	fseek(infile, hf.fileoffset_to_pixelarray, SEEK_SET);
-
-	unsigned char* img_tmp;
-	if (hInfo.imagesize == 0)
-	{
-		img_tmp = (unsigned char*)malloc(sizeof(unsigned char)*hInfo.width*hInfo.height*(hInfo.bitsperpixel / 8));
-		fread(img_tmp, sizeof(char), hInfo.width*hInfo.height*(hInfo.bitsperpixel / 8), infile);
-	}
-	else {
-		img_tmp = (unsigned char*)malloc(hInfo.imagesize);
-		fread(img_tmp, sizeof(char), hInfo.imagesize, infile);
-	}
-	fclose(infile);
-
-	// data upside down
-	int bytesperpixel = hInfo.bitsperpixel / 8;
-	int rowsz = bytesperpixel * hInfo.width;
-
-	for (oph::uint k = 0; k < hInfo.height*rowsz; k++)
-	{
-		int r = k / rowsz;
-		int c = k % rowsz;
-		pixelbuffer[(hInfo.height - r - 1)*rowsz + c] = img_tmp[r*rowsz + c];
-	}
-
-	free(img_tmp);
 	return 1;
 }
 
@@ -188,16 +343,22 @@ void Openholo::imgScaleBilnear(unsigned char * src, unsigned char * dst, int w, 
 	}
 }
 
-void Openholo::convertToFormatGray8(unsigned char * img, unsigned char * imgload, int w, int h, int bytesperpixel)
+void Openholo::convertToFormatGray8(unsigned char * dst, unsigned char * src, int w, int h, int bytesperpixel)
 {
 	int idx = 0;
 	unsigned int r = 0, g = 0, b = 0;
 	for (int i = 0; i < w*h*bytesperpixel; i++)
 	{
-		unsigned int r = imgload[i + 0];
-		unsigned int g = imgload[i + 1];
-		unsigned int b = imgload[i + 2];
-		img[idx++] = (r + g + b) / 3;
+		unsigned int r = src[i + 0];
+		unsigned int g = src[i + 1];
+		unsigned int b = src[i + 2];
+		dst[idx++] = (r + g + b) / 3;
 		i += bytesperpixel - 1;
 	}
+}
+
+void Openholo::ophFree(void)
+{
+	free(p_hologram);
+	p_hologram = nullptr;
 }

@@ -13,22 +13,22 @@ fftw_plan fft_plan_bwd_;
 void ophDepthMap::init_CPU()
 {
 	if (img_src_)	free(img_src_);
-	img_src_ = (double*)malloc(sizeof(double)*params_.pn[0]*params_.pn[1]);
+	img_src_ = (real*)malloc(sizeof(real)*context_.pixel_number[0]*context_.pixel_number[1]);
 
 	if (dmap_src_) free(dmap_src_);
-	dmap_src_ = (double*)malloc(sizeof(double)*params_.pn[0]*params_.pn[1]);
+	dmap_src_ = (real*)malloc(sizeof(real)*context_.pixel_number[0]*context_.pixel_number[1]);
 
 	if (alpha_map_) free(alpha_map_);
-	alpha_map_ = (int*)malloc(sizeof(int) * params_.pn[0] * params_.pn[1] );
+	alpha_map_ = (int*)malloc(sizeof(int) * context_.pixel_number[0] * context_.pixel_number[1] );
 
 	if (depth_index_) free(depth_index_);
-	depth_index_ = (double*)malloc(sizeof(double) * params_.pn[0] * params_.pn[1]);
+	depth_index_ = (real*)malloc(sizeof(real) * context_.pixel_number[0] * context_.pixel_number[1]);
 
 	if (dmap_) free(dmap_);
-	dmap_ = (double*)malloc(sizeof(double)* params_.pn[0] * params_.pn[1]);
+	dmap_ = (real*)malloc(sizeof(real)* context_.pixel_number[0] * context_.pixel_number[1]);
 
 	if (U_complex_)	free(U_complex_);
-	U_complex_ = (Complex*)malloc(sizeof(Complex) * params_.pn[0] * params_.pn[1] );
+	U_complex_ = (oph::Complex<real>*)malloc(sizeof(oph::Complex<real>) * context_.pixel_number[0] * context_.pixel_number[1] );
 
 	fftw_cleanup();
 }
@@ -43,26 +43,26 @@ void ophDepthMap::init_CPU()
 */
 bool ophDepthMap::prepare_inputdata_CPU(uchar* imgptr, uchar* dimgptr)
 {
-	int pnx = params_.pn[0];
-	int pny = params_.pn[1];
+	int pnx = context_.pixel_number[0];
+	int pny = context_.pixel_number[1];
 
-	memset(img_src_, 0, sizeof(double)*pnx * pny);
-	memset(dmap_src_, 0, sizeof(double)*pnx * pny);
+	memset(img_src_, 0, sizeof(real)*pnx * pny);
+	memset(dmap_src_, 0, sizeof(real)*pnx * pny);
 	memset(alpha_map_, 0, sizeof(int)*pnx * pny);
-	memset(depth_index_, 0, sizeof(double)*pnx * pny);
-	memset(dmap_, 0, sizeof(double)*pnx * pny);
+	memset(depth_index_, 0, sizeof(real)*pnx * pny);
+	memset(dmap_, 0, sizeof(real)*pnx * pny);
 
 	int k = 0;
 #pragma omp parallel for private(k)
 	for (k = 0; k < pnx*pny; k++)
 	{
-		img_src_[k] = double(imgptr[k]) / 255.0;
-		dmap_src_[k] = double(dimgptr[k]) / 255.0;
+		img_src_[k] = real(imgptr[k]) / 255.0;
+		dmap_src_[k] = real(dimgptr[k]) / 255.0;
 		alpha_map_[k] = (imgptr[k] > 0 ? 1 : 0);
-		dmap_[k] = (1 - dmap_src_[k])*(params_.far_depthmap - params_.near_depthmap) + params_.near_depthmap;
+		dmap_[k] = (1 - dmap_src_[k])*(dm_config_.far_depthmap - dm_config_.near_depthmap) + dm_config_.near_depthmap;
 
-		if (FLAG_CHANGE_DEPTH_QUANTIZATION == 0)
-			depth_index_[k] = DEFAULT_DEPTH_QUANTIZATION - double(dimgptr[k]);
+		if (dm_params_.FLAG_CHANGE_DEPTH_QUANTIZATION == 0)
+			depth_index_[k] = dm_params_.DEFAULT_DEPTH_QUANTIZATION - real(dimgptr[k]);
 	}
 
 	return true;
@@ -75,12 +75,12 @@ bool ophDepthMap::prepare_inputdata_CPU(uchar* imgptr, uchar* dimgptr)
 */
 void ophDepthMap::change_depth_quan_CPU()
 {
-	int pnx = params_.pn[0];
-	int pny = params_.pn[1];
+	int pnx = context_.pixel_number[0];
+	int pny = context_.pixel_number[1];
 
-	double temp_depth, d1, d2;
+	real temp_depth, d1, d2;
 
-	for (uint dtr = 0; dtr < params_.num_of_depth; dtr++)
+	for (uint dtr = 0; dtr < dm_config_.num_of_depth; dtr++)
 	{
 		temp_depth = dlevel_[dtr];
 		d1 = temp_depth - dstep_ / 2.0;
@@ -91,7 +91,7 @@ void ophDepthMap::change_depth_quan_CPU()
 		for (p = 0; p < pnx * pny; p++)
 		{
 			int tdepth;
-			if (dtr < params_.num_of_depth - 1)
+			if (dtr < dm_config_.num_of_depth - 1)
 				tdepth = (dmap_[p] >= d1 ? 1 : 0) * (dmap_[p] < d2 ? 1 : 0);
 			else
 				tdepth = (dmap_[p] >= d1 ? 1 : 0) * (dmap_[p] <= d2 ? 1 : 0);
@@ -117,11 +117,11 @@ void ophDepthMap::change_depth_quan_CPU()
 */
 void ophDepthMap::calc_Holo_CPU(int frame)
 {
-	int pnx = params_.pn[0];
-	int pny = params_.pn[1];
+	int pnx = context_.pixel_number[0];
+	int pny = context_.pixel_number[1];
 
-	memset(U_complex_, 0.0, sizeof(Complex)*pnx*pny);
-	int depth_sz = static_cast<int>(params_.render_depth.size());
+	memset(U_complex_, 0.0, sizeof(oph::Complex<real>)*pnx*pny);
+	int depth_sz = static_cast<int>(dm_config_.render_depth.size());
 
 	fftw_complex *in = NULL, *out = NULL;
 	fft_plan_fwd_ = fftw_plan_dft_2d(pny, pnx, in, out, FFTW_FORWARD, FFTW_ESTIMATE);
@@ -130,33 +130,33 @@ void ophDepthMap::calc_Holo_CPU(int frame)
 #pragma omp parallel for private(p)
 	for (p = 0; p < depth_sz; ++p)
 	{
-		int dtr = params_.render_depth[p];
-		double temp_depth = dlevel_transform_[dtr - 1];
+		int dtr = dm_config_.render_depth[p];
+		real temp_depth = dlevel_transform_[dtr - 1];
 
-		Complex* u_o = (Complex*)malloc(sizeof(Complex)*pnx*pny);
-		memset(u_o, 0.0, sizeof(Complex)*pnx*pny);
+		oph::Complex<real>* u_o = (oph::Complex<real>*)malloc(sizeof(oph::Complex<real>)*pnx*pny);
+		memset(u_o, 0.0, sizeof(oph::Complex<real>)*pnx*pny);
 
-		double sum = 0.0;
+		real sum = 0.0;
 		for (int i = 0; i < pnx * pny; i++)
 		{
-			u_o[i].a = img_src_[i] * alpha_map_[i] * (depth_index_[i] == dtr ? 1.0 : 0.0);
-			sum += u_o[i].a;
+			u_o[i].re = img_src_[i] * alpha_map_[i] * (depth_index_[i] == dtr ? 1.0 : 0.0);
+			sum += u_o[i].re;
 		}
 
 		if (sum > 0.0)
 		{
-			LOG("Frame#: %d, Depth: %d of %d, z = %f mm\n", frame, dtr, params_.num_of_depth, -temp_depth * 1000);
+			LOG("Frame#: %d, Depth: %d of %d, z = %f mm\n", frame, dtr, dm_config_.num_of_depth, -temp_depth * 1000);
 
-			Complex rand_phase_val;
+			oph::Complex<real> rand_phase_val;
 			get_rand_phase_value(rand_phase_val);
 
-			Complex carrier_phase_delay(0, params_.k* temp_depth);
+			oph::Complex<real> carrier_phase_delay(0, context_.k* temp_depth);
 			exponent_complex(&carrier_phase_delay);
 
 			for (int i = 0; i < pnx * pny; i++)
 				u_o[i] = u_o[i] * rand_phase_val * carrier_phase_delay;
 
-			if (Propagation_Method_ == 0) {
+			if (dm_params_.Propagation_Method_ == 0) {
 				fftwShift(u_o, u_o, in, out, pnx, pny, 1, false);
 				propagation_AngularSpectrum_CPU(u_o, -temp_depth);
 			}
@@ -165,7 +165,7 @@ void ophDepthMap::calc_Holo_CPU(int frame)
 			
 		}
 		else
-			LOG("Frame#: %d, Depth: %d of %d : Nothing here\n", frame, dtr, params_.num_of_depth);
+			LOG("Frame#: %d, Depth: %d of %d : Nothing here\n", frame, dtr, dm_config_.num_of_depth);
 
 		free(u_o);
 	}
@@ -184,32 +184,32 @@ void ophDepthMap::calc_Holo_CPU(int frame)
 * @param propagation_dist : the distance from the object to the hologram plane.
 * @see calc_Holo_by_Depth, calc_Holo_CPU, fftwShift
 */
-void ophDepthMap::propagation_AngularSpectrum_CPU(Complex* input_u, double propagation_dist)
+void ophDepthMap::propagation_AngularSpectrum_CPU(oph::Complex<real>* input_u, real propagation_dist)
 {
-	int pnx = params_.pn[0];
-	int pny = params_.pn[1];
-	double ppx = params_.pp[0];
-	double ppy = params_.pp[1];
-	double ssx = params_.ss[0];
-	double ssy = params_.ss[1];
-	double lambda = params_.lambda;
+	int pnx = context_.pixel_number[0];
+	int pny = context_.pixel_number[1];
+	real ppx = context_.pixel_pitch[0];
+	real ppy = context_.pixel_pitch[1];
+	real ssx = context_.ss[0];
+	real ssy = context_.ss[1];
+	real lambda = context_.lambda;
 
 	for (int i = 0; i < pnx * pny; i++)
 	{
-		double x = i % pnx;
-		double y = i / pnx;
+		real x = i % pnx;
+		real y = i / pnx;
 
-		double fxx = (-1.0 / (2.0*ppx)) + (1.0 / ssx) * x;
-		double fyy = (1.0 / (2.0*ppy)) - (1.0 / ssy) - (1.0 / ssy) * y;
+		real fxx = (-1.0 / (2.0*ppx)) + (1.0 / ssx) * x;
+		real fyy = (1.0 / (2.0*ppy)) - (1.0 / ssy) - (1.0 / ssy) * y;
 
-		double sval = sqrt(1 - (lambda*fxx)*(lambda*fxx) - (lambda*fyy)*(lambda*fyy));
-		sval *= params_.k * propagation_dist;
-		Complex kernel(0, sval);
+		real sval = sqrt(1 - (lambda*fxx)*(lambda*fxx) - (lambda*fyy)*(lambda*fyy));
+		sval *= context_.k * propagation_dist;
+		oph::Complex<real> kernel(0, sval);
 		exponent_complex(&kernel);
 
-		int prop_mask = ((fxx * fxx + fyy * fyy) < (params_.k *params_.k)) ? 1 : 0;
+		int prop_mask = ((fxx * fxx + fyy * fyy) < (context_.k *context_.k)) ? 1 : 0;
 
-		Complex u_frequency;
+		oph::Complex<real> u_frequency;
 		if (prop_mask == 1)
 			u_frequency = kernel * input_u[i];
 
@@ -220,7 +220,7 @@ void ophDepthMap::propagation_AngularSpectrum_CPU(Complex* input_u, double propa
 
 /**
 * @brief Encode the CGH according to a signal location parameter on the CPU.
-* @details The CPU variable, u255_fringe_ on CPU has the final result.
+* @details The CPU variable, p_hologram on CPU has the final result.
 * @param cropx1 : the start x-coordinate to crop.
 * @param cropx2 : the end x-coordinate to crop.
 * @param cropy1 : the start y-coordinate to crop.
@@ -231,11 +231,11 @@ void ophDepthMap::propagation_AngularSpectrum_CPU(Complex* input_u, double propa
 */
 void ophDepthMap::encoding_CPU(int cropx1, int cropx2, int cropy1, int cropy2, ivec2 sig_location)
 {
-	int pnx = params_.pn[0];
-	int pny = params_.pn[1];
+	int pnx = context_.pixel_number[0];
+	int pny = context_.pixel_number[1];
 
-	Complex* h_crop = (Complex*)malloc(sizeof(Complex) * pnx*pny );
-	memset(h_crop, 0.0, sizeof(Complex)*pnx*pny);
+	oph::Complex<real>* h_crop = (oph::Complex<real>*)malloc(sizeof(oph::Complex<real>) * pnx*pny );
+	memset(h_crop, 0.0, sizeof(oph::Complex<real>)*pnx*pny);
 
 	int p = 0;
 #pragma omp parallel for private(p)	
@@ -253,18 +253,18 @@ void ophDepthMap::encoding_CPU(int cropx1, int cropx2, int cropy1, int cropy2, i
 	fftw_destroy_plan(fft_plan_bwd_);
 	fftw_cleanup();
 
-	memset(u255_fringe_, 0.0, sizeof(double)*pnx*pny);
+	memset(p_hologram, 0.0, sizeof(real)*pnx*pny);
 	int i = 0;
 #pragma omp parallel for private(i)	
 	for (i = 0; i < pnx*pny; i++) {
 
-		Complex shift_phase(1, 0);
+		oph::Complex<real> shift_phase(1, 0);
 		get_shift_phase_value(shift_phase, i, sig_location);
 
-		u255_fringe_[i] = (h_crop[i] * shift_phase).a;
+		((real*)p_hologram)[i] = (h_crop[i] * shift_phase).re;
 	}
 
-	//writeIntensity_gray8_bmp("fringe_255", pnx, pny, u255_fringe_);
+	//writeIntensity_gray8_bmp("fringe_255", pnx, pny, p_hologram);
 
 	free(h_crop);
 
@@ -283,10 +283,10 @@ void ophDepthMap::encoding_CPU(int cropx1, int cropx2, int cropy1, int cropy2, i
 * @param bNomarlized : If bNomarlized == true, normalize the result after FFT.
 * @see propagation_AngularSpectrum_CPU, encoding_CPU
 */
-void ophDepthMap::fftwShift(Complex* src, Complex* dst, fftw_complex* in, fftw_complex* out, int nx, int ny, int type, bool bNomarlized)
+void ophDepthMap::fftwShift(oph::Complex<real>* src, oph::Complex<real>* dst, fftw_complex* in, fftw_complex* out, int nx, int ny, int type, bool bNomarlized)
 {
-	Complex* tmp = (Complex*)malloc(sizeof(Complex)*nx*ny);
-	memset(tmp, 0.0, sizeof(Complex)*nx*ny);
+	oph::Complex<real>* tmp = (oph::Complex<real>*)malloc(sizeof(oph::Complex<real>)*nx*ny);
+	memset(tmp, 0.0, sizeof(oph::Complex<real>)*nx*ny);
 	fftShift(nx, ny, src, tmp);
 
 	in = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * nx * ny);
@@ -294,8 +294,8 @@ void ophDepthMap::fftwShift(Complex* src, Complex* dst, fftw_complex* in, fftw_c
 	
 	for (int i = 0; i < nx*ny; i++)
 	{
-		in[i][0] = tmp[i].a;
-		in[i][1] = tmp[i].b;
+		in[i][0] = tmp[i].re;
+		in[i][1] = tmp[i].im;
 	}
 
 	if (type == 1)
@@ -305,16 +305,16 @@ void ophDepthMap::fftwShift(Complex* src, Complex* dst, fftw_complex* in, fftw_c
 	
 	int normalF = 1;
 	if (bNomarlized) normalF = nx * ny;
-	memset(tmp, 0, sizeof(Complex)*nx*ny);
+	memset(tmp, 0, sizeof(oph::Complex<real>)*nx*ny);
 
 	for (int k = 0; k < nx*ny; k++) {
-		tmp[k].a = out[k][0] / normalF;
-		tmp[k].b = out[k][1] / normalF;
+		tmp[k].re = out[k][0] / normalF;
+		tmp[k].im = out[k][1] / normalF;
 	}
 	fftw_free(in);
 	fftw_free(out);
 
-	memset(dst, 0.0, sizeof(Complex)*nx*ny);
+	memset(dst, 0.0, sizeof(oph::Complex<real>)*nx*ny);
 	fftShift(nx, ny, tmp, dst);
 	
 	free(tmp);
@@ -329,7 +329,7 @@ void ophDepthMap::fftwShift(Complex* src, Complex* dst, fftw_complex* in, fftw_c
 * @param output : output data variable
 * @see fftwShift
 */
-void ophDepthMap::fftShift(int nx, int ny, Complex* input, Complex* output)
+void ophDepthMap::fftShift(int nx, int ny, oph::Complex<real>* input, oph::Complex<real>* output)
 {
 	for (int i = 0; i < nx; i++)
 	{
@@ -348,12 +348,12 @@ void ophDepthMap::fftShift(int nx, int ny, Complex* input, Complex* output)
 * @param val : input & ouput value
 * @see propagation_AngularSpectrum_CPU, calc_Holo_CPU
 */
-void ophDepthMap::exponent_complex(Complex* val)
+void ophDepthMap::exponent_complex(oph::Complex<real>* val)
 {
-	double realv = val->a;
-	double imgv = val->b;
-	val->a = exp(realv)*cos(imgv);
-	val->b = exp(realv)*sin(imgv);
+	real realv = val->re;
+	real imgv = val->im;
+	val->re = exp(realv)*cos(imgv);
+	val->im = exp(realv)*sin(imgv);
 
 }
 
@@ -364,26 +364,26 @@ void ophDepthMap::exponent_complex(Complex* val)
 * @param sig_location :  signal location.
 * @see encoding_CPU
 */
-void ophDepthMap::get_shift_phase_value(Complex& shift_phase_val, int idx, ivec2 sig_location)
+void ophDepthMap::get_shift_phase_value(oph::Complex<real>& shift_phase_val, int idx, ivec2 sig_location)
 {
-	int pnx = params_.pn[0];
-	int pny = params_.pn[1];
-	double ppx = params_.pp[0];
-	double ppy = params_.pp[1];
-	double ssx = params_.ss[0];
-	double ssy = params_.ss[1];
+	int pnx = context_.pixel_number[0];
+	int pny = context_.pixel_number[1];
+	real ppx = context_.pixel_pitch[0];
+	real ppy = context_.pixel_pitch[1];
+	real ssx = context_.ss[0];
+	real ssy = context_.ss[1];
 
 	if (sig_location[1] != 0)
 	{
 		int r = idx / pnx;
 		int c = idx % pnx;
-		double yy = (ssy / 2.0) - (ppy)*r - ppy;
+		real yy = (ssy / 2.0) - (ppy)*r - ppy;
 
-		Complex val;
+		oph::Complex<real> val;
 		if (sig_location[1] == 1)
-			val.b = 2 * PI * (yy / (4 * ppy));
+			val.im = 2 * PI * (yy / (4 * ppy));
 		else
-			val.b = 2 * PI * (-yy / (4 * ppy));
+			val.im = 2 * PI * (-yy / (4 * ppy));
 
 		exponent_complex(&val);
 		shift_phase_val *= val;
@@ -393,13 +393,13 @@ void ophDepthMap::get_shift_phase_value(Complex& shift_phase_val, int idx, ivec2
 	{
 		int r = idx / pnx;
 		int c = idx % pnx;
-		double xx = (-ssx / 2.0) - (ppx)*c - ppx;
+		real xx = (-ssx / 2.0) - (ppx)*c - ppx;
 
-		Complex val;
+		oph::Complex<real> val;
 		if (sig_location[0] == -1)
-			val.b = 2 * PI * (-xx / (4 * ppx));
+			val.im = 2 * PI * (-xx / (4 * ppx));
 		else
-			val.b = 2 * PI * (xx / (4 * ppx));
+			val.im = 2 * PI * (xx / (4 * ppx));
 
 		exponent_complex(&val);
 		shift_phase_val *= val;
@@ -414,56 +414,56 @@ void ophDepthMap::get_shift_phase_value(Complex& shift_phase_val, int idx, ivec2
 */
 void ophDepthMap::reconstructImage()
 {
-	if (!u255_fringe_) {
-		//u255_fringe_ = (double*)malloc(sizeof(double)*params_.pn[0] * params_.pn[1]);
-		//if (!readMatFileDouble("u255_fringe.mat", u255_fringe_))
+	if (!p_hologram) {
+		//p_hologram = (real*)malloc(sizeof(real)*context_.pixel_number[0] * context_.pixel_number[1]);
+		//if (!readMatFileDouble("u255_fringe.mat", p_hologram))
 		LOG("Error: No Hologram Data\n");
 		return;
 	}
 
-	Pixel_pitch_xy_[0] = params_.pp[0] / test_pixel_number_scale_;
-	Pixel_pitch_xy_[1] = params_.pp[1] / test_pixel_number_scale_;
+	dm_simuls_.Pixel_pitch_xy_[0] = context_.pixel_pitch[0] / dm_simuls_.test_pixel_number_scale_;
+	dm_simuls_.Pixel_pitch_xy_[1] = context_.pixel_pitch[1] / dm_simuls_.test_pixel_number_scale_;
 
-	SLM_pixel_number_xy_[0] = params_.pn[0] / test_pixel_number_scale_;
-	SLM_pixel_number_xy_[1] = params_.pn[1] / test_pixel_number_scale_;
+	dm_simuls_.SLM_pixel_number_xy_[0] = context_.pixel_number[0] / dm_simuls_.test_pixel_number_scale_;
+	dm_simuls_.SLM_pixel_number_xy_[1] = context_.pixel_number[1] / dm_simuls_.test_pixel_number_scale_;
 
-	f_field_ = params_.field_lens;
+	dm_simuls_.f_field_ = dm_config_.field_lens;
 
-	if (sim_final_)		free(sim_final_);
-	sim_final_ = (double*)malloc(sizeof(double)*SLM_pixel_number_xy_[0] * SLM_pixel_number_xy_[1]);
-	memset(sim_final_, 0.0, sizeof(double)*SLM_pixel_number_xy_[0] * SLM_pixel_number_xy_[1]);
+	if (dm_simuls_.sim_final_)		free(dm_simuls_.sim_final_);
+	dm_simuls_.sim_final_ = (real*)malloc(sizeof(real)*dm_simuls_.SLM_pixel_number_xy_[0] * dm_simuls_.SLM_pixel_number_xy_[1]);
+	memset(dm_simuls_.sim_final_, 0.0, sizeof(real)*dm_simuls_.SLM_pixel_number_xy_[0] * dm_simuls_.SLM_pixel_number_xy_[1]);
 
-	double vmax, vmin, vstep, vval;
-	if (sim_step_num_ > 1)
+	real vmax, vmin, vstep, vval;
+	if (dm_simuls_.sim_step_num_ > 1)
 	{
-		vmax = max(sim_to_, sim_from_);
-		vmin = min(sim_to_, sim_from_);
-		vstep = (sim_to_ - sim_from_) / (sim_step_num_ - 1);
+		vmax = max(dm_simuls_.sim_to_, dm_simuls_.sim_from_);
+		vmin = min(dm_simuls_.sim_to_, dm_simuls_.sim_from_);
+		vstep = (dm_simuls_.sim_to_ - dm_simuls_.sim_from_) / (dm_simuls_.sim_step_num_ - 1);
 
 	}
-	else if (sim_step_num_ == 1) {
-		vval = (sim_to_ + sim_from_) / 2.0;
+	else if (dm_simuls_.sim_step_num_ == 1) {
+		vval = (dm_simuls_.sim_to_ + dm_simuls_.sim_from_) / 2.0;
 	}
 
 	fftw_complex *in = NULL, *out = NULL;
-	fft_plan_fwd_ = fftw_plan_dft_2d(SLM_pixel_number_xy_[1], SLM_pixel_number_xy_[0], in, out, FFTW_FORWARD, FFTW_ESTIMATE);
+	fft_plan_fwd_ = fftw_plan_dft_2d(dm_simuls_.SLM_pixel_number_xy_[1], dm_simuls_.SLM_pixel_number_xy_[0], in, out, FFTW_FORWARD, FFTW_ESTIMATE);
 
-	if (hh_complex_)		free(hh_complex_);
-	hh_complex_ = (Complex*)malloc(sizeof(Complex) *SLM_pixel_number_xy_[0] * SLM_pixel_number_xy_[1]);
+	if (dm_simuls_.hh_complex_)		free(dm_simuls_.hh_complex_);
+	dm_simuls_.hh_complex_ = (oph::Complex<real>*)malloc(sizeof(oph::Complex<real>) *dm_simuls_.SLM_pixel_number_xy_[0] * dm_simuls_.SLM_pixel_number_xy_[1]);
 
 	testPropagation2EyePupil(in, out);
 
-	if (sim_step_num_ > 0)
+	if (dm_simuls_.sim_step_num_ > 0)
 	{
-		for (int vtr = 1; vtr <= sim_step_num_; vtr++)
+		for (int vtr = 1; vtr <= dm_simuls_.sim_step_num_; vtr++)
 		{
-			LOG("Calculating Frame %d of %d \n", vtr, sim_step_num_);
-			if (sim_step_num_ > 1)
+			LOG("Calculating Frame %d of %d \n", vtr, dm_simuls_.sim_step_num_);
+			if (dm_simuls_.sim_step_num_ > 1)
 				vval = vmin + (vtr - 1)*vstep;
-			if (sim_type_ == 0)
-				focus_distance_ = vval;
+			if (dm_simuls_.sim_type_ == 0)
+				dm_simuls_.focus_distance_ = vval;
 			else
-				eye_center_xy_[1] = vval;
+				dm_simuls_.eye_center_xy_[1] = vval;
 
 			reconstruction(in, out);
 			writeSimulationImage(vtr, vval);
@@ -480,10 +480,10 @@ void ophDepthMap::reconstructImage()
 	fftw_destroy_plan(fft_plan_fwd_);
 	fftw_cleanup();
 
-	free(hh_complex_);
-	free(sim_final_);
-	sim_final_ = 0;
-	hh_complex_ = 0;
+	free(dm_simuls_.hh_complex_);
+	free(dm_simuls_.sim_final_);
+	dm_simuls_.sim_final_ = 0;
+	dm_simuls_.hh_complex_ = 0;
 
 
 }
@@ -493,44 +493,44 @@ void ophDepthMap::reconstructImage()
 */
 void ophDepthMap::testPropagation2EyePupil(fftw_complex* in, fftw_complex* out)
 {
-	int pnx = SLM_pixel_number_xy_[0];
-	int pny = SLM_pixel_number_xy_[1];
-	double ppx = Pixel_pitch_xy_[0];
-	double ppy = Pixel_pitch_xy_[1];
-	double F_size_x = pnx*ppx;
-	double F_size_y = pny*ppy;
-	double lambda = params_.lambda;
+	int pnx = dm_simuls_.SLM_pixel_number_xy_[0];
+	int pny = dm_simuls_.SLM_pixel_number_xy_[1];
+	real ppx = dm_simuls_.Pixel_pitch_xy_[0];
+	real ppy = dm_simuls_.Pixel_pitch_xy_[1];
+	real F_size_x = pnx*ppx;
+	real F_size_y = pny*ppy;
+	real lambda = context_.lambda;
 
-	Complex* hh = (Complex*)malloc(sizeof(Complex) * pnx*pny);
+	oph::Complex<real>* hh = (oph::Complex<real>*)malloc(sizeof(oph::Complex<real>) * pnx*pny);
 
 	for (int k = 0; k < pnx*pny; k++)
 	{
-		hh[k].a = u255_fringe_[k];
-		hh[k].b = 0.0;
+		hh[k].re = ((real*)p_hologram)[k];
+		hh[k].im = 0.0;
 	}
 
 	fftwShift(hh, hh, in, out, pnx, pny, 1, false);
 
-	double pp_ex = lambda * f_field_ / F_size_x;
-	double pp_ey = lambda * f_field_ / F_size_y;
-	double E_size_x = pp_ex*pnx;
-	double E_size_y = pp_ey*pny;
+	real pp_ex = lambda * dm_simuls_.f_field_ / F_size_x;
+	real pp_ey = lambda * dm_simuls_.f_field_ / F_size_y;
+	real E_size_x = pp_ex*pnx;
+	real E_size_y = pp_ey*pny;
 
 	int p;
 #pragma omp parallel for private(p)
 	for (p = 0; p < pnx * pny; p++)
 	{
-		double x = p % pnx;
-		double y = p / pnx;
+		real x = p % pnx;
+		real y = p / pnx;
 
-		double xe = (-E_size_x / 2.0) + (pp_ex * x);
-		double ye = (E_size_y / 2.0 - pp_ey) - (pp_ey * y);
+		real xe = (-E_size_x / 2.0) + (pp_ex * x);
+		real ye = (E_size_y / 2.0 - pp_ey) - (pp_ey * y);
 
-		double sval = PI / lambda / f_field_ * (xe*xe + ye*ye);
-		Complex kernel(0, sval);
+		real sval = PI / lambda / dm_simuls_.f_field_ * (xe*xe + ye*ye);
+		oph::Complex<real> kernel(0, sval);
 		exponent_complex(&kernel);
 
-		hh_complex_[p] = hh[p] * kernel;
+		dm_simuls_.hh_complex_[p] = hh[p] * kernel;
 
 	}
 
@@ -543,42 +543,42 @@ void ophDepthMap::testPropagation2EyePupil(fftw_complex* in, fftw_complex* out)
 */
 void ophDepthMap::reconstruction(fftw_complex* in, fftw_complex* out)
 {
-	int pnx = SLM_pixel_number_xy_[0];
-	int pny = SLM_pixel_number_xy_[1];
-	double ppx = Pixel_pitch_xy_[0];
-	double ppy = Pixel_pitch_xy_[1];
-	double F_size_x = pnx*ppx;
-	double F_size_y = pny*ppy;
-	double lambda = params_.lambda;
-	double pp_ex = lambda * f_field_ / F_size_x;
-	double pp_ey = lambda * f_field_ / F_size_y;
-	double E_size_x = pp_ex*pnx;
-	double E_size_y = pp_ey*pny;
+	int pnx = dm_simuls_.SLM_pixel_number_xy_[0];
+	int pny = dm_simuls_.SLM_pixel_number_xy_[1];
+	real ppx = dm_simuls_.Pixel_pitch_xy_[0];
+	real ppy = dm_simuls_.Pixel_pitch_xy_[1];
+	real F_size_x = pnx*ppx;
+	real F_size_y = pny*ppy;
+	real lambda = context_.lambda;
+	real pp_ex = lambda * dm_simuls_.f_field_ / F_size_x;
+	real pp_ey = lambda * dm_simuls_.f_field_ / F_size_y;
+	real E_size_x = pp_ex*pnx;
+	real E_size_y = pp_ey*pny;
 
-	Complex* hh_e_shift = (Complex*)malloc(sizeof(Complex) * pnx*pny);
-	Complex* hh_e_ = (Complex*)malloc(sizeof(Complex) * pnx*pny);
+	oph::Complex<real>* hh_e_shift = (oph::Complex<real>*)malloc(sizeof(oph::Complex<real>) * pnx*pny);
+	oph::Complex<real>* hh_e_ = (oph::Complex<real>*)malloc(sizeof(oph::Complex<real>) * pnx*pny);
 
-	int eye_shift_by_pnx = (int)round(eye_center_xy_[0] / pp_ex);
-	int eye_shift_by_pny = (int)round(eye_center_xy_[1] / pp_ey);
-	circshift(hh_complex_, hh_e_shift, -eye_shift_by_pnx, eye_shift_by_pny, pnx, pny);
+	int eye_shift_by_pnx = (int)round(dm_simuls_.eye_center_xy_[0] / pp_ex);
+	int eye_shift_by_pny = (int)round(dm_simuls_.eye_center_xy_[1] / pp_ey);
+	circshift(dm_simuls_.hh_complex_, hh_e_shift, -eye_shift_by_pnx, eye_shift_by_pny, pnx, pny);
 
-	double f_eye = eye_length_*(f_field_ - focus_distance_) / (eye_length_ + (f_field_ - focus_distance_));
-	double effective_f = f_eye*eye_length_ / (f_eye - eye_length_);
+	real f_eye = dm_simuls_.eye_length_*(dm_simuls_.f_field_ - dm_simuls_.focus_distance_) / (dm_simuls_.eye_length_ + (dm_simuls_.f_field_ - dm_simuls_.focus_distance_));
+	real effective_f = f_eye*dm_simuls_.eye_length_ / (f_eye - dm_simuls_.eye_length_);
 
 	int p;
 #pragma omp parallel for private(p)
 	for (p = 0; p < pnx * pny; p++)
 	{
-		double x = p % pnx;
-		double y = p / pnx;
+		real x = p % pnx;
+		real y = p / pnx;
 
-		double xe = (-E_size_x / 2.0) + (pp_ex * x);
-		double ye = (E_size_y / 2.0 - pp_ey) - (pp_ey * y);
+		real xe = (-E_size_x / 2.0) + (pp_ex * x);
+		real ye = (E_size_y / 2.0 - pp_ey) - (pp_ey * y);
 
-		Complex eye_propagation_kernel(0, PI / lambda / effective_f * (xe*xe + ye*ye));
+		oph::Complex<real> eye_propagation_kernel(0, PI / lambda / effective_f * (xe*xe + ye*ye));
 		exponent_complex(&eye_propagation_kernel);
 		int eye_lens_anti_aliasing_mask = (sqrt(xe*xe + ye*ye) < abs(lambda*effective_f / (2.0 * max(pp_ex, pp_ey)))) ? 1 : 0;
-		int eye_pupil_mask = (sqrt(xe*xe + ye*ye) < (eye_pupil_diameter_ / 2.0)) ? 1 : 0;
+		int eye_pupil_mask = (sqrt(xe*xe + ye*ye) < (dm_simuls_.eye_pupil_diameter_ / 2.0)) ? 1 : 0;
 
 		hh_e_[p] = hh_e_shift[p] * eye_propagation_kernel * eye_lens_anti_aliasing_mask * eye_pupil_mask;
 
@@ -586,25 +586,25 @@ void ophDepthMap::reconstruction(fftw_complex* in, fftw_complex* out)
 
 	fftwShift(hh_e_, hh_e_, in, out, pnx, pny, 1, false);
 
-	double pp_ret_x = lambda*eye_length_ / E_size_x;
-	double pp_ret_y = lambda*eye_length_ / E_size_y;
-	double Ret_size_x = pp_ret_x*pnx;
-	double Ret_size_y = pp_ret_y*pny;
+	real pp_ret_x = lambda*dm_simuls_.eye_length_ / E_size_x;
+	real pp_ret_y = lambda*dm_simuls_.eye_length_ / E_size_y;
+	real Ret_size_x = pp_ret_x*pnx;
+	real Ret_size_y = pp_ret_y*pny;
 
 #pragma omp parallel for private(p)
 	for (p = 0; p < pnx * pny; p++)
 	{
-		double x = p % pnx;
-		double y = p / pnx;
+		real x = p % pnx;
+		real y = p / pnx;
 
-		double xr = (-Ret_size_x / 2.0) + (pp_ret_x * x);
-		double yr = (Ret_size_y / 2.0 - pp_ret_y) - (pp_ret_y * y);
+		real xr = (-Ret_size_x / 2.0) + (pp_ret_x * x);
+		real yr = (Ret_size_y / 2.0 - pp_ret_y) - (pp_ret_y * y);
 
-		double sval = PI / lambda / eye_length_*(xr*xr + yr*yr);
-		Complex kernel(0, sval);
+		real sval = PI / lambda / dm_simuls_.eye_length_*(xr*xr + yr*yr);
+		oph::Complex<real> kernel(0, sval);
 		exponent_complex(&kernel);
 
-		sim_final_[p] = (hh_e_[p] * kernel).mag();
+		dm_simuls_.sim_final_[p] = (hh_e_[p] * kernel).mag();
 
 	}
 
@@ -616,7 +616,7 @@ void ophDepthMap::reconstruction(fftw_complex* in, fftw_complex* out)
 /**
 * @brief It is a testing function used for the reconstruction.
 */
-void ophDepthMap::circshift(Complex* in, Complex* out, int shift_x, int shift_y, int nx, int ny)
+void ophDepthMap::circshift(oph::Complex<real>* in, oph::Complex<real>* out, int shift_x, int shift_y, int nx, int ny)
 {
 	int ti, tj;
 	for (int i = 0; i < nx; i++)

@@ -10,11 +10,11 @@
     <Filter Include="__graphics\header">
       <UniqueIdentifier>{fce53f13-010a-44ee-8889-ed8ef617be4b}</UniqueIdentifier>
     </Filter>
-    <Filter Include="__graphics\cpp">
-      <UniqueIdentifier>{09329c4c-6be0-4bf8-a59c-6d60a726f8a0}</UniqueIdentifier>
-    </Filter>
     <Filter Include="_1_Openholo">
       <UniqueIdentifier>{9079d193-651a-4406-97ae-72d39b9b4c3e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="__graphics\cpp">
+      <UniqueIdentifier>{09329c4c-6be0-4bf8-a59c-6d60a726f8a0}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

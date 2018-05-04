@@ -3,18 +3,18 @@
 * @brief Abstract class for core processing classes
 */
 
-#ifndef __OphCoreProcessing_h
-#define __OphCoreProcessing_h
+#ifndef __ophSig_h
+#define __ophSig_h
 
 #include "Openholo.h"
 
-#ifdef COREPROCSS_EXPORT
-#define COREPROCSS_DLL __declspec(dllexport)
+#ifdef SIG_EXPORT
+#define SIG_DLL __declspec(dllexport)
 #else
-#define COREPROCSS_DLL __declspec(dllimport)
+#define SIG_DLL __declspec(dllimport)
 #endif
 
-class COREPROCSS_DLL ophSig : public Openholo
+class SIG_DLL ophSig : public Openholo
 {
 public:
 	/**
@@ -35,4 +35,4 @@ protected:
 	virtual void ophFree(void) = 0;
 };
 
-#endif // !__OphCoreProcessing_h
+#endif // !__ophSig_h

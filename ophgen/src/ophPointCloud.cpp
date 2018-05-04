@@ -3,301 +3,132 @@
 ophPointCloud::ophPointCloud(void)
 {
 	setMode(false);
-	this->InputSrcFile = "";
-	this->InputConfigFile = "";
-	this->n_points = -1;
-	this->data_hologram = nullptr;
+	n_points = -1;
 }
 
-ophPointCloud::ophPointCloud(const std::string InputModelFile, const std::string InputConfigFile)
+ophPointCloud::ophPointCloud(const std::string pc_file, const std::string cfg_file)
 {
 	setMode(false);
-	this->InputSrcFile = InputModelFile;
-	this->n_points = loadPointCloud(InputModelFile);
+	n_points = loadPointCloud(pc_file);
 	if (n_points == -1) std::cerr << "OpenHolo Error : Failed to load Point Cloud Data File(*.dat)" << std::endl;
 
-	this->InputConfigFile = InputConfigFile;
-	bool ok = readConfig(InputConfigFile);
-	if (!ok) std::cerr << "OpenHolo Error : Failed to load Config Specification Data File(*.config)" << std::endl;
-
-	this->data_hologram = nullptr;
+	bool b_read = readConfig(cfg_file);
+	if (!b_read) std::cerr << "OpenHolo Error : Failed to load Config Specification Data File(*.config)" << std::endl;
 }
 
 ophPointCloud::~ophPointCloud(void)
 {
 }
 
-void ophPointCloud::setMode(bool isCPU)
+void ophPointCloud::setMode(bool IsCPU)
 {
-	this->bIsCPU = isCPU;
+	IsCPU_ = IsCPU;
 }
 
-int ophPointCloud::loadPointCloud(const std::string InputModelFile)
+int ophPointCloud::loadPointCloud(const std::string pc_file)
 {
-	//std::ifstream File(InputModelFile, std::ios::in);
-	//if (!File.is_open()) {
-	//	File.close();
-	//	return -1;
-	//}
+	n_points = ophGen::loadPointCloud(pc_file, &vertex_array_, &amplitude_array_, &phase_array_);
 
-	//std::string Line;
-	//std::getline(File, Line);
-	//int n_pts = atoi(Line.c_str());
-	//this->n_points = n_pts;
-
-	//// parse input point cloud file
-	//for (int i = 0; i < n_pts; ++i) {
-	//	int idx;
-	//	float pX, pY, pZ, phase, amplitude;
-	//	std::getline(File, Line);
-	//	sscanf(Line.c_str(), "%d %f %f %f %f %f\n", &idx, &pX, &pY, &pZ, &phase, &amplitude);
-
-	//	if (idx == i) {
-	//		this->VertexArray.push_back(pX);
-	//		this->VertexArray.push_back(pY);
-	//		this->VertexArray.push_back(pZ);
-	//		this->PhaseArray.push_back(phase);
-	//		this->AmplitudeArray.push_back(amplitude);
-	//		//this->ModelData.push_back(PointCloud(pX, pY, pZ, amplitude, phase));
-	//	}
-	//	else {
-	//		File.close();
-	//		return -1;
-	//	}
-	//}
-	//File.close();
-	this->InputSrcFile = InputModelFile;
-	this->n_points = ophGen::loadPointCloudData(InputModelFile, &this->VertexArray, &this->AmplitudeArray, &this->PhaseArray);
-
-	return this->n_points;
+	return n_points;
 }
 
-bool ophPointCloud::readConfig(const std::string InputConfigFile)
+bool ophPointCloud::readConfig(const std::string cfg_file)
 {
-	if (!ophGen::readConfigFile(InputConfigFile, this->ConfigParams))
+	if (!ophGen::readConfig(cfg_file, pc_config_))
 		return false;
 
-	this->InputConfigFile = InputConfigFile;
 	return true;
 }
 
-void ophPointCloud::setPointCloudModel(const std::vector<float>& VertexArray, const std::vector<float>& AmplitudeArray, const std::vector<float>& PhaseArray)
+void ophPointCloud::setPointCloudModel(const std::vector<real> &vertex_array, const std::vector<real> &amplitude_array, const std::vector<real> &phase_array)
 {
-	this->VertexArray = VertexArray;
-	this->AmplitudeArray = AmplitudeArray;
-	this->PhaseArray = PhaseArray;
+	vertex_array_ = vertex_array;
+	amplitude_array_ = amplitude_array;
+	phase_array_ = phase_array;
 }
 
-void ophPointCloud::getPointCloudModel(std::vector<float>& VertexArray, std::vector<float>& AmplitudeArray, std::vector<float>& PhaseArray)
+void ophPointCloud::getPointCloudModel(std::vector<real> &vertex_array, std::vector<real> &amplitude_array, std::vector<real> &phase_array)
 {
-	getModelVertexArray(VertexArray);
-	getModelAmplitudeArray(AmplitudeArray);
-	getModelPhaseArray(PhaseArray);
+	getModelVertexArray(vertex_array);
+	getModelAmplitudeArray(amplitude_array);
+	getModelPhaseArray(phase_array);
 }
 
-void ophPointCloud::getModelVertexArray(std::vector<float>& VertexArray)
+void ophPointCloud::getModelVertexArray(std::vector<real>& vertex_array)
 {
-	VertexArray = this->VertexArray;
+	vertex_array = vertex_array_;
 }
 
-void ophPointCloud::getModelAmplitudeArray(std::vector<float>& AmplitudeArray)
+void ophPointCloud::getModelAmplitudeArray(std::vector<real>& amplitude_array)
 {
-	AmplitudeArray = this->AmplitudeArray;
+	amplitude_array = amplitude_array_;
 }
 
-void ophPointCloud::getModelPhaseArray(std::vector<float>& PhaseArray)
+void ophPointCloud::getModelPhaseArray(std::vector<real>& phase_array)
 {
-	PhaseArray = this->PhaseArray;
+	phase_array = phase_array_;
 }
 
 int ophPointCloud::getNumberOfPoints()
 {
-	return this->n_points;
+	return n_points;
 }
 
-uchar * ophPointCloud::getHologramBufferData()
-{
-	return this->data_hologram;
-}
-
-void ophPointCloud::setConfigParams(const oph::ConfigParams & InputConfig)
-{
-	this->ConfigParams = InputConfig;
-}
-
-oph::ConfigParams ophPointCloud::getConfigParams()
-{
-	return this->ConfigParams;
-}
-
-double ophPointCloud::generateHologram()
+real ophPointCloud::generateHologram()
 {
 	// Output Image Size
-	int n_x = ConfigParams.nx;
-	int n_y = ConfigParams.ny;
+	int n_x = context_.pixel_number.v[0];
+	int n_y = context_.pixel_number.v[1];
 
 	// Memory Location for Result Image
-	if (this->data_hologram != nullptr) free(data_hologram);
-	this->data_hologram = (uchar*)calloc(1, sizeof(uchar)*n_x*n_y);
-	float *data_fringe = (float*)calloc(1, sizeof(float)*n_x*n_y);
+	//if (data_hologram != nullptr) free(data_hologram);
+	if (p_hologram != nullptr) free(p_hologram);
+	p_hologram = (uchar*)calloc(1, sizeof(uchar)*n_x*n_y);
+	real *data_fringe = (real*)calloc(1, sizeof(real)*n_x*n_y);
 
 	// Create CGH Fringe Pattern by 3D Point Cloud
-	double time = 0.0;
-	if (this->bIsCPU == true) { //Run CPU
+	real time = 0.0;
+	if (IsCPU_ == true) { //Run CPU
 #ifdef _OPENMP
 		std::cout << "Generate Hologram with Multi Core CPU" << std::endl;
 #else
 		std::cout << "Generate Hologram with Single Core CPU" << std::endl;
 #endif
-		time = genCghPointCloud(this->VertexArray, this->AmplitudeArray, data_fringe);
+		time = genCghPointCloud(data_fringe);
 	}
 	else { //Run GPU
 		std::cout << "Generate Hologram with GPU" << std::endl;
 
-		time = genCghPointCloud_cuda(this->VertexArray, this->AmplitudeArray, data_fringe);
+		time = genCghPointCloud_cuda(data_fringe);
 		std::cout << ">>> CUDA GPGPU" << std::endl;
 	}
 
 	// Normalization data_fringe to data_hologram
-	normalize(data_fringe, this->data_hologram, n_x, n_y);
+	normalize(data_fringe, (uchar*)p_hologram, n_x, n_y);
 	free(data_fringe);
 	return time;
 }
 
-void ophPointCloud::saveFileBmp(std::string OutputFileName)
-{
-	Openholo::createBitmapFile(this->data_hologram,
-		this->ConfigParams.nx, 
-		this->ConfigParams.ny, 
-		OPH_Bitsperpixel, 
-		OutputFileName.c_str());
-
-	//OutputFileName.append(".bmp");
-	//FILE *fp = fopen(OutputFileName.c_str(), "wb");
-	//bitmap *pbitmap = (bitmap*)calloc(1, sizeof(bitmap));
-	//memset(pbitmap, 0x00, sizeof(bitmap));
-
-	//// File Header
-	//pbitmap->fileheader.signature[0] = 'B';
-	//pbitmap->fileheader.signature[1] = 'M';
-	//pbitmap->fileheader.filesize = _filesize;
-	//pbitmap->fileheader.fileoffset_to_pixelarray = sizeof(bitmap);
-
-	//// Initialize pallets : to Grayscale
-	//for (int i = 0; i < 256; i++) {
-	//	pbitmap->rgbquad[i].rgbBlue = i;
-	//	pbitmap->rgbquad[i].rgbGreen = i;
-	//	pbitmap->rgbquad[i].rgbRed = i;
-	//}
-
-	//// Image Header
-	//pbitmap->bitmapinfoheader.dibheadersize = sizeof(bitmapinfoheader);
-	//pbitmap->bitmapinfoheader.width = _width;
-	//pbitmap->bitmapinfoheader.height = _height;
-	//pbitmap->bitmapinfoheader.planes = OPH_Planes;
-	//pbitmap->bitmapinfoheader.bitsperpixel = OPH_Bitsperpixel;
-	//pbitmap->bitmapinfoheader.compression = OPH_Compression;
-	//pbitmap->bitmapinfoheader.imagesize = _pixelbytesize;
-	//pbitmap->bitmapinfoheader.ypixelpermeter = OPH_Ypixelpermeter;
-	//pbitmap->bitmapinfoheader.xpixelpermeter = OPH_Xpixelpermeter;
-	//pbitmap->bitmapinfoheader.numcolorspallette = 256;
-	//fwrite(pbitmap, 1, sizeof(bitmap), fp);
-
-	//fwrite(this->data_hologram, 1, _pixelbytesize, fp);
-	//fclose(fp);
-	//ophFree(pbitmap);
-}
-
-void ophPointCloud::setScaleFactor(const float scaleX, const float scaleY, const float scaleZ)
-{
-	this->ConfigParams.pointCloudScaleX = scaleX;
-	this->ConfigParams.pointCloudScaleY = scaleY;
-	this->ConfigParams.pointCloudScaleZ = scaleZ;
-}
-
-void ophPointCloud::getScaleFactor(float & scaleX, float & scaleY, float & scaleZ)
-{
-	scaleX = this->ConfigParams.pointCloudScaleX;
-	scaleY = this->ConfigParams.pointCloudScaleY;
-	scaleZ = this->ConfigParams.pointCloudScaleZ;
-}
-
-void ophPointCloud::setOffsetDepth(const float offsetDepth)
-{
-	this->ConfigParams.offsetDepth = offsetDepth;
-}
-
-float ophPointCloud::getOffsetDepth()
-{
-	return this->ConfigParams.offsetDepth;
-}
-
-void ophPointCloud::setSamplingPitch(const float pitchX, const float pitchY)
-{
-	this->ConfigParams.samplingPitchX = pitchX;
-	this->ConfigParams.samplingPitchY = pitchY;
-}
-
-void ophPointCloud::getSamplingPitch(float & pitchX, float & pitchY)
-{
-	pitchX = this->ConfigParams.samplingPitchX;
-	pitchY = this->ConfigParams.samplingPitchY;
-}
-
-void ophPointCloud::setImageSize(const int n_x, const int n_y)
-{
-	this->ConfigParams.nx = n_x;
-	this->ConfigParams.ny = n_y;
-}
-
-void ophPointCloud::getImageSize(int & n_x, int & n_y)
-{
-	n_x = this->ConfigParams.nx;
-	n_y = this->ConfigParams.ny;
-}
-
-void ophPointCloud::setWaveLength(const float lambda)
-{
-	this->ConfigParams.lambda = lambda;
-}
-
-float ophPointCloud::getWaveLength()
-{
-	return this->ConfigParams.lambda;
-}
-
-void ophPointCloud::setTiltAngle(const float tiltAngleX, const float tiltAngleY)
-{
-	this->ConfigParams.tiltAngleX = tiltAngleX;
-	this->ConfigParams.tiltAngleY = tiltAngleY;
-}
-
-void ophPointCloud::getTiltAngle(float & tiltAngleX, float & tiltAngleY)
-{
-	tiltAngleX = this->ConfigParams.tiltAngleX;
-	tiltAngleY = this->ConfigParams.tiltAngleY;
-}
-
-double ophPointCloud::genCghPointCloud(const std::vector<float>& VertexArray, const std::vector<float>& AmplitudeArray, float * dst)
+real ophPointCloud::genCghPointCloud(real * dst)
 {
 	// Output Image Size
-	int n_x = ConfigParams.nx;
-	int n_y = ConfigParams.ny;
+	int n_x = context_.pixel_number.v[0];
+	int n_y = context_.pixel_number.v[1];
 
 	// Tilt Angle
-	float thetaX = RADIAN_F(ConfigParams.tiltAngleX);
-	float thetaY = RADIAN_F(ConfigParams.tiltAngleY);
+	real thetaX = RADIAN(pc_config_.tilt_angle.v[0]);
+	real thetaY = RADIAN(pc_config_.tilt_angle.v[1]);
 
 	// Wave Number
-	float k = (2.f * (float)M_PI) / ConfigParams.lambda;
+	real k = context_.k;
 
 	// Pixel pitch at eyepiece lens plane (by simple magnification) ==> SLM pitch
-	float pixel_x = ConfigParams.samplingPitchX;
-	float pixel_y = ConfigParams.samplingPitchY;
+	real pixel_x = context_.pixel_pitch.v[0];
+	real pixel_y = context_.pixel_pitch.v[1];
 
 	// Length (Width) of complex field at eyepiece plane (by simple magnification)
-	float Length_x = pixel_x * n_x;
-	float Length_y = pixel_y * n_y;
+	real Length_x = pixel_x * n_x;
+	real Length_y = pixel_y * n_y;
 
 	std::chrono::system_clock::time_point time_start = std::chrono::system_clock::now();
 	int j; // private variable for Multi Threading
@@ -308,23 +139,23 @@ double ophPointCloud::genCghPointCloud(const std::vector<float>& VertexArray, co
 		num_threads = omp_get_num_threads(); // get number of Multi Threading
 #pragma omp for private(j)
 #endif
-		for (j = 0; j < this->n_points; ++j) { //Create Fringe Pattern
-			float x = VertexArray[3 * j + 0] * ConfigParams.pointCloudScaleX;
-			float y = VertexArray[3 * j + 1] * ConfigParams.pointCloudScaleY;
-			float z = VertexArray[3 * j + 2] * ConfigParams.pointCloudScaleZ + ConfigParams.offsetDepth;
-			float amplitude = AmplitudeArray[j];
+		for (j = 0; j < n_points; ++j) { //Create Fringe Pattern
+			real x = vertex_array_[3 * j + 0] * pc_config_.scale.v[0];
+			real y = vertex_array_[3 * j + 1] * pc_config_.scale.v[1];
+			real z = vertex_array_[3 * j + 2] * pc_config_.scale.v[2] + pc_config_.offset_depth;
+			real amplitude = amplitude_array_[j];
 
 			for (int row = 0; row < n_y; ++row) {
 				// Y coordinate of the current pixel : Note that y index is reversed order
-				float SLM_y = (Length_y / 2) - ((float)row + 0.5f) * pixel_y;
+				real SLM_y = (Length_y / 2) - ((real)row + 0.5f) * pixel_y;
 
 				for (int col = 0; col < n_x; ++col) {
 					// X coordinate of the current pixel
-					float SLM_x = ((float)col + 0.5f) * pixel_x - (Length_x / 2);
+					real SLM_x = ((real)col + 0.5f) * pixel_x - (Length_x / 2);
 
-					float r = sqrtf((SLM_x - x)*(SLM_x - x) + (SLM_y - y)*(SLM_y - y) + z * z);
-					float phi = k * r - k * SLM_x*sinf(thetaX) - k * SLM_y*sinf(thetaY); // Phase for printer
-					float result = amplitude * cosf(phi);
+					real r = sqrtf((SLM_x - x)*(SLM_x - x) + (SLM_y - y)*(SLM_y - y) + z * z);
+					real phi = k * r - k * SLM_x*sinf(thetaX) - k * SLM_y*sinf(thetaY); // Phase for printer
+					real result = amplitude * cosf(phi);
 
 					*(dst + col + row * n_x) += result; //R-S Integral
 				}
@@ -335,13 +166,13 @@ double ophPointCloud::genCghPointCloud(const std::vector<float>& VertexArray, co
 	std::cout << ">>> All " << num_threads << " threads" << std::endl;
 #endif
 	std::chrono::system_clock::time_point time_finish = std::chrono::system_clock::now();
-	return ((std::chrono::duration<double>)(time_finish - time_start)).count();
+	return ((std::chrono::duration<real>)(time_finish - time_start)).count();
 }
 
-double ophPointCloud::genCghPointCloud_cuda(const std::vector<float>& VertexArray, const std::vector<float>& AmplitudeArray, float * dst)
+real ophPointCloud::genCghPointCloud_cuda(real * dst)
 {
-	int _bx = ConfigParams.nx / THREAD_X;
-	int _by = ConfigParams.ny / THREAD_Y;
+	int _bx = context_.pixel_number.v[0] / THREAD_X;
+	int _by = context_.pixel_number.v[1] / THREAD_Y;
 	int block_x = 2;
 	int block_y = 2;
 
@@ -353,58 +184,58 @@ double ophPointCloud::genCghPointCloud_cuda(const std::vector<float>& VertexArra
 	}
 
 	//threads number
-	const ulonglong bufferSize = ConfigParams.nx * ConfigParams.ny * sizeof(float);
+	const ulonglong bufferSize = context_.pixel_number.v[0] * context_.pixel_number.v[1] * sizeof(real);
 
 	//Host Memory Location
-	float3 *HostPointCloud = (float3*)VertexArray.data();
-	float *hostAmplitude = (float*)AmplitudeArray.data();
+	float3 *HostPointCloud = (float3*)vertex_array_.data();
+	real *hostAmplitude = (real*)amplitude_array_.data();
 
 	//Initializa Config for CUDA Kernel
 	oph::GpuConst HostConfig; {
-		HostConfig.n_points = this->n_points;
-		HostConfig.scaleX = ConfigParams.pointCloudScaleX;
-		HostConfig.scaleY = ConfigParams.pointCloudScaleY;
-		HostConfig.scaleZ = ConfigParams.pointCloudScaleZ;
-		HostConfig.offsetDepth = ConfigParams.offsetDepth;
+		HostConfig.n_points = n_points;
+		HostConfig.scaleX = pc_config_.scale.v[0];
+		HostConfig.scaleY = pc_config_.scale.v[1];
+		HostConfig.scaleZ = pc_config_.scale.v[2];
+		HostConfig.offsetDepth = pc_config_.offset_depth;
 
 		// Output Image Size
-		HostConfig.Nx = ConfigParams.nx;
-		HostConfig.Ny = ConfigParams.ny;
+		HostConfig.Nx = _bx;
+		HostConfig.Ny = _by;
 
 		// Tilt Angle
-		float thetaX = RADIAN_F(ConfigParams.tiltAngleX);
-		float thetaY = RADIAN_F(ConfigParams.tiltAngleY);
+		real thetaX = RADIAN(pc_config_.tilt_angle.v[0]);
+		real thetaY = RADIAN(pc_config_.tilt_angle.v[1]);
 		HostConfig.sin_thetaX = sinf(thetaX);
 		HostConfig.sin_thetaY = sinf(thetaY);
 
 		// Wave Number
-		HostConfig.k = (2.f * CUDART_PI_F) / ConfigParams.lambda;
+		HostConfig.k = (2.f * CUDART_PI_F) / context_.lambda;
 
 		// Pixel pitch at eyepiece lens plane (by simple magnification) ==> SLM pitch
-		HostConfig.pixel_x = ConfigParams.samplingPitchX;
-		HostConfig.pixel_y = ConfigParams.samplingPitchY;
+		HostConfig.pixel_x = context_.pixel_pitch.v[0];
+		HostConfig.pixel_y = context_.pixel_pitch.v[1];
 
 		// Length (Width) of complex field at eyepiece plane (by simple magnification)
-		float Length_x = HostConfig.pixel_x * HostConfig.Nx;
-		float Length_y = HostConfig.pixel_y * HostConfig.Ny;
+		real Length_x = HostConfig.pixel_x * HostConfig.Nx;
+		real Length_y = HostConfig.pixel_y * HostConfig.Ny;
 		HostConfig.halfLength_x = Length_x / 2.f;
 		HostConfig.halfLength_y = Length_y / 2.f;
 	}
 
 	//Device(GPU) Memory Location
 	float3 *DevicePointCloud;
-	cudaMalloc((void**)&DevicePointCloud, VertexArray.size() * sizeof(float));
-	cudaMemcpy(DevicePointCloud, HostPointCloud, VertexArray.size() * sizeof(float), cudaMemcpyHostToDevice);
+	cudaMalloc((void**)&DevicePointCloud, vertex_array_.size() * sizeof(real));
+	cudaMemcpy(DevicePointCloud, HostPointCloud, vertex_array_.size() * sizeof(real), cudaMemcpyHostToDevice);
 
-	float *deviceAmplitude;
-	cudaMalloc((void**)&deviceAmplitude, AmplitudeArray.size() * sizeof(float));
-	cudaMemcpy(deviceAmplitude, hostAmplitude, AmplitudeArray.size() * sizeof(float), cudaMemcpyHostToDevice);
+	real *deviceAmplitude;
+	cudaMalloc((void**)&deviceAmplitude, amplitude_array_.size() * sizeof(real));
+	cudaMemcpy(deviceAmplitude, hostAmplitude, amplitude_array_.size() * sizeof(real), cudaMemcpyHostToDevice);
 
 	GpuConst *DeviceConfig;
 	cudaMalloc((void**)&DeviceConfig, sizeof(GpuConst));
 	cudaMemcpy(DeviceConfig, &HostConfig, sizeof(HostConfig), cudaMemcpyHostToDevice);
 
-	float *deviceDst;
+	real *deviceDst;
 	cudaMalloc((void**)&deviceDst, bufferSize);
 
 	std::chrono::system_clock::time_point time_start = std::chrono::system_clock::now();
@@ -419,14 +250,14 @@ double ophPointCloud::genCghPointCloud_cuda(const std::vector<float>& VertexArra
 	cudaFree(deviceAmplitude);
 	cudaFree(deviceDst);
 	cudaFree(DeviceConfig);
-	return ((std::chrono::duration<double>)(time_finish - time_start)).count();
+	return ((std::chrono::duration<real>)(time_finish - time_start)).count();
 }
 
-void ophPointCloud::normalize(float *src, uchar *dst, const int nx, const int ny) {
-	float minVal, maxVal;
+void ophPointCloud::normalize(real *src, uchar *dst, const int nx, const int ny) {
+	real minVal, maxVal;
 	for (int ydx = 0; ydx < ny; ydx++) {
 		for (int xdx = 0; xdx < nx; xdx++) {
-			float *temp_pos = src + xdx + ydx * nx;
+			real *temp_pos = src + xdx + ydx * nx;
 			if ((xdx == 0) && (ydx == 0)) {
 				minVal = *(temp_pos);
 				maxVal = *(temp_pos);
@@ -440,7 +271,7 @@ void ophPointCloud::normalize(float *src, uchar *dst, const int nx, const int ny
 
 	for (int ydx = 0; ydx < ny; ydx++) {
 		for (int xdx = 0; xdx < nx; xdx++) {
-			float *src_pos = src + xdx + ydx * nx;
+			real *src_pos = src + xdx + ydx * nx;
 			uchar *res_pos = dst + xdx + (ny - ydx - 1)*nx;	// Flip image vertically to consider flipping by Fourier transform and projection geometry
 
 			*(res_pos) = (uchar)(((*(src_pos)-minVal) / (maxVal - minVal)) * 255 + 0.5);
@@ -450,4 +281,7 @@ void ophPointCloud::normalize(float *src, uchar *dst, const int nx, const int ny
 
 void ophPointCloud::ophFree(void)
 {
+	vertex_array_.clear();
+	amplitude_array_.clear();
+	phase_array_.clear();
 }

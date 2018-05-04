@@ -83,8 +83,8 @@ extern "C"
 	* @param default_depth_quan : default value of the depth quantization - 256
 	* @see calc_Holo_GPU
 	*/
-	void cudaDepthHoloKernel(CUstream_st* stream, int pnx, int pny, cufftDoubleComplex* u_o_gpu_, unsigned char* img_src_gpu_, unsigned char* dimg_src_gpu_, double* depth_index_gpu_,
-		int dtr, double rand_phase_val_a, double rand_phase_val_b, double carrier_phase_delay_a, double carrier_phase_delay_b, int flag_change_depth_quan, unsigned int default_depth_quan);
+	void cudaDepthHoloKernel(CUstream_st* stream, int pnx, int pny, cufftDoubleComplex* u_o_gpu_, unsigned char* img_src_gpu_, unsigned char* dimg_src_gpu_, real* depth_index_gpu_,
+		int dtr, real rand_phase_val_a, real rand_phase_val_b, real carrier_phase_delay_a, real carrier_phase_delay_b, int flag_change_depth_quan, unsigned int default_depth_quan);
 
 	/**
 	* @brief Angular spectrum propagation method for GPU implementation.
@@ -104,11 +104,11 @@ extern "C"
 	* @see propagation_AngularSpectrum_GPU
 	*/
 	void cudaPropagation_AngularSpKernel(CUstream_st* stream_, int pnx, int pny, cufftDoubleComplex* input_d, cufftDoubleComplex* u_complex,
-		double ppx, double ppy, double ssx, double ssy, double lambda, double params_k, double propagation_dist);
+		real ppx, real ppy, real ssx, real ssy, real lambda, real params_k, real propagation_dist);
 
 	/**
 	* @brief Encode the CGH according to a signal location parameter on the GPU.
-	* @details The variable, u255_fringe_ has the final result.
+	* @details The variable, ((real*)p_hologram) has the final result.
 	* @param stream : CUDA Stream
 	* @param pnx : the number of column of the input data
 	* @param pny : the number of row of the input data
@@ -124,7 +124,7 @@ extern "C"
 	* @see encoding_GPU
 	*/
 	void cudaGetFringe(CUstream_st* stream, int pnx, int pny, cufftDoubleComplex* in_field, cufftDoubleComplex* out_field, int sig_locationx, int sig_locationy,
-		double ssx, double ssy, double ppx, double ppy, double PI);
+		real ssx, real ssy, real ppx, real ppy, real PI);
 
 	/**
 	* @brief Quantize depth map on the GPU, only when the number of depth quantization is not the default value (i.e. FLAG_CHANGE_DEPTH_QUANTIZATION == 1 ).
@@ -142,8 +142,8 @@ extern "C"
 	* @param params_near_depthmap : FAR_OF_DEPTH_MAP at config file
 	* @see change_depth_quan_GPU
 	*/
-	void cudaChangeDepthQuanKernel(CUstream_st* stream_, int pnx, int pny, double* depth_index_gpu, unsigned char* dimg_src_gpu,
-		int dtr, double d1, double d2, double params_num_of_depth, double params_far_depthmap, double params_near_depthmap);
+	void cudaChangeDepthQuanKernel(CUstream_st* stream_, int pnx, int pny, real* depth_index_gpu, unsigned char* dimg_src_gpu,
+		int dtr, real d1, real d2, real params_num_of_depth, real params_far_depthmap, real params_near_depthmap);
 
 	/**@}*/
 
@@ -156,8 +156,8 @@ extern "C"
 */
 void ophDepthMap::init_GPU()
 {
-	const int nx = params_.pn[0];
-	const int ny = params_.pn[1];
+	const int nx = context_.pixel_number[0];
+	const int ny = context_.pixel_number[1];
 	const int N = nx * ny;
 
 	if (!stream_)
@@ -170,8 +170,8 @@ void ophDepthMap::init_GPU()
 	HANDLE_ERROR(cudaMalloc((void**)&dimg_src_gpu_, sizeof(uchar1)*N));
 
 	if (depth_index_gpu_) cudaFree(depth_index_gpu_);
-	if (FLAG_CHANGE_DEPTH_QUANTIZATION == 1)
-		HANDLE_ERROR(cudaMalloc((void**)&depth_index_gpu_, sizeof(double)*N));
+	if (dm_params_.FLAG_CHANGE_DEPTH_QUANTIZATION == 1)
+		HANDLE_ERROR(cudaMalloc((void**)&depth_index_gpu_, sizeof(real)*N));
 	
 	if (u_o_gpu_)	cudaFree(u_o_gpu_);
 	if (u_complex_gpu_)	cudaFree(u_complex_gpu_);
@@ -193,8 +193,8 @@ void ophDepthMap::init_GPU()
 */
 bool ophDepthMap::prepare_inputdata_GPU(uchar* imgptr, uchar* dimgptr)
 {
-	const int nx = params_.pn[0];
-	const int ny = params_.pn[1];
+	const int nx = context_.pixel_number[0];
+	const int ny = context_.pixel_number[1];
 	const int N = nx * ny;
 	
 	HANDLE_ERROR(cudaMemcpyAsync(img_src_gpu_, imgptr, sizeof(uchar1)*N, cudaMemcpyHostToDevice), stream_);
@@ -210,21 +210,21 @@ bool ophDepthMap::prepare_inputdata_GPU(uchar* imgptr, uchar* dimgptr)
 */
 void ophDepthMap::change_depth_quan_GPU()
 {
-	int pnx = params_.pn[0];
-	int pny = params_.pn[1];
+	int pnx = context_.pixel_number[0];
+	int pny = context_.pixel_number[1];
 
-	double temp_depth, d1, d2;
+	real temp_depth, d1, d2;
 
-	HANDLE_ERROR(cudaMemsetAsync(depth_index_gpu_, 0, sizeof(double)*pnx*pny, stream_));
+	HANDLE_ERROR(cudaMemsetAsync(depth_index_gpu_, 0, sizeof(real)*pnx*pny, stream_));
 
-	for (oph::uint dtr = 0; dtr < params_.num_of_depth; dtr++)
+	for (oph::uint dtr = 0; dtr < dm_config_.num_of_depth; dtr++)
 	{
 		temp_depth = dlevel_[dtr];
 		d1 = temp_depth - dstep_ / 2.0;
 		d2 = temp_depth + dstep_ / 2.0;
 
 		cudaChangeDepthQuanKernel(stream_, pnx, pny, depth_index_gpu_, dimg_src_gpu_, 
-			dtr, d1, d2, params_.num_of_depth, params_.far_depthmap, params_.near_depthmap);
+			dtr, d1, d2, dm_config_.num_of_depth, dm_config_.far_depthmap, dm_config_.near_depthmap);
 	}
 
 }
@@ -254,29 +254,29 @@ void ophDepthMap::calc_Holo_GPU(int frame)
 
 	cudaEventRecord(start, stream_);
 
-	int pnx = params_.pn[0];
-	int pny = params_.pn[1];
+	int pnx = context_.pixel_number[0];
+	int pny = context_.pixel_number[1];
 	int N = pnx*pny;
 
 	HANDLE_ERROR(cudaMemsetAsync(u_complex_gpu_, 0, sizeof(cufftDoubleComplex)*N, stream_));
-	size_t depth_sz = params_.render_depth.size();
+	size_t depth_sz = dm_config_.render_depth.size();
 
 	for (int p = 0; p < depth_sz; ++p)
 	{
-		Complex rand_phase_val;
+		oph::Complex<real> rand_phase_val;
 		get_rand_phase_value(rand_phase_val);
 
-		int dtr = params_.render_depth[p];
-		double temp_depth = dlevel_transform_[dtr - 1];
-		Complex carrier_phase_delay(0, params_.k* temp_depth);
+		int dtr = dm_config_.render_depth[p];
+		real temp_depth = dlevel_transform_[dtr - 1];
+		oph::Complex<real> carrier_phase_delay(0, context_.k* temp_depth);
 		exponent_complex(&carrier_phase_delay);
 
 		HANDLE_ERROR(cudaMemsetAsync(u_o_gpu_, 0, sizeof(cufftDoubleComplex)*N, stream_));
 
 		cudaDepthHoloKernel(stream_, pnx, pny, u_o_gpu_, img_src_gpu_, dimg_src_gpu_, depth_index_gpu_, 
-			dtr, rand_phase_val.a, rand_phase_val.b, carrier_phase_delay.a, carrier_phase_delay.b, FLAG_CHANGE_DEPTH_QUANTIZATION, DEFAULT_DEPTH_QUANTIZATION);
+			dtr, rand_phase_val.re, rand_phase_val.im, carrier_phase_delay.re, carrier_phase_delay.im, dm_params_.FLAG_CHANGE_DEPTH_QUANTIZATION, dm_params_.DEFAULT_DEPTH_QUANTIZATION);
 
-		if (Propagation_Method_ == 0)
+		if (dm_params_.Propagation_Method_ == 0)
 		{
 			HANDLE_ERROR(cudaMemsetAsync(k_temp_d_, 0, sizeof(cufftDoubleComplex)*N, stream_));
 			cudaFFT(stream_, pnx, pny, u_o_gpu_, k_temp_d_, -1);
@@ -284,7 +284,7 @@ void ophDepthMap::calc_Holo_GPU(int frame)
 			propagation_AngularSpectrum_GPU(u_o_gpu_, -temp_depth);
 		}
 
-		LOG("Frame#: %d, Depth: %d of %d, z = %f mm\n", frame, dtr, params_.num_of_depth, -temp_depth * 1000);
+		LOG("Frame#: %d, Depth: %d of %d, z = %f mm\n", frame, dtr, dm_config_.num_of_depth, -temp_depth * 1000);
 
 	}
 
@@ -294,10 +294,6 @@ void ophDepthMap::calc_Holo_GPU(int frame)
 	float elapsedTime = 0.0f;
 	cudaEventElapsedTime(&elapsedTime, start, stop);
 	LOG("GPU Time= %f ms. \n", elapsedTime);
-
-	//writeIntensity_gray8_real_bmp("final_fr", pnx, pny, U_complex_);
-
-
 }
 
 /**
@@ -307,25 +303,25 @@ void ophDepthMap::calc_Holo_GPU(int frame)
 * @param propagation_dist : the distance from the object to the hologram plane.
 * @see calc_Holo_by_Depth, calc_Holo_GPU, cudaFFT
 */
-void ophDepthMap::propagation_AngularSpectrum_GPU(cufftDoubleComplex* input_u, double propagation_dist)
+void ophDepthMap::propagation_AngularSpectrum_GPU(cufftDoubleComplex* input_u, real propagation_dist)
 {
-	int pnx = params_.pn[0];
-	int pny = params_.pn[1];
+	int pnx = context_.pixel_number[0];
+	int pny = context_.pixel_number[1];
 	int N = pnx* pny;
-	double ppx = params_.pp[0];
-	double ppy = params_.pp[1];
-	double ssx = params_.ss[0];
-	double ssy = params_.ss[1];
-	double lambda = params_.lambda;
+	real ppx = context_.pixel_pitch[0];
+	real ppy = context_.pixel_pitch[1];
+	real ssx = context_.ss[0];
+	real ssy = context_.ss[1];
+	real lambda = context_.lambda;
 
 	cudaPropagation_AngularSpKernel(stream_, pnx, pny, k_temp_d_, u_complex_gpu_, 
-		ppx, ppy, ssx, ssy, lambda, params_.k, propagation_dist);
+		ppx, ppy, ssx, ssy, lambda, context_.k, propagation_dist);
 		
 }
 
 /**
 * @brief Encode the CGH according to a signal location parameter on GPU.
-* @details The variable, u255_fringe_ has the final result.
+* @details The variable, ((real*)p_hologram) has the final result.
 * @param cropx1 : the start x-coordinate to crop.
 * @param cropx2 : the end x-coordinate to crop.
 * @param cropy1 : the start y-coordinate to crop.
@@ -336,12 +332,12 @@ void ophDepthMap::propagation_AngularSpectrum_GPU(cufftDoubleComplex* input_u, d
 */
 void ophDepthMap::encoding_GPU(int cropx1, int cropx2, int cropy1, int cropy2, ivec2 sig_location)
 {
-	int pnx = params_.pn[0];
-	int pny = params_.pn[1];
-	double ppx = params_.pp[0];
-	double ppy = params_.pp[1];
-	double ssx = params_.ss[0];
-	double ssy = params_.ss[1];
+	int pnx = context_.pixel_number[0];
+	int pny = context_.pixel_number[1];
+	real ppx = context_.pixel_pitch[0];
+	real ppy = context_.pixel_pitch[1];
+	real ssx = context_.ss[0];
+	real ssy = context_.ss[1];
 
 	HANDLE_ERROR(cudaMemsetAsync(k_temp_d_, 0, sizeof(cufftDoubleComplex)*pnx*pny, stream_));
 	cudaCropFringe(stream_, pnx, pny, u_complex_gpu_, k_temp_d_, cropx1, cropx2, cropy1, cropy2);
@@ -356,33 +352,12 @@ void ophDepthMap::encoding_GPU(int cropx1, int cropx2, int cropy1, int cropy2, i
 	memset(sample_fd, 0.0, sizeof(cufftDoubleComplex)*pnx*pny);
 
 	HANDLE_ERROR(cudaMemcpyAsync(sample_fd, k_temp_d_, sizeof(cufftDoubleComplex)*pnx*pny, cudaMemcpyDeviceToHost), stream_);
-	memset(u255_fringe_, 0.0, sizeof(double)*pnx*pny);
+	memset(((real*)p_hologram), 0.0, sizeof(real)*pnx*pny);
 
 	for (int i = 0; i < pnx*pny; ++i)
 	{
-		u255_fringe_[i] = sample_fd[i].x;
+		((real*)p_hologram)[i] = sample_fd[i].x;
 	}
 
 	free(sample_fd);
 }
-
-/*
-void ophDepthMap::writeImage_fromGPU(QString imgname, int pnx, int pny, cufftDoubleComplex* gpu_data)
-{
-	cufftDoubleComplex* cpu_data = (cufftDoubleComplex*)malloc(sizeof(cufftDoubleComplex)*pnx*pny);
-	memset(cpu_data, 0.0, sizeof(cufftDoubleComplex)*pnx*pny);
-
-	double* data = (double*)malloc(sizeof(double)*pnx*pny);
-
-	HANDLE_ERROR(cudaMemcpyAsync(cpu_data, gpu_data, sizeof(cufftDoubleComplex)*pnx*pny, cudaMemcpyDeviceToHost), stream_);
-	for (int i = 0; i < pnx*pny; ++i)
-	{
-		data[i] = cpu_data[i].x;
-	}
-
-	writeIntensity_gray8_bmp(imgname.toStdString().c_str(),pnx, pny, data );
-
-	ophFree(cpu_data);
-	ophFree(data);
-
-}*/

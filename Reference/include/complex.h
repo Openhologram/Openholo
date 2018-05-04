@@ -20,131 +20,132 @@ const double TWO_PI = 2.0*PI;
 namespace oph {
 	/**
 	* @brief class for the complex number and its arithmetic.
+	*		 typename T equal typename cplx
+	*		 type only float || double
+	*		 cplx re : real number
+	*		 cplx im : imaginary number
 	*/
+	template<typename T = double>
 	class __declspec(dllexport) Complex
 	{
 	public:
-		Complex() : a(0.0), b(0.0) {}
-		Complex(double ta, double tb) : a(ta), b(tb) {}
-		Complex(const Complex& p)
+		using cplx = typename std::enable_if<std::is_same<double, T>::value || std::is_same<float, T>::value, T>::type;
+
+	public:
+		cplx re, im;
+
+		Complex() : re(0), im(0) {}
+		Complex(cplx tRe, cplx tIm) : re(tRe), im(tIm) {}
+		Complex(const Complex<T>& p)
 		{
-			a = p.a;
-			b = p.b;
+			re = p.re;
+			im = p.im;
 		}
 
-		double mag2() const { return a * a + b * b; }
-		double mag()  const { return sqrt(a*a + b * b); }
+		cplx mag2() const { return re * re + im * im; }
+		cplx mag()  const { return sqrt(re * re + im * im); }
 
-		double arg() const
+		cplx arg() const
 		{
-			double r = mag();
-			double theta = acos(a / r);
+			cplx r = mag();
+			cplx theta = acos(re / r);
 
-			if (sin(theta) - b / r < 10e-6)
+			if (sin(theta) - im / r < 10e-6)
 				return theta;
 			else
 				return 2.0*PI - theta;
 		}
 
-		void euler(double& r, double& theta)
+		void euler(cplx& r, cplx& theta)
 		{
 			r = mag();
 			theta = arg();
 		}
 
-		Complex conj() const { return Complex(a, -b); }
+		Complex<T> conj() const { return Complex<T>(re, -im); }
+
+		const Complex<T>& operator()(T re, T im){
+			re = re;
+			im = im;
+
+			return *this;
+		}
 
 		// arithmetic
-		const Complex& operator= (const Complex& p)
-		{
-			a = p.a;
-			b = p.b;
+		const Complex<T>& operator= (const Complex<T>& p){
+			re = p.re;
+			im = p.im;
 
 			return *this;
 		}
 
-		const Complex& operator+= (const Complex& p)
-		{
-			a += p.a;
-			b += p.b;
+		const Complex<T>& operator+= (const Complex<T>& p){
+			re += p.re;
+			im += p.im;
 
 			return *this;
 		}
 
-		const Complex& operator-= (const Complex& p)
-		{
-			a -= p.a;
-			b -= p.b;
+		const Complex<T>& operator-= (const Complex<T>& p){
+			re -= p.re;
+			im -= p.im;
 
 			return *this;
 		}
 
-		const Complex& operator*= (const double k)
-		{
-			a *= k;
-			b *= k;
+		const Complex<T>& operator*= (const cplx k){
+			re *= k;
+			im *= k;
 
 			return *this;
 		}
 
-		const Complex& operator*= (const Complex& p)
-		{
-			const double ta = a;
-			const double tb = b;
+		const Complex<T>& operator*= (const Complex<T>& p){
+			const cplx tRe = re;
+			const cplx tIm = im;
 
-			a = ta * p.a - tb * p.b;
-			b = ta * p.b + tb * p.a;
-
-			return *this;
-		}
-
-		const Complex& operator/= (const double k)
-		{
-			a /= k;
-			b /= k;
+			re = tRe * p.re - tIm * p.im;
+			im = tRe * p.im + tIm * p.re;
 
 			return *this;
 		}
 
-		friend const Complex operator+ (const Complex& p, const Complex& q)
-		{
-			return Complex(p) += q;
+		const Complex<T>& operator/= (const cplx k){
+			re /= k;
+			im /= k;
+
+			return *this;
 		}
 
-		friend const Complex operator- (const Complex& p, const Complex& q)
-		{
-			return Complex(p) -= q;
+		friend const Complex<T> operator+ (const Complex<T>& p, const Complex<T>& q){
+			return Complex<T>(p) += q;
 		}
 
-		friend const Complex operator* (const double k, const Complex& p)
-		{
-			return Complex(p) *= k;
+		friend const Complex<T> operator- (const Complex<T>& p, const Complex<T>& q){
+			return Complex<T>(p) -= q;
 		}
 
-		friend const Complex operator* (const Complex& p, const double k)
-		{
-			return Complex(p) *= k;
+		friend const Complex<T> operator* (const cplx k, const Complex<T>& p){
+			return Complex<T>(p) *= k;
 		}
 
-		friend const Complex operator* (const Complex& p, const Complex& q)
-		{
-			return Complex(p.a*q.a - p.b*q.b, p.a*q.b + p.b*q.a);
+		friend const Complex<T> operator* (const Complex<T>& p, const double k){
+			return Complex<T>(p) *= k;
 		}
 
-		friend const Complex operator/ (const Complex& p, const Complex& q)
-		{
-			return Complex((1.0 / q.mag2())*(p*q.conj()));
+		friend const Complex<T> operator* (const Complex<T>& p, const Complex<T>& q){
+			return Complex<T>(p.re*q.re - p.im*q.im, p.re*q.im + p.im*q.re);
+		}
+
+		friend const Complex<T> operator/ (const Complex<T>& p, const Complex<T>& q){
+			return Complex<T>((1.0 / q.mag2())*(p*q.conj()));
 		}
 
 		// stream
-		friend std::ostream& operator << (std::ostream& os, const Complex& p)
-		{
-			os << "(" << p.a << ", " << p.b << ")";
+		friend std::ostream& operator << (std::ostream& os, const Complex<T>& p){
+			os << "(" << p.re << ", " << p.im << ")";
 			return os;
 		}
-
-	public:
-		double a, b;
 	};
 }
 

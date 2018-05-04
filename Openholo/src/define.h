@@ -19,6 +19,13 @@ namespace oph
 //Mode Flag
 #define MODE_CPU 1
 #define MODE_GPU 0
+
+#define WIDTHBYTES(bits) (((bits)+31)/32*4)
+
+#define _planes 1
+#define _compression 0
+#define _xpixelpermeter 0x130B //2835 , 72 DPI
+#define _ypixelpermeter 0x130B //2835 , 72 DPI
 }
 
 #endif // !__define_h

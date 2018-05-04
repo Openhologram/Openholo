@@ -3,148 +3,38 @@
 
 namespace oph
 {
-	typedef struct OPH_DLL PointCloud {
-		PointCloud(const float x, const float y, const float z)
-		: x(x), y(y), z(z), amplitude(0.f), phase(0.f) {}
-		PointCloud(const float x, const float y, const float z, const float amplitude, const float phase)
-		: x(x), y(y), z(z), amplitude(amplitude), phase(phase) {}
-
-		float x;
-		float y;
-		float z;
-		float amplitude;
-		float phase;
-	}PointCloudData;
-
-	typedef struct OPH_DLL ConfigParameters {
-		ConfigParameters(void)
-		: pointCloudScaleX(0), pointCloudScaleY(0), pointCloudScaleZ(0), offsetDepth(0), samplingPitchX(0), samplingPitchY(0)
-		, nx(0), ny(0), filterShapeFlag(0), filterXwidth(0), filterYwidth(0), focalLengthLensIn(0), focalLengthLensOut(0)
-		, focalLengthLensEyePiece(0), lambda(0), tiltAngleX(0), tiltAngleY(0) {}
-
-		ConfigParameters(const std::string InputConfigFile)
-		: pointCloudScaleX(0), pointCloudScaleY(0), pointCloudScaleZ(0), offsetDepth(0), samplingPitchX(0), samplingPitchY(0)
-		, nx(0), ny(0), filterShapeFlag(0), filterXwidth(0), filterYwidth(0), focalLengthLensIn(0), focalLengthLensOut(0)
-		, focalLengthLensEyePiece(0), lambda(0), tiltAngleX(0), tiltAngleY(0) {
-			std::ifstream File(InputConfigFile, std::ios::in);
-			if (!File.is_open()) {
-				std::cerr << "OpenHolo Error : Failed to load Config Specification Data File(*.config)" << std::endl;
-				File.close();
-				return;
-			}
-
-			std::vector<std::string> Title;
-			std::vector<std::string> Value;
-			std::string Line;
-			std::stringstream LineStream;
-
-			int i = 0;
-			while (std::getline(File, Line)) {
-				std::string _Title;
-				std::string _Value;
-				std::string _Equal; // " = "
-				LineStream << Line;
-				LineStream >> _Title >> _Equal >> _Value;
-				LineStream.clear();
-
-				Title.push_back(_Title);
-				Value.push_back(_Value);
-				++i;
-			}
-
-			if (i != 17) {
-				std::cerr << "OpenHolo Error : Failed to load Config Specification Data File(*.config)" << std::endl;
-				File.close();
-				return;
-			}
-
-			this->pointCloudScaleX = stof(Value[0]);
-			this->pointCloudScaleY = stof(Value[1]);
-			this->pointCloudScaleZ = stof(Value[2]);
-			this->offsetDepth = stof(Value[3]);
-			this->samplingPitchX = stof(Value[4]);
-			this->samplingPitchY = stof(Value[5]);
-			this->nx = stoi(Value[6]);
-			this->ny = stoi(Value[7]);
-			this->filterShapeFlag = (char*)Value[8].c_str();
-			this->filterXwidth = stof(Value[9]);
-			this->filterYwidth = stof(Value[10]);
-			this->focalLengthLensIn = stof(Value[11]);
-			this->focalLengthLensOut = stof(Value[12]);
-			this->focalLengthLensEyePiece = stof(Value[13]);
-			this->lambda = stof(Value[14]);
-			this->tiltAngleX = stof(Value[15]);
-			this->tiltAngleY = stof(Value[16]);
-			File.close();
-		}
-
-		float pointCloudScaleX;	/// Scaling factor of x coordinate of point cloud
-		float pointCloudScaleY;	/// Scaling factor of y coordinate of point cloud
-		float pointCloudScaleZ;	/// Scaling factor of z coordinate of point cloud
-
-		float offsetDepth;		/// Offset value of point cloud in z direction
-
-		float samplingPitchX;	/// Pixel pitch of SLM in x direction
-		float samplingPitchY;	/// Pixel pitch of SLM in y direction
-
-		int nx;	/// Number of pixel of SLM in x direction
-		int ny;	/// Number of pixel of SLM in y direction
-
-		char *filterShapeFlag;	/// Shape of spatial bandpass filter ("Circle" or "Rect" for now)
-		float filterXwidth;		/// Width of spatial bandpass filter in x direction (For "Circle," only this is used)
-		float filterYwidth;		/// Width of spatial bandpass filter in y direction
-
-		float focalLengthLensIn;		/// Focal length of input lens of Telecentric
-		float focalLengthLensOut;		/// Focal length of output lens of Telecentric
-		float focalLengthLensEyePiece;	/// Focal length of eyepiece lens				
-
-		float lambda;		/// Wavelength of laser
-
-		float tiltAngleX;	/// Tilt angle in x direction for spatial filtering
-		float tiltAngleY;	/// Tilt angle in y direction for spatial filtering
-	} ConfigParams;
-
 	// for PointCloud
 	typedef struct OPH_DLL KernelConst {
 		int n_points;	///number of point cloud
 
-		float scaleX;		/// Scaling factor of x coordinate of point cloud
-		float scaleY;		/// Scaling factor of y coordinate of point cloud
-		float scaleZ;		/// Scaling factor of z coordinate of point cloud
+		double scaleX;		/// Scaling factor of x coordinate of point cloud
+		double scaleY;		/// Scaling factor of y coordinate of point cloud
+		double scaleZ;		/// Scaling factor of z coordinate of point cloud
 
-		float offsetDepth;	/// Offset value of point cloud in z direction
+		double offsetDepth;	/// Offset value of point cloud in z direction
 
 		int Nx;		/// Number of pixel of SLM in x direction
 		int Ny;		/// Number of pixel of SLM in y direction
 
-		float sin_thetaX; ///sin(tiltAngleX)
-		float sin_thetaY; ///sin(tiltAngleY)
-		float k;		  ///Wave Number = (2 * PI) / lambda;
+		double sin_thetaX; ///sin(tiltAngleX)
+		double sin_thetaY; ///sin(tiltAngleY)
+		double k;		  ///Wave Number = (2 * PI) / lambda;
 
-		float pixel_x; /// Pixel pitch of SLM in x direction
-		float pixel_y; /// Pixel pitch of SLM in y direction
-		float halfLength_x; /// (pixel_x * nx) / 2
-		float halfLength_y; /// (pixel_y * ny) / 2
+		double pixel_x; /// Pixel pitch of SLM in x direction
+		double pixel_y; /// Pixel pitch of SLM in y direction
+		double halfLength_x; /// (pixel_x * nx) / 2
+		double halfLength_y; /// (pixel_y * ny) / 2
 	} GpuConst;
 }
 
-#define WIDTHBYTES(bits) (((bits)+31)/32*4)
-
-//#define _bitsperpixel 8 //24 // 3바이트=24 
-#define _planes 1
-#define _compression 0
-#define _xpixelpermeter 0x130B //2835 , 72 DPI
-#define _ypixelpermeter 0x130B //2835 , 72 DPI
-//#define pixel 0xFF
-
 #pragma pack(push,1)
-typedef struct OPH_DLL {
+typedef struct {
 	uint8_t signature[2];
 	uint32_t filesize;
 	uint32_t reserved;
 	uint32_t fileoffset_to_pixelarray;
 } fileheader;
-typedef struct OPH_DLL {
+typedef struct {
 	uint32_t dibheadersize;
 	uint32_t width;
 	uint32_t height;
@@ -157,8 +47,7 @@ typedef struct OPH_DLL {
 	uint32_t numcolorspallette;
 	uint32_t mostimpcolor;
 } bitmapinfoheader;
-// 24비트 미만 칼라는 팔레트가 필요함
-typedef struct OPH_DLL {
+typedef struct {
 	uint8_t rgbBlue;
 	uint8_t rgbGreen;
 	uint8_t rgbRed;
@@ -167,8 +56,34 @@ typedef struct OPH_DLL {
 typedef struct {
 	fileheader fileheader;
 	bitmapinfoheader bitmapinfoheader;
-	rgbquad rgbquad[256]; // 8비트 256칼라(흑백)
+	rgbquad rgbquad[256];
 } bitmap;
 #pragma pack(pop)
+
+typedef struct {
+	uint8_t signature[3];
+	uint64_t filesize;
+	uint32_t offsetbits;
+}ohfheader;
+
+typedef struct {
+	uint32_t headersize;
+	uint32_t pixelnum_x;
+	uint32_t pixelnum_y;
+	double pixelpitch_x;
+	double pixelpitch_y;
+	uint8_t pitchunit[2];
+	uint8_t colortype[3];
+	double wavelength;
+	uint8_t wavelengthunit[2];
+	uint8_t complexfieldtype[6];
+	uint8_t fieldtype[2];
+	uint8_t imageformat[10];
+}ohffieldheader;
+
+typedef struct {
+	ohfheader file_header;
+	ohffieldheader field_header;
+}ohfdata;
 
 #endif // !__struct_h

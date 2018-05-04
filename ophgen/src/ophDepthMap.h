@@ -76,12 +76,11 @@ Before building an execution file, you need to install MS Visual Studio 2015 C++
  * \defgroup recon_module reconstruction
  */
 
-#ifndef __OphDepthMap_h
-#define __OphDepthMap_h
+#ifndef __ophDepthMap_h
+#define __ophDepthMap_h
 
 #include "ophGen.h"
 #include "vec.h"
-#include "complex.h"
 #include "fftw3.h"
 
 #include <cufft.h>
@@ -92,29 +91,8 @@ using namespace oph;
 /**
 * @brief Structure variable for hologram paramemters
 * @details This structure has all necessary parameters for generating a hologram. 
-      It is read from the configuration file, 'config_openholo.txt'.
+      It is read from the configuration file, 'config_openholo.txt'(Input data).
 */
-struct GEN_DLL HologramParams{
-	
-	double				field_lens;					///< FIELD_LENS at config file  
-	double				lambda;						///< WAVELENGTH  at config file
-	double				k;							///< 2 * PI / lambda
-	oph::ivec2			pn;							///< SLM_PIXEL_NUMBER_X & SLM_PIXEL_NUMBER_Y
-	oph::vec2			pp;							///< SLM_PIXEL_PITCH_X & SLM_PIXEL_PITCH_Y
-	oph::vec2			ss;							///< pn * pp
-
-	double				near_depthmap;				///< NEAR_OF_DEPTH_MAP at config file
-	double				far_depthmap;				///< FAR_OF_DEPTH_MAP at config file
-	
-	uint				num_of_depth;				///< the number of depth level.
-													/**< <pre>
-													   if FLAG_CHANGE_DEPTH_QUANTIZATION == 0  
-													      num_of_depth = DEFAULT_DEPTH_QUANTIZATION 
-													   else  
-												          num_of_depth = NUMBER_OF_DEPTH_QUANTIZATION  </pre> */
-
-	std::vector<int>	render_depth;				///< Used when only few specific depth levels are rendered, usually for test purpose
-};
 
 /** 
 * @brief Main class for generating a hologram using depth map data.
@@ -128,14 +106,13 @@ struct GEN_DLL HologramParams{
 class GEN_DLL ophDepthMap : public ophGen {
 
 public:
-
 	ophDepthMap();
-	~ophDepthMap();
+	virtual ~ophDepthMap();
 	
 	void setMode(bool isCPU);
 
 	/** \ingroup init_module */
-	bool readConfig();
+	bool readConfig(const char* fname);
 
 	/** \ingroup init_module */
 	void initialize();
@@ -146,12 +123,28 @@ public:
 	/** \ingroup recon_module */
 	void reconstructImage();
 
-	//void writeMatFileComplex(const char* fileName, Complex* val);							
-	//void writeMatFileDouble(const char* fileName, double * val);
-	//bool readMatFileDouble(const char* fileName, double * val);
+public:
+	/** \ingroup setter/getter */
+	inline void setFieldLens(real fieldlens)		{ dm_config_.field_lens		= fieldlens;	}
+	/** \ingroup setter/getter */
+	inline void setNearDepth(real neardepth)		{ dm_config_.near_depthmap	= neardepth;	}
+	/** \ingroup setter/getter */
+	inline void setFarDepth(real fardetph)			{ dm_config_.far_depthmap	= fardetph;		}
+	/** \ingroup setter/getter */
+	inline void setNumOfDepth(uint numofdepth)		{ dm_config_.num_of_depth	= numofdepth;	}
+
+	/** \ingroup setter/getter */
+	inline real getFieldLens(void)	{ return dm_config_.field_lens;		}
+	/** \ingroup setter/getter */
+	inline real getNearDepth(void)	{ return dm_config_.near_depthmap;	}
+	/** \ingroup setter/getter */
+	inline real getFarDepth(void)	{ return dm_config_.far_depthmap;	}
+	/** \ingroup setter/getter */
+	inline uint getNumOfDepth(void) { return dm_config_.num_of_depth;	}
+	/** \ingroup setter/getter */
+	inline void getRenderDepth(std::vector<int>& renderdepth) { renderdepth = dm_config_.render_depth; }
 
 private:
-
 	/** \ingroup init_module
 	* @{ */
 	void init_CPU();   
@@ -182,8 +175,8 @@ private:
 	void calc_Holo_by_Depth(int frame);
 	void calc_Holo_CPU(int frame);
 	void calc_Holo_GPU(int frame);
-	void propagation_AngularSpectrum_CPU(oph::Complex* input_u, double propagation_dist);
-	void propagation_AngularSpectrum_GPU(cufftDoubleComplex* input_u, double propagation_dist);
+	void propagation_AngularSpectrum_CPU(oph::Complex<real>* input_u, real propagation_dist);
+	void propagation_AngularSpectrum_GPU(cufftDoubleComplex* input_u, real propagation_dist);
 	/** @} */
 
 	/** \ingroup encode_modulel
@@ -196,8 +189,8 @@ private:
 	*/
 	void encodingSymmetrization(ivec2 sig_location)
 	{
-		int pnx = params_.pn[0];
-		int pny = params_.pn[1];
+		int pnx = context_.pixel_number[0];
+		int pny = context_.pixel_number[1];
 
 		int cropx1, cropx2, cropx, cropy1, cropy2, cropy;
 		if (sig_location[1] == 0) //Left or right half
@@ -247,90 +240,53 @@ private:
 	void writeResultimage(int ftr);
 	/** @} */
 
-	void get_rand_phase_value(oph::Complex& rand_phase_val);
-	void get_shift_phase_value(oph::Complex& shift_phase_val, int idx, oph::ivec2 sig_location);
+	void get_rand_phase_value(oph::Complex<real>& rand_phase_val);
+	void get_shift_phase_value(oph::Complex<real>& shift_phase_val, int idx, oph::ivec2 sig_location);
 
-	void fftwShift(Complex* src, Complex* dst, fftw_complex* in, fftw_complex* out, int nx, int ny, int type, bool bNomalized = false);
-	void exponent_complex(oph::Complex* val);
-	void fftShift(int nx, int ny, oph::Complex* input, oph::Complex* output);
+	void fftwShift(oph::Complex<real>* src, oph::Complex<real>* dst, fftw_complex* in, fftw_complex* out, int nx, int ny, int type, bool bNomalized = false);
+	void exponent_complex(oph::Complex<real>* val);
+	void fftShift(int nx, int ny, oph::Complex<real>* input, oph::Complex<real>* output);
 
-	//void writeIntensity_gray8_bmp(const char* fileName, int nx, int ny, double* intensity);
+	//void writeIntensity_gray8_bmp(const char* fileName, int nx, int ny, real* intensity);
 	//void writeIntensity_gray8_bmp(const char* fileName, int nx, int ny, Complex* complexvalue);
 	//void writeIntensity_gray8_real_bmp(const char* fileName, int nx, int ny, Complex* complexvalue);
-	//void writeImage_fromGPU(QString imgname, int pnx, int pny, cufftDoubleComplex* gpu_data);
+	//void writeImage_fromGPU(QString imgname, int pnx, int pny, cufftrealComplex* gpu_data);
 
 	/** \ingroup recon_module
 	* @{ */
 	void reconstruction(fftw_complex* in, fftw_complex* out);
 	void testPropagation2EyePupil(fftw_complex* in, fftw_complex* out);
-	void writeSimulationImage(int num, double val);
-	void circshift(oph::Complex* in, oph::Complex* out, int shift_x, int shift_y, int nx, int ny);
+	void writeSimulationImage(int num, real val);
+	void circshift(oph::Complex<real>* in, oph::Complex<real>* out, int shift_x, int shift_y, int nx, int ny);
 	/** @} */
 
 	virtual void ophFree(void);
 
 private:
 
-	bool					isCPU_;						///< if true, it is implemented on the CPU, otherwise on the GPU.
+	bool					isCPU_;								///< if true, it is implemented on the CPU, otherwise on the GPU.
 
-	unsigned char*			img_src_gpu_;				///< GPU variable - image source data, values are from 0 to 255.
-	unsigned char*			dimg_src_gpu_;				///< GPU variable - depth map data, values are from 0 to 255.
-	double*					depth_index_gpu_;			///< GPU variable - quantized depth map data.
+	unsigned char*			img_src_gpu_;						///< GPU variable - image source data, values are from 0 to 255.
+	unsigned char*			dimg_src_gpu_;						///< GPU variable - depth map data, values are from 0 to 255.
+	real*					depth_index_gpu_;					///< GPU variable - quantized depth map data.
 	
-	double*					img_src_;					///< CPU variable - image source data, values are from 0 to 1.
-	double*					dmap_src_;					///< CPU variable - depth map data, values are from 0 to 1.
-	double*					depth_index_;				///< CPU variable - quantized depth map data.
-	int*					alpha_map_;					///< CPU variable - calculated alpha map data, values are 0 or 1.
+	real*					img_src_;							///< CPU variable - image source data, values are from 0 to 1.
+	real*					dmap_src_;							///< CPU variable - depth map data, values are from 0 to 1.
+	real*					depth_index_;						///< CPU variable - quantized depth map data.
+	int*					alpha_map_;							///< CPU variable - calculated alpha map data, values are 0 or 1.
 
-	double*					dmap_;						///< CPU variable - physical distances of depth map.
+	real*					dmap_;								///< CPU variable - physical distances of depth map.
 	
-	double					dstep_;						///< the physical increment of each depth map layer.
-	std::vector<double>		dlevel_;					///< the physical value of all depth map layer.
-	std::vector<double>		dlevel_transform_;			///< transfomed dlevel_ variable
+	real					dstep_;								///< the physical increment of each depth map layer.
+	std::vector<real>		dlevel_;							///< the physical value of all depth map layer.
+	std::vector<real>		dlevel_transform_;					///< transfomed dlevel_ variable
 	
-	oph::Complex*			U_complex_;					///< CPU variable - the generated hologram before encoding.
-	double*					u255_fringe_;				///< the final hologram, used for writing the result image.
+	oph::Complex<real>*		U_complex_;							///< CPU variable - the generated hologram before encoding.
+	//real*					u255_fringe_;						///< the final hologram, used for writing the result image.
 
-	HologramParams			params_;					///< structure variable for hologram parameters
-
-	std::string				SOURCE_FOLDER;				///< input source folder - config file.
-	std::string				IMAGE_PREFIX;				///< the prefix of the input image file - config file.
-	std::string				DEPTH_PREFIX;				///< the prefix of the deptmap file - config file	
-	std::string				RESULT_FOLDER;				///< the name of the result folder - config file
-	std::string				RESULT_PREFIX;				///< the prefix of the result file - config file
-	bool					FLAG_STATIC_IMAGE;			///< if true, the input image is static.
-	uint					START_OF_FRAME_NUMBERING;	///< the start frame number.
-	uint					NUMBER_OF_FRAME;			///< the total number of the frame.	
-	uint					NUMBER_OF_DIGIT_OF_FRAME_NUMBERING; ///< the number of digit of frame number.
-
-	int						Transform_Method_;			///< transform method 
-	int						Propagation_Method_;		///< propagation method - currently AngularSpectrum
-	int						Encoding_Method_;			///< encoding method - currently Symmetrization
-
-	double					WAVELENGTH;					///< wave length
-
-	bool					FLAG_CHANGE_DEPTH_QUANTIZATION;	///< if true, change the depth quantization from the default value.
-	uint					DEFAULT_DEPTH_QUANTIZATION;		///< default value of the depth quantization - 256
-	uint					NUMBER_OF_DEPTH_QUANTIZATION;   ///< depth level of input depthmap.
-	bool					RANDOM_PHASE;					///< If true, random phase is imposed on each depth layer.
-
-	// for Simulation (reconstruction)
-	//===================================================
-	std::string				Simulation_Result_File_Prefix_;	///< reconstruction variable for testing
-	int						test_pixel_number_scale_;		///< reconstruction variable for testing
-	oph::vec2				Pixel_pitch_xy_;				///< reconstruction variable for testing
-	oph::ivec2				SLM_pixel_number_xy_;			///< reconstruction variable for testing
-	double					f_field_;						///< reconstruction variable for testing
-	double					eye_length_;					///< reconstruction variable for testing
-	double					eye_pupil_diameter_;			///< reconstruction variable for testing
-	oph::vec2				eye_center_xy_;					///< reconstruction variable for testing
-	double					focus_distance_;				///< reconstruction variable for testing
-	int						sim_type_;						///< reconstruction variable for testing
-	double					sim_from_;						///< reconstruction variable for testing
-	double					sim_to_;						///< reconstruction variable for testing
-	int						sim_step_num_;					///< reconstruction variable for testing
-	double*					sim_final_;						///< reconstruction variable for testing
-	oph::Complex*			hh_complex_;					///< reconstruction variable for testing
+	OphDepthMapConfig		dm_config_;							///< structure variable for depthmap hologram configuration.
+	OphDepthMapParams		dm_params_;							///< structure variable for depthmap hologram parameters.
+	OphDepthMapSimul		dm_simuls_;							///< structure variable for depthmap simulation parameters.
 };
 
-#endif
+#endif // !__ophDepthMap_h

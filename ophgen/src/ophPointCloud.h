@@ -3,8 +3,8 @@
 * @brief
 */
 
-#ifndef __OphPointCloud_h
-#define __OphPointCloud_h
+#ifndef __ophPointCloud_h
+#define __ophPointCloud_h
 
 #define _USE_MATH_DEFINES
 
@@ -27,6 +27,7 @@
 #include <math_functions.h> //Single Precision Floating
 //#include <math_functions_dbl_ptx3.h> //Double Precision Floating
 #include <vector_functions.h> //Vector Processing Function
+
 #undef __CUDA_INTERNAL_COMPILATION__
 
 #define THREAD_X 32
@@ -53,13 +54,44 @@ public:
 	/**
 	* @overload
 	*/
-	ophPointCloud(const std::string InputModelFile, const std::string InputConfigFile);
+	ophPointCloud(const std::string pc_file, const std::string cfg_file);
 
 private:
 	/**
 	* @brief Destructor
 	*/
 	virtual ~ophPointCloud(void);
+
+public:
+	/** \ingroup setter/getter */
+	inline void setScale(real sx, real sy, real sz) { pc_config_.scale.v[0] = sx; pc_config_.scale.v[1] = sy; pc_config_.scale.v[2] = sz; }
+	/** \ingroup setter/getter */
+	inline void setOffsetDepth(real offset_depth) { pc_config_.offset_depth = offset_depth; }
+	/** \ingroup setter/getter */
+	inline void setFilterShapeFlag(int8_t* fsf) { pc_config_.filter_shape_flag = fsf; }
+	/** \ingroup setter/getter */
+	inline void setFilterWidth(real wx, real wy) { pc_config_.filter_width.v[0] = wx; pc_config_.filter_width.v[1] = wy; }
+	/** \ingroup setter/getter */
+	inline void setFocalLength(real lens_in, real lens_out, real lens_eye_piece) { pc_config_.focal_length_lens_in = lens_in; pc_config_.focal_length_lens_out = lens_out; pc_config_.focal_length_lens_eye_piece = lens_eye_piece; }
+	/** \ingroup setter/getter */
+	inline void setTiltAngle(real ax, real ay) { pc_config_.tilt_angle.v[0] = ax; pc_config_.tilt_angle.v[1] = ay; }
+
+	/** \ingroup setter/getter */
+	inline void getScale(vec3& scale) { scale = pc_config_.scale; }
+	/** \ingroup setter/getter */
+	inline real getOffsetDepth(void) { return pc_config_.offset_depth; }
+	/** \ingroup setter/getter */
+	inline int8_t* getFilterShapeFlag(void) { return pc_config_.filter_shape_flag; }
+	/** \ingroup setter/getter */
+	inline void getFilterWidth(vec2& filterwidth) { filterwidth = pc_config_.filter_width; }
+	/** \ingroup setter/getter */
+	inline void getFocalLength(real* lens_in, real* lens_out, real* lens_eye_piece) {
+		if (lens_in != nullptr) *lens_in = pc_config_.focal_length_lens_in;
+		if (lens_out != nullptr) *lens_out = pc_config_.focal_length_lens_out;
+		if (lens_eye_piece != nullptr) *lens_eye_piece = pc_config_.focal_length_lens_eye_piece;
+	}
+	/** \ingroup setter/getter */
+	inline void getTiltAngle(vec2& tiltangle) { tiltangle = pc_config_.tilt_angle; }
 
 public:
 	/**
@@ -71,29 +103,32 @@ public:
 	GPU implementation </pre>
 	* @param isCPU : the value for specifying whether the hologram generation method is implemented on the CPU or GPU
 	*/
-	void setMode(bool isCPU);
+	void setMode(bool IsCPU);
 
 	/**
-	\defgroup PointCloud_Load
+	\defgroup PointCloud_Load 
+	* @brief override
 	* @{
 	* @brief Import Point Cloud Data Base File : *.dat file.
 	* This Function is included memory location of Input Point Clouds.
 	*/
 	/**
+	* @brief override
 	* @param InputModelFile PointCloud(*.dat) input file path
 	* @return number of Pointcloud (if it failed loading, it returned -1)
 	*/
-	int loadPointCloud(const std::string InputModelFile);
+	virtual int loadPointCloud(const std::string pc_file);
 
 	/**
 	\defgroup Import_Configfile
+	* @brief
 	* @{
 	* @brief Import Specification Config File(*.config) file
 	*/
 	/**
 	* @param InputConfigFile Specification Config(*.config) file path
 	*/
-	bool readConfig(const std::string InputConfigFile);
+	virtual bool readConfig(const std::string cfg_file);
 
 	/**
 	\defgroup Set_Data
@@ -105,95 +140,19 @@ public:
 	* @param AmplitudeArray 3D Point Cloud Model Amplitude Data of Point-Based Light Wave
 	* @param PhaseArray  3D Point Cloud Model Phase Data of Point-Based Light Wave
 	*/
-	void setPointCloudModel(const std::vector<float> &VertexArray, const std::vector<float> &AmplitudeArray, const std::vector<float> &PhaseArray);
-	void getPointCloudModel(std::vector<float> &VertexArray, std::vector<float> &AmplitudeArray, std::vector<float> &PhaseArray);
+	void setPointCloudModel(const std::vector<real> &vertex_array, const std::vector<real> &amplitude_array, const std::vector<real> &phase_array);
+	void getPointCloudModel(std::vector<real> &vertex_array, std::vector<real> &amplitude_array, std::vector<real> &phase_array);
 
-	void getModelVertexArray(std::vector<float> &VertexArray);
-	void getModelAmplitudeArray(std::vector<float> &AmplitudeArray);
-	void getModelPhaseArray(std::vector<float> &PhaseArray);
+	void getModelVertexArray(std::vector<real> &vertex_array);
+	void getModelAmplitudeArray(std::vector<real> &amplitude_array);
+	void getModelPhaseArray(std::vector<real> &phase_array);
 	int getNumberOfPoints();
-
-	uchar* getHologramBufferData();
-
-	/**
-	* @param Model 3D Point Cloud Model Data
-	*/
-	//void setPointCloudModel(const std::vector<PointCloud> &Model);
-
-	//void getPointCloudModel(std::vector<PointCloud> &Model);
-
-	/**
-	* @param InputConfig Specification Config Data
-	*/
-	void setConfigParams(const oph::ConfigParams &InputConfig);
-
-	oph::ConfigParams getConfigParams();
-	/** @} */
 
 	/**
 	* @brief Generate a hologram, main funtion.
 	* @return implement time (sec)
 	*/
 	double generateHologram();
-
-	/**
-	* @brief Save Pixel Buffer to Bitmap File format Image.
-	* @param OutputFileName: filename to save
-	*/
-	void saveFileBmp(std::string OutputFileName);
-
-	/**
-	\defgroup Set_Data
-	* @{
-	* @brief Directly Set Config Specification Information without *.config file
-	*/
-	/**
-	* @param scaleX Scaling factor of x coordinate of point cloud
-	* @param scaleY Scaling factor of y coordinate of point cloud
-	* @param scaleZ Scaling factor of z coordinate of point cloud
-	*/
-	void setScaleFactor(const float scaleX, const float scaleY, const float scaleZ);
-
-	void getScaleFactor(float &scaleX, float &scaleY, float &scaleZ);
-
-	/**
-	* @param offsetDepth Offset value of point cloud in z direction
-	*/
-	void setOffsetDepth(const float offsetDepth);
-
-	float getOffsetDepth();
-
-	/**
-	* @param pitchX Pixel pitch of SLM in x direction
-	* @param pitchY Pixel pitch of SLM in y direction
-	*/
-	void setSamplingPitch(const float pitchX, const float pitchY);
-
-	void getSamplingPitch(float &pitchX, float &pitchY);
-
-	/**
-	* @param n_x Number of pixel of SLM in x direction
-	* @param n_y Number of pixel of SLM in y direction
-	*/
-	void setImageSize(const int n_x, const int n_y);
-
-	void getImageSize(int &n_x, int &n_y);
-
-	/**
-	* @param lambda Wavelength of laser
-	*/
-	void setWaveLength(const float lambda);
-
-	float getWaveLength();
-
-	/**
-	* @param tiltAngleX Tilt angle in x direction for spatial filtering
-	* @param tiltAngleY Tilt angle in y direction for spatial filtering
-	*/
-	void setTiltAngle(const float tiltAngleX, const float tiltAngleY);
-
-	void getTiltAngle(float &tiltAngleX, float &tiltAngleY);
-	/** @}	*/
 
 private:
 	/**
@@ -207,7 +166,7 @@ private:
 	* @param dst Output Fringe Pattern
 	* @return implement time (sec)
 	*/
-	double genCghPointCloud(const std::vector<float> &VertexArray, const std::vector<float> &AmplitudeArray, float *dst);
+	double genCghPointCloud(real *dst);
 
 	/**
 	* @overload
@@ -229,7 +188,7 @@ private:
 	* @param dst Output Fringe Pattern
 	* @return implement time (sec)
 	*/
-	double genCghPointCloud_cuda(const std::vector<float> &VertexArray, const std::vector<float> &AmplitudeArray, float *dst);
+	double genCghPointCloud_cuda(real *dst);
 
 	/** @}	*/
 
@@ -240,27 +199,22 @@ private:
 	* @param nx: The number of pixels in X
 	* @param ny: The number of pixels in Y
 	*/
-	void normalize(float *src, uchar *dst, const int nx, const int ny);
+	void normalize(real *src, uchar *dst, const int nx, const int ny);
 	virtual void ophFree(void);
 
-	bool bIsCPU;
+	bool IsCPU_;
 	int n_points;
 
-	std::string InputSrcFile;
-	std::string InputConfigFile;
+	std::vector<real> vertex_array_;
+	std::vector<real> amplitude_array_;
+	std::vector<real> phase_array_;
 
-	//std::vector<PointCloud> ModelData;
-	std::vector<float> VertexArray;
-	std::vector<float> AmplitudeArray;
-	std::vector<float> PhaseArray;
-
-	oph::ConfigParams ConfigParams;
-	uchar *data_hologram;
+	OphPointCloudConfig pc_config_;
 };
 
 extern "C"
 {
-	void cudaPointCloudKernel(const int block_x, const int block_y, const int thread_x, const int thread_y, float3 *PointCloud, float *amplitude, const GpuConst *Config, float *dst);
+	void cudaPointCloudKernel(const int block_x, const int block_y, const int thread_x, const int thread_y, float3 *PointCloud, real *amplitude, const GpuConst *Config, real *dst);
 }
 
-#endif // !__OphPointCloud_h
+#endif // !__ophPointCloud_h

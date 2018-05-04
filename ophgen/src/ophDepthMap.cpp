@@ -29,12 +29,7 @@ ophDepthMap::ophDepthMap()
 	dmap_ = 0;
 	dstep_ = 0;
 	dlevel_.clear();
-	U_complex_ = 0;
-	u255_fringe_ = 0;
-
-	sim_final_ = 0;
-	hh_complex_ = 0;
-
+	U_complex_ = nullptr;
 }
 
 /**
@@ -62,142 +57,11 @@ void ophDepthMap::setMode(bool isCPU)
 * @brief Read parameters from a config file(config_openholo.txt).
 * @return true if config infomation are sucessfully read, flase otherwise.
 */
-bool ophDepthMap::readConfig()
+bool ophDepthMap::readConfig(const char* fname)
 {
-	std::string inputFileName_ = "config_openholo.txt";
+	bool b_ok = ophGen::readConfig(fname, dm_config_, dm_params_, dm_simuls_);
 
-	LOG("Reading....%s\n", inputFileName_.c_str());
-
-	std::ifstream inFile(inputFileName_.c_str());
-
-	if (!inFile.is_open()){
-		LOG("file not found.\n");
-		return false;
-	}
-
-	// skip 7 lines
-	std::string temp;
-	getline(inFile, temp, '\n');	getline(inFile, temp, '\n');	getline(inFile, temp, '\n');
-	getline(inFile, temp, '\n');	getline(inFile, temp, '\n');	getline(inFile, temp, '\n');
-	getline(inFile, temp, '\n');
-
-	inFile >> SOURCE_FOLDER;						getline(inFile, temp, '\n');
-	inFile >> IMAGE_PREFIX;							getline(inFile, temp, '\n');
-	inFile >> DEPTH_PREFIX;							getline(inFile, temp, '\n');
-	inFile >> RESULT_FOLDER;						getline(inFile, temp, '\n');
-	inFile >> RESULT_PREFIX;						getline(inFile, temp, '\n');
-	inFile >> FLAG_STATIC_IMAGE;					getline(inFile, temp, '\n');
-	inFile >> START_OF_FRAME_NUMBERING;				getline(inFile, temp, '\n');
-	inFile >> NUMBER_OF_FRAME;						getline(inFile, temp, '\n');
-	inFile >> NUMBER_OF_DIGIT_OF_FRAME_NUMBERING;	getline(inFile, temp, '\n');
-
-	// skip 3 lines
-	getline(inFile, temp, '\n');	getline(inFile, temp, '\n');	getline(inFile, temp, '\n');
-
-	inFile >> Transform_Method_;					getline(inFile, temp, '\n');
-	inFile >> Propagation_Method_;					getline(inFile, temp, '\n');
-	inFile >> Encoding_Method_;						getline(inFile, temp, '\n');
-	
-	// skip 3 lines
-	getline(inFile, temp, '\n');	getline(inFile, temp, '\n');	getline(inFile, temp, '\n');
-
-	inFile >> params_.field_lens;					getline(inFile, temp, '\n');
-	inFile >> WAVELENGTH;							getline(inFile, temp, '\n');
-	params_.lambda = WAVELENGTH;
-	params_.k = 2 * PI / WAVELENGTH;
-	
-	inFile >> params_.pn[0];
-	getline(inFile, temp, '\n');
-	
-	inFile >> params_.pn[1];
-	getline(inFile, temp, '\n');
-	
-	inFile >> params_.pp[0];
-	getline(inFile, temp, '\n');
-
-	inFile >> params_.pp[1];
-	getline(inFile, temp, '\n');
-
-	params_.ss[0] = params_.pp[0] * params_.pn[0];
-	params_.ss[1] = params_.pp[1] * params_.pn[1];
-
-	// skip 3 lines
-	getline(inFile, temp, '\n');	getline(inFile, temp, '\n');	getline(inFile, temp, '\n');
-
-	double NEAR_OF_DEPTH_MAP, FAR_OF_DEPTH_MAP;
-	inFile >> NEAR_OF_DEPTH_MAP;					getline(inFile, temp, '\n');
-	inFile >> FAR_OF_DEPTH_MAP;						getline(inFile, temp, '\n');
-
-	params_.near_depthmap = min(NEAR_OF_DEPTH_MAP, FAR_OF_DEPTH_MAP);
-	params_.far_depthmap = max(NEAR_OF_DEPTH_MAP, FAR_OF_DEPTH_MAP);
-
-	inFile >> FLAG_CHANGE_DEPTH_QUANTIZATION;		getline(inFile, temp, '\n');
-	inFile >> DEFAULT_DEPTH_QUANTIZATION;			getline(inFile, temp, '\n');
-	inFile >> NUMBER_OF_DEPTH_QUANTIZATION;			getline(inFile, temp, '\n');
-		
-	if (FLAG_CHANGE_DEPTH_QUANTIZATION == 0)
-		params_.num_of_depth = DEFAULT_DEPTH_QUANTIZATION;
-	else
-		params_.num_of_depth = NUMBER_OF_DEPTH_QUANTIZATION;
-	
-	inFile >> temp;			
-	std::size_t found = temp.find(':');
-	if (found != std::string::npos)
-	{
-		std::string s = temp.substr(0, found);
-		std::string e = temp.substr(found + 1);
-		int start = std::stoi(s);
-		int end = std::stoi(e);
-		params_.render_depth.clear();
-		for (int k = start; k <= end; k++)
-			params_.render_depth.push_back(k);
-
-	}else {
-
-		params_.render_depth.clear();
-		params_.render_depth.push_back(std::stoi(temp));
-		inFile >> temp;
-
-		while (temp.find('/') == std::string::npos)
-		{
-			params_.render_depth.push_back(std::stoi(temp));
-			inFile >> temp;
-		}
-	}
-	if (params_.render_depth.empty()){
-		LOG("Error: RENDER_DEPTH \n");
-		return false;
-	}
-		
-	getline(inFile, temp, '\n');
-	inFile >> RANDOM_PHASE;							getline(inFile, temp, '\n');
-	
-	//==Simulation parameters ======================================================================
-	getline(inFile, temp, '\n');	getline(inFile, temp, '\n');	getline(inFile, temp, '\n');
-
-	inFile >> Simulation_Result_File_Prefix_;			getline(inFile, temp, '\n');
-	inFile >> test_pixel_number_scale_;					getline(inFile, temp, '\n');
-	inFile >> eye_length_;								getline(inFile, temp, '\n');
-	inFile >> eye_pupil_diameter_;						getline(inFile, temp, '\n');
-	inFile >> eye_center_xy_[0];						getline(inFile, temp, '\n');
-	inFile >> eye_center_xy_[1];						getline(inFile, temp, '\n');
-	inFile >> focus_distance_;							getline(inFile, temp, '\n');
-
-	getline(inFile, temp, '\n');	getline(inFile, temp, '\n');	getline(inFile, temp, '\n');
-	getline(inFile, temp, '\n');	getline(inFile, temp, '\n');	
-	
-	inFile >> sim_type_;								getline(inFile, temp, '\n');
-	inFile >> sim_from_;								getline(inFile, temp, '\n');
-	inFile >> sim_to_;									getline(inFile, temp, '\n');
-	inFile >> sim_step_num_;							getline(inFile, temp, '\n');
-	
-	//=====================================================================================
-	inFile.close();
-
-	LOG("done\n");
-
-	return true;
-
+	return b_ok;
 }
 
 /**
@@ -209,8 +73,8 @@ void ophDepthMap::initialize()
 	dstep_ = 0;
 	dlevel_.clear();
 
-	if (u255_fringe_)		free(u255_fringe_);
-	u255_fringe_ = (double*)malloc(sizeof(double) * params_.pn[0] * params_.pn[1]);
+	if (p_hologram)		free(p_hologram);
+	p_hologram = (real*)malloc(sizeof(real) * context_.pixel_number[0] * context_.pixel_number[1]);
 	
 	if (isCPU_)
 		init_CPU();
@@ -233,8 +97,8 @@ void ophDepthMap::initialize()
 void ophDepthMap::generateHologram()
 {
 	int num_of_frame;
-	if (FLAG_STATIC_IMAGE == 0)
-		num_of_frame = NUMBER_OF_FRAME;
+	if (dm_params_.FLAG_STATIC_IMAGE == 0)
+		num_of_frame = dm_params_.NUMBER_OF_FRAME;
 	else
 		num_of_frame = 1;
 
@@ -249,20 +113,16 @@ void ophDepthMap::generateHologram()
 
 		getDepthValues();
 
-		if (Transform_Method_ == 0)
+		if (dm_params_.Transform_Method_ == 0)
 			transformViewingWindow();
 
 		calc_Holo_by_Depth(ftr);
 		
-		if (Encoding_Method_ == 0)
+		if (dm_params_.Encoding_Method_ == 0)
 			encodingSymmetrization(ivec2(0,1));
 
 		writeResultimage(ftr);
-
-		//writeMatFileDouble("u255_fringe", u255_fringe_);
-		//writeMatFileComplex("U_complex", U_complex_);
 	}
-
 }
 
 /**
@@ -276,21 +136,21 @@ void ophDepthMap::generateHologram()
 int ophDepthMap::readImageDepth(int ftr)
 {	
 	std::string src_folder;
-	if (FLAG_STATIC_IMAGE == 0)
+	if (dm_params_.FLAG_STATIC_IMAGE == 0)
 	{
-		if (NUMBER_OF_DIGIT_OF_FRAME_NUMBERING > 0) {
+		if (dm_params_.NUMBER_OF_DIGIT_OF_FRAME_NUMBERING > 0) {
 			//src_folder = std::string().append(SOURCE_FOLDER).append("/") + QString("%1").arg((uint)(ftr + START_OF_FRAME_NUMBERING), (int)NUMBER_OF_DIGIT_OF_FRAME_NUMBERING, 10, (QChar)'0');
 			std::stringstream ss;
-			ss << std::setw(NUMBER_OF_DIGIT_OF_FRAME_NUMBERING) << std::setfill('0') << ftr + START_OF_FRAME_NUMBERING;
+			ss << std::setw(dm_params_.NUMBER_OF_DIGIT_OF_FRAME_NUMBERING) << std::setfill('0') << ftr + dm_params_.START_OF_FRAME_NUMBERING;
 			src_folder = ss.str();
 		} else
-			src_folder = std::string().append(SOURCE_FOLDER).append("/").append(std::to_string(ftr + START_OF_FRAME_NUMBERING));
+			src_folder = std::string().append(dm_params_.SOURCE_FOLDER).append("/").append(std::to_string(ftr + dm_params_.START_OF_FRAME_NUMBERING));
 
 	}else 
-		src_folder = std::string().append(SOURCE_FOLDER);
+		src_folder = std::string().append(dm_params_.SOURCE_FOLDER);
 
 	
-	std::string sdir = std::string("./").append(src_folder).append("/").append(IMAGE_PREFIX).append("*.bmp");
+	std::string sdir = std::string("./").append(src_folder).append("/").append(dm_params_.IMAGE_PREFIX).append("*.bmp");
 
 	_finddatai64_t fd;
 	intptr_t handle;
@@ -304,10 +164,10 @@ int ophDepthMap::readImageDepth(int ftr)
 	std::string imgfullname = std::string("./").append(src_folder).append("/").append(fd.name);
 
 	int w, h, bytesperpixel;
-	int ret = getBitmapSize(w, h, bytesperpixel, imgfullname.c_str());
+	int ret = getImgSize(w, h, bytesperpixel, imgfullname.c_str());
 
 	unsigned char* imgload = (unsigned char*)malloc(sizeof(unsigned char)*w*h*bytesperpixel);
-	ret = loadBitmapFile(imgload, imgfullname.c_str());
+	ret = loadAsImg(imgfullname.c_str(), (void*)imgload);
 	if (!ret) {
 		LOG("Failed::Image Load: %s\n", imgfullname.c_str());
 		return false;
@@ -326,7 +186,7 @@ int ophDepthMap::readImageDepth(int ftr)
 
 
 	//=================================================================================
-	std::string sddir = std::string("./").append(src_folder).append("/").append(DEPTH_PREFIX).append("*.bmp");
+	std::string sddir = std::string("./").append(src_folder).append("/").append(dm_params_.DEPTH_PREFIX).append("*.bmp");
 	handle = _findfirst64(sddir.c_str(), &fd);
 	if (handle == -1)
 	{
@@ -337,10 +197,10 @@ int ophDepthMap::readImageDepth(int ftr)
 	std::string dimgfullname = std::string("./").append(src_folder).append("/").append(fd.name);
 
 	int dw, dh, dbytesperpixel;
-	ret = getBitmapSize(dw, dh, dbytesperpixel, dimgfullname.c_str());
+	ret = getImgSize(dw, dh, dbytesperpixel, dimgfullname.c_str());
 
 	unsigned char* dimgload = (unsigned char*)malloc(sizeof(unsigned char)*dw*dh*dbytesperpixel);
-	ret = loadBitmapFile(dimgload, dimgfullname.c_str());
+	ret = loadAsImg(dimgfullname.c_str(), (void*)dimgload);
 	if (!ret) {
 		LOG("Failed::Depth Image Load: %s\n", dimgfullname.c_str());
 		return false;
@@ -355,8 +215,8 @@ int ophDepthMap::readImageDepth(int ftr)
 	//ret = creatBitmapFile(dimg, dw, dh, 8, "dtest");
 	//=======================================================================
 	//resize image
-	int pnx = params_.pn[0];
-	int pny = params_.pn[1];
+	int pnx = context_.pixel_number[0];
+	int pny = context_.pixel_number[1];
 
 	unsigned char* newimg = (unsigned char*)malloc(sizeof(char)*pnx*pny);
 	memset(newimg, 0, sizeof(char)*pnx*pny);
@@ -401,11 +261,11 @@ int ophDepthMap::readImageDepth(int ftr)
 */
 void ophDepthMap::getDepthValues()
 {
-	if (params_.num_of_depth > 1)
+	if (dm_config_.num_of_depth > 1)
 	{
-		dstep_ = (params_.far_depthmap - params_.near_depthmap) / (params_.num_of_depth - 1);
-		double val = params_.near_depthmap;
-		while (val <= params_.far_depthmap)
+		dstep_ = (dm_config_.far_depthmap - dm_config_.near_depthmap) / (dm_config_.num_of_depth - 1);
+		real val = dm_config_.near_depthmap;
+		while (val <= dm_config_.far_depthmap)
 		{
 			dlevel_.push_back(val);
 			val += dstep_;
@@ -413,12 +273,12 @@ void ophDepthMap::getDepthValues()
 
 	} else {
 
-		dstep_ = (params_.far_depthmap + params_.near_depthmap) / 2;
-		dlevel_.push_back(params_.far_depthmap - params_.near_depthmap);
+		dstep_ = (dm_config_.far_depthmap + dm_config_.near_depthmap) / 2;
+		dlevel_.push_back(dm_config_.far_depthmap - dm_config_.near_depthmap);
 
 	}
 	
-	if (FLAG_CHANGE_DEPTH_QUANTIZATION == 1)
+	if (dm_params_.FLAG_CHANGE_DEPTH_QUANTIZATION == 1)
 	{
 		if (isCPU_)
 			change_depth_quan_CPU();
@@ -433,14 +293,14 @@ void ophDepthMap::getDepthValues()
 */
 void ophDepthMap::transformViewingWindow()
 {
-	int pnx = params_.pn[0];
-	int pny = params_.pn[1];
+	int pnx = context_.pixel_number[0];
+	int pny = context_.pixel_number[1];
 
-	double val;
+	real val;
 	dlevel_transform_.clear();
 	for (int p = 0; p < dlevel_.size(); p++)
 	{
-		val = -params_.field_lens * dlevel_[p] / (dlevel_[p] - params_.field_lens);
+		val = -dm_config_.field_lens * dlevel_[p] / (dlevel_[p] - dm_config_.field_lens);
 		dlevel_transform_.push_back(val);
 	}
 }
@@ -456,7 +316,6 @@ void ophDepthMap::calc_Holo_by_Depth(int frame)
 		calc_Holo_CPU(frame);
 	else
 		calc_Holo_GPU(frame);
-	
 }
 
 /**
@@ -465,22 +324,21 @@ void ophDepthMap::calc_Holo_by_Depth(int frame)
 *  otherwise, random phase value is 1.
 * @param rand_phase_val : Input & Ouput value.
 */
-void ophDepthMap::get_rand_phase_value(Complex& rand_phase_val)
+void ophDepthMap::get_rand_phase_value(oph::Complex<real>& rand_phase_val)
 {
-	if (RANDOM_PHASE)
+	if (dm_params_.RANDOM_PHASE)
 	{
 		std::default_random_engine generator;
-		std::uniform_real_distribution<double> distribution(0.0, 1.0);
+		std::uniform_real_distribution<real> distribution(0.0, 1.0);
 
-		rand_phase_val.a = 0.0;
-		rand_phase_val.b = 2 * PI * distribution(generator);
+		rand_phase_val.re = 0.0;
+		rand_phase_val.im = 2 * PI * distribution(generator);
 		exponent_complex(&rand_phase_val);
 
 	} else {
-		rand_phase_val.a = 1.0;
-		rand_phase_val.b = 0.0;
+		rand_phase_val.re = 1.0;
+		rand_phase_val.im = 0.0;
 	}
-
 }
 
 /**
@@ -490,7 +348,7 @@ void ophDepthMap::get_rand_phase_value(Complex& rand_phase_val)
 
 void ophDepthMap::writeResultimage(int ftr)
 {	
-	std::string outdir = std::string("./").append(RESULT_FOLDER);
+	std::string outdir = std::string("./").append(dm_params_.RESULT_FOLDER);
 
 	if (!CreateDirectory(outdir.c_str(), NULL) && ERROR_ALREADY_EXISTS != GetLastError())
 	{
@@ -498,85 +356,81 @@ void ophDepthMap::writeResultimage(int ftr)
 		return;
 	}
 	
-	std::string fname = std::string("./").append(RESULT_FOLDER).append("/").append(RESULT_PREFIX).append(std::to_string(ftr)).append(".bmp");
+	std::string fname = std::string("./").append(dm_params_.RESULT_FOLDER).append("/").append(dm_params_.RESULT_PREFIX).append(std::to_string(ftr)).append(".bmp");
 
-	int pnx = params_.pn[0];
-	int pny = params_.pn[1];
+	int pnx = context_.pixel_number[0];
+	int pny = context_.pixel_number[1];
 	int px = static_cast<int>(pnx / 3);
 	int py = pny;
 
-	double min_val, max_val;
-	min_val = u255_fringe_[0];
-	max_val = u255_fringe_[0];
+	real min_val, max_val;
+	min_val = ((real*)((real*)p_hologram))[0];
+	max_val = ((real*)p_hologram)[0];
 	for (int i = 0; i < pnx*pny; ++i)
 	{
-		if (min_val > u255_fringe_[i])
-			min_val = u255_fringe_[i];
-		else if (max_val < u255_fringe_[i])
-			max_val = u255_fringe_[i];
+		if (min_val > ((real*)p_hologram)[i])
+			min_val = ((real*)p_hologram)[i];
+		else if (max_val < ((real*)p_hologram)[i])
+			max_val = ((real*)p_hologram)[i];
 	}
 
 	uchar* data = (uchar*)malloc(sizeof(uchar)*pnx*pny);
 	memset(data, 0, sizeof(uchar)*pnx*pny);
 
 	int x = 0;
-#pragma omp parallel for private(x)	
+#pragma omp parallel for private(x)
 	for (x = 0; x < pnx*pny; ++x)
-		data[x] = (uint)((u255_fringe_[x] - min_val) / (max_val - min_val) * 255);
+		data[x] = (uint)((((real*)p_hologram)[x] - min_val) / (max_val - min_val) * 255);
 
-	//QImage img(data, px, py, QImage::Format::Format_RGB888);
-	//img.save("test_qimg.bmp");
-
-	int ret = Openholo::createBitmapFile(data, px, py, 24, fname.c_str());
+	int ret = Openholo::saveAsImg(fname.c_str(), 24, data, px, py);
 
 	free(data);
-	
 }
 
 /**
 * @brief It is a testing function used for the reconstruction.
 */
 
-void ophDepthMap::writeSimulationImage(int num, double val)
+void ophDepthMap::writeSimulationImage(int num, real val)
 {
-	std::string outdir = std::string("./").append(RESULT_FOLDER);
+	std::string outdir = std::string("./").append(dm_params_.RESULT_FOLDER);
 	if (!CreateDirectory(outdir.c_str(), NULL) && ERROR_ALREADY_EXISTS != GetLastError())
 	{
 		LOG("Fail to make output directory\n");
 		return;
 	}
 
-	std::string fname = std::string("./").append(RESULT_FOLDER).append("/").append(Simulation_Result_File_Prefix_).append("_");
-	fname = fname.append(RESULT_PREFIX).append(std::to_string(num)).append("_").append(sim_type_ == 0 ? "FOCUS_" : "EYE_Y_");
+	std::string fname = std::string("./").append(dm_params_.RESULT_FOLDER).append("/").append(dm_simuls_.Simulation_Result_File_Prefix_).append("_");
+	fname = fname.append(dm_params_.RESULT_PREFIX).append(std::to_string(num)).append("_").append(dm_simuls_.sim_type_ == 0 ? "FOCUS_" : "EYE_Y_");
 	int v = (int)round(val * 1000);
 	fname = fname.append(std::to_string(v));
 	
-	int pnx = params_.pn[0];
-	int pny = params_.pn[1];
+	int pnx = context_.pixel_number[0];
+	int pny = context_.pixel_number[1];
 	int px = pnx / 3;
 	int py = pny;
 
-	double min_val, max_val;
-	min_val = sim_final_[0];
-	max_val = sim_final_[0];
+	real min_val, max_val;
+	min_val = dm_simuls_.sim_final_[0];
+	max_val = dm_simuls_.sim_final_[0];
 	for (int i = 0; i < pnx*pny; ++i)
 	{
-		if (min_val > sim_final_[i])
-			min_val = sim_final_[i];
-		else if (max_val < sim_final_[i])
-			max_val = sim_final_[i];
+		if (min_val > dm_simuls_.sim_final_[i])
+			min_val = dm_simuls_.sim_final_[i];
+		else if (max_val < dm_simuls_.sim_final_[i])
+			max_val = dm_simuls_.sim_final_[i];
 	}
 
 	uchar* data = (uchar*)malloc(sizeof(uchar)*pnx*pny);
 	memset(data, 0, sizeof(uchar)*pnx*pny);
 		
 	for (int k = 0; k < pnx*pny; k++)
-		data[k] = (uint)((sim_final_[k] - min_val) / (max_val - min_val) * 255);
+		data[k] = (uint)((dm_simuls_.sim_final_[k] - min_val) / (max_val - min_val) * 255);
 
 	//QImage img(data, px, py, QImage::Format::Format_RGB888);
 	//img.save(QString(fname));
 
-	int ret = Openholo::createBitmapFile(data, px, py, 24, fname.c_str());
+	int ret = Openholo::saveAsImg(fname.c_str(), 24, data, px, py);
 
 	free(data);
 
@@ -585,303 +439,3 @@ void ophDepthMap::writeSimulationImage(int num, double val)
 void ophDepthMap::ophFree(void)
 {
 }
-
-
-
-/*
-void ophDepthMap::writeIntensity_gray8_bmp(const char* fileName, int nx, int ny, double* intensity)
-{
-	const int n = nx*ny;
-
-	double min_val, max_val;
-	min_val = intensity[0];
-	max_val = intensity[0];
-
-	for (int i = 0; i < n; ++i)
-	{
-		if (min_val > intensity[i])
-			min_val = intensity[i];
-		else if (max_val < intensity[i])
-			max_val = intensity[i];
-	}
-
-	char fname[100];
-	strcpy(fname, fileName);
-	strcat(fname, ".bmp");
-
-	//LOG("minval %f, max val %f\n", min_val, max_val);
-	unsigned char* cgh = (unsigned char*)malloc(sizeof(unsigned char)*n);
-
-	for (int i = 0; i < n; ++i){
-		double val = 255 * ((intensity[i] - min_val) / (max_val - min_val));
-		cgh[i] = val;
-	}
-
-	QImage img(cgh, nx, ny, QImage::Format::Format_Grayscale8);
-	img.save(QString(fname));
-
-	ophFree(cgh);
-}
-
-void ophDepthMap::writeIntensity_gray8_bmp(const char* fileName, int nx, int ny, Complex* complexvalue)
-{
-	const int n = nx*ny;
-
-	double* intensity = (double*)malloc(sizeof(double)*n);
-	for (int i = 0; i < n; i++)
-		intensity[i] = complexvalue[i].a;
-		//intensity[i] = complexvalue[i].mag2();
-
-	double min_val, max_val;
-	min_val = intensity[0];
-	max_val = intensity[0];
-
-	for (int i = 0; i < n; ++i)
-	{
-		if (min_val > intensity[i])
-			min_val = intensity[i];
-		else if (max_val < intensity[i])
-			max_val = intensity[i];
-	}
-
-	char fname[100];
-	strcpy(fname, fileName);
-	strcat(fname, ".bmp");
-
-	//LOG("minval %e, max val %e\n", min_val, max_val);
-
-	unsigned char* cgh = (unsigned char*)malloc(sizeof(unsigned char)*n);
-
-	for (int i = 0; i < n; ++i) {
-		double val = (intensity[i] - min_val) / (max_val - min_val);
-		//val = pow(val, 1.0 / 1.5);
-		val = val * 255.0;
-		unsigned char v = (uchar)val;
-
-		cgh[i] = v;
-	}
-
-	QImage img(cgh, nx, ny, QImage::Format::Format_Grayscale8);
-	img.save(QString(fname));
-
-
-	ophFree(intensity);
-	ophFree(cgh);
-}
-
-void ophDepthMap::writeIntensity_gray8_real_bmp(const char* fileName, int nx, int ny, Complex* complexvalue)
-{
-	const int n = nx*ny;
-
-	double* intensity = (double*)malloc(sizeof(double)*n);
-	for (int i = 0; i < n; i++)
-		intensity[i] = complexvalue[i].a;
-
-	double min_val, max_val;
-	min_val = intensity[0];
-	max_val = intensity[0];
-
-	for (int i = 0; i < n; ++i)
-	{
-		if (min_val > intensity[i])
-			min_val = intensity[i];
-		else if (max_val < intensity[i])
-			max_val = intensity[i];
-	}
-
-	char fname[100];
-	strcpy(fname, fileName);
-	strcat(fname, ".bmp");
-
-	//LOG("minval %e, max val %e\n", min_val, max_val);
-
-	unsigned char* cgh = (unsigned char*)malloc(sizeof(new unsigned char)*n);
-
-	for (int i = 0; i < n; ++i) {
-		double val = (intensity[i] - min_val) / (max_val - min_val);
-		//val = pow(val, 1.0 / 1.5);
-		val = val * 255.0;
-		unsigned char v = (uchar)val;
-
-		cgh[i] = v;
-	}
-
-	QImage img(cgh, nx, ny, QImage::Format::Format_Grayscale8);
-	img.save(QString(fname));
-
-	ophFree(intensity);
-	ophFree(cgh);
-
-}
-*/
-
-/*
-bool ophDepthMap::readMatFileDouble(const char* fileName, double * val)
-{
-	MATFile *pmat;
-	mxArray *parray;
-
-	char fname[100];
-	strcpy(fname, fileName);
-
-	pmat = matOpen(fname, "r");
-	if (pmat == NULL) {
-		OG("Error creating file %s\n", fname);
-		return false;
-	}
-
-	//===============================================================
-	parray = matGetVariableInfo(pmat, "inputmat");
-
-	if (parray == NULL) {
-		printf("Error reading existing matrix \n");
-		return false;
-	}
-
-	int m = mxGetM(parray);
-	int n = mxGetN(parray);
-
-	if (params_.pn[0] * params_.pn[1] != m*n)
-	{
-		printf("Error : different matrix dimension \n");
-		return false;
-	}
-
-	double* dst_r;
-	parray = matGetVariable(pmat, "inputmat");
-	dst_r = val;
-
-	double* CompRealPtr = mxGetPr(parray);
-
-	for (int col = 0; col < n; col++)
-	{
-		for (int row = 0; row < m; row++)
-		{
-			dst_r[n*row + col] = *CompRealPtr++;
-		}
-	}
-
-	// clean up
-	mxDestroyArray(parray);
-
-	if (matClose(pmat) != 0) {
-		LOG("Error closing file %s\n", fname);
-		return false;
-	}
-
-	LOG("Read Mat file %s\n", fname);
-	return true;
-}
-
-void ophDepthMap::writeMatFileComplex(const char* fileName, Complex* val)
-{
-	MATFile *pmat;
-	mxArray *pData;
-
-	char fname[100];
-	strcpy(fname, fileName);
-	strcat(fname, ".mat");
-
-	pmat = matOpen(fname, "w");
-	if (pmat == NULL) {
-		LOG("Error creating file %s\n", fname);
-		return;
-	}
-
-	ivec2 pn = params_.pn;
-	int w = pn[0];
-	int h = pn[1];
-	const int n = w * h;
-
-	pData = mxCreateDoubleMatrix(h, w, mxCOMPLEX);
-	if (pData == NULL) {
-		LOG("Unable to create mxArray.\n");
-		return;
-	}
-
-	double* CompRealPtr = mxGetPr(pData);
-	double* CompImgPtr = mxGetPi(pData);
-
-	for (int col = 0; col < w; col++)
-	{
-		//for (int row = h-1; row >= 0; row--)
-		for (int row = 0; row < h; row++)
-		{
-			*CompRealPtr++ = val[w*row + col].a;
-			*CompImgPtr++ = val[w*row + col].b;
-		}
-	}
-
-	int status;
-	status = matPutVariable(pmat, "data", pData);
-
-	if (status != 0) {
-		LOG("%s :  Error using matPutVariable on line %d\n", __FILE__, __LINE__);
-		return;
-	}
-
-	///* clean up
-	mxDestroyArray(pData);
-
-	if (matClose(pmat) != 0) {
-		LOG("Error closing file %s\n", fname);
-		return;
-	}
-
-	LOG("Write Mat file %s\n", fname);
-	
-}
-
-void ophDepthMap::writeMatFileDouble(const char* fileName, double * val)
-{
-	MATFile *pmat;
-	mxArray *pData;
-
-	char fname[100];
-	strcpy(fname, fileName);
-	strcat(fname, ".mat");
-
-	pmat = matOpen(fname, "w");
-	if (pmat == NULL) {
-		LOG("Error creating file %s\n", fname);
-		return;
-	}
-
-	ivec2 pn = params_.pn;
-	int w = pn[0];
-	int h = pn[1];
-	const int n = w * h;
-
-	pData = mxCreateDoubleMatrix(h, w, mxREAL);
-	if (pData == NULL) {
-		LOG("Unable to create mxArray.\n");
-		return;
-	}
-
-	double* CompRealPtr = mxGetPr(pData);
-	for (int col = 0; col < w; col++)
-	{
-		//for (int row = h-1; row >= 0; row--)
-		for (int row = 0; row < h; row++)
-			*CompRealPtr++ = val[w*row + col];
-	}
-
-	int status;
-	status = matPutVariable(pmat, "inputmat", pData);
-
-	if (status != 0) {
-		LOG("%s :  Error using matPutVariable on line %d\n", __FILE__, __LINE__);
-		return;
-	}
-
-	///* clean up
-	mxDestroyArray(pData);
-
-	if (matClose(pmat) != 0) {
-		LOG("Error closing file %s\n", fname);
-		return;
-	}
-
-	LOG("Write Mat file %s\n", fname);
-}
-*/
