@@ -24,6 +24,7 @@
     <ClInclude Include="src\define.h" />
     <ClInclude Include="src\enumerator.h" />
     <ClInclude Include="src\epsilon.h" />
+    <ClInclude Include="src\function.h" />
     <ClInclude Include="src\include.h" />
     <ClInclude Include="src\ivec.h" />
     <ClInclude Include="src\Openholo.h" />

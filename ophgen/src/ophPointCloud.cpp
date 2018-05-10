@@ -104,7 +104,8 @@ real ophPointCloud::generateHologram()
 	}
 
 	// Normalization data_fringe to data_hologram
-	normalize(data_fringe, (uchar*)p_hologram, n_x, n_y);
+	oph::normalize(data_fringe, (uchar*)p_hologram, n_x, n_y);
+
 	free(data_fringe);
 	return time;
 }
@@ -240,7 +241,7 @@ real ophPointCloud::genCghPointCloud_cuda(real * dst)
 
 	std::chrono::system_clock::time_point time_start = std::chrono::system_clock::now();
 	{
-		//cudaPointCloudKernel(block_x, block_y, THREAD_X, THREAD_Y, DevicePointCloud, deviceAmplitude, DeviceConfig, deviceDst);
+		cudaPointCloudKernel(block_x, block_y, THREAD_X, THREAD_Y, DevicePointCloud, deviceAmplitude, DeviceConfig, deviceDst);
 		cudaMemcpy(dst, deviceDst, bufferSize, cudaMemcpyDeviceToHost);
 	}
 	std::chrono::system_clock::time_point time_finish = std::chrono::system_clock::now();
@@ -251,32 +252,6 @@ real ophPointCloud::genCghPointCloud_cuda(real * dst)
 	cudaFree(deviceDst);
 	cudaFree(DeviceConfig);
 	return ((std::chrono::duration<real>)(time_finish - time_start)).count();
-}
-
-void ophPointCloud::normalize(real *src, uchar *dst, const int nx, const int ny) {
-	real minVal, maxVal;
-	for (int ydx = 0; ydx < ny; ydx++) {
-		for (int xdx = 0; xdx < nx; xdx++) {
-			real *temp_pos = src + xdx + ydx * nx;
-			if ((xdx == 0) && (ydx == 0)) {
-				minVal = *(temp_pos);
-				maxVal = *(temp_pos);
-			}
-			else {
-				if (*(temp_pos) < minVal) minVal = *(temp_pos);
-				if (*(temp_pos) > maxVal) maxVal = *(temp_pos);
-			}
-		}
-	}
-
-	for (int ydx = 0; ydx < ny; ydx++) {
-		for (int xdx = 0; xdx < nx; xdx++) {
-			real *src_pos = src + xdx + ydx * nx;
-			uchar *res_pos = dst + xdx + (ny - ydx - 1)*nx;	// Flip image vertically to consider flipping by Fourier transform and projection geometry
-
-			*(res_pos) = (uchar)(((*(src_pos)-minVal) / (maxVal - minVal)) * 255 + 0.5);
-		}
-	}
 }
 
 void ophPointCloud::ophFree(void)

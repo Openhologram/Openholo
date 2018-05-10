@@ -63,34 +63,34 @@ private:
 	virtual ~ophPointCloud(void);
 
 public:
-	/** \ingroup setter/getter */
+	/** \ingroup getter/setter */
 	inline void setScale(real sx, real sy, real sz) { pc_config_.scale.v[0] = sx; pc_config_.scale.v[1] = sy; pc_config_.scale.v[2] = sz; }
-	/** \ingroup setter/getter */
+	/** \ingroup getter/setter */
 	inline void setOffsetDepth(real offset_depth) { pc_config_.offset_depth = offset_depth; }
-	/** \ingroup setter/getter */
+	/** \ingroup getter/setter */
 	inline void setFilterShapeFlag(int8_t* fsf) { pc_config_.filter_shape_flag = fsf; }
-	/** \ingroup setter/getter */
+	/** \ingroup getter/setter */
 	inline void setFilterWidth(real wx, real wy) { pc_config_.filter_width.v[0] = wx; pc_config_.filter_width.v[1] = wy; }
-	/** \ingroup setter/getter */
+	/** \ingroup getter/setter */
 	inline void setFocalLength(real lens_in, real lens_out, real lens_eye_piece) { pc_config_.focal_length_lens_in = lens_in; pc_config_.focal_length_lens_out = lens_out; pc_config_.focal_length_lens_eye_piece = lens_eye_piece; }
-	/** \ingroup setter/getter */
+	/** \ingroup getter/setter */
 	inline void setTiltAngle(real ax, real ay) { pc_config_.tilt_angle.v[0] = ax; pc_config_.tilt_angle.v[1] = ay; }
 
-	/** \ingroup setter/getter */
+	/** \ingroup getter/setter */
 	inline void getScale(vec3& scale) { scale = pc_config_.scale; }
-	/** \ingroup setter/getter */
+	/** \ingroup getter/setter */
 	inline real getOffsetDepth(void) { return pc_config_.offset_depth; }
-	/** \ingroup setter/getter */
+	/** \ingroup getter/setter */
 	inline int8_t* getFilterShapeFlag(void) { return pc_config_.filter_shape_flag; }
-	/** \ingroup setter/getter */
+	/** \ingroup getter/setter */
 	inline void getFilterWidth(vec2& filterwidth) { filterwidth = pc_config_.filter_width; }
-	/** \ingroup setter/getter */
+	/** \ingroup getter/setter */
 	inline void getFocalLength(real* lens_in, real* lens_out, real* lens_eye_piece) {
 		if (lens_in != nullptr) *lens_in = pc_config_.focal_length_lens_in;
 		if (lens_out != nullptr) *lens_out = pc_config_.focal_length_lens_out;
 		if (lens_eye_piece != nullptr) *lens_eye_piece = pc_config_.focal_length_lens_eye_piece;
 	}
-	/** \ingroup setter/getter */
+	/** \ingroup getter/setter */
 	inline void getTiltAngle(vec2& tiltangle) { tiltangle = pc_config_.tilt_angle; }
 
 public:
@@ -131,7 +131,7 @@ public:
 	virtual bool readConfig(const std::string cfg_file);
 
 	/**
-	\defgroup Set_Data
+	\ingroup getter/setter
 	* @{
 	* @brief Directly Set Basic Data
 	*/
@@ -199,7 +199,6 @@ private:
 	* @param nx: The number of pixels in X
 	* @param ny: The number of pixels in Y
 	*/
-	void normalize(real *src, uchar *dst, const int nx, const int ny);
 	virtual void ophFree(void);
 
 	bool IsCPU_;

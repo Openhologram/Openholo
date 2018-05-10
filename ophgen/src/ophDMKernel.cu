@@ -70,7 +70,6 @@ __global__ void depth_sources_kernel(cufftDoubleComplex* u_o_gpu, unsigned char*
 
 		cuDoubleComplex tmp1 = cuCmul(make_cuDoubleComplex(rand_phase_val_a, rand_phase_val_b), make_cuDoubleComplex(carrier_phase_delay_a, carrier_phase_delay_b));
 		u_o_gpu[tid] = cuCmul(u_o_gpu[tid], tmp1);
-
 	}
 }
 
@@ -101,7 +100,6 @@ __global__ void propagation_angularsp_kernel(cufftDoubleComplex* input_d, cufftD
 			u_frequency = cuCmul(kernel, input_d[tid]);
 
 		u_complex[tid] = cuCadd(u_complex[tid], u_frequency);
-
 	}
 }
 
@@ -183,7 +181,6 @@ __global__ void change_depth_quan_kernel(double* depth_index_gpu, unsigned char*
 			tdepth = (dmap >= d1 ? 1 : 0) * (dmap <= d2 ? 1 : 0);
 
 		depth_index_gpu[tid] = depth_index_gpu[tid] + (double)(tdepth * (dtr + 1));
-
 	}
 }
 

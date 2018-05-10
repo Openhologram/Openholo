@@ -92,13 +92,13 @@ protected:
 
 	/**
 	* @brief Function for convert image format to gray8
-	* @param input parameter. dest image data
-	* @param output parameter. source image data
+	* @param input parameter. source image data
+	* @param output parameter. dest image data
 	* @param input parameter. image size, width
 	* @param input parameter. image size, Height
 	* @param input parameter. bytes per pixel
 	*/
-	void convertToFormatGray8(unsigned char* img, unsigned char* imgload, int w, int h, int bytesperpixel);
+	void convertToFormatGray8(unsigned char* src, unsigned char* dst, int w, int h, int bytesperpixel);
 
 protected:
 	OphContext	context_;

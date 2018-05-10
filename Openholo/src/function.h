@@ -1,95 +1,114 @@
 #ifndef __function_h
 #define __function_h
 
+#include "complex.h"
+#include "real.h"
+
 namespace oph
 {
-	//int LoadPointCloudData(const std::string InputModelFile, std::vector<float> &VertexArray, std::vector<float> &AmplitudeArray, std::vector<float> &PhaseArray)
-	//{
-	//	std::ifstream File(InputModelFile, std::ios::in);
-	//	if (!File.is_open()) {
-	//		File.close();
-	//		return -1;
-	//	}
+	template<typename type, typename T>
+	inline type force_cast(const Complex<T>& p) {
+		return type(p.re);
+	}
 
-	//	std::string Line;
-	//	std::getline(File, Line);
-	//	int n_pts = atoi(Line.c_str());
+	template<typename type, typename T>
+	inline type force_cast(const T& p) {
+		return type(p);
+	}
 
-	//	// parse input point cloud file
-	//	for (int i = 0; i < n_pts; ++i) {
-	//		int idx;
-	//		float pX, pY, pZ, phase, amplitude;
-	//		std::getline(File, Line);
-	//		sscanf_s(Line.c_str(), "%d %f %f %f %f %f\n", &idx, &pX, &pY, &pZ, &phase, &amplitude);
+	inline real& minOfArr(const std::vector<real>& arr) {
+		real min = _MAXDOUBLE;
+		for (auto item : arr) { if (item < min) min = item; }
+		return min;
+	}
 
-	//		if (idx == i) {
-	//			VertexArray.push_back(pX);
-	//			VertexArray.push_back(pY);
-	//			VertexArray.push_back(pZ);
-	//			PhaseArray.push_back(phase);
-	//			AmplitudeArray.push_back(amplitude);
-	//		}
-	//		else {
-	//			File.close();
-	//			return -1;
-	//		}
-	//	}
-	//	File.close();
-	//	return n_pts;
-	//}
+	inline real& maxOfArr(const std::vector<real>& arr) {
+		real max = _MINDOUBLE;
+		for (auto item : arr) { if (item > max) max = item; }
+		return max;
+	}
 
-	//bool ophReadConfigFile(const std::string InputConfigFile, oph::OphConfigParams &configParams)
-	//{
-	//	std::ifstream File(InputConfigFile, std::ios::in);
-	//	if (!File.is_open()) {
-	//		File.close();
-	//		return false;
-	//	}
+	inline void absArr(const std::vector<real>& src, std::vector<real>& dst) {
+		dst.clear();
+		dst.reserve(src.size());
+		for (auto item : src) { dst.push_back(abs(item)); }
+	}
 
-	//	std::vector<std::string> Title;
-	//	std::vector<std::string> Value;
-	//	std::string Line;
-	//	std::stringstream LineStream;
+	/**
+	* @brief Normalize all elements of T* src from 0 to 255.
+	*/
+	template<typename T>
+	inline void normalize(T* src, oph::uchar* dst, const oph::uint nx, const oph::uint ny) {
+		T minVal, maxVal;
+		for (oph::uint ydx = 0; ydx < ny; ydx++){
+			for (oph::uint xdx = 0; xdx < nx; xdx++){
+				T *temp_pos = src + xdx + ydx * nx;
+				if ((xdx == 0) && (ydx == 0)) {	minVal = *(temp_pos); maxVal = *(temp_pos);	}
+				else {
+					if ((*temp_pos) < minVal) minVal = (*temp_pos);
+					if ((*temp_pos) > maxVal) maxVal = (*temp_pos);
+				}
+			}
+		}
+		for (oph::uint ydx = 0; ydx < ny; ydx++) {
+			for (oph::uint xdx = 0; xdx < nx; xdx++) {
+				T *src_pos = src + xdx + ydx * nx;
+				oph::uchar *res_pos = dst + xdx + (ny - ydx - 1)*nx;
+				*(res_pos) = oph::force_cast<oph::uchar>(((*(src_pos)-minVal) / (maxVal - minVal)) * 255 + 0.5);
+			}
+		}
+	}
 
-	//	int i = 0;
-	//	while (std::getline(File, Line)) {
-	//		std::string _Title;
-	//		std::string _Value;
-	//		std::string _Equal; // " = "
-	//		LineStream << Line;
-	//		LineStream >> _Title >> _Equal >> _Value;
-	//		LineStream.clear();
+	/**
+	* @brief Normalize all elements from 0 to 255. 
+	*/
+	template<typename T>
+	inline void normalize(const std::vector<T>* src, std::vector<oph::uchar>* dst) {
+		T minVal, maxVal;
+		dst->clear();
+		dst->reserve(src->size());
 
-	//		Title.push_back(_Title);
-	//		Value.push_back(_Value);
-	//		++i;
-	//	}
+		auto iter = src->begin();
+		for (iter; iter != src->end(); iter++) {
+			if (iter == src->begin()) {
+				minVal = *iter;
+				maxVal = *iter;
+			} else {
+				if (*iter < minVal) minVal = *iter;
+				if (*iter > maxVal) maxVal = *iter;
+			}
+		}
 
-	//	if (i != 17) {
-	//		File.close();
-	//		return false;
-	//	}
+		iter = src->begin();
+		for (iter; iter != src->end(); iter++)
+			dst->push_back(oph::force_cast<oph::uchar>((((*iter) - minVal) / (maxVal - minVal)) * 255 + 0.5));
+	}
 
-	//	configParams.pointCloudScaleX = atof(Value[0].c_str());
-	//	configParams.pointCloudScaleY = atof(Value[1].c_str());
-	//	configParams.pointCloudScaleZ = atof(Value[2].c_str());
-	//	configParams.offsetDepth = atof(Value[3].c_str());
-	//	configParams.samplingPitchX = atof(Value[4].c_str());
-	//	configParams.samplingPitchY = atof(Value[5].c_str());
-	//	configParams.nx = atoi(Value[6].c_str());
-	//	configParams.ny = atoi(Value[7].c_str());
-	//	configParams.filterShapeFlag = (char*)Value[8].c_str();
-	//	configParams.filterXwidth = atof(Value[9].c_str());
-	//	configParams.filterYwidth = atof(Value[10].c_str());
-	//	configParams.focalLengthLensIn = atof(Value[11].c_str());
-	//	configParams.focalLengthLensOut = atof(Value[12].c_str());
-	//	configParams.focalLengthLensEyePiece = atof(Value[13].c_str());
-	//	configParams.lambda = atof(Value[14].c_str());
-	//	configParams.tiltAngleX = atof(Value[15].c_str());
-	//	configParams.tiltAngleY = atof(Value[16].c_str());
-	//	File.close();
-	//	return true;
-	//}
+	/**
+	* @brief Set elements to specific values from begin index to end index.
+	*/
+	template<typename T>
+	inline void memsetArr(const std::vector<T>* pArr, T _Value, oph::uint beginIndex, oph::uint endIndex){
+		auto iter = pArr->begin() + (beginIndex);
+		auto it_end = pArr->begin() + (endIndex);
+		for (; iter != it_end; iter++) { (*iter) = _Value; }
+	}
+
+	/**
+	* @brief Shifts the elements by shift_x, shift_y.
+	*/
+	template<typename T>
+	inline void circshift(const T* src, T* dst, int shift_x, int shift_y, int xdim, int ydim) {
+		for (int i = 0; i < xdim; i++) {
+			int ti = (i + shift_x) % xdim;
+			if (ti < 0) ti = xdim + ti;
+			for (int j = 0; j < ydim; j++) {
+				int tj = (j + shift_y) % ydim;
+				if (tj < 0) tj = ydim + tj;
+				dst[ti * ydim + tj] = src[i * ydim + j];
+			}
+		}
+	}
 }
 
 #endif // !__function_h

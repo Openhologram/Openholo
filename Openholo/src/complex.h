@@ -13,6 +13,8 @@
 #include <iostream>
 #include <cmath>
 
+#include "typedef.h"
+
 const double PI = 3.141592653589793238462643383279502884197169399375105820974944592308;
 const double TWO_PI = 2.0*PI;
 
@@ -110,6 +112,14 @@ namespace oph {
 			return *this;
 		}
 
+		bool operator < (const Complex<T>& p){
+			return (re < p.re);
+		}
+
+		bool operator > (const Complex<T>& p) {
+			return (re > p.re);
+		}
+
 		const Complex<T>& operator/= (const cplx k){
 			re /= k;
 			im /= k;
@@ -117,12 +127,28 @@ namespace oph {
 			return *this;
 		}
 
+		operator unsigned char() {
+			return unsigned char(re);
+		}
+
+		operator int() {
+			return int(re);
+		}
+
 		friend const Complex<T> operator+ (const Complex<T>& p, const Complex<T>& q){
 			return Complex<T>(p) += q;
 		}
 
+		friend const Complex<T> operator+ (const Complex<T>&p, const double q) {
+			return Complex<T>(p.re + q, p.im);
+		}
+
 		friend const Complex<T> operator- (const Complex<T>& p, const Complex<T>& q){
 			return Complex<T>(p) -= q;
+		}
+
+		friend const Complex<T> operator- (const Complex<T>&p, const double q) {
+			return Complex<T>(p.re - q, p.im);
 		}
 
 		friend const Complex<T> operator* (const cplx k, const Complex<T>& p){
@@ -139,6 +165,14 @@ namespace oph {
 
 		friend const Complex<T> operator/ (const Complex<T>& p, const Complex<T>& q){
 			return Complex<T>((1.0 / q.mag2())*(p*q.conj()));
+		}
+
+		friend bool operator< (const Complex<T>& p, const Complex<T>& q) {
+			return (p.re < q.re);
+		}
+
+		friend bool operator> (const Complex<T>& p, const Complex<T>& q) {
+			return (p.re > q.re);
 		}
 
 		// stream

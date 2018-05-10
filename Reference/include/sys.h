@@ -31,7 +31,7 @@ void file_log(const char *fmt, ...);
 #include <stdlib.h>
 #include <errno.h>
 #include <sys/mman.h>
-#include <ucontext_.h>
+#include <ucontext.h>
 
 #include <string.h>
 #include <wchar.h>

@@ -57,6 +57,9 @@
     <ClInclude Include="src\vec.h">
       <Filter>__graphics\header</Filter>
     </ClInclude>
+    <ClInclude Include="src\function.h">
+      <Filter>__Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Openholo.cpp">

@@ -124,30 +124,30 @@ public:
 	void reconstructImage();
 
 public:
-	/** \ingroup setter/getter */
+	/** \ingroup getter/setter */
 	inline void setFieldLens(real fieldlens)		{ dm_config_.field_lens		= fieldlens;	}
-	/** \ingroup setter/getter */
+	/** \ingroup getter/setter */
 	inline void setNearDepth(real neardepth)		{ dm_config_.near_depthmap	= neardepth;	}
-	/** \ingroup setter/getter */
+	/** \ingroup getter/setter */
 	inline void setFarDepth(real fardetph)			{ dm_config_.far_depthmap	= fardetph;		}
-	/** \ingroup setter/getter */
+	/** \ingroup getter/setter */
 	inline void setNumOfDepth(uint numofdepth)		{ dm_config_.num_of_depth	= numofdepth;	}
 
-	/** \ingroup setter/getter */
+	/** \ingroup getter/setter */
 	inline real getFieldLens(void)	{ return dm_config_.field_lens;		}
-	/** \ingroup setter/getter */
+	/** \ingroup getter/setter */
 	inline real getNearDepth(void)	{ return dm_config_.near_depthmap;	}
-	/** \ingroup setter/getter */
+	/** \ingroup getter/setter */
 	inline real getFarDepth(void)	{ return dm_config_.far_depthmap;	}
-	/** \ingroup setter/getter */
+	/** \ingroup getter/setter */
 	inline uint getNumOfDepth(void) { return dm_config_.num_of_depth;	}
-	/** \ingroup setter/getter */
+	/** \ingroup getter/setter */
 	inline void getRenderDepth(std::vector<int>& renderdepth) { renderdepth = dm_config_.render_depth; }
 
 private:
 	/** \ingroup init_module
 	* @{ */
-	void init_CPU();   
+	void init_CPU();
 	void init_GPU();
 	/** @} */
 

@@ -382,7 +382,7 @@ void ophDepthMap::writeResultimage(int ftr)
 	for (x = 0; x < pnx*pny; ++x)
 		data[x] = (uint)((((real*)p_hologram)[x] - min_val) / (max_val - min_val) * 255);
 
-	int ret = Openholo::saveAsImg(fname.c_str(), 24, data, px, py);
+	int ret = Openholo::save(fname.c_str(), 24, data, px, py);
 
 	free(data);
 }
@@ -430,7 +430,7 @@ void ophDepthMap::writeSimulationImage(int num, real val)
 	//QImage img(data, px, py, QImage::Format::Format_RGB888);
 	//img.save(QString(fname));
 
-	int ret = Openholo::saveAsImg(fname.c_str(), 24, data, px, py);
+	int ret = Openholo::save(fname.c_str(), 24, data, px, py);
 
 	free(data);
 
