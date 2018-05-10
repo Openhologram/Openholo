@@ -175,7 +175,7 @@ int ophDepthMap::readImageDepth(int ftr)
 	LOG("Succeed::Image Load: %s\n", imgfullname.c_str());
 
 	unsigned char* img = (unsigned char*)malloc(sizeof(unsigned char)*w*h);
-	convertToFormatGray8(img, imgload, w, h, bytesperpixel);
+	convertToFormatGray8(imgload, img, w, h, bytesperpixel);
 
 	//ret = creatBitmapFile(img, w, h, 8, "load_img.bmp");
 
@@ -208,7 +208,7 @@ int ophDepthMap::readImageDepth(int ftr)
 	LOG("Succeed::Depth Image Load: %s\n", dimgfullname.c_str());
 
 	unsigned char* dimg = (unsigned char*)malloc(sizeof(unsigned char)*dw*dh);
-	convertToFormatGray8(dimg, dimgload, dw, dh, dbytesperpixel);
+	convertToFormatGray8(dimgload, dimg, dw, dh, dbytesperpixel);
 
 	free(dimgload);
 

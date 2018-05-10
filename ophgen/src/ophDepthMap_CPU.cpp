@@ -560,7 +560,7 @@ void ophDepthMap::reconstruction(fftw_complex* in, fftw_complex* out)
 
 	int eye_shift_by_pnx = (int)round(dm_simuls_.eye_center_xy_[0] / pp_ex);
 	int eye_shift_by_pny = (int)round(dm_simuls_.eye_center_xy_[1] / pp_ey);
-	circshift(dm_simuls_.hh_complex_, hh_e_shift, -eye_shift_by_pnx, eye_shift_by_pny, pnx, pny);
+	oph::circshift(dm_simuls_.hh_complex_, hh_e_shift, -eye_shift_by_pnx, eye_shift_by_pny, pnx, pny);
 
 	real f_eye = dm_simuls_.eye_length_*(dm_simuls_.f_field_ - dm_simuls_.focus_distance_) / (dm_simuls_.eye_length_ + (dm_simuls_.f_field_ - dm_simuls_.focus_distance_));
 	real effective_f = f_eye*dm_simuls_.eye_length_ / (f_eye - dm_simuls_.eye_length_);
