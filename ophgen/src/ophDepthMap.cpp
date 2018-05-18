@@ -8,6 +8,8 @@
 #include	<direct.h>
 #include    "sys.h"
 
+#include	"include.h"
+
 /** 
 * @brief Constructor
 * @details Initialize variables.
@@ -332,7 +334,7 @@ void ophDepthMap::get_rand_phase_value(oph::Complex<real>& rand_phase_val)
 		std::uniform_real_distribution<real> distribution(0.0, 1.0);
 
 		rand_phase_val.re = 0.0;
-		rand_phase_val.im = 2 * PI * distribution(generator);
+		rand_phase_val.im = 2 * M_PI * distribution(generator);
 		exponent_complex(&rand_phase_val);
 
 	} else {

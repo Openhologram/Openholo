@@ -381,9 +381,9 @@ void ophDepthMap::get_shift_phase_value(oph::Complex<real>& shift_phase_val, int
 
 		oph::Complex<real> val;
 		if (sig_location[1] == 1)
-			val.im = 2 * PI * (yy / (4 * ppy));
+			val.im = 2 * M_PI * (yy / (4 * ppy));
 		else
-			val.im = 2 * PI * (-yy / (4 * ppy));
+			val.im = 2 * M_PI * (-yy / (4 * ppy));
 
 		exponent_complex(&val);
 		shift_phase_val *= val;
@@ -397,9 +397,9 @@ void ophDepthMap::get_shift_phase_value(oph::Complex<real>& shift_phase_val, int
 
 		oph::Complex<real> val;
 		if (sig_location[0] == -1)
-			val.im = 2 * PI * (-xx / (4 * ppx));
+			val.im = 2 * M_PI * (-xx / (4 * ppx));
 		else
-			val.im = 2 * PI * (xx / (4 * ppx));
+			val.im = 2 * M_PI * (xx / (4 * ppx));
 
 		exponent_complex(&val);
 		shift_phase_val *= val;
@@ -526,7 +526,7 @@ void ophDepthMap::testPropagation2EyePupil(fftw_complex* in, fftw_complex* out)
 		real xe = (-E_size_x / 2.0) + (pp_ex * x);
 		real ye = (E_size_y / 2.0 - pp_ey) - (pp_ey * y);
 
-		real sval = PI / lambda / dm_simuls_.f_field_ * (xe*xe + ye*ye);
+		real sval = M_PI / lambda / dm_simuls_.f_field_ * (xe*xe + ye*ye);
 		oph::Complex<real> kernel(0, sval);
 		exponent_complex(&kernel);
 
@@ -575,7 +575,7 @@ void ophDepthMap::reconstruction(fftw_complex* in, fftw_complex* out)
 		real xe = (-E_size_x / 2.0) + (pp_ex * x);
 		real ye = (E_size_y / 2.0 - pp_ey) - (pp_ey * y);
 
-		oph::Complex<real> eye_propagation_kernel(0, PI / lambda / effective_f * (xe*xe + ye*ye));
+		oph::Complex<real> eye_propagation_kernel(0, M_PI / lambda / effective_f * (xe*xe + ye*ye));
 		exponent_complex(&eye_propagation_kernel);
 		int eye_lens_anti_aliasing_mask = (sqrt(xe*xe + ye*ye) < abs(lambda*effective_f / (2.0 * max(pp_ex, pp_ey)))) ? 1 : 0;
 		int eye_pupil_mask = (sqrt(xe*xe + ye*ye) < (dm_simuls_.eye_pupil_diameter_ / 2.0)) ? 1 : 0;
@@ -600,7 +600,7 @@ void ophDepthMap::reconstruction(fftw_complex* in, fftw_complex* out)
 		real xr = (-Ret_size_x / 2.0) + (pp_ret_x * x);
 		real yr = (Ret_size_y / 2.0 - pp_ret_y) - (pp_ret_y * y);
 
-		real sval = PI / lambda / dm_simuls_.eye_length_*(xr*xr + yr*yr);
+		real sval = M_PI / lambda / dm_simuls_.eye_length_*(xr*xr + yr*yr);
 		oph::Complex<real> kernel(0, sval);
 		exponent_complex(&kernel);
 
