@@ -62,6 +62,8 @@ namespace oph
 			delete[] mat;
 			mat = nullptr;
 		}
+		
+		oph::ivec2& getSize(void) { return size; }
 
 		TwoDimMatrix<T>& resize(int x, int y) {
 			release();

@@ -122,6 +122,12 @@ public:
 	virtual bool readConfig(const std::string fname, OphPointCloudConfig& config);
 	virtual bool readConfig(const std::string fname, OphDepthMapConfig& config, OphDepthMapParams& params, OphDepthMapSimul& simuls);
 
+	virtual void normalize(void);
+
+	virtual int save(const char* fname, void* src = nullptr, uint8_t bitsperpixel = 8, int pic_width = 0, int pic_height = 0);
+	virtual int load(const char* fname, void* dst);
+
+protected:
 	/**
 
 	*/
@@ -130,11 +136,17 @@ public:
 	template<typename T>
 	void normalize(const std::vector<T>* src, std::vector<oph::uchar>* dst);
 
+
+protected:
+	void*			holo_gen;
+	void*			holo_encoded;
+	oph::uchar*		holo_normalized;
+
 protected:
 	/**
 	* @brief Pure virtual function for override in child classes
 	*/
-	virtual void ophFree(void) = 0;
+	virtual void ophFree(void);
 };
 
 #endif // !__ophGen_h
