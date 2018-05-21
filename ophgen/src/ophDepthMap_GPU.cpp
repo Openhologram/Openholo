@@ -346,7 +346,7 @@ void ophDepthMap::encoding_GPU(int cropx1, int cropx2, int cropy1, int cropy2, i
 	cudaFFT(stream_, pnx, pny, k_temp_d_, u_complex_gpu_, 1, true);
 
 	HANDLE_ERROR(cudaMemsetAsync(k_temp_d_, 0, sizeof(cufftDoubleComplex)*pnx*pny, stream_));
-	cudaGetFringe(stream_, pnx, pny, u_complex_gpu_, k_temp_d_, sig_location[0], sig_location[1], ssx, ssy, ppx, ppy, PI);
+	cudaGetFringe(stream_, pnx, pny, u_complex_gpu_, k_temp_d_, sig_location[0], sig_location[1], ssx, ssy, ppx, ppy, M_PI);
 
 	cufftDoubleComplex* sample_fd = (cufftDoubleComplex*)malloc(sizeof(cufftDoubleComplex)*pnx*pny);
 	memset(sample_fd, 0.0, sizeof(cufftDoubleComplex)*pnx*pny);

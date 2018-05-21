@@ -24,32 +24,13 @@ struct __declspec(dllexport) vec2 {
     static const int n;
 
     inline vec2() { }
-    inline vec2(real a)
-    {
-	 v[1 - 1] = a;  v[2 - 1] = a;  
-    }
+	inline vec2(real a) { v[1 - 1] = a;  v[2 - 1] = a; }
+	inline vec2(real v_1, real v_2) { v[1 - 1] = v_1;  v[2 - 1] = v_2; }
+	inline vec2(const ivec2& a) { v[1 - 1] = a[1 - 1];  v[2 - 1] = a[2 - 1]; }
+	inline vec2(const vec2& a) { v[1 - 1] = a[1 - 1];  v[2 - 1] = a[2 - 1]; }
 
-    inline vec2(real v_1  , real v_2 )
-    {
-	 v[1 - 1] = v_1;  v[2 - 1] = v_2; 
-    }
 
-    inline vec2(const ivec2& a)
-    {
-	 v[1 - 1] = a[1 - 1];  v[2 - 1] = a[2 - 1]; 
-    }
-
-    inline vec2(const vec2& a)
-    {
-	 v[1 - 1] = a[1 - 1];  v[2 - 1] = a[2 - 1]; 
-    }
-
-    inline vec2& operator=(const vec2& a)
-    {
-	 v[1 - 1] = a[1 - 1];  v[2 - 1] = a[2 - 1]; 
-	return *this;
-    }
-
+	inline vec2& operator=(const vec2& a) { v[1 - 1] = a[1 - 1];  v[2 - 1] = a[2 - 1]; return *this; }
     inline real& operator[] (int i) { return v[i]; }
     inline const real&  operator[] (int i) const { return v[i]; }
     inline real& operator() (int i) { return v[i % 2]; }
@@ -73,7 +54,6 @@ struct __declspec(dllexport) vec2 {
         real = angle_tolerance // optional angle tolerance (radians)
         ) const;
 
-  
     // returns true:  this and other vectors are perpendicular
     //         false: this and other vectors are not perpendicular
     //                or at least one of the vectors is zero
@@ -377,11 +357,10 @@ inline vec2 operator - (const vec2& a)
 inline real sum(const vec2& a)
 {
     real s = 0;
-    
+
     s += a[1 - 1];
-    
     s += a[2 - 1];
-    
+
     return s;
 }
 
@@ -432,7 +411,6 @@ inline vec2 absolute(const vec2& val)
 }
 
 void store(FILE* fp, const vec2& v);
-
 int scan(FILE* fp, const vec2& v);
 
 int apx_equal(const vec2& a, const vec2& b);
@@ -446,41 +424,19 @@ struct __declspec(dllexport) vec3 {
     static const int n;
 
     inline vec3() { }
-    inline vec3(real a)
-    {
-	 v[1 - 1] = a;  v[2 - 1] = a;  v[3 - 1] = a;  
-    }
+	inline vec3(real a) { v[1 - 1] = a;  v[2 - 1] = a;  v[3 - 1] = a; }
+	inline vec3(real v_1, real v_2, real v_3) { v[1 - 1] = v_1;  v[2 - 1] = v_2;  v[3 - 1] = v_3; }
+	inline vec3(const ivec3& a) { v[1 - 1] = a[1 - 1];  v[2 - 1] = a[2 - 1];  v[3 - 1] = a[3 - 1]; }
+	inline vec3(const vec3& a) { v[1 - 1] = a[1 - 1];  v[2 - 1] = a[2 - 1];  v[3 - 1] = a[3 - 1]; }
 
-    inline vec3(real v_1  , real v_2  , real v_3 )
-    {
-	 v[1 - 1] = v_1;  v[2 - 1] = v_2;  v[3 - 1] = v_3; 
-    }
-
-    inline vec3(const ivec3& a)
-    {
-	 v[1 - 1] = a[1 - 1];  v[2 - 1] = a[2 - 1];  v[3 - 1] = a[3 - 1]; 
-    }
-
-    inline vec3(const vec3& a)
-    {
-	 v[1 - 1] = a[1 - 1];  v[2 - 1] = a[2 - 1];  v[3 - 1] = a[3 - 1]; 
-    }
-
-    inline vec3& operator=(const vec3& a)
-    {
-	 v[1 - 1] = a[1 - 1];  v[2 - 1] = a[2 - 1];  v[3 - 1] = a[3 - 1]; 
-	return *this;
-    }
-
+	inline vec3& operator=(const vec3& a) { v[1 - 1] = a[1 - 1];  v[2 - 1] = a[2 - 1];  v[3 - 1] = a[3 - 1]; return *this; }
     inline real& operator[] (int i) { return v[i]; }
     inline const real&  operator[] (int i) const { return v[i]; }
     inline real& operator() (int i) { return v[i % 3]; }
     inline const real&  operator() (int i) const { return v[i % 3]; }
  
     inline bool is_zero() const { return (v[0] == 0.0 && v[1] == 0.0 && v[2] == 0.0); }
-    inline bool is_tiny(real tiny_tol = epsilon) const {
-	return (fabs(v[0]) <= tiny_tol && fabs(v[1]) <= tiny_tol && fabs(v[2]) <= tiny_tol );
-    }
+	inline bool is_tiny(real tiny_tol = epsilon) const { return (fabs(v[0]) <= tiny_tol && fabs(v[1]) <= tiny_tol && fabs(v[2]) <= tiny_tol); }
 
     bool unit(); 
     real length() const; 
@@ -866,32 +822,12 @@ struct __declspec(dllexport) vec4 {
     static const int n;
 
     inline vec4() { }
-    inline vec4(real a)
-    {
-	 v[1 - 1] = a;  v[2 - 1] = a;  v[3 - 1] = a;  v[4 - 1] = a;  
-    }
+	inline vec4(real a) { v[1 - 1] = a;  v[2 - 1] = a;  v[3 - 1] = a;  v[4 - 1] = a; }
+	inline vec4(real v_1, real v_2, real v_3, real v_4) { v[1 - 1] = v_1;  v[2 - 1] = v_2;  v[3 - 1] = v_3;  v[4 - 1] = v_4; }
+	inline vec4(const ivec4& a) { v[1 - 1] = a[1 - 1];  v[2 - 1] = a[2 - 1];  v[3 - 1] = a[3 - 1];  v[4 - 1] = a[4 - 1]; }
+	inline vec4(const vec4& a) { v[1 - 1] = a[1 - 1];  v[2 - 1] = a[2 - 1];  v[3 - 1] = a[3 - 1];  v[4 - 1] = a[4 - 1]; }
 
-    inline vec4(real v_1  , real v_2  , real v_3  , real v_4 )
-    {
-	 v[1 - 1] = v_1;  v[2 - 1] = v_2;  v[3 - 1] = v_3;  v[4 - 1] = v_4; 
-    }
-
-    inline vec4(const ivec4& a)
-    {
-	 v[1 - 1] = a[1 - 1];  v[2 - 1] = a[2 - 1];  v[3 - 1] = a[3 - 1];  v[4 - 1] = a[4 - 1]; 
-    }
-
-    inline vec4(const vec4& a)
-    {
-	 v[1 - 1] = a[1 - 1];  v[2 - 1] = a[2 - 1];  v[3 - 1] = a[3 - 1];  v[4 - 1] = a[4 - 1]; 
-    }
-
-    inline vec4& operator=(const vec4& a)
-    {
-	 v[1 - 1] = a[1 - 1];  v[2 - 1] = a[2 - 1];  v[3 - 1] = a[3 - 1];  v[4 - 1] = a[4 - 1]; 
-	return *this;
-    }
-
+	inline vec4& operator=(const vec4& a) { v[1 - 1] = a[1 - 1];  v[2 - 1] = a[2 - 1];  v[3 - 1] = a[3 - 1];  v[4 - 1] = a[4 - 1]; return *this; }
     inline real& operator[] (int i) { return v[i]; }
     inline const real&  operator[] (int i) const { return v[i]; }
     inline real& operator() (int i) { return v[i % 4]; }

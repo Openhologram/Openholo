@@ -160,9 +160,6 @@ void ophDepthMap::calc_Holo_CPU(int frame)
 				fftwShift(u_o, u_o, in, out, pnx, pny, 1, false);
 				propagation_AngularSpectrum_CPU(u_o, -temp_depth);
 			}
-
-
-			
 		}
 		else
 			LOG("Frame#: %d, Depth: %d of %d : Nothing here\n", frame, dtr, dm_config_.num_of_depth);

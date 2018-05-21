@@ -3,9 +3,15 @@
 
 #include "complex.h"
 #include "real.h"
+#include <chrono>
+#include <random>
 
 namespace oph
 {
+#define _cur_time std::chrono::system_clock::now()
+#define _cur_time_duration _cur_time.time_since_epoch()
+#define _cur_time_duration_milli_sec std::chrono::duration_cast<std::chrono::milliseconds>(_cur_time_duration).count()
+
 	template<typename type, typename T>
 	inline type force_cast(const Complex<T>& p) {
 		return type(p.re);
@@ -32,6 +38,14 @@ namespace oph
 		dst.clear();
 		dst.reserve(src.size());
 		for (auto item : src) { dst.push_back(abs(item)); }
+	}
+
+	template<typename T>
+	inline void angle(const std::vector<Complex<T>>& src, std::vector<T>& dst) {
+		dst.clear();
+		dst.reserve(src.size());
+		for (auto item : src) {	dst.push_back(src.angle());
+		}
 	}
 
 	/**
@@ -109,6 +123,44 @@ namespace oph
 			}
 		}
 	}
+
+	/**
+	* @brief Get random real value from min to max 
+	* @param _SEED_VALUE : Random seed value can be used to create a specific random number pattern.
+	*					   If the seed values are the same, random numbers of the same pattern are always output.
+	*/
+	inline real rand(const real min, const real max, oph::ulong _SEED_VALUE = 0) {
+		std::mt19937_64 rand_dev;
+		if (!_SEED_VALUE) rand_dev = std::mt19937_64(_cur_time_duration_milli_sec);
+		else rand_dev = std::mt19937_64(_SEED_VALUE);
+
+		std::uniform_real_distribution<real> dist(min, max);
+
+		return dist(rand_dev);
+	}
+
+	/**
+	* @brief Get random integer vaue from min to max
+	* @param _SEED_VALUE : Random seed value can be used to create a specific random number pattern.
+	*					   If the seed values are the same, random numbers of the same pattern are always output.
+	*/
+	inline int rand(const int min, const int max, oph::ulong _SEED_VALUE = 0) {
+		std::mt19937_64 rand_dev;
+		if (!_SEED_VALUE) rand_dev = std::mt19937_64(_cur_time_duration_milli_sec);
+		else rand_dev = std::mt19937_64(_SEED_VALUE);
+
+		std::uniform_int_distribution<int> dist(min, max);
+
+		return dist(rand_dev);
+	}
+
+	/**
+	* @brief
+	*/
+	inline void meshgrid() {
+
+	}
 }
+
 
 #endif // !__function_h

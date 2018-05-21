@@ -79,7 +79,6 @@ void * memalign(size_t align, size_t sz);
 
 #endif
 
-
 FILE* file_read_open(const WChar* fname);
 FILE* file_write_open(const WChar* fname);
 

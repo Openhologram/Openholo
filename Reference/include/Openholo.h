@@ -12,6 +12,8 @@
 #include "ivec.h"
 #include "real.h"
 
+using namespace oph;
+
 struct OPH_DLL OphContext {	
 	oph::ivec2		pixel_number;				///< SLM_PIXEL_NUMBER_X & SLM_PIXEL_NUMBER_Y
 	oph::vec2		pixel_pitch;				///< SLM_PIXEL_PITCH_X & SLM_PIXEL_PITCH_Y
@@ -40,7 +42,7 @@ private:
 	void initialize(void);
 
 public:
-	inline void setPixelNumber(uint32_t nx, uint32_t ny) { context_.pixel_number.v[0] = nx; context_.pixel_number.v[1] = ny; }
+	inline void setPixelNumber(int nx, int ny) { context_.pixel_number.v[0] = nx; context_.pixel_number.v[1] = ny; }
 	inline void setPixelPitch(real px, real py) { context_.pixel_pitch.v[0] = px; context_.pixel_pitch.v[1] = py; }
 	inline void setWaveLength(real w) { context_.lambda = w; }
 

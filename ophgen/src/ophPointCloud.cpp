@@ -103,7 +103,6 @@ real ophPointCloud::generateHologram()
 		std::cout << ">>> CUDA GPGPU" << std::endl;
 	}
 
-	// Normalization data_fringe to data_hologram
 	oph::normalize(data_fringe, (uchar*)p_hologram, n_x, n_y);
 
 	free(data_fringe);

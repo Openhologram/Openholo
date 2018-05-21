@@ -8,116 +8,103 @@ typedef float  real_t;
 
 namespace oph {
 
-#ifndef _MAXFLOAT
-#define _MAXFLOAT	((float)3.40282347e+38)
-#endif
-
-#ifndef _MAXDOUBLE
-#define _MAXDOUBLE	((double)1.7976931348623158e+308)
-#endif
-
-#define _MINFLOAT	((float)1.17549435e-38)
-#define _MINDOUBLE	((double)2.2250738585072014e-308)
-
-#ifndef M_PI
-#define M_PI		 3.141592653589793238462643383279502884197169399375105820974944592308
-#endif
-
-#define MINREAL _MINDOUBLE;
-#define MAXREAL _MAXDOUBLE;
 
 	//template<class T = double>
-	//struct real {
-	//	using realnum = typename std::enable_if<std::is_same<double, T>::value || std::is_same<float, T>::value, T>::type;
+	//struct real_number 
+	//{
+	//	//using realnum = typename std::enable_if<std::is_same<double, T>::value || std::is_same<float, T>::value, T>::type;
 
-	//	realnum t;
+	//	T t;
 
-	//	real() { }
-	//	real(realnum p) { t = p; }
+	//	real_number() { }
+	//	real_number(T p) { t = p; }
 
-	//	~real() { }
+	//	~real_number() { }
 
-	//	bool operator == (const real<T>& p) { return t == p.t; }
-	//	bool operator == (double p) { return t == p; }
-	//	bool operator == (float p) { return t == p; }
+	//	inline bool operator == (const real_number<T>& p) { return t == p.t; }
+	//	inline bool operator == (double p) { return t == p; }
+	//	inline bool operator == (float p) { return t == p; }
+	//	
+	//	inline bool operator > (const real_number<T>& p) { return t > p.t; }
+	//	inline bool operator > (double p) { return t > p; }
+	//	inline bool operator > (float p) { return t > p; }
+	//	
+	//	inline bool operator >= (const real_number<T>& p) { return t >= p.t; }
+	//	inline bool operator >= (double p) { return t > p; }
+	//	inline bool operator >= (float p) { return t > p; }
+	//	
+	//	inline bool operator < (const real_number<T>& p) { return t < p.t; }
+	//	inline bool operator < (double p) { return t < p; }
+	//	inline bool operator < (float p) { return t < p; }
+	//	
+	//	inline bool operator <= (const real_number<T>& p) { return t <= p.t; }
+	//	inline bool operator <= (double p) { return t <= p; }
+	//	inline bool operator <= (float p) { return t <= p; }
+	//	
+	//	inline real_number<T>& operator = (const real_number<T>& b) { t = b.t; return *this; }
+	//	inline real_number<T>& operator = (double b) { t = b; return *this; }
+	//	inline real_number<T>& operator = (float b) { t = b; return *this; }
+	//	
+	//	inline T operator += (const real_number<T>& p) { return t += p.t; }
+	//	inline double operator += (double p) { return t += p; }
+	//	inline T operator += (float p) { return t += p; }
+	//	
+	//	inline T operator -= (const real_number<T>& p) { return t -= p.t; }
+	//	inline double operator -= (double p) { return t -= p; }
+	//	inline T operator -= (float p) { return t -= p; }
+	//	
+	//	inline T operator *= (const real_number<T>& p) { return t *= p.t; }
+	//	inline double operator *= (double p) { return t *= p; }
+	//	inline T operator *= (float p) { return t *= p; }
+	//	
+	//	inline T operator /= (const real_number<T>& p) { return t /= p.t; }
+	//	inline double operator /= (double p) { return t /= p; }
+	//	inline T operator /= (float p) { return t /= p; }
+	//	
+	//	inline T operator + (const real_number<T>& p) { return t + p.t; }
+	//	inline T operator + (float p) { return t + p; }
+	//	inline double operator + (double p) { return t + p; }
+	//	
+	//	inline T operator - (const real_number<T>& p) { return t - p.t; }
+	//	inline double operator - (double p) { return t - p; }
+	//	inline T operator - (float p) { return t - p; }
+	//
+	//	inline T operator * (const real_number<T>& p) { return t * p.t; }
+	//	inline double operator * (double p) { return t * p; }
+	//	inline T operator * (float p) { return t * p; }
 
-	//	bool operator > (const real<T>& p) { return t > p.t; }
-	//	bool operator > (double p) { return t > p; }
-	//	bool operator > (float p) { return t > p; }
+	//	inline T operator / (const real_number<T>& p) { return t / p.t; }
+	//	inline double operator / (double p) { return t / p; }
+	//	inline T operator / (float p) { return t / p; }
 
-	//	bool operator >= (const real<T>& p) { return t >= p.t; }
-	//	bool operator >= (double p) { return t > p; }
-	//	bool operator >= (float p) { return t > p; }
+	//	inline T operator () () { return t; }
 
-	//	bool operator < (const real<T>& p) { return t < p.t; }
-	//	bool operator < (double p) { return t < p; }
-	//	bool operator < (float p) { return t < p; }
-
-	//	bool operator <= (const real<T>& p) { return t <= p.t; }
-	//	bool operator <= (double p) { return t <= p; }
-	//	bool operator <= (float p) { return t <= p; }
-
-	//	real<T>& operator = (const real<T>& b) { t = b.t; return *this; }
-	//	real<T>& operator = (double b) { t = b; return *this; }
-	//	real<T>& operator = (float b) { t = b; return *this; }
-
-	//	realnum operator += (const real<T>& p) { return t += p.t; }
-	//	double operator += (double p) { return t += p; }
-	//	realnum operator += (float p) { return t += p; }
-
-	//	realnum operator -= (const real<T>& p) { return t -= p.t; }
-	//	double operator -= (double p) { return t -= p; }
-	//	realnum operator -= (float p) { return t -= p; }
-
-	//	realnum operator *= (const real<T>& p) { return t *= p.t; }
-	//	double operator *= (double p) { return t *= p; }
-	//	realnum operator *= (float p) { return t *= p; }
-
-	//	realnum operator /= (const real<T>& p) { return t /= p.t; }
-	//	double operator /= (double p) { return t /= p; }
-	//	realnum operator /= (float p) { return t /= p; }
-
-	//	realnum operator + (const real<T>& p) { return t + p.t; }
-	//	realnum operator + (float p) { return t + p; }
-	//	double operator + (double p) { return t + p; }
-
-	//	realnum operator - (const real<T>& p) { return t - p.t; }
-	//	double operator - (double p) { return t - p; }
-	//	realnum operator - (float p) { return t - p; }
-
-	//	realnum operator * (const real<T>& p) { return t * p.t; }
-	//	double operator * (double p) { return t * p; }
-	//	realnum operator * (float p) { return t * p; }
-
-	//	realnum operator / (const real<T>& p) { return t / p.t; }
-	//	double operator / (double p) { return t / p; }
-	//	realnum operator / (float p) { return t / p; }
-
-	//	realnum operator () () { return t; }
-
-	//	friend bool operator < (double a, const real<T>&b) { return a < b.t; }
-	//	friend bool operator <= (double a, const real<T>&b) { return a <= b.t; }
-	//	//friend bool operator < (const real<T>&a, double b) { return a.t < b; }
-	//	//friend bool operator <= (const real<T>&a, double b) { return a.t <= b; }
-
-	//	friend bool operator > (double a, const real<T>&b) { return a > b.t; }
-	//	friend bool operator >= (double a, const real<T>&b) { return a >= b.t; }
-	//	//friend bool operator > (const real<T>&a, double b) { return a.t > b; }
-	//	//friend bool operator >= (const real<T>&a, double b) { return a.t >= b; }
-
-	//	friend bool operator == (double a, const real<T>&b) { return a == b.t; }
-
-	//	friend double operator + (double a, const real<T>&b) { return a + b.t; }
-	//	friend double operator - (double a, const real<T>&b) { return a - b.t; }
-	//	friend double operator * (double a, const real<T>&b) { return a * b.t; }
-	//	friend double operator / (double a, const real<T>&b) { return a / b.t; }
-	//	friend T operator = (double a, const real<T>&b) { return a = b.t; }
-	//	friend T operator = (float a, const real<T>&b) { return a = b.t; }
-
-	//	friend std::ostream& operator << (std::ostream& os, const real<T>&p) { os << p.t; return os; }
-	//	friend std::ostream& operator >> (std::ostream& os, const real<T>&p) { os >> p.t; return os; }
+	//	inline friend bool operator < (double p, const real_number<T>&q) { return p < q.t; }
+	//	inline friend bool operator <= (double p, const real_number<T>&q) { return p <= q.t; }
+	//	inline friend bool operator > (double p, const real_number<T>&q) { return p > q.t; }
+	//	inline friend bool operator >= (double p, const real_number<T>&q) { return p >= q.t; }
+	//	
+	//	inline friend bool operator < (float p, const real_number<T>&q) { return p < q.t; }
+	//	inline friend bool operator <= (float p, const real_number<T>&q) { return p <= q.t; }
+	//	inline friend bool operator > (float p, const real_number<T>&q) { return p > q.t; }
+	//	inline friend bool operator >= (float p, const real_number<T>&q) { return p >= q.t; }
+	//	
+	//	inline friend bool operator == (double p, const real_number<T>&q) { return p == q.t; }
+	//	
+	//	inline friend double operator + (double p, const real_number<T>&q) { return p + q.t; }
+	//	inline friend double operator - (double p, const real_number<T>&q) { return p - q.t; }
+	//	inline friend double operator * (double p, const real_number<T>&q) { return p * q.t; }
+	//	inline friend double operator / (double p, const real_number<T>&q) { return p / q.t; }
+	//	
+	//	inline friend double operator = (double p, const real_number<T>&q) { p = q.t; return p; }
+	//	inline friend float operator = (float p, const real_number<T>&q) { p = q.t; return p; }
+	//	
+	//	inline friend std::ostream& operator << (std::ostream& os, const real_number<T>&p) { os << p.t; return os; }
+	//	inline friend std::ostream& operator >> (std::ostream& os, const real_number<T>&p) { os >> p.t; return os; }
 	//};
 
+	//typedef real_number<double> real;
+	//typedef real_number<float> real_t;
 
 };
 

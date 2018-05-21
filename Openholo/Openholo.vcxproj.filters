@@ -60,6 +60,9 @@
     <ClInclude Include="src\function.h">
       <Filter>__Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\mat.h">
+      <Filter>__graphics\header</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Openholo.cpp">

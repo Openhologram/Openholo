@@ -1,6 +1,7 @@
 #include "epsilon.h"
 #include <math.h>
 #include "sys.h"
+#include "define.h"
 
 namespace oph {
 

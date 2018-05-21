@@ -176,12 +176,12 @@ int Openholo::saveAsImg(const char * fname, uint8_t bitsperpixel, void* src, int
 	int _width = pic_width, _height = pic_height;
 
 	if (pic_width == 0)
-		_width = tmp.pixel_number.v[0];
+		_width = tmp.pixel_number[_X];
 
 	if (pic_height == 0)
-		_height = tmp.pixel_number.v[1];
+		_height = tmp.pixel_number[_Y];
 
-	int _pixelbytesize = _height * _width*bitsperpixel / 8;
+	int _pixelbytesize = _height * _width * bitsperpixel / 8;
 	int _filesize = _pixelbytesize + sizeof(bitmap);
 
 	FILE *fp;

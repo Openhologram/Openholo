@@ -15,6 +15,10 @@ extern real zero_tolerance;
 extern real angle_tolerance;
 extern real zero_epsilon;
 
+#ifndef M_PI
+#define M_PI	3.141592653589793238462643383279502884197169399375105820974944592308
+#endif
+
 
 /*|--------------------------------------------------------------------------*/
 /*| Set user epsilon : Throughout the running program we could use the same  */

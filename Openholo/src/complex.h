@@ -1,12 +1,3 @@
-
-//-------------------------------------------------------------------------
-// Complex Numbers
-// Revision :   $Rev$
-// Last changed : $Date$
-//
-// Author       : Seungtaik Oh
-// Last Update  : 19 JUL 2011
-//-------------------------------------------------------------------------
 #ifndef __complex_h_
 #define __complex_h_
 
@@ -15,17 +6,13 @@
 
 #include "typedef.h"
 
-const double PI = 3.141592653589793238462643383279502884197169399375105820974944592308;
-const double TWO_PI = 2.0*PI;
-
-
 namespace oph {
 	/**
 	* @brief class for the complex number and its arithmetic.
-	*		 typename T equal typename cplx
+	*		 type T == type cplx
 	*		 type only float || double
-	*		 cplx re : real number
-	*		 cplx im : imaginary number
+	*		 T re : real number
+	*		 T im : imaginary number
 	*/
 	template<typename T = double>
 	class __declspec(dllexport) Complex
@@ -34,23 +21,24 @@ namespace oph {
 		using cplx = typename std::enable_if<std::is_same<double, T>::value || std::is_same<float, T>::value, T>::type;
 
 	public:
-		cplx re, im;
+		T re, im;
 
 		Complex() : re(0), im(0) {}
-		Complex(cplx tRe, cplx tIm) : re(tRe), im(tIm) {}
+		Complex(T p) : re(p), im(p) {}
+		Complex(T tRe, T tIm) : re(tRe), im(tIm) {}
 		Complex(const Complex<T>& p)
 		{
 			re = p.re;
 			im = p.im;
 		}
 
-		cplx mag2() const { return re * re + im * im; }
-		cplx mag()  const { return sqrt(re * re + im * im); }
+		T mag2() const { return re * re + im * im; }
+		T mag()  const { return sqrt(re * re + im * im); }
 
-		cplx arg() const
+		T arg() const
 		{
-			cplx r = mag();
-			cplx theta = acos(re / r);
+			T r = mag();
+			T theta = acos(re / r);
 
 			if (sin(theta) - im / r < 10e-6)
 				return theta;
@@ -58,10 +46,25 @@ namespace oph {
 				return 2.0*PI - theta;
 		}
 
-		void euler(cplx& r, cplx& theta)
+		void euler(T& r, T& theta)
 		{
 			r = mag();
 			theta = arg();
+		}
+
+		T angle(void)
+		{matrix identity
+			if (std::is_same<double, T>::value)
+				return atan2(im, re);
+			else if (std::is_same<float, T>::value)
+				return atan2f(im, re);
+		}
+
+		T exp() {
+			if (std::is_same<double, T>::value)
+				return std::exp(re + im);
+			else if (std::is_same<float, T>::value)
+				return std::expf(re + im);
 		}
 
 		Complex<T> conj() const { return Complex<T>(re, -im); }
@@ -77,6 +80,13 @@ namespace oph {
 		const Complex<T>& operator= (const Complex<T>& p){
 			re = p.re;
 			im = p.im;
+
+			return *this;
+		}
+
+		const Complex<T>& operator = (const T& p) {
+			re = p;
+			im = p;
 
 			return *this;
 		}
@@ -112,19 +122,26 @@ namespace oph {
 			return *this;
 		}
 
+		const Complex<T>& operator/= (const cplx k) {
+			re /= k;
+			im /= k;
+
+			return *this;
+		}
+
+		const Complex<T>& operator /= (const Complex<T>& p) {
+			re /= p.re;
+			im /= p.im;
+
+			return *this;
+		}
+
 		bool operator < (const Complex<T>& p){
 			return (re < p.re);
 		}
 
 		bool operator > (const Complex<T>& p) {
 			return (re > p.re);
-		}
-
-		const Complex<T>& operator/= (const cplx k){
-			re /= k;
-			im /= k;
-
-			return *this;
 		}
 
 		operator unsigned char() {

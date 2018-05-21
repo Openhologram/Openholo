@@ -27,6 +27,7 @@
     <ClInclude Include="src\function.h" />
     <ClInclude Include="src\include.h" />
     <ClInclude Include="src\ivec.h" />
+    <ClInclude Include="src\mat.h" />
     <ClInclude Include="src\Openholo.h" />
     <ClInclude Include="src\real.h" />
     <ClInclude Include="src\struct.h" />

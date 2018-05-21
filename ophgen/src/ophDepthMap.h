@@ -113,9 +113,6 @@ public:
 
 	/** \ingroup init_module */
 	bool readConfig(const char* fname);
-
-	/** \ingroup init_module */
-	void initialize();
 	
 	/** \ingroup gen_module */
 	void generateHologram();
@@ -145,6 +142,9 @@ public:
 	inline void getRenderDepth(std::vector<int>& renderdepth) { renderdepth = dm_config_.render_depth; }
 
 private:
+	/** \ingroup init_module */
+	void initialize();
+
 	/** \ingroup init_module
 	* @{ */
 	void init_CPU();

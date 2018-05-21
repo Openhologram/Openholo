@@ -60,6 +60,8 @@ typedef struct {
 } bitmap;
 #pragma pack(pop)
 
+
+
 typedef struct {
 	uint8_t signature[3];
 	uint64_t filesize;

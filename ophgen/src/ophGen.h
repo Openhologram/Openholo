@@ -122,6 +122,14 @@ public:
 	virtual bool readConfig(const std::string fname, OphPointCloudConfig& config);
 	virtual bool readConfig(const std::string fname, OphDepthMapConfig& config, OphDepthMapParams& params, OphDepthMapSimul& simuls);
 
+	/**
+
+	*/
+	template<typename T>
+	void normalize(T* src, oph::uchar* dst, const oph::uint nx, const oph::uint ny);
+	template<typename T>
+	void normalize(const std::vector<T>* src, std::vector<oph::uchar>* dst);
+
 protected:
 	/**
 	* @brief Pure virtual function for override in child classes
@@ -130,3 +138,15 @@ protected:
 };
 
 #endif // !__ophGen_h
+
+template<typename T>
+inline void ophGen::normalize(T * src, oph::uchar * dst, const oph::uint nx, const oph::uint ny)
+{
+	oph::normalize(src, dst, nx, ny);
+}
+
+template<typename T>
+inline void ophGen::normalize(const std::vector<T>* src, std::vector<oph::uchar>* dst)
+{
+	oph::normalize(src, dst);
+}

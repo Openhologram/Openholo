@@ -32,16 +32,23 @@ int ophGen::loadPointCloud(const std::string pc_file, std::vector<real> *vertex_
 		if (idx == i) {
 			if (vertex_array)
 			{
+				vertex_array->reserve(n_pts * 3);
 				vertex_array->push_back(pX);
 				vertex_array->push_back(pY);
 				vertex_array->push_back(pZ);
 			}
 
 			if (amplitude_array)
+			{
+				amplitude_array->reserve(n_pts);
 				amplitude_array->push_back(phase);
+			}
 
 			if (phase_array)
+			{
+				phase_array->reserve(n_pts);
 				phase_array->push_back(amplitude);
+			}
 		}
 		else {
 			File.close();
@@ -54,9 +61,10 @@ int ophGen::loadPointCloud(const std::string pc_file, std::vector<real> *vertex_
 
 bool ophGen::readConfig(const std::string fname, OphPointCloudConfig& configdata)
 {
-	std::ifstream File(fname, std::ios::in);
-	if (!File.is_open()) {
-		File.close();
+	std::ifstream inFile(fname, std::ios::in);
+	if (!inFile.is_open()) {
+		LOG("file not found.\n");
+		inFile.close();
 		return false;
 	}
 
@@ -65,7 +73,7 @@ bool ophGen::readConfig(const std::string fname, OphPointCloudConfig& configdata
 	std::stringstream LineStream;
 
 	int i = 0;
-	while (std::getline(File, Line)) {
+	while (std::getline(inFile, Line)) {
 		std::string _Title;
 		std::string _Value;
 		std::string _Equal; // " = "
@@ -79,7 +87,7 @@ bool ophGen::readConfig(const std::string fname, OphPointCloudConfig& configdata
 	}
 
 	if (i != 17) {
-		File.close();
+		inFile.close();
 		return false;
 	}
 
@@ -113,20 +121,21 @@ bool ophGen::readConfig(const std::string fname, OphPointCloudConfig& configdata
 	configdata.tilt_angle.v[0] = stod(Value[15]);
 	configdata.tilt_angle.v[1] = stod(Value[16]);
 
-	File.close();
+	inFile.close();
 	return true;
 }
 
 bool ophGen::readConfig(const std::string fname, OphDepthMapConfig & config, OphDepthMapParams& params, OphDepthMapSimul& simuls)
 {
-	std::string inputFileName_ = "config_openholo.txt";
+	std::string inputFileName_ = fname;
 
-	LOG("Reading....%s\n", inputFileName_.c_str());
+	LOG("Reading....%s\n", fname.c_str());
 
-	std::ifstream inFile(inputFileName_.c_str());
+	std::ifstream inFile(fname.c_str());
 
 	if (!inFile.is_open()) {
 		LOG("file not found.\n");
+		inFile.close();
 		return false;
 	}
 

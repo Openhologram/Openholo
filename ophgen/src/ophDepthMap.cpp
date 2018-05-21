@@ -98,6 +98,8 @@ void ophDepthMap::initialize()
 */
 void ophDepthMap::generateHologram()
 {
+	initialize();
+
 	int num_of_frame;
 	if (dm_params_.FLAG_STATIC_IMAGE == 0)
 		num_of_frame = dm_params_.NUMBER_OF_FRAME;
@@ -360,29 +362,31 @@ void ophDepthMap::writeResultimage(int ftr)
 	
 	std::string fname = std::string("./").append(dm_params_.RESULT_FOLDER).append("/").append(dm_params_.RESULT_PREFIX).append(std::to_string(ftr)).append(".bmp");
 
-	int pnx = context_.pixel_number[0];
-	int pny = context_.pixel_number[1];
+	int pnx = context_.pixel_number[_X];
+	int pny = context_.pixel_number[_Y];
 	int px = static_cast<int>(pnx / 3);
 	int py = pny;
 
-	real min_val, max_val;
-	min_val = ((real*)((real*)p_hologram))[0];
-	max_val = ((real*)p_hologram)[0];
-	for (int i = 0; i < pnx*pny; ++i)
-	{
-		if (min_val > ((real*)p_hologram)[i])
-			min_val = ((real*)p_hologram)[i];
-		else if (max_val < ((real*)p_hologram)[i])
-			max_val = ((real*)p_hologram)[i];
-	}
+	//real min_val, max_val;
+	//min_val = ((real*)((real*)p_hologram))[0];
+	//max_val = ((real*)p_hologram)[0];
+	//for (int i = 0; i < pnx*pny; ++i)
+	//{
+	//	if (min_val > ((real*)p_hologram)[i])
+	//		min_val = ((real*)p_hologram)[i];
+	//	else if (max_val < ((real*)p_hologram)[i])
+	//		max_val = ((real*)p_hologram)[i];
+	//}
 
 	uchar* data = (uchar*)malloc(sizeof(uchar)*pnx*pny);
 	memset(data, 0, sizeof(uchar)*pnx*pny);
 
-	int x = 0;
-#pragma omp parallel for private(x)
-	for (x = 0; x < pnx*pny; ++x)
-		data[x] = (uint)((((real*)p_hologram)[x] - min_val) / (max_val - min_val) * 255);
+	oph::normalize((real*)p_hologram, data, pnx, pny);
+
+	//int x = 0;
+//#pragma omp parallel for private(x)
+	//for (x = 0; x < pnx*pny; ++x)
+		//data[x] = (uint)((((real*)p_hologram)[x] - min_val) / (max_val - min_val) * 255);
 
 	int ret = Openholo::save(fname.c_str(), 24, data, px, py);
 
