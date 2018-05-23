@@ -115,10 +115,13 @@ public:
 	bool readConfig(const char* fname);
 	
 	/** \ingroup gen_module */
-	void generateHologram();
+	double generateHologram(void);
+
+	/** \ingroup encode_module */
+	void encodeHologram(void);
 
 	/** \ingroup recon_module */
-	void reconstructImage();
+	void reconstructImage(void);
 
 public:
 	/** \ingroup getter/setter */
@@ -179,7 +182,7 @@ private:
 	void propagation_AngularSpectrum_GPU(cufftDoubleComplex* input_u, real propagation_dist);
 	/** @} */
 
-	/** \ingroup encode_modulel
+	/** \ingroup encode_module
 	* @{ */
 	/**
 	* @brief Encode the CGH according to a signal location parameter.
@@ -237,14 +240,13 @@ private:
 
 	/** \ingroup write_module
 	* @{ */
-	void writeResultimage(int ftr);
+	virtual int save(const char* fname, uint8_t bitsperpixel = 8);
 	/** @} */
 
 	void get_rand_phase_value(oph::Complex<real>& rand_phase_val);
 	void get_shift_phase_value(oph::Complex<real>& shift_phase_val, int idx, oph::ivec2 sig_location);
 
 	void fftwShift(oph::Complex<real>* src, oph::Complex<real>* dst, fftw_complex* in, fftw_complex* out, int nx, int ny, int type, bool bNomalized = false);
-	void exponent_complex(oph::Complex<real>* val);
 	void fftShift(int nx, int ny, oph::Complex<real>* input, oph::Complex<real>* output);
 
 	//void writeIntensity_gray8_bmp(const char* fileName, int nx, int ny, real* intensity);
@@ -259,6 +261,11 @@ private:
 	void writeSimulationImage(int num, real val);
 	void circshift(oph::Complex<real>* in, oph::Complex<real>* out, int shift_x, int shift_y, int nx, int ny);
 	/** @} */
+
+	/**
+
+	*/
+	void release_gpu(void);
 
 	virtual void ophFree(void);
 
@@ -276,14 +283,12 @@ private:
 	int*					alpha_map_;							///< CPU variable - calculated alpha map data, values are 0 or 1.
 
 	real*					dmap_;								///< CPU variable - physical distances of depth map.
+	int						cur_frame_;
 	
 	real					dstep_;								///< the physical increment of each depth map layer.
 	std::vector<real>		dlevel_;							///< the physical value of all depth map layer.
 	std::vector<real>		dlevel_transform_;					///< transfomed dlevel_ variable
 	
-	oph::Complex<real>*		U_complex_;							///< CPU variable - the generated hologram before encoding.
-	//real*					u255_fringe_;						///< the final hologram, used for writing the result image.
-
 	OphDepthMapConfig		dm_config_;							///< structure variable for depthmap hologram configuration.
 	OphDepthMapParams		dm_params_;							///< structure variable for depthmap hologram parameters.
 	OphDepthMapSimul		dm_simuls_;							///< structure variable for depthmap simulation parameters.

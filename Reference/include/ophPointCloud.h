@@ -43,6 +43,7 @@
 
 using namespace oph;
 
+template<typename T> class TwoDimMatrix;
 class GEN_DLL ophPointCloud : public ophGen
 {
 public:
@@ -55,8 +56,6 @@ public:
 	* @overload
 	*/
 	ophPointCloud(const std::string pc_file, const std::string cfg_file);
-
-private:
 	/**
 	* @brief Destructor
 	*/
@@ -166,7 +165,7 @@ private:
 	* @param dst Output Fringe Pattern
 	* @return implement time (sec)
 	*/
-	double genCghPointCloud(real *dst);
+	double genCghPointCloud(real* dst);
 
 	/**
 	* @overload
@@ -188,7 +187,7 @@ private:
 	* @param dst Output Fringe Pattern
 	* @return implement time (sec)
 	*/
-	double genCghPointCloud_cuda(real *dst);
+	double genCghPointCloud_cuda(real* dst);
 
 	/** @}	*/
 

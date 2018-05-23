@@ -31,7 +31,8 @@ ophDepthMap::ophDepthMap()
 	dmap_ = 0;
 	dstep_ = 0;
 	dlevel_.clear();
-	U_complex_ = nullptr;
+
+	cur_frame_ = 0;
 }
 
 /**
@@ -75,8 +76,14 @@ void ophDepthMap::initialize()
 	dstep_ = 0;
 	dlevel_.clear();
 
-	if (p_hologram)		free(p_hologram);
-	p_hologram = (real*)malloc(sizeof(real) * context_.pixel_number[0] * context_.pixel_number[1]);
+	if (holo_gen) delete[] holo_gen;
+	holo_gen = new oph::Complex<real>[context_.pixel_number[_X] * context_.pixel_number[_Y]];
+
+	if (holo_encoded) delete[] holo_encoded;
+	holo_encoded = new real[context_.pixel_number[_X] * context_.pixel_number[_Y]];
+
+	if (holo_normalized) delete[] holo_normalized;
+	holo_normalized = new uchar[context_.pixel_number[_X] * context_.pixel_number[_Y]];
 	
 	if (isCPU_)
 		init_CPU();
@@ -96,8 +103,9 @@ void ophDepthMap::initialize()
 * .
 * @see readImageDepth, getDepthValues, transformViewingWindow, calc_Holo_by_Depth, encodingSymmetrization, writeResultimage
 */
-void ophDepthMap::generateHologram()
+double ophDepthMap::generateHologram()
 {
+	auto time_start = _cur_time;
 	initialize();
 
 	int num_of_frame;
@@ -108,6 +116,7 @@ void ophDepthMap::generateHologram()
 
 	for (int ftr = 0; ftr <= num_of_frame - 1; ftr++)
 	{
+		cur_frame_ = ftr;
 		LOG("Calculating hologram of frame %d.\n", ftr);
 
 		if (!readImageDepth(ftr)) {
@@ -121,12 +130,16 @@ void ophDepthMap::generateHologram()
 			transformViewingWindow();
 
 		calc_Holo_by_Depth(ftr);
-		
-		if (dm_params_.Encoding_Method_ == 0)
-			encodingSymmetrization(ivec2(0,1));
-
-		writeResultimage(ftr);
 	}
+	auto time_end = _cur_time;
+
+	return ((std::chrono::duration<real>)(time_end - time_start)).count();
+}
+
+void ophDepthMap::encodeHologram(void)
+{
+	if (dm_params_.Encoding_Method_ == 0)
+		encodingSymmetrization(ivec2(0, 1));
 }
 
 /**
@@ -170,7 +183,7 @@ int ophDepthMap::readImageDepth(int ftr)
 	int w, h, bytesperpixel;
 	int ret = getImgSize(w, h, bytesperpixel, imgfullname.c_str());
 
-	unsigned char* imgload = (unsigned char*)malloc(sizeof(unsigned char)*w*h*bytesperpixel);
+	oph::uchar* imgload = new uchar[w*h*bytesperpixel];
 	ret = loadAsImg(imgfullname.c_str(), (void*)imgload);
 	if (!ret) {
 		LOG("Failed::Image Load: %s\n", imgfullname.c_str());
@@ -178,15 +191,10 @@ int ophDepthMap::readImageDepth(int ftr)
 	}
 	LOG("Succeed::Image Load: %s\n", imgfullname.c_str());
 
-	unsigned char* img = (unsigned char*)malloc(sizeof(unsigned char)*w*h);
+	oph::uchar* img = new uchar[w*h];
 	convertToFormatGray8(imgload, img, w, h, bytesperpixel);
 
-	//ret = creatBitmapFile(img, w, h, 8, "load_img.bmp");
-
-	//QImage qtimg(img, w, h, QImage::Format::Format_Grayscale8);
-	//qtimg.save("load_qimg.bmp");
-
-	free(imgload);
+	delete[] imgload;
 
 
 	//=================================================================================
@@ -203,7 +211,7 @@ int ophDepthMap::readImageDepth(int ftr)
 	int dw, dh, dbytesperpixel;
 	ret = getImgSize(dw, dh, dbytesperpixel, dimgfullname.c_str());
 
-	unsigned char* dimgload = (unsigned char*)malloc(sizeof(unsigned char)*dw*dh*dbytesperpixel);
+	uchar* dimgload = new uchar[dw*dh*dbytesperpixel];
 	ret = loadAsImg(dimgfullname.c_str(), (void*)dimgload);
 	if (!ret) {
 		LOG("Failed::Depth Image Load: %s\n", dimgfullname.c_str());
@@ -211,10 +219,10 @@ int ophDepthMap::readImageDepth(int ftr)
 	}
 	LOG("Succeed::Depth Image Load: %s\n", dimgfullname.c_str());
 
-	unsigned char* dimg = (unsigned char*)malloc(sizeof(unsigned char)*dw*dh);
+	uchar* dimg = new uchar[dw*dh];
 	convertToFormatGray8(dimgload, dimg, dw, dh, dbytesperpixel);
 
-	free(dimgload);
+	delete[] dimgload;
 
 	//ret = creatBitmapFile(dimg, dw, dh, 8, "dtest");
 	//=======================================================================
@@ -222,7 +230,7 @@ int ophDepthMap::readImageDepth(int ftr)
 	int pnx = context_.pixel_number[0];
 	int pny = context_.pixel_number[1];
 
-	unsigned char* newimg = (unsigned char*)malloc(sizeof(char)*pnx*pny);
+	uchar* newimg = new uchar[pnx*pny];
 	memset(newimg, 0, sizeof(char)*pnx*pny);
 
 	if (w != pnx || h != pny)
@@ -232,7 +240,7 @@ int ophDepthMap::readImageDepth(int ftr)
 
 	//ret = creatBitmapFile(newimg, pnx, pny, 8, "stest");
 
-	unsigned char* newdimg = (unsigned char*)malloc(sizeof(char)*pnx*pny);
+	uchar* newdimg = new uchar[pnx*pny];
 	memset(newdimg, 0, sizeof(char)*pnx*pny);
 
 	if (dw != pnx || dh != pny)
@@ -245,16 +253,10 @@ int ophDepthMap::readImageDepth(int ftr)
 	else
 		ret = prepare_inputdata_GPU(newimg, newdimg);
 
-	free(img);
-	free(dimg);
-
-	//writeIntensity_gray8_bmp("test.bmp", pnx, pny, dmap_src_);
-	//writeIntensity_gray8_bmp("test2.bmp", pnx, pny, dmap_);
-	//dimg.save("test_dmap.bmp");
-	//img.save("test_img.bmp");
+	delete[] img;
+	delete[] dimg;
 
 	return ret;
-	
 }
 
 /**
@@ -337,7 +339,7 @@ void ophDepthMap::get_rand_phase_value(oph::Complex<real>& rand_phase_val)
 
 		rand_phase_val.re = 0.0;
 		rand_phase_val.im = 2 * M_PI * distribution(generator);
-		exponent_complex(&rand_phase_val);
+		rand_phase_val.exp();
 
 	} else {
 		rand_phase_val.re = 1.0;
@@ -350,47 +352,29 @@ void ophDepthMap::get_rand_phase_value(oph::Complex<real>& rand_phase_val)
 * @param ftr : the frame number of the image.
 */
 
-void ophDepthMap::writeResultimage(int ftr)
-{	
+int ophDepthMap::save(const char* fname, uint8_t bitsperpixel)
+{
 	std::string outdir = std::string("./").append(dm_params_.RESULT_FOLDER);
 
 	if (!CreateDirectory(outdir.c_str(), NULL) && ERROR_ALREADY_EXISTS != GetLastError())
 	{
 		LOG("Fail to make output directory\n");
-		return;
+		return 0;
 	}
 	
-	std::string fname = std::string("./").append(dm_params_.RESULT_FOLDER).append("/").append(dm_params_.RESULT_PREFIX).append(std::to_string(ftr)).append(".bmp");
+	std::string resName;
+	
+	if (fname)
+		resName = std::string("./").append(dm_params_.RESULT_FOLDER).append("/").append(fname).append(std::to_string(cur_frame_)).append(".bmp");
+	else
+		resName = std::string("./").append(dm_params_.RESULT_FOLDER).append("/").append(dm_params_.RESULT_PREFIX).append(std::to_string(cur_frame_)).append(".bmp");
 
 	int pnx = context_.pixel_number[_X];
 	int pny = context_.pixel_number[_Y];
 	int px = static_cast<int>(pnx / 3);
 	int py = pny;
 
-	//real min_val, max_val;
-	//min_val = ((real*)((real*)p_hologram))[0];
-	//max_val = ((real*)p_hologram)[0];
-	//for (int i = 0; i < pnx*pny; ++i)
-	//{
-	//	if (min_val > ((real*)p_hologram)[i])
-	//		min_val = ((real*)p_hologram)[i];
-	//	else if (max_val < ((real*)p_hologram)[i])
-	//		max_val = ((real*)p_hologram)[i];
-	//}
-
-	uchar* data = (uchar*)malloc(sizeof(uchar)*pnx*pny);
-	memset(data, 0, sizeof(uchar)*pnx*pny);
-
-	oph::normalize((real*)p_hologram, data, pnx, pny);
-
-	//int x = 0;
-//#pragma omp parallel for private(x)
-	//for (x = 0; x < pnx*pny; ++x)
-		//data[x] = (uint)((((real*)p_hologram)[x] - min_val) / (max_val - min_val) * 255);
-
-	int ret = Openholo::save(fname.c_str(), 24, data, px, py);
-
-	free(data);
+	return Openholo::save(resName.c_str(), bitsperpixel, holo_normalized, px, py);
 }
 
 /**
@@ -433,15 +417,18 @@ void ophDepthMap::writeSimulationImage(int num, real val)
 	for (int k = 0; k < pnx*pny; k++)
 		data[k] = (uint)((dm_simuls_.sim_final_[k] - min_val) / (max_val - min_val) * 255);
 
-	//QImage img(data, px, py, QImage::Format::Format_RGB888);
-	//img.save(QString(fname));
-
 	int ret = Openholo::save(fname.c_str(), 24, data, px, py);
 
 	free(data);
-
 }
 
 void ophDepthMap::ophFree(void)
 {
+	if (img_src_)			delete[] img_src_;
+	if (dmap_src_)			delete[] dmap_src_;
+	if (alpha_map_)			delete[] alpha_map_;
+	if (depth_index_)		delete[] depth_index_;
+	if (dmap_)				delete[] dmap_;
+
+	release_gpu();
 }

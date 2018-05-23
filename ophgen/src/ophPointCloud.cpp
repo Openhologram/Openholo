@@ -77,14 +77,18 @@ int ophPointCloud::getNumberOfPoints()
 real ophPointCloud::generateHologram()
 {
 	// Output Image Size
-	int n_x = context_.pixel_number.v[0];
-	int n_y = context_.pixel_number.v[1];
+	int n_x = context_.pixel_number[_X];
+	int n_y = context_.pixel_number[_Y];
 
 	// Memory Location for Result Image
-	//if (data_hologram != nullptr) free(data_hologram);
-	if (p_hologram != nullptr) free(p_hologram);
-	p_hologram = (uchar*)calloc(1, sizeof(uchar)*n_x*n_y);
-	real *data_fringe = (real*)calloc(1, sizeof(real)*n_x*n_y);
+	if (holo_gen != nullptr) free(holo_gen);
+	holo_gen = (oph::Complex<real>*)calloc(1, sizeof(oph::Complex<real>) * n_x * n_y);
+
+	if (holo_encoded != nullptr) free(holo_encoded);
+	holo_encoded = (real*)calloc(1, sizeof(real) * n_x * n_y);
+
+	if (holo_normalized != nullptr) free(holo_normalized);
+	holo_normalized = (uchar*)calloc(1, sizeof(uchar) * n_x * n_y);
 
 	// Create CGH Fringe Pattern by 3D Point Cloud
 	real time = 0.0;
@@ -94,30 +98,27 @@ real ophPointCloud::generateHologram()
 #else
 		std::cout << "Generate Hologram with Single Core CPU" << std::endl;
 #endif
-		time = genCghPointCloud(data_fringe);
+		time = genCghPointCloud(holo_encoded); /// Complex Data로 변경할 때 반드시 holo_gen으로 바꿔줘야함.
 	}
 	else { //Run GPU
 		std::cout << "Generate Hologram with GPU" << std::endl;
 
-		time = genCghPointCloud_cuda(data_fringe);
+		time = genCghPointCloud_cuda(holo_encoded); /// Complex Data로 변경할 때 반드시 holo_gen으로 바꿔줘야함.
 		std::cout << ">>> CUDA GPGPU" << std::endl;
 	}
 
-	oph::normalize(data_fringe, (uchar*)p_hologram, n_x, n_y);
-
-	free(data_fringe);
 	return time;
 }
 
-real ophPointCloud::genCghPointCloud(real * dst)
+real ophPointCloud::genCghPointCloud(real* dst)
 {
 	// Output Image Size
-	int n_x = context_.pixel_number.v[0];
-	int n_y = context_.pixel_number.v[1];
+	int n_x = context_.pixel_number[_X];
+	int n_y = context_.pixel_number[_Y];
 
 	// Tilt Angle
-	real thetaX = RADIAN(pc_config_.tilt_angle.v[0]);
-	real thetaY = RADIAN(pc_config_.tilt_angle.v[1]);
+	real thetaX = RADIAN(pc_config_.tilt_angle[_X]);
+	real thetaY = RADIAN(pc_config_.tilt_angle[_Y]);
 
 	// Wave Number
 	real k = context_.k;
@@ -140,9 +141,9 @@ real ophPointCloud::genCghPointCloud(real * dst)
 #pragma omp for private(j)
 #endif
 		for (j = 0; j < n_points; ++j) { //Create Fringe Pattern
-			real x = vertex_array_[3 * j + 0] * pc_config_.scale.v[0];
-			real y = vertex_array_[3 * j + 1] * pc_config_.scale.v[1];
-			real z = vertex_array_[3 * j + 2] * pc_config_.scale.v[2] + pc_config_.offset_depth;
+			real x = vertex_array_[3 * j + 0] * pc_config_.scale[_X];
+			real y = vertex_array_[3 * j + 1] * pc_config_.scale[_Y];
+			real z = vertex_array_[3 * j + 2] * pc_config_.scale[_Z] + pc_config_.offset_depth;
 			real amplitude = amplitude_array_[j];
 
 			for (int row = 0; row < n_y; ++row) {
@@ -169,7 +170,7 @@ real ophPointCloud::genCghPointCloud(real * dst)
 	return ((std::chrono::duration<real>)(time_finish - time_start)).count();
 }
 
-real ophPointCloud::genCghPointCloud_cuda(real * dst)
+real ophPointCloud::genCghPointCloud_cuda(real* dst)
 {
 	int _bx = context_.pixel_number.v[0] / THREAD_X;
 	int _by = context_.pixel_number.v[1] / THREAD_Y;
@@ -244,6 +245,7 @@ real ophPointCloud::genCghPointCloud_cuda(real * dst)
 		cudaMemcpy(dst, deviceDst, bufferSize, cudaMemcpyDeviceToHost);
 	}
 	std::chrono::system_clock::time_point time_finish = std::chrono::system_clock::now();
+
 
 	//Device(GPU) Memory Delete
 	cudaFree(DevicePointCloud);

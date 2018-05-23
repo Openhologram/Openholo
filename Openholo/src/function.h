@@ -3,6 +3,8 @@
 
 #include "complex.h"
 #include "real.h"
+#include "mat.h"
+
 #include <chrono>
 #include <random>
 
@@ -34,10 +36,26 @@ namespace oph
 		return max;
 	}
 
-	inline void absArr(const std::vector<real>& src, std::vector<real>& dst) {
+	template<typename T>
+	inline void abs(const oph::Complex<T>& src, oph::Complex<T>& dst) {
+		dst = oph::Complex<T>(::abs(src.re), ::abs(src.im));
+	}
+
+	template<typename T>
+	inline void absArr(const std::vector<Complex<T>>& src, std::vector<oph::Complex<T>>& dst) {
 		dst.clear();
 		dst.reserve(src.size());
-		for (auto item : src) { dst.push_back(abs(item)); }
+		for (auto item : src) dst.push_back(oph::abs(item));
+	}
+
+	template<typename T>
+	inline void absMat(const oph::TwoDimMatrix<oph::Complex<T>>& src, oph::TwoDimMatrix<oph::Complex<T>>& dst) {
+		if (src.getSize() != dst.getSize()) return;
+		oph::ivec2 matSize;
+		for (int x = 0; x < matSize[_X]; x++) {
+			for (int y = 0; y < matSize[_Y]; y++)
+				oph::abs(src[x][y], dst[x][y]);
+		}
 	}
 
 	template<typename T>

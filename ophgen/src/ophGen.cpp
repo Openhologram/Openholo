@@ -3,6 +3,9 @@
 #include "sys.h"
 
 ophGen::ophGen(void)
+	: holo_gen(nullptr)
+	, holo_encoded(nullptr)
+	, holo_normalized(nullptr)
 {
 }
 
@@ -255,4 +258,64 @@ bool ophGen::readConfig(const std::string fname, OphDepthMapConfig & config, Oph
 	LOG("done\n");
 
 	return true;
+}
+
+void ophGen::normalize(void)
+{
+	oph::normalize((real*)holo_encoded, holo_normalized, context_.pixel_number[_X], context_.pixel_number[_Y]);
+}
+
+int ophGen::save(const char * fname, uint8_t bitsperpixel)
+{
+	if (checkExtension(fname, ".ohf")) {	// save as *.ohf
+		return Openholo::saveAsOhf(fname, bitsperpixel, holo_normalized, context_.pixel_number[_X], context_.pixel_number[_Y]);
+	}
+	else {										// save as image file - (bmp)
+		if (checkExtension(fname, ".bmp")) {	// when the extension is bmp
+			return saveAsImg(fname, bitsperpixel, holo_normalized, context_.pixel_number[_X], context_.pixel_number[_Y]);
+		}
+		else {									// when extension is not .ohf, .bmp - force bmp
+			char buf[256];
+			memset(buf, 0x00, sizeof(char) * 256);
+			sprintf_s(buf, "%s.bmp", fname);
+
+			return saveAsImg(buf, bitsperpixel, holo_normalized, context_.pixel_number[_X], context_.pixel_number[_Y]);
+		}
+	}
+}
+
+int ophGen::load(const char * fname, void * dst)
+{
+	if (holo_normalized != nullptr) {
+		delete[] holo_normalized;
+	}
+
+	if (checkExtension(fname, ".ohf")) {
+		if (dst != nullptr)
+			return loadAsOhf(fname, dst);
+		else
+			return loadAsOhf(fname, holo_normalized);
+	} 
+	else {
+		if (checkExtension(fname, ".bmp"))
+		{
+			if (dst != nullptr)
+				return loadAsImg(fname, dst);
+			else
+				return loadAsImg(fname, holo_normalized);
+		}
+		else			// when extension is not .ohf, .bmp
+		{
+			// how to load another image file format?
+		}
+	}
+
+	return 0;
+}
+
+void ophGen::ophFree(void)
+{
+	if (holo_gen) delete[] holo_gen;
+	if (holo_encoded) delete[] holo_encoded;
+	if (holo_normalized) delete[] holo_normalized;
 }

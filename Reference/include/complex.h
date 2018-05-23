@@ -60,11 +60,16 @@ namespace oph {
 				return atan2f(im, re);
 		}
 
-		T exp() {
-			if (std::is_same<double, T>::value)
-				return std::exp(re + im);
-			else if (std::is_same<float, T>::value)
-				return std::expf(re + im);
+		Complex<T>& exp() {
+			if (std::is_same<double, T>::value){
+				re = std::exp(re) * cos(im);
+				im = std::exp(re) * sin(im);
+			}
+			else {
+				re = std::expf(re) * cos(im);
+				im = std::expf(re) * sin(im);
+			}
+			return *this;
 		}
 
 		Complex<T> conj() const { return Complex<T>(re, -im); }

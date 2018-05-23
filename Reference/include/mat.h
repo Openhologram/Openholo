@@ -18,12 +18,17 @@ namespace oph
 	{
 	public:
 		using typeT = typename std::enable_if<
-			std::is_same<double, T>::value || std::is_same<float, T>::value ||
+			std::is_same<real, T>::value || std::is_same<real_t, T>::value ||
 			std::is_same<int, T>::value ||
-			std::is_same<Complex<double>, T>::value || std::is_same<Complex<float>, T>::value, T>::type;
+			std::is_same<uchar, T>::value ||
+			std::is_same<Complex<real>, T>::value || std::is_same<Complex<real_t>, T>::value, T>::type;
 
 		std::vector<T>* mat;
 		ivec2 size;
+
+		TwoDimMatrix(void) : size(1, 1) {
+			init();
+		}
 
 		TwoDimMatrix(int x, int y) : size(x, y) {
 			init();
@@ -37,7 +42,7 @@ namespace oph
 			init();
 			for (int x = 0; x < size[0]; x++)
 				for (int y = 0; y < size[1]; y++) {
-					mat[x][y] = p[x][y];
+					mat[x][y] = ref[x][y];
 				}
 		}
 
@@ -252,6 +257,14 @@ namespace oph
 			return true;
 		}
 
+		inline void operator =(T* p) {
+			for (int x = 0; x < size[_X]; x++)
+				for (int y = 0; y < size[_Y]; y++) {
+					mat[x][y] = *p;
+					p++;
+				}
+		}
+
 		TwoDimMatrix<T>& operator ()(T args...) {
 			va_list ap;
 
@@ -332,6 +345,7 @@ namespace oph
 	};
 
 	typedef oph::TwoDimMatrix<int> OphIntField;
+	typedef oph::TwoDimMatrix<uchar> OphByteField;
 	typedef oph::TwoDimMatrix<real> OphRealField;
 	typedef oph::TwoDimMatrix<real_t> OphRealTField;
 	typedef oph::TwoDimMatrix<Complex<real>> OphComplexField;

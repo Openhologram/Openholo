@@ -159,10 +159,7 @@ int Openholo::saveAsOhf(const char * fname, uint8_t bitsperpixel, void* src, int
 
 	//fwrite(ohf, 1, sizeof(ohfdata), fp);
 
-	//if (src == nullptr)
-	//	fwrite(p_hologram, 1, _pixelbytesize, fp);
-	//else
-	//	fwrite(src, 1, _pixelbytesize, fp);
+	//fwrite(src, 1, _pixelbytesize, fp);
 	//fclose(fp);
 	//free(ohf);
 
@@ -214,10 +211,7 @@ int Openholo::saveAsImg(const char * fname, uint8_t bitsperpixel, void* src, int
 	pbitmap->bitmapinfoheader.numcolorspallette = 256;
 	fwrite(pbitmap, 1, sizeof(bitmap), fp);
 
-	if (src == nullptr)
-		fwrite(p_hologram, 1, _pixelbytesize, fp);
-	else
-		fwrite(src, 1, _pixelbytesize, fp);
+	fwrite(src, 1, _pixelbytesize, fp);
 	fclose(fp);
 	free(pbitmap);
 	return 1;

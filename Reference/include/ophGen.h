@@ -106,6 +106,10 @@ protected:
 	virtual ~ophGen(void) = 0;
 
 public:
+	inline oph::Complex<real>* getGenBuffer(void) { return holo_gen; }
+	inline real* getEncodedBuffer(void) { return holo_encoded; }
+	inline uchar* getNormalizedBuffer(void) { return holo_normalized; }
+
 	/**
 	* @param input parameter. point cloud data file name
 	* @param output parameter. point cloud data, vertices(x0, y0, z0, x1, y1, z1, ...) container's pointer
@@ -124,23 +128,13 @@ public:
 
 	virtual void normalize(void);
 
-	virtual int save(const char* fname, void* src = nullptr, uint8_t bitsperpixel = 8, int pic_width = 0, int pic_height = 0);
+	virtual int save(const char* fname, uint8_t bitsperpixel = 8);
 	virtual int load(const char* fname, void* dst);
 
 protected:
-	/**
-
-	*/
-	template<typename T>
-	void normalize(T* src, oph::uchar* dst, const oph::uint nx, const oph::uint ny);
-	template<typename T>
-	void normalize(const std::vector<T>* src, std::vector<oph::uchar>* dst);
-
-
-protected:
-	void*			holo_gen;
-	void*			holo_encoded;
-	oph::uchar*		holo_normalized;
+	oph::Complex<real>*		holo_gen;
+	real*					holo_encoded;
+	oph::uchar*				holo_normalized;
 
 protected:
 	/**
@@ -150,15 +144,3 @@ protected:
 };
 
 #endif // !__ophGen_h
-
-template<typename T>
-inline void ophGen::normalize(T * src, oph::uchar * dst, const oph::uint nx, const oph::uint ny)
-{
-	oph::normalize(src, dst, nx, ny);
-}
-
-template<typename T>
-inline void ophGen::normalize(const std::vector<T>* src, std::vector<oph::uchar>* dst)
-{
-	oph::normalize(src, dst);
-}
