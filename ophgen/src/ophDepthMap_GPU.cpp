@@ -289,15 +289,22 @@ void ophDepthMap::calc_Holo_GPU(int frame)
 	cufftDoubleComplex* p_holo_gen = new cufftDoubleComplex[N];
 
 	cudaMemcpy(p_holo_gen, u_complex_gpu_, sizeof(cufftDoubleComplex) * pnx * pny, cudaMemcpyDeviceToHost);
+	
 
-	for (int n = 0; n < N; n++)
+	for (uint frm = 0; frm < dm_params_.NUMBER_OF_FRAME; frm++) 
 	{
-		holo_gen[n].re = p_holo_gen[n].x;
-		holo_gen[n].im = p_holo_gen[n].y;
+		int fframe = pnx * pny * frm;
+
+		for (int n = 0; n < N; n++)
+		{
+			holo_gen[n + fframe].re = p_holo_gen[n].x;
+			holo_gen[n + fframe].im = p_holo_gen[n].y;
+		}
 	}
 
 	cudaEventRecord(stop, stream_);
 	cudaEventSynchronize(stop);
+	delete[] p_holo_gen;
 
 	float elapsedTime = 0.0f;
 	cudaEventElapsedTime(&elapsedTime, start, stop);
@@ -356,15 +363,21 @@ void ophDepthMap::encoding_GPU(int cropx1, int cropx2, int cropy1, int cropy2, i
 
 	HANDLE_ERROR(cudaMemsetAsync(k_temp_d_, 0, sizeof(cufftDoubleComplex)*pnx*pny, stream_));
 	cudaGetFringe(stream_, pnx, pny, u_complex_gpu_, k_temp_d_, sig_location[0], sig_location[1], ssx, ssy, ppx, ppy, M_PI);
-	
+
 	cufftDoubleComplex* sample_fd = (cufftDoubleComplex*)malloc(sizeof(cufftDoubleComplex)*pnx*pny);
 	memset(sample_fd, 0.0, sizeof(cufftDoubleComplex)*pnx*pny);
 
 	HANDLE_ERROR(cudaMemcpyAsync(sample_fd, k_temp_d_, sizeof(cufftDoubleComplex)*pnx*pny, cudaMemcpyDeviceToHost), stream_);
 	memset(holo_encoded, 0.0, sizeof(real)*pnx*pny);
 
-	for (int i = 0; i < pnx*pny; ++i)
-		holo_encoded[i] = sample_fd[i].x;
+	for (uint frm = 0; frm < dm_params_.NUMBER_OF_FRAME; frm++)
+	{
+		int fframe = pnx * pny * frm;
+
+		for (int i = 0; i < pnx*pny; ++i)
+			holo_encoded[i + fframe] = sample_fd[i].x;
+	}
+
 
 	delete[] sample_fd;
 }

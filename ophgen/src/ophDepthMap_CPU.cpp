@@ -115,7 +115,6 @@ void ophDepthMap::calc_Holo_CPU(int frame)
 	int pnx = context_.pixel_number[0];
 	int pny = context_.pixel_number[1];
 
-	memset(holo_gen, 0.0, sizeof(oph::Complex<real>) * pnx * pny);
 	int depth_sz = static_cast<int>(dm_config_.render_depth.size());
 
 	fftw_complex *in = NULL, *out = NULL;
@@ -202,7 +201,8 @@ void ophDepthMap::propagation_AngularSpectrum_CPU(oph::Complex<real>* input_u, r
 		if (prop_mask == 1)
 			u_frequency = kernel * input_u[i];
 
-		holo_gen[i] = holo_gen[i] + u_frequency;
+		int frame = pnx * pny * cur_frame_;
+		holo_gen[i + frame] += u_frequency;
 	}
 
 }
@@ -244,13 +244,19 @@ void ophDepthMap::encoding_CPU(int cropx1, int cropx2, int cropy1, int cropy2, i
 
 	memset(holo_encoded, 0.0, sizeof(real)*pnx*pny);
 	int i = 0;
+	int frm = 0;
+#pragma omp parallel for private(frm)
+	for (frm = 0; frm < (int)dm_params_.NUMBER_OF_FRAME; frm++)
+	{
+		int frame = pnx * pny * frm;
 #pragma omp parallel for private(i)	
-	for (i = 0; i < pnx*pny; i++) {
+		for (i = 0; i < pnx*pny; i++) {
 
-		oph::Complex<real> shift_phase(1, 0);
-		get_shift_phase_value(shift_phase, i, sig_location);
+			oph::Complex<real> shift_phase(1, 0);
+			get_shift_phase_value(shift_phase, i, sig_location);
 
-		holo_encoded[i] = (h_crop[i] * shift_phase).re;
+			holo_encoded[i + frame] = (h_crop[i] * shift_phase).re;
+		}
 	}
 
 	delete[] h_crop;

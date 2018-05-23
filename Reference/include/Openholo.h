@@ -30,9 +30,7 @@ public:
 	/**
 	* @brief Constructor
 	*/
-	Openholo(void);
-
-protected:
+	explicit Openholo(void);
 	/**
 	* @brief Destructor
 	*/

@@ -3,7 +3,8 @@
 #include "sys.h"
 
 ophGen::ophGen(void)
-	: holo_gen(nullptr)
+	: Openholo()
+	, holo_gen(nullptr)
 	, holo_encoded(nullptr)
 	, holo_normalized(nullptr)
 {
@@ -260,9 +261,9 @@ bool ophGen::readConfig(const std::string fname, OphDepthMapConfig & config, Oph
 	return true;
 }
 
-void ophGen::normalize(void)
+void ophGen::normalize(const int frame)
 {
-	oph::normalize((real*)holo_encoded, holo_normalized, context_.pixel_number[_X], context_.pixel_number[_Y]);
+	oph::normalize((real*)holo_encoded, holo_normalized, context_.pixel_number[_X], context_.pixel_number[_Y], frame);
 }
 
 int ophGen::save(const char * fname, uint8_t bitsperpixel)

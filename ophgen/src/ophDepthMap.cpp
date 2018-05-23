@@ -15,6 +15,7 @@
 * @details Initialize variables.
 */
 ophDepthMap::ophDepthMap()
+	: ophGen()
 {
 	isCPU_ = true;
 
@@ -71,19 +72,22 @@ bool ophDepthMap::readConfig(const char* fname)
 * @brief Initialize variables for CPU and GPU implementation.
 * @see init_CPU, init_GPU
 */
-void ophDepthMap::initialize()
+void ophDepthMap::initialize(int numOfFrame)
 {
 	dstep_ = 0;
 	dlevel_.clear();
 
 	if (holo_gen) delete[] holo_gen;
-	holo_gen = new oph::Complex<real>[context_.pixel_number[_X] * context_.pixel_number[_Y]];
+	holo_gen = new oph::Complex<real>[context_.pixel_number[_X] * context_.pixel_number[_Y] * numOfFrame];
+	memset(holo_gen, 0.0, sizeof(oph::Complex<real>) * context_.pixel_number[_X] * context_.pixel_number[_Y] * numOfFrame);
 
 	if (holo_encoded) delete[] holo_encoded;
-	holo_encoded = new real[context_.pixel_number[_X] * context_.pixel_number[_Y]];
+	holo_encoded = new real[context_.pixel_number[_X] * context_.pixel_number[_Y] * numOfFrame];
+	memset(holo_encoded, 0.0, sizeof(real) * context_.pixel_number[_X] * context_.pixel_number[_Y] * numOfFrame);
 
 	if (holo_normalized) delete[] holo_normalized;
-	holo_normalized = new uchar[context_.pixel_number[_X] * context_.pixel_number[_Y]];
+	holo_normalized = new uchar[context_.pixel_number[_X] * context_.pixel_number[_Y] * numOfFrame];
+	memset(holo_normalized, 0.0, sizeof(uchar) * context_.pixel_number[_X] * context_.pixel_number[_Y] * numOfFrame);
 	
 	if (isCPU_)
 		init_CPU();
@@ -106,13 +110,14 @@ void ophDepthMap::initialize()
 double ophDepthMap::generateHologram()
 {
 	auto time_start = _cur_time;
-	initialize();
 
 	int num_of_frame;
 	if (dm_params_.FLAG_STATIC_IMAGE == 0)
 		num_of_frame = dm_params_.NUMBER_OF_FRAME;
 	else
 		num_of_frame = 1;
+
+	initialize(num_of_frame);
 
 	for (int ftr = 0; ftr <= num_of_frame - 1; ftr++)
 	{
@@ -140,6 +145,17 @@ void ophDepthMap::encodeHologram(void)
 {
 	if (dm_params_.Encoding_Method_ == 0)
 		encodingSymmetrization(ivec2(0, 1));
+}
+
+void ophDepthMap::normalize()
+{
+	int pnx = context_.pixel_number[_X];
+	int pny = context_.pixel_number[_Y];
+	int cur_frame = 0;
+	for (uint frm = 0; frm < dm_params_.NUMBER_OF_FRAME; frm++){
+		cur_frame = frm * pnx * pny;
+		oph::normalize(holo_encoded, holo_normalized, pnx, pny, cur_frame);
+	}
 }
 
 /**

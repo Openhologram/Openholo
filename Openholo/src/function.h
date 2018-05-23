@@ -70,7 +70,7 @@ namespace oph
 	* @brief Normalize all elements of T* src from 0 to 255.
 	*/
 	template<typename T>
-	inline void normalize(T* src, oph::uchar* dst, const oph::uint nx, const oph::uint ny) {
+	inline void normalize(T* src, oph::uchar* dst, const oph::uint nx, const oph::uint ny, const int frame = 0) {
 		T minVal, maxVal;
 		for (oph::uint ydx = 0; ydx < ny; ydx++){
 			for (oph::uint xdx = 0; xdx < nx; xdx++){
@@ -84,7 +84,7 @@ namespace oph
 		}
 		for (oph::uint ydx = 0; ydx < ny; ydx++) {
 			for (oph::uint xdx = 0; xdx < nx; xdx++) {
-				T *src_pos = src + xdx + ydx * nx;
+				T *src_pos = src + xdx + ydx * nx + frame;
 				oph::uchar *res_pos = dst + xdx + (ny - ydx - 1)*nx;
 				*(res_pos) = oph::force_cast<oph::uchar>(((*(src_pos)-minVal) / (maxVal - minVal)) * 255 + 0.5);
 			}
@@ -97,8 +97,11 @@ namespace oph
 	template<typename T>
 	inline void normalize(const std::vector<T>* src, std::vector<oph::uchar>* dst) {
 		T minVal, maxVal;
-		dst->clear();
-		dst->reserve(src->size());
+		if (src->size() != dst->size())
+		{
+			dst->clear();
+			dst->reserve(src->size());
+		}
 
 		auto iter = src->begin();
 		for (iter; iter != src->end(); iter++) {

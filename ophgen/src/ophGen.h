@@ -97,9 +97,7 @@ public:
 	/**
 	* @brief Constructor
 	*/
-	ophGen(void);
-
-protected:
+	explicit ophGen(void);
 	/**
 	* @brief Destructor
 	*/
@@ -126,7 +124,7 @@ public:
 	virtual bool readConfig(const std::string fname, OphPointCloudConfig& config);
 	virtual bool readConfig(const std::string fname, OphDepthMapConfig& config, OphDepthMapParams& params, OphDepthMapSimul& simuls);
 
-	virtual void normalize(void);
+	virtual void normalize(const int frame = 0);
 
 	virtual int save(const char* fname, uint8_t bitsperpixel = 8);
 	virtual int load(const char* fname, void* dst);

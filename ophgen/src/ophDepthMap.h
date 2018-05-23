@@ -106,7 +106,7 @@ using namespace oph;
 class GEN_DLL ophDepthMap : public ophGen {
 
 public:
-	ophDepthMap();
+	explicit ophDepthMap();
 	virtual ~ophDepthMap();
 	
 	void setMode(bool isCPU);
@@ -119,6 +119,12 @@ public:
 
 	/** \ingroup encode_module */
 	void encodeHologram(void);
+
+	/** \ingroup write_module */
+	void normalize(void);
+
+	/** \ingroup write_module */
+	virtual int save(const char* fname = nullptr, uint8_t bitsperpixel = 8);
 
 	/** \ingroup recon_module */
 	void reconstructImage(void);
@@ -146,7 +152,7 @@ public:
 
 private:
 	/** \ingroup init_module */
-	void initialize();
+	void initialize(int numOfFrame);
 
 	/** \ingroup init_module
 	* @{ */
@@ -236,11 +242,6 @@ private:
 	}
 	void encoding_CPU(int cropx1, int cropx2, int cropy1, int cropy2, oph::ivec2 sig_location);
 	void encoding_GPU(int cropx1, int cropx2, int cropy1, int cropy2, oph::ivec2 sig_location);
-	/** @} */
-
-	/** \ingroup write_module
-	* @{ */
-	virtual int save(const char* fname, uint8_t bitsperpixel = 8);
 	/** @} */
 
 	void get_rand_phase_value(oph::Complex<real>& rand_phase_val);

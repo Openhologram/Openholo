@@ -1,12 +1,14 @@
 #include "ophPointCloud.h"
 
 ophPointCloud::ophPointCloud(void)
+	: ophGen()
 {
 	setMode(false);
 	n_points = -1;
 }
 
 ophPointCloud::ophPointCloud(const std::string pc_file, const std::string cfg_file)
+	: ophGen()
 {
 	setMode(false);
 	n_points = loadPointCloud(pc_file);
