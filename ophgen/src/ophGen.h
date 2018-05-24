@@ -46,7 +46,6 @@ struct GEN_DLL OphDepthMapConfig {
 	std::vector<int>	render_depth;				///< Used when only few specific depth levels are rendered, usually for test purpose
 
 	OphDepthMapConfig():field_lens(0), near_depthmap(0), far_depthmap(0), num_of_depth(0) {}
-	//test commit
 };
 
 struct OphDepthMapParams
