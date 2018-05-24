@@ -7,12 +7,6 @@
     <Filter Include="_2_Display I/O Interface">
       <UniqueIdentifier>{b4902fcf-3bd6-4a0c-920a-ece98a6b66a3}</UniqueIdentifier>
     </Filter>
-    <Filter Include="_3_Encoding">
-      <UniqueIdentifier>{7aa65a4c-6e83-49fa-9c0d-18893c89147b}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="_4_WRP">
-      <UniqueIdentifier>{3d94c96f-3c96-4534-9f8d-0933ac2f84a5}</UniqueIdentifier>
-    </Filter>
     <Filter Include="__Header Files">
       <UniqueIdentifier>{82ea7e39-2225-497c-a698-1e1ce25438d8}</UniqueIdentifier>
     </Filter>
@@ -30,6 +24,9 @@
     </Filter>
     <Filter Include="_1_Generation\_ophTriangle">
       <UniqueIdentifier>{f7251fc7-2938-44bb-80cf-9066fa9a62b9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="_3_WRP">
+      <UniqueIdentifier>{3d94c96f-3c96-4534-9f8d-0933ac2f84a5}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
