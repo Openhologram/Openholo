@@ -124,7 +124,7 @@ public:
 	void normalize(void);
 
 	/** \ingroup write_module */
-	virtual int save(const char* fname = nullptr, uint8_t bitsperpixel = 8);
+	virtual int save(const char* fname = nullptr, uint8_t bitsperpixel = 24);
 
 	/** \ingroup recon_module */
 	void reconstructImage(void);
@@ -233,10 +233,10 @@ private:
 		cropy1 -= 1;
 		cropy2 -= 1;
 
-		if (isCPU_)
+		//if (isCPU_)
 			encoding_CPU(cropx1, cropx2, cropy1, cropy2, sig_location);
-		else
-			encoding_GPU(cropx1, cropx2, cropy1, cropy2, sig_location);
+		//else
+		//	encoding_GPU(cropx1, cropx2, cropy1, cropy2, sig_location);
 
 
 	}

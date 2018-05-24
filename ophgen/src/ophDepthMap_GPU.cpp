@@ -287,11 +287,10 @@ void ophDepthMap::calc_Holo_GPU(int frame)
 	}
 
 	cufftDoubleComplex* p_holo_gen = new cufftDoubleComplex[N];
-
 	cudaMemcpy(p_holo_gen, u_complex_gpu_, sizeof(cufftDoubleComplex) * pnx * pny, cudaMemcpyDeviceToHost);
 	
 
-	for (uint frm = 0; frm < dm_params_.NUMBER_OF_FRAME; frm++) 
+	for (uint frm = 0; frm < dm_params_.NUMBER_OF_FRAME; frm++)
 	{
 		int fframe = pnx * pny * frm;
 
@@ -331,8 +330,6 @@ void ophDepthMap::propagation_AngularSpectrum_GPU(cufftDoubleComplex* input_u, r
 
 	cudaPropagation_AngularSpKernel(stream_, pnx, pny, k_temp_d_, u_complex_gpu_,
 		ppx, ppy, ssx, ssy, lambda, context_.k, propagation_dist);
-
-	//cudaMemcpy((void*)holo_gen, (void*)u_complex_gpu_, sizeof(cufftDoubleComplex) * pnx * pny, cudaMemcpyDeviceToHost);
 }
 
 /**

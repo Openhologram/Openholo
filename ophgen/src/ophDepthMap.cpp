@@ -92,7 +92,7 @@ void ophDepthMap::initialize(int numOfFrame)
 	if (isCPU_)
 		init_CPU();
 	else
-		init_GPU();	
+		init_GPU();
 }
 
 /**
@@ -117,6 +117,8 @@ double ophDepthMap::generateHologram()
 	else
 		num_of_frame = 1;
 
+	dm_params_.NUMBER_OF_FRAME = num_of_frame;
+
 	initialize(num_of_frame);
 
 	for (int ftr = 0; ftr <= num_of_frame - 1; ftr++)
@@ -135,6 +137,12 @@ double ophDepthMap::generateHologram()
 			transformViewingWindow();
 
 		calc_Holo_by_Depth(ftr);
+
+		//encodeHologram();
+
+		//normalize();
+
+		//save(nullptr, 24);
 	}
 	auto time_end = _cur_time;
 
@@ -152,7 +160,8 @@ void ophDepthMap::normalize()
 	int pnx = context_.pixel_number[_X];
 	int pny = context_.pixel_number[_Y];
 	int cur_frame = 0;
-	for (uint frm = 0; frm < dm_params_.NUMBER_OF_FRAME; frm++){
+	for (uint frm = 0; frm < dm_params_.NUMBER_OF_FRAME; frm++)
+	{
 		cur_frame = frm * pnx * pny;
 		oph::normalize(holo_encoded, holo_normalized, pnx, pny, cur_frame);
 	}

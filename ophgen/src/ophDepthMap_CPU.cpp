@@ -220,15 +220,16 @@ void ophDepthMap::propagation_AngularSpectrum_CPU(oph::Complex<real>* input_u, r
 */
 void ophDepthMap::encoding_CPU(int cropx1, int cropx2, int cropy1, int cropy2, ivec2 sig_location)
 {
-	int pnx = context_.pixel_number[0];
-	int pny = context_.pixel_number[1];
+	int pnx = context_.pixel_number[_X];
+	int pny = context_.pixel_number[_Y];
+	int frm = dm_params_.NUMBER_OF_FRAME;
 
-	oph::Complex<real>* h_crop = new oph::Complex<real>[pnx*pny];
-	memset(h_crop, 0.0, sizeof(oph::Complex<real>)*pnx*pny);
+	oph::Complex<real>* h_crop = new oph::Complex<real>[pnx*pny*frm];
+	memset(h_crop, 0.0, sizeof(oph::Complex<real>)*pnx*pny*frm);
 
 	int p = 0;
-#pragma omp parallel for private(p)	
-	for (p = 0; p < pnx*pny; p++)
+#pragma omp parallel for private(p)
+	for (p = 0; p < pnx*pny*frm; p++)
 	{
 		int x = p % pnx;
 		int y = p / pnx;
@@ -242,21 +243,14 @@ void ophDepthMap::encoding_CPU(int cropx1, int cropx2, int cropy1, int cropy2, i
 	fftw_destroy_plan(fft_plan_bwd_);
 	fftw_cleanup();
 
-	memset(holo_encoded, 0.0, sizeof(real)*pnx*pny);
+	memset(holo_encoded, 0.0, sizeof(real)*pnx*pny*frm);
 	int i = 0;
-	int frm = 0;
-#pragma omp parallel for private(frm)
-	for (frm = 0; frm < (int)dm_params_.NUMBER_OF_FRAME; frm++)
-	{
-		int frame = pnx * pny * frm;
 #pragma omp parallel for private(i)	
-		for (i = 0; i < pnx*pny; i++) {
+	for (i = 0; i < pnx*pny * frm; i++) {
+		oph::Complex<real> shift_phase(1, 0);
+		get_shift_phase_value(shift_phase, i, sig_location);
 
-			oph::Complex<real> shift_phase(1, 0);
-			get_shift_phase_value(shift_phase, i, sig_location);
-
-			holo_encoded[i + frame] = (h_crop[i] * shift_phase).re;
-		}
+		holo_encoded[i] = (h_crop[i] * shift_phase).re;
 	}
 
 	delete[] h_crop;
