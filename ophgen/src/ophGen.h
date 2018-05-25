@@ -129,7 +129,7 @@ public:
 
 	virtual void normalize(const int frame = 0);
 
-	virtual int save(const char* fname, uint8_t bitsperpixel = 8);
+	virtual int save(const char* fname = nullptr, uint8_t bitsperpixel = 8);
 	virtual int load(const char* fname, void* dst);
 
 protected:

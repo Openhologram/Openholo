@@ -36,7 +36,7 @@ protected:
 	/**
 	* @brief Destructor
 	*/
-	virtual ~Openholo(void);
+	virtual ~Openholo(void) = 0;
 
 private:
 	void initialize(void);

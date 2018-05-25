@@ -268,6 +268,7 @@ void ophGen::normalize(const int frame)
 
 int ophGen::save(const char * fname, uint8_t bitsperpixel)
 {
+	if (fname == nullptr) return -1;
 	if (checkExtension(fname, ".ohf")) {	// save as *.ohf
 		return Openholo::saveAsOhf(fname, bitsperpixel, holo_normalized, context_.pixel_number[_X], context_.pixel_number[_Y]);
 	}
