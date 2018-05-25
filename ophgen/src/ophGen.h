@@ -136,6 +136,22 @@ protected:
 	real*					holo_encoded;
 	oph::uchar*				holo_normalized;
 
+public:
+	/**
+	* @brief Encoding Functions
+	*/
+
+	/**
+	* @brief Single Side Band Encoding
+	*/
+	//real* singleSideBand(oph::Complex<real>* holo_gen);
+	/**
+	* @brief Numerical Interface
+	*/
+	////real* numericalInterface(oph::Complex<real>* holo_gen, const vec2 holosize);
+	/**
+	*/
+
 protected:
 	/**
 	* @brief Pure virtual function for override in child classes

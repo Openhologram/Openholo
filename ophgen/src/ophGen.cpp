@@ -1,6 +1,7 @@
 #include "ophGen.h"
 #include <windows.h>
 #include "sys.h"
+#include "function.h"
 
 ophGen::ophGen(void)
 	: holo_gen(nullptr)
@@ -311,6 +312,28 @@ int ophGen::load(const char * fname, void * dst)
 	}
 
 	return 0;
+}
+
+real* numericalInterface(oph::Complex<real>* holo_gen, const vec2 holosize)
+{
+	int size = (int) holosize.v[0] * holosize.v[1];
+	
+	real* temp1 = new real[size];
+	oph::absCplxArr<real>(holo_gen, temp1, size);
+	
+	real* ref = new real;
+	*ref = oph::maxOfArr<real>(temp1, size);
+
+	oph::Complex<real>* temp2 = new oph::Complex<real>[size];
+	temp2 = holo_gen;
+	for (int i = 0; i < size; i++) {
+		temp2[i].re += *ref;
+	}
+
+	real* holo_encoded;
+	oph::absCplxArr<real>(temp2, holo_encoded, size);
+
+	return holo_encoded;
 }
 
 void ophGen::ophFree(void)

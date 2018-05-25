@@ -4,6 +4,7 @@
 #include "complex.h"
 #include "real.h"
 #include "mat.h"
+#include "vec.h"
 
 #include <chrono>
 #include <random>
@@ -37,6 +38,14 @@ namespace oph
 	}
 
 	template<typename T>
+	inline real& maxOfArr(const T* src, const int& size) {
+		real max = _MINDOUBLE;
+		for (int i = 0; i < size; i++) {
+			if (&(src+i) > max) max = *(src+i)
+		}
+	}
+
+	template<typename T>
 	inline void abs(const oph::Complex<T>& src, oph::Complex<T>& dst) {
 		dst = oph::Complex<T>(::abs(src.re), ::abs(src.im));
 	}
@@ -55,6 +64,18 @@ namespace oph
 		for (int x = 0; x < matSize[_X]; x++) {
 			for (int y = 0; y < matSize[_Y]; y++)
 				oph::abs(src[x][y], dst[x][y]);
+		}
+	}
+
+	template<typename T>
+	inline void absCplx(const oph::Complex<T>& src, T& dst) {
+		dst = sqrt(src.re*src.re + src.im*src.im);
+	}
+
+	template<typename T>
+	inline void absCplxArr(const oph::Complex<T>* src, T* dst, const int& size) {
+		for (int i = 0; i < size; i++) {
+			absCplx<T>(*(src + i),*(dst + i));
 		}
 	}
 
