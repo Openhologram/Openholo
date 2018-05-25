@@ -6,6 +6,7 @@
 #include "sys.h"
 
 Openholo::Openholo(void)
+	: Base()
 {
 	initialize();
 }
