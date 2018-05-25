@@ -123,7 +123,6 @@ double ophDepthMap::generateHologram()
 
 	for (int ftr = 0; ftr <= num_of_frame - 1; ftr++)
 	{
-		cur_frame_ = ftr;
 		LOG("Calculating hologram of frame %d.\n", ftr);
 
 		if (!readImageDepth(ftr)) {
@@ -388,6 +387,8 @@ int ophDepthMap::save(const char* fname, uint8_t bitsperpixel)
 	else
 		resName = std::string("./").append(dm_params_.RESULT_FOLDER).append("/").append(dm_params_.RESULT_PREFIX).append(std::to_string(cur_frame_)).append(".bmp");
 
+	cur_frame_++;
+
 	int pnx = context_.pixel_number[_X];
 	int pny = context_.pixel_number[_Y];
 	int px = static_cast<int>(pnx / 3);
@@ -399,6 +400,7 @@ int ophDepthMap::save(const char* fname, uint8_t bitsperpixel)
 /**
 * @brief It is a testing function used for the reconstruction.
 */
+//commit test
 
 void ophDepthMap::writeSimulationImage(int num, real val)
 {

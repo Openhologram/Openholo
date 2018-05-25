@@ -375,7 +375,6 @@ void ophDepthMap::encoding_GPU(int cropx1, int cropx2, int cropy1, int cropy2, i
 			holo_encoded[i + fframe] = sample_fd[i].x;
 	}
 
-
 	delete[] sample_fd;
 }
 
