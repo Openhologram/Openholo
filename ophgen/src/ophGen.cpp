@@ -14,7 +14,7 @@ ophGen::~ophGen(void)
 {
 }
 
-int ophGen::loadPointCloud(const std::string pc_file, std::vector<real> *vertex_array, std::vector<real> *amplitude_array, std::vector<real> *phase_array)
+int ophGen::loadPointCloud(const char* pc_file, std::vector<real> *vertex_array, std::vector<real> *amplitude_array, std::vector<real> *phase_array)
 {
 	std::ifstream File(pc_file, std::ios::in);
 	if (!File.is_open()) {
@@ -63,7 +63,7 @@ int ophGen::loadPointCloud(const std::string pc_file, std::vector<real> *vertex_
 	return n_pts;
 }
 
-bool ophGen::readConfig(const std::string fname, OphPointCloudConfig& configdata)
+bool ophGen::readConfig(const char* fname, OphPointCloudConfig& configdata)
 {
 	std::ifstream inFile(fname, std::ios::in);
 	if (!inFile.is_open()) {
@@ -129,13 +129,13 @@ bool ophGen::readConfig(const std::string fname, OphPointCloudConfig& configdata
 	return true;
 }
 
-bool ophGen::readConfig(const std::string fname, OphDepthMapConfig & config, OphDepthMapParams& params, OphDepthMapSimul& simuls)
+bool ophGen::readConfig(const char* fname, OphDepthMapConfig & config, OphDepthMapParams& params, OphDepthMapSimul& simuls)
 {
 	std::string inputFileName_ = fname;
 
-	LOG("Reading....%s\n", fname.c_str());
+	LOG("Reading....%s\n", fname);
 
-	std::ifstream inFile(fname.c_str());
+	std::ifstream inFile(fname);
 
 	if (!inFile.is_open()) {
 		LOG("file not found.\n");

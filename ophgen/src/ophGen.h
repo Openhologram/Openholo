@@ -118,14 +118,14 @@ public:
 	* @param output parameter. point cloud data, phases container's pointer
 	* @return positive integer is points number of point cloud, return a negative integer if the load fails
 	*/
-	virtual int loadPointCloud(const std::string pc_file, std::vector<real> *vertex_array, std::vector<real> *amplitude_array, std::vector<real> *phase_array);
+	int loadPointCloud(const char* pc_file, std::vector<real> *vertex_array, std::vector<real> *amplitude_array, std::vector<real> *phase_array);
 
 	/**
 	* @param input parameter. configuration data file name
 	* @param output parameter. OphConfigParams struct variable can get configuration data
 	*/
-	virtual bool readConfig(const std::string fname, OphPointCloudConfig& config);
-	virtual bool readConfig(const std::string fname, OphDepthMapConfig& config, OphDepthMapParams& params, OphDepthMapSimul& simuls);
+	virtual bool readConfig(const char* fname, OphPointCloudConfig& config);
+	virtual bool readConfig(const char* fname, OphDepthMapConfig& config, OphDepthMapParams& params, OphDepthMapSimul& simuls);
 
 	virtual void normalize(const int frame = 0);
 

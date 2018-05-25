@@ -7,7 +7,7 @@ ophPointCloud::ophPointCloud(void)
 	n_points = -1;
 }
 
-ophPointCloud::ophPointCloud(const std::string pc_file, const std::string cfg_file)
+ophPointCloud::ophPointCloud(const char* pc_file, const char* cfg_file)
 	: ophGen()
 {
 	setMode(false);
@@ -27,14 +27,14 @@ void ophPointCloud::setMode(bool IsCPU)
 	IsCPU_ = IsCPU;
 }
 
-int ophPointCloud::loadPointCloud(const std::string pc_file)
+int ophPointCloud::loadPointCloud(const char* pc_file)
 {
 	n_points = ophGen::loadPointCloud(pc_file, &vertex_array_, &amplitude_array_, &phase_array_);
 
 	return n_points;
 }
 
-bool ophPointCloud::readConfig(const std::string cfg_file)
+bool ophPointCloud::readConfig(const char* cfg_file)
 {
 	if (!ophGen::readConfig(cfg_file, pc_config_))
 		return false;

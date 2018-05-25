@@ -53,7 +53,7 @@ public:
 	/**
 	* @overload
 	*/
-	explicit ophPointCloud(const std::string pc_file, const std::string cfg_file);
+	explicit ophPointCloud(const char*, const char* cfg_file);
 protected:
 	/**
 	* @brief Destructor
@@ -115,7 +115,7 @@ public:
 	* @param InputModelFile PointCloud(*.dat) input file path
 	* @return number of Pointcloud (if it failed loading, it returned -1)
 	*/
-	virtual int loadPointCloud(const std::string pc_file);
+	virtual int loadPointCloud(const char* pc_file);
 
 	/**
 	\defgroup Import_Configfile
@@ -126,7 +126,7 @@ public:
 	/**
 	* @param InputConfigFile Specification Config(*.config) file path
 	*/
-	virtual bool readConfig(const std::string cfg_file);
+	virtual bool readConfig(const char* cfg_file);
 
 	/**
 	\ingroup getter/setter
