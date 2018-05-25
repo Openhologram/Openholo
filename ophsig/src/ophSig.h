@@ -21,6 +21,8 @@ public:
 	* @brief Constructor
 	*/
 	explicit ophSig(void);
+
+protected:
 	/**
 	* @brief Destructor
 	*/

@@ -137,12 +137,6 @@ double ophDepthMap::generateHologram()
 			transformViewingWindow();
 
 		calc_Holo_by_Depth(ftr);
-
-		//encodeHologram();
-
-		//normalize();
-
-		//save(nullptr, 24);
 	}
 	auto time_end = _cur_time;
 
@@ -455,5 +449,5 @@ void ophDepthMap::ophFree(void)
 	if (depth_index_)		delete[] depth_index_;
 	if (dmap_)				delete[] dmap_;
 
-	release_gpu();
+	free_gpu();
 }

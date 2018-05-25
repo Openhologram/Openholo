@@ -386,12 +386,12 @@ void ophDepthMap::get_shift_phase_value(oph::Complex<real>& shift_phase_val, int
 */
 void ophDepthMap::reconstructImage()
 {
-	if (!p_hologram) {
+	//if (!p_hologram) {
 		//p_hologram = (real*)malloc(sizeof(real)*context_.pixel_number[0] * context_.pixel_number[1]);
 		//if (!readMatFileDouble("u255_fringe.mat", p_hologram))
-		LOG("Error: No Hologram Data\n");
-		return;
-	}
+		//LOG("Error: No Hologram Data\n");
+		//return;
+	//}
 
 	dm_simuls_.Pixel_pitch_xy_[0] = context_.pixel_pitch[0] / dm_simuls_.test_pixel_number_scale_;
 	dm_simuls_.Pixel_pitch_xy_[1] = context_.pixel_pitch[1] / dm_simuls_.test_pixel_number_scale_;

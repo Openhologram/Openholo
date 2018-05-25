@@ -107,7 +107,11 @@ class GEN_DLL ophDepthMap : public ophGen {
 
 public:
 	explicit ophDepthMap();
+
+protected:
 	virtual ~ophDepthMap();
+
+public:
 	
 	void setMode(bool isCPU);
 
@@ -266,7 +270,7 @@ private:
 	/**
 
 	*/
-	void release_gpu(void);
+	void free_gpu(void);
 
 	virtual void ophFree(void);
 

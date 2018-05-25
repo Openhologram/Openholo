@@ -379,7 +379,7 @@ void ophDepthMap::encoding_GPU(int cropx1, int cropx2, int cropy1, int cropy2, i
 	delete[] sample_fd;
 }
 
-void ophDepthMap::release_gpu()
+void ophDepthMap::free_gpu()
 {
 	if (u_o_gpu_)		cudaFree(u_o_gpu_);
 	if (u_complex_gpu_)	cudaFree(u_complex_gpu_);
