@@ -10,6 +10,8 @@
 
 #include "complex.h"
 
+#include "fftw3.h"
+
 #ifdef GEN_EXPORT
 #define GEN_DLL __declspec(dllexport)
 #else
@@ -132,6 +134,9 @@ public:
 	/** \ingroup write_module */
 	virtual int save(const char* fname, uint8_t bitsperpixel = 8, uchar* src = nullptr, uint px = 0, uint py = 0);
 	virtual int load(const char* fname, void* dst = nullptr);
+
+	/**	*/
+	void fft2(int n0, int n1, const oph::Complex<real>* in, oph::Complex<real>* out, int sign, unsigned int flag = FFTW_ESTIMATE);
 
 protected:
 	/** 

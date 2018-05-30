@@ -352,6 +352,37 @@ int ophGen::load(const char * fname, void * dst)
 	return 0;
 }
 
+void ophGen::fft2(int n0, int n1, const oph::Complex<real>* in, oph::Complex<real>* out, int sign, unsigned int flag)
+{
+	int pnx, pny;
+	n0 == 0 ? pnx = context_.pixel_number[_X] : pnx = n0;
+	n1 == 0 ? pny = context_.pixel_number[_Y] : pnx = n1;
+
+	fftw_complex *fft_in, *fft_out;
+	fftw_plan plan;
+
+	fft_in = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * pnx * pny);
+	fft_out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * pnx * pny);
+
+	for (int i = 0; i < pnx * pny; i++) {
+		fft_in[i][0] = in[i].re;
+		fft_in[i][1] = in[i].im;
+	}
+
+	plan = fftw_plan_dft_2d(pnx, pny, fft_in, fft_out, sign, flag);
+
+	fftw_execute(plan);
+
+	for (int i = 0; i < pnx * pny; i++) {
+		out[i].re = fft_out[i][0];
+		out[i].im = fft_out[i][1];
+	}
+
+	fftw_destroy_plan(plan);
+	fftw_free(fft_in);
+	fftw_free(fft_out);
+}
+
 void ophGen::ophFree(void)
 {
 	if (holo_gen) delete[] holo_gen;
