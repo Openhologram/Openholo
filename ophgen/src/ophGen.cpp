@@ -266,24 +266,61 @@ void ophGen::normalize(const int frame)
 	oph::normalize((real*)holo_encoded, holo_normalized, context_.pixel_number[_X], context_.pixel_number[_Y], frame);
 }
 
-int ophGen::save(const char * fname, uint8_t bitsperpixel)
+int ophGen::save(const char * fname, uint8_t bitsperpixel, uchar* src, uint px, uint py)
 {
 	if (fname == nullptr) return -1;
-	if (checkExtension(fname, ".ohf")) {	// save as *.ohf
-		return Openholo::saveAsOhf(fname, bitsperpixel, holo_normalized, context_.pixel_number[_X], context_.pixel_number[_Y]);
-	}
+
+	uchar* source = src;
+	ivec2 p(px, py);
+
+	if (src == nullptr)
+		source = holo_normalized;
+	if (px == 0 && py == 0)
+		p = ivec2(context_.pixel_number[_X], context_.pixel_number[_Y]);
+
+	if (checkExtension(fname, ".ohf"))	// save as *.ohf
+		return Openholo::saveAsOhf(fname, bitsperpixel, source, p[_X], p[_Y]);
 	else {										// save as image file - (bmp)
-		if (checkExtension(fname, ".bmp")) {	// when the extension is bmp
-			return saveAsImg(fname, bitsperpixel, holo_normalized, context_.pixel_number[_X], context_.pixel_number[_Y]);
-		}
+		if (checkExtension(fname, ".bmp")) 	// when the extension is bmp
+			return Openholo::saveAsImg(fname, bitsperpixel, source, p[_X], p[_Y]);
 		else {									// when extension is not .ohf, .bmp - force bmp
 			char buf[256];
 			memset(buf, 0x00, sizeof(char) * 256);
 			sprintf_s(buf, "%s.bmp", fname);
 
-			return saveAsImg(buf, bitsperpixel, holo_normalized, context_.pixel_number[_X], context_.pixel_number[_Y]);
+			return Openholo::saveAsImg(buf, bitsperpixel, source, p[_X], p[_Y]);
 		}
 	}
+}
+
+int ophGen::save(const char * fname, uint8_t bitsperpixel, uint px, uint py, uint fnum, uchar* args ...)
+{
+	std::string file = fname;
+	std::string name;
+	std::string ext;
+
+	size_t ex = file.rfind(".");
+	if (ex == -1) ex = file.length();
+	 
+	name = file.substr(0, ex);
+	ext = file.substr(ex, file.length() - 1);
+
+	va_list ap;
+	__crt_va_start(ap, args);
+
+	for (uint i = 0; i < fnum; i++) {
+		name.append(std::to_string(i)).append(ext);
+		if (i == 0) {
+			save(name.c_str(), bitsperpixel, args, px, py);
+			continue;
+		}
+		uchar* data = __crt_va_arg(ap, uchar*);
+		save(name.c_str(), bitsperpixel, data, px, py);
+	}
+
+	__crt_va_end(ap);
+
+	return 0;
 }
 
 int ophGen::load(const char * fname, void * dst)
@@ -294,17 +331,17 @@ int ophGen::load(const char * fname, void * dst)
 
 	if (checkExtension(fname, ".ohf")) {
 		if (dst != nullptr)
-			return loadAsOhf(fname, dst);
+			return Openholo::loadAsOhf(fname, dst);
 		else
-			return loadAsOhf(fname, holo_normalized);
+			return Openholo::loadAsOhf(fname, holo_normalized);
 	} 
 	else {
 		if (checkExtension(fname, ".bmp"))
 		{
 			if (dst != nullptr)
-				return loadAsImg(fname, dst);
+				return Openholo::loadAsImg(fname, dst);
 			else
-				return loadAsImg(fname, holo_normalized);
+				return Openholo::loadAsImg(fname, holo_normalized);
 		}
 		else			// when extension is not .ohf, .bmp
 		{

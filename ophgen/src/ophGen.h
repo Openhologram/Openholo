@@ -129,8 +129,15 @@ public:
 
 	virtual void normalize(const int frame = 0);
 
-	virtual int save(const char* fname = nullptr, uint8_t bitsperpixel = 8);
-	virtual int load(const char* fname, void* dst);
+	/** \ingroup write_module */
+	virtual int save(const char* fname, uint8_t bitsperpixel = 8, uchar* src = nullptr, uint px = 0, uint py = 0);
+	virtual int load(const char* fname, void* dst = nullptr);
+
+protected:
+	/** 
+	* @brief Called when saving multiple hologram data at a time
+	*/
+	virtual int save(const char* fname, uint8_t bitsperpixel, uint px, uint py, uint fnum, uchar* args ...);
 
 protected:
 	oph::Complex<real>*		holo_gen;

@@ -380,21 +380,33 @@ int ophDepthMap::save(const char* fname, uint8_t bitsperpixel)
 		return 0;
 	}
 	
-	std::string resName;
-	
-	if (fname)
-		resName = std::string("./").append(dm_params_.RESULT_FOLDER).append("/").append(fname).append(std::to_string(cur_frame_)).append(".bmp");
-	else
-		resName = std::string("./").append(dm_params_.RESULT_FOLDER).append("/").append(dm_params_.RESULT_PREFIX).append(std::to_string(cur_frame_)).append(".bmp");
+	for (uint i = 0; i < dm_params_.NUMBER_OF_FRAME; i++)
+	{
+		std::string resName;
 
-	cur_frame_++;
+		if (fname)
+			resName = std::string("./").append(dm_params_.RESULT_FOLDER).append("/").append(fname).append(std::to_string(i)).append(".bmp");
+		else
+			resName = std::string("./").append(dm_params_.RESULT_FOLDER).append("/").append(dm_params_.RESULT_PREFIX).append(std::to_string(i)).append(".bmp");
 
-	int pnx = context_.pixel_number[_X];
-	int pny = context_.pixel_number[_Y];
-	int px = static_cast<int>(pnx / 3);
-	int py = pny;
+		int pnx = context_.pixel_number[_X];
+		int pny = context_.pixel_number[_Y];
+		int px = static_cast<int>(pnx / 3);
+		int py = pny;
 
-	return Openholo::save(resName.c_str(), bitsperpixel, holo_normalized, px, py);
+		uchar* tmp = new uchar[pnx*pny];
+		int m = 0;
+#pragma omp parallel for private(m)
+		for (m = 0; m < pnx*pny; m++) {
+			int frm = pnx * pny * i;
+			tmp[m] = holo_normalized[m + frm];
+		}
+
+		ophGen::save(resName.c_str(), bitsperpixel, tmp, px, py);
+
+		delete[] tmp;
+	}
+	return 1;
 }
 
 /**
@@ -432,15 +444,15 @@ void ophDepthMap::writeSimulationImage(int num, real val)
 			max_val = dm_simuls_.sim_final_[i];
 	}
 
-	uchar* data = (uchar*)malloc(sizeof(uchar)*pnx*pny);
+	uchar* data = new uchar[pnx*pny];
 	memset(data, 0, sizeof(uchar)*pnx*pny);
 		
 	for (int k = 0; k < pnx*pny; k++)
 		data[k] = (uint)((dm_simuls_.sim_final_[k] - min_val) / (max_val - min_val) * 255);
 
-	int ret = Openholo::save(fname.c_str(), 24, data, px, py);
+	int ret = ophGen::save(fname.c_str(), 24, data, px, py);
 
-	free(data);
+	delete[] data;
 }
 
 void ophDepthMap::ophFree(void)

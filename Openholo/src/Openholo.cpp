@@ -21,60 +21,6 @@ void Openholo::initialize(void)
 	p_hologram = nullptr;
 }
 
-int Openholo::save(const char * fname, uint8_t bitsperpixel, void* src, int pic_width, int pic_height)
-{
-	if (checkExtension(fname, ".ohf"))	// save as *.ohf
-		return saveAsOhf(fname, bitsperpixel, src, pic_width, pic_height);
-	else								// save as image file - (bmp)
-	{
-		if (checkExtension(fname, ".bmp"))		// when the extension is bmp
-			return saveAsImg(fname, bitsperpixel, src, pic_width, pic_height);
-		else									// when extension is not .ohf, .bmp - force bmp
-		{
-			char buf[256];
-			memset(buf, 0x00, sizeof(char) * 256);
-			sprintf(buf, "%s.bmp", fname);
-
-			return saveAsImg(buf, bitsperpixel, src, pic_width, pic_height);
-		}
-	}
-}
-
-int Openholo::load(const char * fname, void* dst)
-{
-	if (p_hologram != nullptr)
-	{
-		free(p_hologram);
-		p_hologram = nullptr;
-	}
-
-	// load as .ohf file
-	if (checkExtension(fname, ".ohf"))
-	{
-		if (dst != nullptr)
-			return loadAsOhf(fname, dst);
-		else
-			return loadAsOhf(fname, p_hologram);
-	}
-	// load image file
-	else
-	{
-		if (checkExtension(fname, ".bmp"))
-		{
-			if (dst != nullptr)
-				return loadAsImg(fname, dst);
-			else
-				return loadAsImg(fname, p_hologram);
-		}
-		else			// when extension is not .ohf, .bmp
-		{
-			// how to load another image file format?
-		}
-	}
-
-	return 0;
-}
-
 int Openholo::checkExtension(const char * fname, const char * ext)
 {	
 	//return	1	: the extension of "fname" and "ext" is the same
