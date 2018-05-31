@@ -1,12 +1,14 @@
 #include "ophPointCloud.h"
 
 ophPointCloud::ophPointCloud(void)
+	: ophGen()
 {
 	setMode(false);
 	n_points = -1;
 }
 
-ophPointCloud::ophPointCloud(const std::string pc_file, const std::string cfg_file)
+ophPointCloud::ophPointCloud(const char* pc_file, const char* cfg_file)
+	: ophGen()
 {
 	setMode(false);
 	n_points = loadPointCloud(pc_file);
@@ -25,14 +27,14 @@ void ophPointCloud::setMode(bool IsCPU)
 	IsCPU_ = IsCPU;
 }
 
-int ophPointCloud::loadPointCloud(const std::string pc_file)
+int ophPointCloud::loadPointCloud(const char* pc_file)
 {
 	n_points = ophGen::loadPointCloud(pc_file, &vertex_array_, &amplitude_array_, &phase_array_);
 
 	return n_points;
 }
 
-bool ophPointCloud::readConfig(const std::string cfg_file)
+bool ophPointCloud::readConfig(const char* cfg_file)
 {
 	if (!ophGen::readConfig(cfg_file, pc_config_))
 		return false;
@@ -98,12 +100,12 @@ real ophPointCloud::generateHologram()
 #else
 		std::cout << "Generate Hologram with Single Core CPU" << std::endl;
 #endif
-		time = genCghPointCloud(holo_encoded); /// Complex Data로 변경할 때 반드시 holo_gen으로 바꿔줘야함.
+		time = genCghPointCloud(holo_encoded); /// 홀로그램 데이터 Complex data로 변경 시 holo_gen으로
 	}
 	else { //Run GPU
 		std::cout << "Generate Hologram with GPU" << std::endl;
 
-		time = genCghPointCloud_cuda(holo_encoded); /// Complex Data로 변경할 때 반드시 holo_gen으로 바꿔줘야함.
+		time = genCghPointCloud_cuda(holo_encoded);
 		std::cout << ">>> CUDA GPGPU" << std::endl;
 	}
 
@@ -252,6 +254,7 @@ real ophPointCloud::genCghPointCloud_cuda(real* dst)
 	cudaFree(deviceAmplitude);
 	cudaFree(deviceDst);
 	cudaFree(DeviceConfig);
+
 	return ((std::chrono::duration<real>)(time_finish - time_start)).count();
 }
 

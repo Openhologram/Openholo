@@ -241,7 +241,6 @@ void cudaPropagation_AngularSpKernel(CUstream_st* stream, int pnx, int pny, cuff
 {
 	dim3 grid((pnx*pny + kBlockThreads - 1) / kBlockThreads, 1, 1);
 	propagation_angularsp_kernel << <grid, kBlockThreads, 0, stream >> >(input_d, u_complex, pnx, pny, ppx, ppy, ssx, ssy, lambda, params_k, propagation_dist);
-
 }
 
 extern "C"
@@ -250,7 +249,6 @@ void cudaCropFringe(CUstream_st* stream, int nx, int ny, cufftDoubleComplex* in_
 	unsigned int nblocks = (nx*ny + kBlockThreads - 1) / kBlockThreads;
 
 	cropFringe << < nblocks, kBlockThreads, 0, stream >> > (nx, ny, in_field, out_field, cropx1, cropx2, cropy1, cropy2);
-
 }
 
 extern "C"
@@ -260,7 +258,6 @@ void cudaGetFringe(CUstream_st* stream, int pnx, int pny, cufftDoubleComplex* in
 	unsigned int nblocks = (pnx*pny + kBlockThreads - 1) / kBlockThreads;
 
 	getFringe << < nblocks, kBlockThreads, 0, stream >> > (pnx, pny, in_field, out_field, sig_locationx, sig_locationy, ssx, ssy, ppx, ppy, PI);
-
 }
 
 extern "C"
@@ -270,7 +267,6 @@ void cudaChangeDepthQuanKernel(CUstream_st* stream, int pnx, int pny, double* de
 	dim3 grid((pnx*pny + kBlockThreads - 1) / kBlockThreads, 1, 1);
 	change_depth_quan_kernel << <grid, kBlockThreads, 0, stream >> > (depth_index_gpu, dimg_src_gpu, pnx, pny,
 		dtr, d1, d2, params_num_of_depth, params_far_depthmap, params_near_depthmap);
-
 }
 
 #endif // !OphPCKernel_cu__

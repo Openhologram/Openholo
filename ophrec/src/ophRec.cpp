@@ -1,6 +1,7 @@
 #include "ophRec.h"
 
 ophRec::ophRec(void)
+	: Openholo()
 {
 }
 

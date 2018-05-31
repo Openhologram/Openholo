@@ -7,8 +7,10 @@
 #define __ophGen_h
 
 #include "Openholo.h"
-
+#include "include.h"
 #include "complex.h"
+
+#include "fftw3.h"
 
 #ifdef GEN_EXPORT
 #define GEN_DLL __declspec(dllexport)
@@ -46,9 +48,10 @@ struct GEN_DLL OphDepthMapConfig {
 	std::vector<int>	render_depth;				///< Used when only few specific depth levels are rendered, usually for test purpose
 
 	OphDepthMapConfig():field_lens(0), near_depthmap(0), far_depthmap(0), num_of_depth(0) {}
+	//test commit
 };
 
-struct OphDepthMapParams
+struct GEN_DLL OphDepthMapParams
 {
 	std::string				SOURCE_FOLDER;						///< input source folder - config file.
 	std::string				IMAGE_PREFIX;						///< the prefix of the input image file - config file.
@@ -70,7 +73,7 @@ struct OphDepthMapParams
 	bool					RANDOM_PHASE;						///< If true, random phase is imposed on each depth layer.
 };
 
-struct OphDepthMapSimul
+struct GEN_DLL OphDepthMapSimul
 {
 	// for Simulation (reconstruction)
 	//===================================================
@@ -97,7 +100,7 @@ public:
 	/**
 	* @brief Constructor
 	*/
-	ophGen(void);
+	explicit ophGen(void);
 
 protected:
 	/**
@@ -117,19 +120,29 @@ public:
 	* @param output parameter. point cloud data, phases container's pointer
 	* @return positive integer is points number of point cloud, return a negative integer if the load fails
 	*/
-	virtual int loadPointCloud(const std::string pc_file, std::vector<real> *vertex_array, std::vector<real> *amplitude_array, std::vector<real> *phase_array);
+	int loadPointCloud(const char* pc_file, std::vector<real> *vertex_array, std::vector<real> *amplitude_array, std::vector<real> *phase_array);
 
 	/**
 	* @param input parameter. configuration data file name
 	* @param output parameter. OphConfigParams struct variable can get configuration data
 	*/
-	virtual bool readConfig(const std::string fname, OphPointCloudConfig& config);
-	virtual bool readConfig(const std::string fname, OphDepthMapConfig& config, OphDepthMapParams& params, OphDepthMapSimul& simuls);
+	virtual bool readConfig(const char* fname, OphPointCloudConfig& config);
+	virtual bool readConfig(const char* fname, OphDepthMapConfig& config, OphDepthMapParams& params, OphDepthMapSimul& simuls);
 
-	virtual void normalize(void);
+	virtual void normalize(const int frame = 0);
 
-	virtual int save(const char* fname, uint8_t bitsperpixel = 8);
-	virtual int load(const char* fname, void* dst);
+	/** \ingroup write_module */
+	virtual int save(const char* fname, uint8_t bitsperpixel = 8, uchar* src = nullptr, uint px = 0, uint py = 0);
+	virtual int load(const char* fname, void* dst = nullptr);
+
+	/**	*/
+	void fft2(int n0, int n1, const oph::Complex<real>* in, oph::Complex<real>* out, int sign, unsigned int flag = FFTW_ESTIMATE);
+
+protected:
+	/** 
+	* @brief Called when saving multiple hologram data at a time
+	*/
+	virtual int save(const char* fname, uint8_t bitsperpixel, uint px, uint py, uint fnum, uchar* args ...);
 
 protected:
 	oph::Complex<real>*		holo_gen;
@@ -141,16 +154,32 @@ public:
 	* @brief Encoding Functions
 	*/
 
+	/** @brief Phase and Amplitude */
+	void calPhase(oph::Complex<real>* holo, real* encoded, const vec2 holosize);
+	void calAmplitude(oph::Complex<real>* holo, real* encoded, const vec2 holosize);
+
+	/** @brief Single Side Band Encoding */
+	enum passband {left, rig, top, btm};
+	//void singleSideBand(oph::Complex<real>* holo, real* encoded, const vec2 holosize, int passband);
+	
+	/** @brief Numerical Interface */
+	void numericalInterference(oph::Complex<real>* holo, real* encoded, const vec2 holosize);
+	void numericalInterference(void);
+
+	/** @brief Two Phase Encoding */
 	/**
-	* @brief Single Side Band Encoding
+	* @param output parameter(encoded) : (sizeX*2, sizeY)
 	*/
-	//real* singleSideBand(oph::Complex<real>* holo_gen);
+	void twoPhaseEncoding(oph::Complex<real>* holo, real* encoded, const vec2 holosize);
+	
+	/** @brief Burckhardt Encoding */
 	/**
-	* @brief Numerical Interface
+	* @param output parameter(encoded) : (sizeX*3, sizeY)
 	*/
-	////real* numericalInterface(oph::Complex<real>* holo_gen, const vec2 holosize);
-	/**
-	*/
+	void burckhardt(oph::Complex<real>* holo, real* encoded, const vec2 holosize);
+	
+	/** @brief Frequency Shift */
+	//void freqShift(oph::Complex<real>* holo, Complex<real>* encoded, const vec2 holosize, int shift_x, int shift_y);
 
 protected:
 	/**

@@ -20,7 +20,7 @@ public:
 	* @brief Constructor
 	* @details Initialize variable.
 	*/
-	inline Base(void) : refCnt(0) {}
+	inline explicit Base(void) : refCnt(0) {}
 protected:
 	/**
 	* @brief Destructor

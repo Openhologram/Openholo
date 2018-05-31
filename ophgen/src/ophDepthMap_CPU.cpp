@@ -115,7 +115,6 @@ void ophDepthMap::calc_Holo_CPU(int frame)
 	int pnx = context_.pixel_number[0];
 	int pny = context_.pixel_number[1];
 
-	memset(holo_gen, 0.0, sizeof(oph::Complex<real>) * pnx * pny);
 	int depth_sz = static_cast<int>(dm_config_.render_depth.size());
 
 	fftw_complex *in = NULL, *out = NULL;
@@ -201,10 +200,13 @@ void ophDepthMap::propagation_AngularSpectrum_CPU(oph::Complex<real>* input_u, r
 		oph::Complex<real> u_frequency;
 		if (prop_mask == 1)
 			u_frequency = kernel * input_u[i];
-
-		holo_gen[i] = holo_gen[i] + u_frequency;
+		
+		for (uint frm = 0; frm < dm_params_.NUMBER_OF_FRAME; frm++)
+		{
+			uint frame = pnx * pny * frm;
+			holo_gen[i + frame] += u_frequency;
+		}
 	}
-
 }
 
 /**
@@ -220,15 +222,16 @@ void ophDepthMap::propagation_AngularSpectrum_CPU(oph::Complex<real>* input_u, r
 */
 void ophDepthMap::encoding_CPU(int cropx1, int cropx2, int cropy1, int cropy2, ivec2 sig_location)
 {
-	int pnx = context_.pixel_number[0];
-	int pny = context_.pixel_number[1];
+	int pnx = context_.pixel_number[_X];
+	int pny = context_.pixel_number[_Y];
+	int frm = dm_params_.NUMBER_OF_FRAME;
 
-	oph::Complex<real>* h_crop = new oph::Complex<real>[pnx*pny];
-	memset(h_crop, 0.0, sizeof(oph::Complex<real>)*pnx*pny);
+	oph::Complex<real>* h_crop = new oph::Complex<real>[pnx*pny*frm];
+	memset(h_crop, 0.0, sizeof(oph::Complex<real>)*pnx*pny*frm);
 
 	int p = 0;
-#pragma omp parallel for private(p)	
-	for (p = 0; p < pnx*pny; p++)
+#pragma omp parallel for private(p)
+	for (p = 0; p < pnx*pny*frm; p++)
 	{
 		int x = p % pnx;
 		int y = p / pnx;
@@ -242,11 +245,10 @@ void ophDepthMap::encoding_CPU(int cropx1, int cropx2, int cropy1, int cropy2, i
 	fftw_destroy_plan(fft_plan_bwd_);
 	fftw_cleanup();
 
-	memset(holo_encoded, 0.0, sizeof(real)*pnx*pny);
+	memset(holo_encoded, 0.0, sizeof(real)*pnx*pny*frm);
 	int i = 0;
 #pragma omp parallel for private(i)	
-	for (i = 0; i < pnx*pny; i++) {
-
+	for (i = 0; i < pnx*pny * frm; i++) {
 		oph::Complex<real> shift_phase(1, 0);
 		get_shift_phase_value(shift_phase, i, sig_location);
 
@@ -386,12 +388,12 @@ void ophDepthMap::get_shift_phase_value(oph::Complex<real>& shift_phase_val, int
 */
 void ophDepthMap::reconstructImage()
 {
-	if (!p_hologram) {
+	//if (!p_hologram) {
 		//p_hologram = (real*)malloc(sizeof(real)*context_.pixel_number[0] * context_.pixel_number[1]);
 		//if (!readMatFileDouble("u255_fringe.mat", p_hologram))
-		LOG("Error: No Hologram Data\n");
-		return;
-	}
+		//LOG("Error: No Hologram Data\n");
+		//return;
+	//}
 
 	dm_simuls_.Pixel_pitch_xy_[0] = context_.pixel_pitch[0] / dm_simuls_.test_pixel_number_scale_;
 	dm_simuls_.Pixel_pitch_xy_[1] = context_.pixel_pitch[1] / dm_simuls_.test_pixel_number_scale_;

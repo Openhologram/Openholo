@@ -15,6 +15,7 @@
 * @details Initialize variables.
 */
 ophDepthMap::ophDepthMap()
+	: ophGen()
 {
 	isCPU_ = true;
 
@@ -71,24 +72,27 @@ bool ophDepthMap::readConfig(const char* fname)
 * @brief Initialize variables for CPU and GPU implementation.
 * @see init_CPU, init_GPU
 */
-void ophDepthMap::initialize()
+void ophDepthMap::initialize(int numOfFrame)
 {
 	dstep_ = 0;
 	dlevel_.clear();
 
 	if (holo_gen) delete[] holo_gen;
-	holo_gen = new oph::Complex<real>[context_.pixel_number[_X] * context_.pixel_number[_Y]];
+	holo_gen = new oph::Complex<real>[context_.pixel_number[_X] * context_.pixel_number[_Y] * numOfFrame];
+	memset(holo_gen, 0.0, sizeof(oph::Complex<real>) * context_.pixel_number[_X] * context_.pixel_number[_Y] * numOfFrame);
 
 	if (holo_encoded) delete[] holo_encoded;
-	holo_encoded = new real[context_.pixel_number[_X] * context_.pixel_number[_Y]];
+	holo_encoded = new real[context_.pixel_number[_X] * context_.pixel_number[_Y] * numOfFrame];
+	memset(holo_encoded, 0.0, sizeof(real) * context_.pixel_number[_X] * context_.pixel_number[_Y] * numOfFrame);
 
 	if (holo_normalized) delete[] holo_normalized;
-	holo_normalized = new uchar[context_.pixel_number[_X] * context_.pixel_number[_Y]];
+	holo_normalized = new uchar[context_.pixel_number[_X] * context_.pixel_number[_Y] * numOfFrame];
+	memset(holo_normalized, 0.0, sizeof(uchar) * context_.pixel_number[_X] * context_.pixel_number[_Y] * numOfFrame);
 	
 	if (isCPU_)
 		init_CPU();
 	else
-		init_GPU();	
+		init_GPU();
 }
 
 /**
@@ -106,7 +110,6 @@ void ophDepthMap::initialize()
 double ophDepthMap::generateHologram()
 {
 	auto time_start = _cur_time;
-	initialize();
 
 	int num_of_frame;
 	if (dm_params_.FLAG_STATIC_IMAGE == 0)
@@ -114,9 +117,12 @@ double ophDepthMap::generateHologram()
 	else
 		num_of_frame = 1;
 
+	dm_params_.NUMBER_OF_FRAME = num_of_frame;
+
+	initialize(num_of_frame);
+
 	for (int ftr = 0; ftr <= num_of_frame - 1; ftr++)
 	{
-		cur_frame_ = ftr;
 		LOG("Calculating hologram of frame %d.\n", ftr);
 
 		if (!readImageDepth(ftr)) {
@@ -140,6 +146,26 @@ void ophDepthMap::encodeHologram(void)
 {
 	if (dm_params_.Encoding_Method_ == 0)
 		encodingSymmetrization(ivec2(0, 1));
+}
+
+void ophDepthMap::encodeHologram2(void)
+{
+	vec2 holo_size;
+	holo_size[0] = context_.pixel_number[0];
+	holo_size[1] = context_.pixel_number[1];
+	numericalInterference(holo_gen, holo_encoded, holo_size);
+}
+
+void ophDepthMap::normalize()
+{
+	int pnx = context_.pixel_number[_X];
+	int pny = context_.pixel_number[_Y];
+	int cur_frame = 0;
+	for (uint frm = 0; frm < dm_params_.NUMBER_OF_FRAME; frm++)
+	{
+		cur_frame = frm * pnx * pny;
+		oph::normalize(holo_encoded, holo_normalized, pnx, pny, cur_frame);
+	}
 }
 
 /**
@@ -362,24 +388,39 @@ int ophDepthMap::save(const char* fname, uint8_t bitsperpixel)
 		return 0;
 	}
 	
-	std::string resName;
-	
-	if (fname)
-		resName = std::string("./").append(dm_params_.RESULT_FOLDER).append("/").append(fname).append(std::to_string(cur_frame_)).append(".bmp");
-	else
-		resName = std::string("./").append(dm_params_.RESULT_FOLDER).append("/").append(dm_params_.RESULT_PREFIX).append(std::to_string(cur_frame_)).append(".bmp");
+	for (uint i = 0; i < dm_params_.NUMBER_OF_FRAME; i++)
+	{
+		std::string resName;
 
-	int pnx = context_.pixel_number[_X];
-	int pny = context_.pixel_number[_Y];
-	int px = static_cast<int>(pnx / 3);
-	int py = pny;
+		if (fname)
+			resName = std::string("./").append(dm_params_.RESULT_FOLDER).append("/").append(fname).append(std::to_string(i)).append(".bmp");
+		else
+			resName = std::string("./").append(dm_params_.RESULT_FOLDER).append("/").append(dm_params_.RESULT_PREFIX).append(std::to_string(i)).append(".bmp");
 
-	return Openholo::save(resName.c_str(), bitsperpixel, holo_normalized, px, py);
+		int pnx = context_.pixel_number[_X];
+		int pny = context_.pixel_number[_Y];
+		int px = static_cast<int>(pnx / 3);
+		int py = pny;
+
+		uchar* tmp = new uchar[pnx*pny];
+		int m = 0;
+#pragma omp parallel for private(m)
+		for (m = 0; m < pnx*pny; m++) {
+			int frm = pnx * pny * i;
+			tmp[m] = holo_normalized[m + frm];
+		}
+
+		ophGen::save(resName.c_str(), bitsperpixel, tmp, px, py);
+
+		delete[] tmp;
+	}
+	return 1;
 }
 
 /**
 * @brief It is a testing function used for the reconstruction.
 */
+//commit test
 
 void ophDepthMap::writeSimulationImage(int num, real val)
 {
@@ -411,15 +452,15 @@ void ophDepthMap::writeSimulationImage(int num, real val)
 			max_val = dm_simuls_.sim_final_[i];
 	}
 
-	uchar* data = (uchar*)malloc(sizeof(uchar)*pnx*pny);
+	uchar* data = new uchar[pnx*pny];
 	memset(data, 0, sizeof(uchar)*pnx*pny);
 		
 	for (int k = 0; k < pnx*pny; k++)
 		data[k] = (uint)((dm_simuls_.sim_final_[k] - min_val) / (max_val - min_val) * 255);
 
-	int ret = Openholo::save(fname.c_str(), 24, data, px, py);
+	int ret = ophGen::save(fname.c_str(), 24, data, px, py);
 
-	free(data);
+	delete[] data;
 }
 
 void ophDepthMap::ophFree(void)
@@ -430,5 +471,5 @@ void ophDepthMap::ophFree(void)
 	if (depth_index_)		delete[] depth_index_;
 	if (dmap_)				delete[] dmap_;
 
-	release_gpu();
+	free_gpu();
 }

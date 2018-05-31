@@ -106,8 +106,12 @@ using namespace oph;
 class GEN_DLL ophDepthMap : public ophGen {
 
 public:
-	ophDepthMap();
+	explicit ophDepthMap();
+
+protected:
 	virtual ~ophDepthMap();
+
+public:
 	
 	void setMode(bool isCPU);
 
@@ -119,6 +123,13 @@ public:
 
 	/** \ingroup encode_module */
 	void encodeHologram(void);
+	void encodeHologram2(void);
+
+	/** \ingroup write_module */
+	void normalize(void);
+
+	/** \ingroup write_module */
+	virtual int save(const char* fname = nullptr, uint8_t bitsperpixel = 24);
 
 	/** \ingroup recon_module */
 	void reconstructImage(void);
@@ -146,7 +157,7 @@ public:
 
 private:
 	/** \ingroup init_module */
-	void initialize();
+	void initialize(int numOfFrame);
 
 	/** \ingroup init_module
 	* @{ */
@@ -227,20 +238,15 @@ private:
 		cropy1 -= 1;
 		cropy2 -= 1;
 
-		if (isCPU_)
+		//if (isCPU_)
 			encoding_CPU(cropx1, cropx2, cropy1, cropy2, sig_location);
-		else
-			encoding_GPU(cropx1, cropx2, cropy1, cropy2, sig_location);
+		//else
+		//	encoding_GPU(cropx1, cropx2, cropy1, cropy2, sig_location);
 
 
 	}
 	void encoding_CPU(int cropx1, int cropx2, int cropy1, int cropy2, oph::ivec2 sig_location);
 	void encoding_GPU(int cropx1, int cropx2, int cropy1, int cropy2, oph::ivec2 sig_location);
-	/** @} */
-
-	/** \ingroup write_module
-	* @{ */
-	virtual int save(const char* fname, uint8_t bitsperpixel = 8);
 	/** @} */
 
 	void get_rand_phase_value(oph::Complex<real>& rand_phase_val);
@@ -265,7 +271,7 @@ private:
 	/**
 
 	*/
-	void release_gpu(void);
+	void free_gpu(void);
 
 	virtual void ophFree(void);
 

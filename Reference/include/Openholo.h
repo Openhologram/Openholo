@@ -30,13 +30,13 @@ public:
 	/**
 	* @brief Constructor
 	*/
-	Openholo(void);
+	explicit Openholo(void);
 
 protected:
 	/**
 	* @brief Destructor
 	*/
-	virtual ~Openholo(void);
+	virtual ~Openholo(void) = 0;
 
 private:
 	void initialize(void);
@@ -53,13 +53,13 @@ public:
 	/**
 	* @breif save data is Openholo::p_hologram if src is nullptr.
 	*/
-	int save(const char* fname, uint8_t bitsperpixel = 8, void* src = nullptr, int pic_width = 0, int pic_height = 0);
+	//int save(const char* fname, uint8_t bitsperpixel = 8, void* src = nullptr, int pic_width = 0, int pic_height = 0);
 
 	/**
 	* @breif load data from .oph or .bmp
 	* @breif loaded data is stored in the Openholo::p_hologram if dst is nullptr.
 	*/
-	int load(const char* fname, void* dst = nullptr);
+	//int load(const char* fname, void* dst = nullptr);
 
 protected:
 	int checkExtension(const char* fname, const char* ext);

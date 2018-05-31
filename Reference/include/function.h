@@ -5,6 +5,7 @@
 #include "real.h"
 #include "mat.h"
 #include "vec.h"
+#include "include.h"
 
 #include <chrono>
 #include <random>
@@ -30,6 +31,15 @@ namespace oph
 		for (auto item : arr) { if (item < min) min = item; }
 		return min;
 	}
+	
+	template<typename T>
+	inline real& minOfArr(const T* src, const int& size) {
+		real min = _MAXDOUBLE;
+		for (int i = 0; i < size; i++) {
+			if (*(src + i) < min) min = *(src + i);
+		}
+		return max;
+	}
 
 	inline real& maxOfArr(const std::vector<real>& arr) {
 		real max = _MINDOUBLE;
@@ -43,6 +53,7 @@ namespace oph
 		for (int i = 0; i < size; i++) {
 			if (*(src + i) > max) max = *(src + i);
 		}
+		return max;
 	}
 
 	template<typename T>
@@ -80,18 +91,47 @@ namespace oph
 	}
 
 	template<typename T>
+	inline void realPart(const oph::Complex<T>* src, T* dst, const int& size) {
+		for (int i = 0; i < size; i++) {
+			*(dst + i) = *(src + i).re;
+		}
+	}
+
+	template<typename T>
 	inline void angle(const std::vector<Complex<T>>& src, std::vector<T>& dst) {
 		dst.clear();
 		dst.reserve(src.size());
-		for (auto item : src) {	dst.push_back(src.angle());
+		for (auto item : src) {	dst.push_back(src.angle());	}
+	}
+
+	template<typename T>
+	inline void angle(const oph::Complex<T>& src, T& dst) {
+		dst = atan2(src.im, src.re);
+	}
+
+	/**
+	* @brief Normalize all elements of Complex<T>* src from 0 to 1.
+	*/
+	template<typename T>
+	inline void normalize(const Complex<T>* src, Complex<T>* dst, const int& size) {
+		real* abs = new real[size];
+		oph::absCplxArr<real>(dst, abs, size);
+
+		real* max = new real;
+		*max = oph::maxOfArr<real>(abs, size);
+
+		for (int i = 0; i < size; i++) {
+			*(dst + i) = *(src + i) / *max;
 		}
+		delete[] abs;
+		delete max;
 	}
 
 	/**
 	* @brief Normalize all elements of T* src from 0 to 255.
 	*/
 	template<typename T>
-	inline void normalize(T* src, oph::uchar* dst, const oph::uint nx, const oph::uint ny) {
+	inline void normalize(T* src, oph::uchar* dst, const oph::uint nx, const oph::uint ny, const int frame = 0) {
 		T minVal, maxVal;
 		for (oph::uint ydx = 0; ydx < ny; ydx++){
 			for (oph::uint xdx = 0; xdx < nx; xdx++){
@@ -105,7 +145,7 @@ namespace oph
 		}
 		for (oph::uint ydx = 0; ydx < ny; ydx++) {
 			for (oph::uint xdx = 0; xdx < nx; xdx++) {
-				T *src_pos = src + xdx + ydx * nx;
+				T *src_pos = src + xdx + ydx * nx + frame;
 				oph::uchar *res_pos = dst + xdx + (ny - ydx - 1)*nx;
 				*(res_pos) = oph::force_cast<oph::uchar>(((*(src_pos)-minVal) / (maxVal - minVal)) * 255 + 0.5);
 			}
@@ -118,8 +158,11 @@ namespace oph
 	template<typename T>
 	inline void normalize(const std::vector<T>* src, std::vector<oph::uchar>* dst) {
 		T minVal, maxVal;
-		dst->clear();
-		dst->reserve(src->size());
+		if (src->size() != dst->size())
+		{
+			dst->clear();
+			dst->reserve(src->size());
+		}
 
 		auto iter = src->begin();
 		for (iter; iter != src->end(); iter++) {
@@ -145,6 +188,13 @@ namespace oph
 		auto iter = pArr->begin() + (beginIndex);
 		auto it_end = pArr->begin() + (endIndex);
 		for (; iter != it_end; iter++) { (*iter) = _Value; }
+	}
+
+	template<typename T>
+	inline void memsetArr(T* pArr, const T& _Value, const oph::uint& beginIndex, const oph::uint& endIndex) {
+		for (int i = beginIndex; i <= endIndex; i++) {
+			*(pArr + i) = _Value;
+		}
 	}
 
 	/**
