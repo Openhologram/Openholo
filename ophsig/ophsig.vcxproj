@@ -11,10 +11,15 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\cwo.cpp" />
     <ClCompile Include="src\ophSig.cpp" />
+    <ClCompile Include="src\ophSigConvert.cpp" />
+    <ClCompile Include="src\ophSigGetParam.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\ophSig.h" />
+    <ClInclude Include="src\ophSigConvert.h" />
+    <ClInclude Include="src\ophSigGetParam.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{37973A95-102B-491C-BE36-F9203D2B6EDA}</ProjectGuid>

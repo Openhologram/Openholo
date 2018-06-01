@@ -16,15 +16,33 @@
     <Filter Include="__ophSig">
       <UniqueIdentifier>{a370331d-05de-4333-972c-e4c85ad64678}</UniqueIdentifier>
     </Filter>
+    <Filter Include="__Add Files">
+      <UniqueIdentifier>{3e0ab729-d2b2-494a-a4de-33f1fed9a9e4}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\ophSig.cpp">
       <Filter>__ophSig</Filter>
     </ClCompile>
+    <ClCompile Include="src\ophSigConvert.cpp">
+      <Filter>_1_Transform</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ophSigGetParam.cpp">
+      <Filter>_3_Reconstruction</Filter>
+    </ClCompile>
+    <ClCompile Include="src\cwo.cpp">
+      <Filter>__Add Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\ophSig.h">
       <Filter>__ophSig</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ophSigConvert.h">
+      <Filter>_1_Transform</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ophSigGetParam.h">
+      <Filter>_3_Reconstruction</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
