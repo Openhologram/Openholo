@@ -7,8 +7,10 @@
 #define __ophGen_h
 
 #include "Openholo.h"
-
+#include "include.h"
 #include "complex.h"
+
+#include "fftw3.h"
 
 #ifdef GEN_EXPORT
 #define GEN_DLL __declspec(dllexport)
@@ -129,13 +131,55 @@ public:
 
 	virtual void normalize(const int frame = 0);
 
-	virtual int save(const char* fname = nullptr, uint8_t bitsperpixel = 8);
-	virtual int load(const char* fname, void* dst);
+	/** \ingroup write_module */
+	virtual int save(const char* fname, uint8_t bitsperpixel = 8, uchar* src = nullptr, uint px = 0, uint py = 0);
+	virtual int load(const char* fname, void* dst = nullptr);
+
+	/**	*/
+	void fft2(int n0, int n1, const oph::Complex<real>* in, oph::Complex<real>* out, int sign, unsigned int flag = FFTW_ESTIMATE);
+
+protected:
+	/** 
+	* @brief Called when saving multiple hologram data at a time
+	*/
+	virtual int save(const char* fname, uint8_t bitsperpixel, uint px, uint py, uint fnum, uchar* args ...);
 
 protected:
 	oph::Complex<real>*		holo_gen;
 	real*					holo_encoded;
 	oph::uchar*				holo_normalized;
+
+public:
+	/**
+	* @brief Encoding Functions
+	*/
+
+	/** @brief Phase and Amplitude */
+	void calPhase(oph::Complex<real>* holo, real* encoded, const vec2 holosize);
+	void calAmplitude(oph::Complex<real>* holo, real* encoded, const vec2 holosize);
+
+	/** @brief Single Side Band Encoding */
+	enum passband {left, rig, top, btm};
+	//void singleSideBand(oph::Complex<real>* holo, real* encoded, const vec2 holosize, int passband);
+	
+	/** @brief Numerical Interface */
+	void numericalInterference(oph::Complex<real>* holo, real* encoded, const vec2 holosize);
+	void numericalInterference(void);
+
+	/** @brief Two Phase Encoding */
+	/**
+	* @param output parameter(encoded) : (sizeX*2, sizeY)
+	*/
+	void twoPhaseEncoding(oph::Complex<real>* holo, real* encoded, const vec2 holosize);
+	
+	/** @brief Burckhardt Encoding */
+	/**
+	* @param output parameter(encoded) : (sizeX*3, sizeY)
+	*/
+	void burckhardt(oph::Complex<real>* holo, real* encoded, const vec2 holosize);
+	
+	/** @brief Frequency Shift */
+	//void freqShift(oph::Complex<real>* holo, Complex<real>* encoded, const vec2 holosize, int shift_x, int shift_y);
 
 protected:
 	/**

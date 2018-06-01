@@ -7,6 +7,8 @@
 #define __ophGen_h
 
 #include "Openholo.h"
+#include "include.h"
+#include "complex.h"
 
 #include "fftw3.h"
 
@@ -47,13 +49,6 @@ struct GEN_DLL OphDepthMapConfig {
 
 	OphDepthMapConfig():field_lens(0), near_depthmap(0), far_depthmap(0), num_of_depth(0) {}
 	//test commit
-};
-
-struct GEN_DLL OphPointCloudData {
-	vector<real>	location;
-	vector<uchar>	color;
-	vector<real>	amplitude;
-	vector<real>	phase;
 };
 
 struct GEN_DLL OphDepthMapParams
@@ -125,7 +120,7 @@ public:
 	* @param output parameter. point cloud data, phases container's pointer
 	* @return positive integer is points number of point cloud, return a negative integer if the load fails
 	*/
-	int loadPointCloud(const char* pc_file, std::vector<real> *vertex_array, std::vector<uchar>* color_array, std::vector<real> *amplitude_array, std::vector<real> *phase_array);
+	int loadPointCloud(const char* pc_file, std::vector<real> *vertex_array, std::vector<real> *amplitude_array, std::vector<real> *phase_array);
 
 	/**
 	* @param input parameter. configuration data file name
@@ -153,6 +148,38 @@ protected:
 	oph::Complex<real>*		holo_gen;
 	real*					holo_encoded;
 	oph::uchar*				holo_normalized;
+
+public:
+	/**
+	* @brief Encoding Functions
+	*/
+
+	/** @brief Phase and Amplitude */
+	void calPhase(oph::Complex<real>* holo, real* encoded, const vec2 holosize);
+	void calAmplitude(oph::Complex<real>* holo, real* encoded, const vec2 holosize);
+
+	/** @brief Single Side Band Encoding */
+	enum passband {left, rig, top, btm};
+	//void singleSideBand(oph::Complex<real>* holo, real* encoded, const vec2 holosize, int passband);
+	
+	/** @brief Numerical Interface */
+	void numericalInterference(oph::Complex<real>* holo, real* encoded, const vec2 holosize);
+	void numericalInterference(void);
+
+	/** @brief Two Phase Encoding */
+	/**
+	* @param output parameter(encoded) : (sizeX*2, sizeY)
+	*/
+	void twoPhaseEncoding(oph::Complex<real>* holo, real* encoded, const vec2 holosize);
+	
+	/** @brief Burckhardt Encoding */
+	/**
+	* @param output parameter(encoded) : (sizeX*3, sizeY)
+	*/
+	void burckhardt(oph::Complex<real>* holo, real* encoded, const vec2 holosize);
+	
+	/** @brief Frequency Shift */
+	//void freqShift(oph::Complex<real>* holo, Complex<real>* encoded, const vec2 holosize, int shift_x, int shift_y);
 
 protected:
 	/**

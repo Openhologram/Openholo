@@ -4,6 +4,8 @@
 #include "complex.h"
 #include "real.h"
 #include "mat.h"
+#include "vec.h"
+#include "include.h"
 
 #include <chrono>
 #include <random>
@@ -29,10 +31,28 @@ namespace oph
 		for (auto item : arr) { if (item < min) min = item; }
 		return min;
 	}
+	
+	template<typename T>
+	inline real& minOfArr(const T* src, const int& size) {
+		real min = _MAXDOUBLE;
+		for (int i = 0; i < size; i++) {
+			if (*(src + i) < min) min = *(src + i);
+		}
+		return max;
+	}
 
 	inline real& maxOfArr(const std::vector<real>& arr) {
 		real max = _MINDOUBLE;
 		for (auto item : arr) { if (item > max) max = item; }
+		return max;
+	}
+
+	template<typename T>
+	inline real& maxOfArr(const T* src, const int& size) {
+		real max = _MINDOUBLE;
+		for (int i = 0; i < size; i++) {
+			if (*(src + i) > max) max = *(src + i);
+		}
 		return max;
 	}
 
@@ -59,11 +79,52 @@ namespace oph
 	}
 
 	template<typename T>
+	inline void absCplx(const oph::Complex<T>& src, T& dst) {
+		dst = sqrt(src.re*src.re + src.im*src.im);
+	}
+
+	template<typename T>
+	inline void absCplxArr(const oph::Complex<T>* src, T* dst, const int& size) {
+		for (int i = 0; i < size; i++) {
+			absCplx<T>(*(src + i),*(dst + i));
+		}
+	}
+
+	template<typename T>
+	inline void realPart(const oph::Complex<T>* src, T* dst, const int& size) {
+		for (int i = 0; i < size; i++) {
+			*(dst + i) = *(src + i).re;
+		}
+	}
+
+	template<typename T>
 	inline void angle(const std::vector<Complex<T>>& src, std::vector<T>& dst) {
 		dst.clear();
 		dst.reserve(src.size());
-		for (auto item : src) {	dst.push_back(src.angle());
+		for (auto item : src) {	dst.push_back(src.angle());	}
+	}
+
+	template<typename T>
+	inline void angle(const oph::Complex<T>& src, T& dst) {
+		dst = atan2(src.im, src.re);
+	}
+
+	/**
+	* @brief Normalize all elements of Complex<T>* src from 0 to 1.
+	*/
+	template<typename T>
+	inline void normalize(const Complex<T>* src, Complex<T>* dst, const int& size) {
+		real* abs = new real[size];
+		oph::absCplxArr<real>(dst, abs, size);
+
+		real* max = new real;
+		*max = oph::maxOfArr<real>(abs, size);
+
+		for (int i = 0; i < size; i++) {
+			*(dst + i) = *(src + i) / *max;
 		}
+		delete[] abs;
+		delete max;
 	}
 
 	/**
@@ -127,6 +188,13 @@ namespace oph
 		auto iter = pArr->begin() + (beginIndex);
 		auto it_end = pArr->begin() + (endIndex);
 		for (; iter != it_end; iter++) { (*iter) = _Value; }
+	}
+
+	template<typename T>
+	inline void memsetArr(T* pArr, const T& _Value, const oph::uint& beginIndex, const oph::uint& endIndex) {
+		for (int i = beginIndex; i <= endIndex; i++) {
+			*(pArr + i) = _Value;
+		}
 	}
 
 	/**
