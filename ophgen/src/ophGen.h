@@ -8,8 +8,6 @@
 
 #include "Openholo.h"
 
-#include "complex.h"
-
 #include "fftw3.h"
 
 #ifdef GEN_EXPORT
@@ -49,6 +47,13 @@ struct GEN_DLL OphDepthMapConfig {
 
 	OphDepthMapConfig():field_lens(0), near_depthmap(0), far_depthmap(0), num_of_depth(0) {}
 	//test commit
+};
+
+struct GEN_DLL OphPointCloudData {
+	vector<real>	location;
+	vector<uchar>	color;
+	vector<real>	amplitude;
+	vector<real>	phase;
 };
 
 struct GEN_DLL OphDepthMapParams
@@ -120,7 +125,7 @@ public:
 	* @param output parameter. point cloud data, phases container's pointer
 	* @return positive integer is points number of point cloud, return a negative integer if the load fails
 	*/
-	int loadPointCloud(const char* pc_file, std::vector<real> *vertex_array, std::vector<real> *amplitude_array, std::vector<real> *phase_array);
+	int loadPointCloud(const char* pc_file, std::vector<real> *vertex_array, std::vector<uchar>* color_array, std::vector<real> *amplitude_array, std::vector<real> *phase_array);
 
 	/**
 	* @param input parameter. configuration data file name

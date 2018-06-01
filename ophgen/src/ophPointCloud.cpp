@@ -29,7 +29,7 @@ void ophPointCloud::setMode(bool IsCPU)
 
 int ophPointCloud::loadPointCloud(const char* pc_file)
 {
-	n_points = ophGen::loadPointCloud(pc_file, &vertex_array_, &amplitude_array_, &phase_array_);
+	n_points = ophGen::loadPointCloud(pc_file, &pc_data_.location, &pc_data_.color, &pc_data_.amplitude, &pc_data_.phase);
 
 	return n_points;
 }
@@ -42,33 +42,40 @@ bool ophPointCloud::readConfig(const char* cfg_file)
 	return true;
 }
 
-void ophPointCloud::setPointCloudModel(const std::vector<real> &vertex_array, const std::vector<real> &amplitude_array, const std::vector<real> &phase_array)
+void ophPointCloud::setPointCloudModel(const std::vector<real> &location, const std::vector<uchar> &color, const std::vector<real> &amplitude, const std::vector<real> &phase)
 {
-	vertex_array_ = vertex_array;
-	amplitude_array_ = amplitude_array;
-	phase_array_ = phase_array;
+	pc_data_.location = location;
+	pc_data_.color = color;
+	pc_data_.amplitude = amplitude;
+	pc_data_.phase = phase;
 }
 
-void ophPointCloud::getPointCloudModel(std::vector<real> &vertex_array, std::vector<real> &amplitude_array, std::vector<real> &phase_array)
+void ophPointCloud::getPointCloudModel(std::vector<real> &location, std::vector<uchar> &color, std::vector<real> &amplitude, std::vector<real> &phase)
 {
-	getModelVertexArray(vertex_array);
-	getModelAmplitudeArray(amplitude_array);
-	getModelPhaseArray(phase_array);
+	getModelLocation(location);
+	getModelColor(color);
+	getModelAmplitude(amplitude);
+	getModelPhase(phase);
 }
 
-void ophPointCloud::getModelVertexArray(std::vector<real>& vertex_array)
+void ophPointCloud::getModelLocation(std::vector<real>& location)
 {
-	vertex_array = vertex_array_;
+	pc_data_.location = location;
 }
 
-void ophPointCloud::getModelAmplitudeArray(std::vector<real>& amplitude_array)
+void ophPointCloud::getModelColor(std::vector<uchar>& color)
 {
-	amplitude_array = amplitude_array_;
+	pc_data_.color;
 }
 
-void ophPointCloud::getModelPhaseArray(std::vector<real>& phase_array)
+void ophPointCloud::getModelAmplitude(std::vector<real>& amplitude)
 {
-	phase_array = phase_array_;
+	pc_data_.amplitude = amplitude;
+}
+
+void ophPointCloud::getModelPhase(std::vector<real>& phase)
+{
+	pc_data_.phase = phase;
 }
 
 int ophPointCloud::getNumberOfPoints()
@@ -143,10 +150,10 @@ real ophPointCloud::genCghPointCloud(real* dst)
 #pragma omp for private(j)
 #endif
 		for (j = 0; j < n_points; ++j) { //Create Fringe Pattern
-			real x = vertex_array_[3 * j + 0] * pc_config_.scale[_X];
-			real y = vertex_array_[3 * j + 1] * pc_config_.scale[_Y];
-			real z = vertex_array_[3 * j + 2] * pc_config_.scale[_Z] + pc_config_.offset_depth;
-			real amplitude = amplitude_array_[j];
+			real x = pc_data_.location[3 * j + 0] * pc_config_.scale[_X];
+			real y = pc_data_.location[3 * j + 1] * pc_config_.scale[_Y];
+			real z = pc_data_.location[3 * j + 2] * pc_config_.scale[_Z] + pc_config_.offset_depth;
+			real amplitude = pc_data_.amplitude[j];
 
 			for (int row = 0; row < n_y; ++row) {
 				// Y coordinate of the current pixel : Note that y index is reversed order
@@ -190,8 +197,8 @@ real ophPointCloud::genCghPointCloud_cuda(real* dst)
 	const ulonglong bufferSize = context_.pixel_number.v[0] * context_.pixel_number.v[1] * sizeof(real);
 
 	//Host Memory Location
-	float3 *HostPointCloud = (float3*)vertex_array_.data();
-	real *hostAmplitude = (real*)amplitude_array_.data();
+	float3 *HostPointCloud = (float3*)pc_data_.location.data();
+	real *hostAmplitude = (real*)pc_data_.amplitude.data();
 
 	//Initializa Config for CUDA Kernel
 	oph::GpuConst HostConfig; {
@@ -227,12 +234,12 @@ real ophPointCloud::genCghPointCloud_cuda(real* dst)
 
 	//Device(GPU) Memory Location
 	float3 *DevicePointCloud;
-	cudaMalloc((void**)&DevicePointCloud, vertex_array_.size() * sizeof(real));
-	cudaMemcpy(DevicePointCloud, HostPointCloud, vertex_array_.size() * sizeof(real), cudaMemcpyHostToDevice);
+	cudaMalloc((void**)&DevicePointCloud, pc_data_.location.size() * sizeof(real));
+	cudaMemcpy(DevicePointCloud, HostPointCloud, pc_data_.location.size() * sizeof(real), cudaMemcpyHostToDevice);
 
 	real *deviceAmplitude;
-	cudaMalloc((void**)&deviceAmplitude, amplitude_array_.size() * sizeof(real));
-	cudaMemcpy(deviceAmplitude, hostAmplitude, amplitude_array_.size() * sizeof(real), cudaMemcpyHostToDevice);
+	cudaMalloc((void**)&deviceAmplitude, pc_data_.amplitude.size() * sizeof(real));
+	cudaMemcpy(deviceAmplitude, hostAmplitude, pc_data_.amplitude.size() * sizeof(real), cudaMemcpyHostToDevice);
 
 	GpuConst *DeviceConfig;
 	cudaMalloc((void**)&DeviceConfig, sizeof(GpuConst));
@@ -260,7 +267,8 @@ real ophPointCloud::genCghPointCloud_cuda(real* dst)
 
 void ophPointCloud::ophFree(void)
 {
-	vertex_array_.clear();
-	amplitude_array_.clear();
-	phase_array_.clear();
+	pc_data_.location.clear();
+	pc_data_.color.clear();
+	pc_data_.amplitude.clear();
+	pc_data_.phase.clear();
 }

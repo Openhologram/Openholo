@@ -138,12 +138,13 @@ public:
 	* @param AmplitudeArray 3D Point Cloud Model Amplitude Data of Point-Based Light Wave
 	* @param PhaseArray  3D Point Cloud Model Phase Data of Point-Based Light Wave
 	*/
-	void setPointCloudModel(const std::vector<real> &vertex_array, const std::vector<real> &amplitude_array, const std::vector<real> &phase_array);
-	void getPointCloudModel(std::vector<real> &vertex_array, std::vector<real> &amplitude_array, std::vector<real> &phase_array);
+	void setPointCloudModel(const std::vector<real> &location, const std::vector<uchar> &color, const std::vector<real> &amplitude, const std::vector<real> &phase);
+	void getPointCloudModel(std::vector<real> &location, std::vector<uchar> &color, std::vector<real> &amplitude, std::vector<real> &phase);
 
-	void getModelVertexArray(std::vector<real> &vertex_array);
-	void getModelAmplitudeArray(std::vector<real> &amplitude_array);
-	void getModelPhaseArray(std::vector<real> &phase_array);
+	void getModelLocation(std::vector<real> &location);
+	void getModelColor(std::vector<uchar> &color);
+	void getModelAmplitude(std::vector<real> &amplitude);
+	void getModelPhase(std::vector<real> &phase);
 	int getNumberOfPoints();
 
 	/**
@@ -202,11 +203,8 @@ private:
 	bool IsCPU_;
 	int n_points;
 
-	std::vector<real> vertex_array_;
-	std::vector<real> amplitude_array_;
-	std::vector<real> phase_array_;
-
 	OphPointCloudConfig pc_config_;
+	OphPointCloudData	pc_data_;
 };
 
 extern "C"

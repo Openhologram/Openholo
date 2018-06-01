@@ -207,16 +207,11 @@ namespace oph
 			for (int x = 0; x < res.size[0]; x++) {
 				for (int y = 0; y < res.size[1]; y++) {
 					res[x][y] = 0;
-					for (int num = 0; num < size[1]; num++)
-					{
+					for (int num = 0; num < size[1]; num++)	{
 						res[x][y] += mat[x][num] * p[num][y];
-						cout << x * res.size[1] + y << ". res[x][y](" << res[x][y] << ")" << " = " << mat[x][num] << " * " << p[num][y];
-						cout << endl;
 					}
 				}
-				cout << endl;
 			}
-			cout << endl;
 
 			this->resize(res.size[0], res.size[1]);
 			*this = res;
