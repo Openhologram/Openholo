@@ -29,7 +29,7 @@ void ophPointCloud::setMode(bool IsCPU)
 
 int ophPointCloud::loadPointCloud(const char* pc_file)
 {
-	n_points = ophGen::loadPointCloud(pc_file, &pc_data_.location, &pc_data_.color, &pc_data_.amplitude, &pc_data_.phase);
+	n_points = ophGen::loadPointCloud(pc_file, &pc_data_);
 
 	return n_points;
 }
@@ -42,7 +42,7 @@ bool ophPointCloud::readConfig(const char* cfg_file)
 	return true;
 }
 
-void ophPointCloud::setPointCloudModel(const std::vector<real> &location, const std::vector<uchar> &color, const std::vector<real> &amplitude, const std::vector<real> &phase)
+void ophPointCloud::setPointCloudModel(vec3* location, ivec3 *color, real *amplitude, real *phase)
 {
 	pc_data_.location = location;
 	pc_data_.color = color;
@@ -50,7 +50,7 @@ void ophPointCloud::setPointCloudModel(const std::vector<real> &location, const 
 	pc_data_.phase = phase;
 }
 
-void ophPointCloud::getPointCloudModel(std::vector<real> &location, std::vector<uchar> &color, std::vector<real> &amplitude, std::vector<real> &phase)
+void ophPointCloud::getPointCloudModel(vec3 *location, ivec3 *color, real *amplitude, real *phase)
 {
 	getModelLocation(location);
 	getModelColor(color);
@@ -58,24 +58,24 @@ void ophPointCloud::getPointCloudModel(std::vector<real> &location, std::vector<
 	getModelPhase(phase);
 }
 
-void ophPointCloud::getModelLocation(std::vector<real>& location)
+void ophPointCloud::getModelLocation(vec3 *location)
 {
-	pc_data_.location = location;
+	location = pc_data_.location;
 }
 
-void ophPointCloud::getModelColor(std::vector<uchar>& color)
+void ophPointCloud::getModelColor(ivec3 *color)
 {
-	pc_data_.color;
+	color = pc_data_.color;
 }
 
-void ophPointCloud::getModelAmplitude(std::vector<real>& amplitude)
+void ophPointCloud::getModelAmplitude(real *amplitude)
 {
-	pc_data_.amplitude = amplitude;
+	amplitude = pc_data_.amplitude;
 }
 
-void ophPointCloud::getModelPhase(std::vector<real>& phase)
+void ophPointCloud::getModelPhase(real *phase)
 {
-	pc_data_.phase = phase;
+	phase = pc_data_.phase;
 }
 
 int ophPointCloud::getNumberOfPoints()
@@ -90,14 +90,14 @@ real ophPointCloud::generateHologram()
 	int n_y = context_.pixel_number[_Y];
 
 	// Memory Location for Result Image
-	if (holo_gen != nullptr) free(holo_gen);
-	holo_gen = (oph::Complex<real>*)calloc(1, sizeof(oph::Complex<real>) * n_x * n_y);
+	if (holo_gen != nullptr) delete[] holo_gen;
+	holo_gen = new oph::Complex<real>[n_x * n_y];
 
-	if (holo_encoded != nullptr) free(holo_encoded);
-	holo_encoded = (real*)calloc(1, sizeof(real) * n_x * n_y);
+	if (holo_encoded != nullptr) delete[] holo_encoded;
+	holo_encoded = new real[n_x * n_y];
 
-	if (holo_normalized != nullptr) free(holo_normalized);
-	holo_normalized = (uchar*)calloc(1, sizeof(uchar) * n_x * n_y);
+	if (holo_normalized != nullptr) delete[] holo_normalized;
+	holo_normalized = new uchar[n_x * n_y];
 
 	// Create CGH Fringe Pattern by 3D Point Cloud
 	real time = 0.0;
@@ -150,9 +150,9 @@ real ophPointCloud::genCghPointCloud(real* dst)
 #pragma omp for private(j)
 #endif
 		for (j = 0; j < n_points; ++j) { //Create Fringe Pattern
-			real x = pc_data_.location[3 * j + 0] * pc_config_.scale[_X];
-			real y = pc_data_.location[3 * j + 1] * pc_config_.scale[_Y];
-			real z = pc_data_.location[3 * j + 2] * pc_config_.scale[_Z] + pc_config_.offset_depth;
+			real x = pc_data_.location[j][_X] * pc_config_.scale[_X];
+			real y = pc_data_.location[j][_Y] * pc_config_.scale[_Y];
+			real z = pc_data_.location[j][_Z] * pc_config_.scale[_Z] + pc_config_.offset_depth;
 			real amplitude = pc_data_.amplitude[j];
 
 			for (int row = 0; row < n_y; ++row) {
@@ -197,8 +197,8 @@ real ophPointCloud::genCghPointCloud_cuda(real* dst)
 	const ulonglong bufferSize = context_.pixel_number.v[0] * context_.pixel_number.v[1] * sizeof(real);
 
 	//Host Memory Location
-	float3 *HostPointCloud = (float3*)pc_data_.location.data();
-	real *hostAmplitude = (real*)pc_data_.amplitude.data();
+	float3 *HostPointCloud = (float3*)pc_data_.location;
+	real *hostAmplitude = (real*)pc_data_.amplitude;
 
 	//Initializa Config for CUDA Kernel
 	oph::GpuConst HostConfig; {
@@ -234,12 +234,12 @@ real ophPointCloud::genCghPointCloud_cuda(real* dst)
 
 	//Device(GPU) Memory Location
 	float3 *DevicePointCloud;
-	cudaMalloc((void**)&DevicePointCloud, pc_data_.location.size() * sizeof(real));
-	cudaMemcpy(DevicePointCloud, HostPointCloud, pc_data_.location.size() * sizeof(real), cudaMemcpyHostToDevice);
+	cudaMalloc((void**)&DevicePointCloud, n_points * 3 * sizeof(real));
+	cudaMemcpy(DevicePointCloud, HostPointCloud, n_points * 3 * sizeof(real), cudaMemcpyHostToDevice);
 
 	real *deviceAmplitude;
-	cudaMalloc((void**)&deviceAmplitude, pc_data_.amplitude.size() * sizeof(real));
-	cudaMemcpy(deviceAmplitude, hostAmplitude, pc_data_.amplitude.size() * sizeof(real), cudaMemcpyHostToDevice);
+	cudaMalloc((void**)&deviceAmplitude, n_points * sizeof(real));
+	cudaMemcpy(deviceAmplitude, hostAmplitude, n_points * sizeof(real), cudaMemcpyHostToDevice);
 
 	GpuConst *DeviceConfig;
 	cudaMalloc((void**)&DeviceConfig, sizeof(GpuConst));
@@ -267,8 +267,8 @@ real ophPointCloud::genCghPointCloud_cuda(real* dst)
 
 void ophPointCloud::ophFree(void)
 {
-	pc_data_.location.clear();
-	pc_data_.color.clear();
-	pc_data_.amplitude.clear();
-	pc_data_.phase.clear();
+	delete[] pc_data_.location;
+	delete[] pc_data_.color;
+	delete[] pc_data_.amplitude;
+	delete[] pc_data_.phase;
 }

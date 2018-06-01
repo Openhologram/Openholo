@@ -15,7 +15,7 @@ ophGen::~ophGen(void)
 {
 }
 
-int ophGen::loadPointCloud(const char* pc_file, std::vector<real> *vertex_array, std::vector<uchar>* color_array, std::vector<real> *amplitude_array, std::vector<real> *phase_array)
+int ophGen::loadPointCloud(const char* pc_file, OphPointCloudData *pc_data_)
 {
 	std::ifstream File(pc_file, std::ios::in);
 	if (!File.is_open()) {
@@ -27,10 +27,10 @@ int ophGen::loadPointCloud(const char* pc_file, std::vector<real> *vertex_array,
 	std::getline(File, Line);
 	int n_pts = atoi(Line.c_str());
 
-	vertex_array	!= nullptr ? vertex_array->reserve(n_pts * 3)	: vertex_array;
-	color_array		!= nullptr ? color_array->reserve(n_pts * 3)	: color_array;
-	amplitude_array != nullptr ? amplitude_array->reserve(n_pts)	: amplitude_array;
-	phase_array		!= nullptr ? phase_array->reserve(n_pts)		: phase_array;
+	pc_data_->location	= new vec3[n_pts];
+	pc_data_->color		= new ivec3[n_pts];
+	pc_data_->amplitude	= new real[n_pts];
+	pc_data_->phase		= new real[n_pts];
 
 	// parse input point cloud file
 	for (int i = 0; i < n_pts; ++i) {
@@ -40,23 +40,15 @@ int ophGen::loadPointCloud(const char* pc_file, std::vector<real> *vertex_array,
 		sscanf_s(Line.c_str(), "%d %lf %lf %lf %lf %lf\n", &idx, &pX, &pY, &pZ, &phase, &amplitude);
 
 		if (idx == i) {
-			if (vertex_array)
-			{
-				vertex_array->push_back(pX);
-				vertex_array->push_back(pY);
-				vertex_array->push_back(pZ);
-			}
-
-			if (color_array)
-			{
-				///point cloud data not include color data now.
-			}
-
-			if (amplitude_array)
-				amplitude_array->push_back(phase);
-
-			if (phase_array)
-				phase_array->push_back(amplitude);
+			pc_data_->location[idx][_X] = pX;
+			pc_data_->location[idx][_Y] = pY;
+			pc_data_->location[idx][_Z] = pY;
+			///point cloud data not include color data now.
+			///pc_data_->color_[idx][_X] = cX;
+			///pc_data_->color_[idx][_Y] = cY;
+			///pc_data_->color_[idx][_Z] = cZ;
+			pc_data_->phase[idx] = phase;
+			pc_data_->amplitude[idx] = amplitude;
 		}
 		else {
 			File.close();

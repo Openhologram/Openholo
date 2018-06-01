@@ -31,10 +31,12 @@ struct GEN_DLL OphPointCloudConfig {
 };
 
 struct GEN_DLL OphPointCloudData {
-	std::vector<real> location;
-	std::vector<uchar> color;
-	std::vector<real> amplitude;
-	std::vector<real> phase;
+	vec3* location;
+	ivec3* color;
+	real* amplitude;
+	real* phase;
+
+	OphPointCloudData() :location(nullptr), color(nullptr), amplitude(nullptr), phase(nullptr) {}
 };
 
 struct GEN_DLL OphDepthMapConfig {
@@ -125,7 +127,7 @@ public:
 	* @param output parameter. point cloud data, phases container's pointer
 	* @return positive integer is points number of point cloud, return a negative integer if the load fails
 	*/
-	int loadPointCloud(const char* pc_file, std::vector<real> *vertex_array, std::vector<uchar>* color_array, std::vector<real> *amplitude_array, std::vector<real> *phase_array);
+	int loadPointCloud(const char* pc_file, OphPointCloudData *pc_data_);
 
 	/**
 	* @param input parameter. configuration data file name
