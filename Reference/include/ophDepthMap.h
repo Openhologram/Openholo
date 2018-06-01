@@ -131,12 +131,6 @@ public:
 	/** \ingroup write_module */
 	virtual int save(const char* fname = nullptr, uint8_t bitsperpixel = 24);
 
-	/** \ingroup write_module */
-	void normalize(void);
-
-	/** \ingroup write_module */
-	virtual int save(const char* fname = nullptr, uint8_t bitsperpixel = 24);
-
 	/** \ingroup recon_module */
 	void reconstructImage(void);
 
@@ -213,29 +207,23 @@ private:
 		int pny = context_.pixel_number[1];
 
 		int cropx1, cropx2, cropx, cropy1, cropy2, cropy;
-		if (sig_location[1] == 0) //Left or right half
-		{
+		if (sig_location[1] == 0) { //Left or right half
 			cropy1 = 1;
 			cropy2 = pny;
-
 		}
 		else {
-
-			cropy = floor(pny / 2);
-			cropy1 = cropy - floor(cropy / 2);
+			cropy = (int)floor(((real)pny) / 2);
+			cropy1 = cropy - (int)floor(((real)cropy) / 2);
 			cropy2 = cropy1 + cropy - 1;
 		}
 
-		if (sig_location[0] == 0) // Upper or lower half
-		{
+		if (sig_location[0] == 0) { // Upper or lower half
 			cropx1 = 1;
 			cropx2 = pnx;
-
 		}
 		else {
-
-			cropx = floor(pnx / 2);
-			cropx1 = cropx - floor(cropx / 2);
+			cropx = (int)floor(((real)pnx) / 2);
+			cropx1 = cropx - (int)floor(((real)cropx) / 2);
 			cropx2 = cropx1 + cropx - 1;
 		}
 

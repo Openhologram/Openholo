@@ -131,12 +131,6 @@ public:
 	/** \ingroup write_module */
 	virtual int save(const char* fname = nullptr, uint8_t bitsperpixel = 24);
 
-	/** \ingroup write_module */
-	void normalize(void);
-
-	/** \ingroup write_module */
-	virtual int save(const char* fname = nullptr, uint8_t bitsperpixel = 24);
-
 	/** \ingroup recon_module */
 	void reconstructImage(void);
 

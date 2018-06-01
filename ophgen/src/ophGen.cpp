@@ -327,37 +327,6 @@ int ophGen::save(const char * fname, uint8_t bitsperpixel, uint px, uint py, uin
 	return 0;
 }
 
-int ophGen::save(const char * fname, uint8_t bitsperpixel, uint px, uint py, uint fnum, uchar* args ...)
-{
-	std::string file = fname;
-	std::string name;
-	std::string ext;
-
-	size_t ex = file.rfind(".");
-	if (ex == -1) ex = file.length();
-	 
-	name = file.substr(0, ex);
-	ext = file.substr(ex, file.length() - 1);
-
-	va_list ap;
-	__crt_va_start(ap, args);
-
-	for (uint i = 0; i < fnum; i++) {
-		name.append(std::to_string(i)).append(ext);
-		if (i == 0) {
-			save(name.c_str(), bitsperpixel, args, px, py);
-			continue;
-		}
-		uchar* data = __crt_va_arg(ap, uchar*);
-		save(name.c_str(), bitsperpixel, data, px, py);
-	}
-
-	__crt_va_end(ap);
-
-	return 0;
-}
-
-
 int ophGen::load(const char * fname, void * dst)
 {
 	if (holo_normalized != nullptr) {

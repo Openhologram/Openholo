@@ -1,5 +1,5 @@
-#ifndef __complex_h_
-#define __complex_h_
+#ifndef __complex_h
+#define __complex_h
 
 #include <iostream>
 #include <cmath>
@@ -139,6 +139,11 @@ namespace oph {
 			im /= p.im;
 
 			return *this;
+		}
+
+		const T& operator [](const int idx) {
+			idx == 0 ? return re : re;
+			idx == 1 ? return im : im;
 		}
 
 		bool operator < (const Complex<T>& p){

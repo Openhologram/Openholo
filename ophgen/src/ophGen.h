@@ -7,8 +7,6 @@
 #define __ophGen_h
 
 #include "Openholo.h"
-#include "include.h"
-#include "complex.h"
 
 #include "fftw3.h"
 
@@ -30,6 +28,13 @@ struct GEN_DLL OphPointCloudConfig {
 	real focal_length_lens_eye_piece;				///< Focal length of eyepiece lens				
 
 	oph::vec2 tilt_angle;							///< Tilt angle for spatial filtering
+};
+
+struct GEN_DLL OphPointCloudData {
+	std::vector<real> location;
+	std::vector<uchar> color;
+	std::vector<real> amplitude;
+	std::vector<real> phase;
 };
 
 struct GEN_DLL OphDepthMapConfig {
@@ -120,7 +125,7 @@ public:
 	* @param output parameter. point cloud data, phases container's pointer
 	* @return positive integer is points number of point cloud, return a negative integer if the load fails
 	*/
-	int loadPointCloud(const char* pc_file, std::vector<real> *vertex_array, std::vector<real> *amplitude_array, std::vector<real> *phase_array);
+	int loadPointCloud(const char* pc_file, std::vector<real> *vertex_array, std::vector<uchar>* color_array, std::vector<real> *amplitude_array, std::vector<real> *phase_array);
 
 	/**
 	* @param input parameter. configuration data file name
