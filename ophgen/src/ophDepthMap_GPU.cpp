@@ -242,7 +242,7 @@ void ophDepthMap::change_depth_quan_GPU()
 * @param frame : the frame number of the image.
 * @see calc_Holo_by_Depth, propagation_AngularSpectrum_GPU
 */
-void ophDepthMap::calc_Holo_GPU(int frame)
+void ophDepthMap::calc_Holo_GPU(void)
 {
 	cudaEvent_t start, stop;
 
@@ -283,22 +283,16 @@ void ophDepthMap::calc_Holo_GPU(int frame)
 
 			propagation_AngularSpectrum_GPU(u_o_gpu_, -temp_depth);
 		}
-		LOG("Frame#: %d, Depth: %d of %d, z = %f mm\n", frame, dtr, dm_config_.num_of_depth, -temp_depth * 1000);
+		LOG("Depth: %d of %d, z = %f mm\n", dtr, dm_config_.num_of_depth, -temp_depth * 1000);
 	}
 
 	cufftDoubleComplex* p_holo_gen = new cufftDoubleComplex[N];
 	cudaMemcpy(p_holo_gen, u_complex_gpu_, sizeof(cufftDoubleComplex) * pnx * pny, cudaMemcpyDeviceToHost);
-	
 
-	for (uint frm = 0; frm < dm_params_.NUMBER_OF_FRAME; frm++)
+	for (int n = 0; n < N; n++)
 	{
-		int fframe = pnx * pny * frm;
-
-		for (int n = 0; n < N; n++)
-		{
-			holo_gen[n + fframe].re = p_holo_gen[n].x;
-			holo_gen[n + fframe].im = p_holo_gen[n].y;
-		}
+		holo_gen[n].re = p_holo_gen[n].x;
+		holo_gen[n].im = p_holo_gen[n].y;
 	}
 
 	cudaEventRecord(stop, stream_);
@@ -330,52 +324,6 @@ void ophDepthMap::propagation_AngularSpectrum_GPU(cufftDoubleComplex* input_u, r
 
 	cudaPropagation_AngularSpKernel(stream_, pnx, pny, k_temp_d_, u_complex_gpu_,
 		ppx, ppy, ssx, ssy, lambda, context_.k, propagation_dist);
-}
-
-/**
-* @brief Encode the CGH according to a signal location parameter on GPU.
-* @details The variable, ((real*)p_hologram) has the final result.
-* @param cropx1 : the start x-coordinate to crop.
-* @param cropx2 : the end x-coordinate to crop.
-* @param cropy1 : the start y-coordinate to crop.
-* @param cropy2 : the end y-coordinate to crop.
-* @param sig_location : ivec2 type,
-*  sig_location[0]: upper or lower half, sig_location[1]:left or right half.
-* @see encodingSymmetrization, cudaCropFringe, cudaFFT, cudaGetFringe
-*/
-void ophDepthMap::encoding_GPU(int cropx1, int cropx2, int cropy1, int cropy2, ivec2 sig_location)
-{
-	int pnx = context_.pixel_number[0];
-	int pny = context_.pixel_number[1];
-	real ppx = context_.pixel_pitch[0];
-	real ppy = context_.pixel_pitch[1];
-	real ssx = context_.ss[0];
-	real ssy = context_.ss[1];
-
-	HANDLE_ERROR(cudaMemsetAsync(k_temp_d_, 0, sizeof(cufftDoubleComplex)*pnx*pny, stream_));
-	cudaCropFringe(stream_, pnx, pny, u_complex_gpu_, k_temp_d_, cropx1, cropx2, cropy1, cropy2);
-
-	HANDLE_ERROR(cudaMemsetAsync(u_complex_gpu_, 0, sizeof(cufftDoubleComplex)*pnx*pny, stream_));
-	cudaFFT(stream_, pnx, pny, k_temp_d_, u_complex_gpu_, 1, true);
-
-	HANDLE_ERROR(cudaMemsetAsync(k_temp_d_, 0, sizeof(cufftDoubleComplex)*pnx*pny, stream_));
-	cudaGetFringe(stream_, pnx, pny, u_complex_gpu_, k_temp_d_, sig_location[0], sig_location[1], ssx, ssy, ppx, ppy, M_PI);
-
-	cufftDoubleComplex* sample_fd = (cufftDoubleComplex*)malloc(sizeof(cufftDoubleComplex)*pnx*pny);
-	memset(sample_fd, 0.0, sizeof(cufftDoubleComplex)*pnx*pny);
-
-	HANDLE_ERROR(cudaMemcpyAsync(sample_fd, k_temp_d_, sizeof(cufftDoubleComplex)*pnx*pny, cudaMemcpyDeviceToHost), stream_);
-	memset(holo_encoded, 0.0, sizeof(real)*pnx*pny);
-
-	for (uint frm = 0; frm < dm_params_.NUMBER_OF_FRAME; frm++)
-	{
-		int fframe = pnx * pny * frm;
-
-		for (int i = 0; i < pnx*pny; ++i)
-			holo_encoded[i + fframe] = sample_fd[i].x;
-	}
-
-	delete[] sample_fd;
 }
 
 void ophDepthMap::free_gpu()

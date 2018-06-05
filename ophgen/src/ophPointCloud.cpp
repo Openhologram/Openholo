@@ -1,4 +1,5 @@
 #include "ophPointCloud.h"
+#include "function.h"
 
 ophPointCloud::ophPointCloud(void)
 	: ophGen()
@@ -29,7 +30,7 @@ void ophPointCloud::setMode(bool IsCPU)
 
 int ophPointCloud::loadPointCloud(const char* pc_file)
 {
-	n_points = ophGen::loadPointCloud(pc_file, &pc_data_.location, &pc_data_.color, &pc_data_.amplitude, &pc_data_.phase);
+	n_points = ophGen::loadPointCloud(pc_file, &pc_data_);
 
 	return n_points;
 }
@@ -42,84 +43,46 @@ bool ophPointCloud::readConfig(const char* cfg_file)
 	return true;
 }
 
-void ophPointCloud::setPointCloudModel(const std::vector<real> &location, const std::vector<uchar> &color, const std::vector<real> &amplitude, const std::vector<real> &phase)
-{
-	pc_data_.location = location;
-	pc_data_.color = color;
-	pc_data_.amplitude = amplitude;
-	pc_data_.phase = phase;
-}
-
-void ophPointCloud::getPointCloudModel(std::vector<real> &location, std::vector<uchar> &color, std::vector<real> &amplitude, std::vector<real> &phase)
-{
-	getModelLocation(location);
-	getModelColor(color);
-	getModelAmplitude(amplitude);
-	getModelPhase(phase);
-}
-
-void ophPointCloud::getModelLocation(std::vector<real>& location)
-{
-	pc_data_.location = location;
-}
-
-void ophPointCloud::getModelColor(std::vector<uchar>& color)
-{
-	pc_data_.color;
-}
-
-void ophPointCloud::getModelAmplitude(std::vector<real>& amplitude)
-{
-	pc_data_.amplitude = amplitude;
-}
-
-void ophPointCloud::getModelPhase(std::vector<real>& phase)
-{
-	pc_data_.phase = phase;
-}
-
-int ophPointCloud::getNumberOfPoints()
-{
-	return n_points;
-}
-
 real ophPointCloud::generateHologram()
 {
+	auto start_time = _cur_time;
+
 	// Output Image Size
 	int n_x = context_.pixel_number[_X];
 	int n_y = context_.pixel_number[_Y];
 
 	// Memory Location for Result Image
-	if (holo_gen != nullptr) free(holo_gen);
-	holo_gen = (oph::Complex<real>*)calloc(1, sizeof(oph::Complex<real>) * n_x * n_y);
+	if (holo_gen != nullptr) delete[] holo_gen;
+	holo_gen = new oph::Complex<real>[n_x * n_y];
 
-	if (holo_encoded != nullptr) free(holo_encoded);
-	holo_encoded = (real*)calloc(1, sizeof(real) * n_x * n_y);
+	if (holo_encoded != nullptr) delete[] holo_encoded;
+	holo_encoded = new real[n_x * n_y];
 
-	if (holo_normalized != nullptr) free(holo_normalized);
-	holo_normalized = (uchar*)calloc(1, sizeof(uchar) * n_x * n_y);
+	if (holo_normalized != nullptr) delete[] holo_normalized;
+	holo_normalized = new uchar[n_x * n_y];
 
 	// Create CGH Fringe Pattern by 3D Point Cloud
-	real time = 0.0;
 	if (IsCPU_ == true) { //Run CPU
 #ifdef _OPENMP
 		std::cout << "Generate Hologram with Multi Core CPU" << std::endl;
 #else
 		std::cout << "Generate Hologram with Single Core CPU" << std::endl;
 #endif
-		time = genCghPointCloud(holo_encoded); /// 홀로그램 데이터 Complex data로 변경 시 holo_gen으로
+		genCghPointCloud(holo_encoded); /// 홀로그램 데이터 Complex data로 변경 시 holo_gen으로
 	}
 	else { //Run GPU
 		std::cout << "Generate Hologram with GPU" << std::endl;
 
-		time = genCghPointCloud_cuda(holo_encoded);
+		genCghPointCloud_cuda(holo_encoded);
 		std::cout << ">>> CUDA GPGPU" << std::endl;
 	}
 
-	return time;
+	auto end_time = _cur_time;
+
+	return ((std::chrono::duration<real>)(end_time - start_time)).count();
 }
 
-real ophPointCloud::genCghPointCloud(real* dst)
+void ophPointCloud::genCghPointCloud(real* dst)
 {
 	// Output Image Size
 	int n_x = context_.pixel_number[_X];
@@ -140,7 +103,6 @@ real ophPointCloud::genCghPointCloud(real* dst)
 	real Length_x = pixel_x * n_x;
 	real Length_y = pixel_y * n_y;
 
-	std::chrono::system_clock::time_point time_start = std::chrono::system_clock::now();
 	int j; // private variable for Multi Threading
 #ifdef _OPENMP
 	int num_threads = 0;
@@ -150,9 +112,9 @@ real ophPointCloud::genCghPointCloud(real* dst)
 #pragma omp for private(j)
 #endif
 		for (j = 0; j < n_points; ++j) { //Create Fringe Pattern
-			real x = pc_data_.location[3 * j + 0] * pc_config_.scale[_X];
-			real y = pc_data_.location[3 * j + 1] * pc_config_.scale[_Y];
-			real z = pc_data_.location[3 * j + 2] * pc_config_.scale[_Z] + pc_config_.offset_depth;
+			real x = pc_data_.location[j][_X] * pc_config_.scale[_X];
+			real y = pc_data_.location[j][_Y] * pc_config_.scale[_Y];
+			real z = pc_data_.location[j][_Z] * pc_config_.scale[_Z] + pc_config_.offset_depth;
 			real amplitude = pc_data_.amplitude[j];
 
 			for (int row = 0; row < n_y; ++row) {
@@ -175,11 +137,9 @@ real ophPointCloud::genCghPointCloud(real* dst)
 	}
 	std::cout << ">>> All " << num_threads << " threads" << std::endl;
 #endif
-	std::chrono::system_clock::time_point time_finish = std::chrono::system_clock::now();
-	return ((std::chrono::duration<real>)(time_finish - time_start)).count();
 }
 
-real ophPointCloud::genCghPointCloud_cuda(real* dst)
+void ophPointCloud::genCghPointCloud_cuda(real* dst)
 {
 	int _bx = context_.pixel_number.v[0] / THREAD_X;
 	int _by = context_.pixel_number.v[1] / THREAD_Y;
@@ -197,8 +157,8 @@ real ophPointCloud::genCghPointCloud_cuda(real* dst)
 	const ulonglong bufferSize = context_.pixel_number.v[0] * context_.pixel_number.v[1] * sizeof(real);
 
 	//Host Memory Location
-	float3 *HostPointCloud = (float3*)pc_data_.location.data();
-	real *hostAmplitude = (real*)pc_data_.amplitude.data();
+	float3 *HostPointCloud = (float3*)pc_data_.location;
+	real *hostAmplitude = (real*)pc_data_.amplitude;
 
 	//Initializa Config for CUDA Kernel
 	oph::GpuConst HostConfig; {
@@ -234,12 +194,12 @@ real ophPointCloud::genCghPointCloud_cuda(real* dst)
 
 	//Device(GPU) Memory Location
 	float3 *DevicePointCloud;
-	cudaMalloc((void**)&DevicePointCloud, pc_data_.location.size() * sizeof(real));
-	cudaMemcpy(DevicePointCloud, HostPointCloud, pc_data_.location.size() * sizeof(real), cudaMemcpyHostToDevice);
+	cudaMalloc((void**)&DevicePointCloud, n_points * 3 * sizeof(real));
+	cudaMemcpy(DevicePointCloud, HostPointCloud, n_points * 3 * sizeof(real), cudaMemcpyHostToDevice);
 
 	real *deviceAmplitude;
-	cudaMalloc((void**)&deviceAmplitude, pc_data_.amplitude.size() * sizeof(real));
-	cudaMemcpy(deviceAmplitude, hostAmplitude, pc_data_.amplitude.size() * sizeof(real), cudaMemcpyHostToDevice);
+	cudaMalloc((void**)&deviceAmplitude, n_points * sizeof(real));
+	cudaMemcpy(deviceAmplitude, hostAmplitude, n_points * sizeof(real), cudaMemcpyHostToDevice);
 
 	GpuConst *DeviceConfig;
 	cudaMalloc((void**)&DeviceConfig, sizeof(GpuConst));
@@ -248,27 +208,22 @@ real ophPointCloud::genCghPointCloud_cuda(real* dst)
 	real *deviceDst;
 	cudaMalloc((void**)&deviceDst, bufferSize);
 
-	std::chrono::system_clock::time_point time_start = std::chrono::system_clock::now();
 	{
 		cudaPointCloudKernel(block_x, block_y, THREAD_X, THREAD_Y, DevicePointCloud, deviceAmplitude, DeviceConfig, deviceDst);
 		cudaMemcpy(dst, deviceDst, bufferSize, cudaMemcpyDeviceToHost);
 	}
-	std::chrono::system_clock::time_point time_finish = std::chrono::system_clock::now();
-
 
 	//Device(GPU) Memory Delete
 	cudaFree(DevicePointCloud);
 	cudaFree(deviceAmplitude);
 	cudaFree(deviceDst);
 	cudaFree(DeviceConfig);
-
-	return ((std::chrono::duration<real>)(time_finish - time_start)).count();
 }
 
 void ophPointCloud::ophFree(void)
 {
-	pc_data_.location.clear();
-	pc_data_.color.clear();
-	pc_data_.amplitude.clear();
-	pc_data_.phase.clear();
+	delete[] pc_data_.location;
+	delete[] pc_data_.color;
+	delete[] pc_data_.amplitude;
+	delete[] pc_data_.phase;
 }

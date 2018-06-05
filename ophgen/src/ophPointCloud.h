@@ -90,6 +90,45 @@ public:
 	}
 	/** \ingroup getter/setter */
 	inline void getTiltAngle(vec2& tiltangle) { tiltangle = pc_config_.tilt_angle; }
+	/** \ingroup getter/setter */
+	inline vec3* getLocationPC(void) { return pc_data_.location; }
+	/** \ingroup getter/setter */
+	inline ivec3* getColorPC(void) { return pc_data_.color; }
+	/** \ingroup getter/setter */
+	inline real* getAmplitudePC(void) { return pc_data_.amplitude; }
+	/** \ingroup getter/setter */
+	inline real* getPhasePC(void) { return pc_data_.phase; }
+	/** \ingroup getter/setter */
+	inline void setPointCloudModel(vec3* location, ivec3 *color, real *amplitude, real *phase) {
+		pc_data_.location = location;
+		pc_data_.color = color;
+		pc_data_.amplitude = amplitude;
+		pc_data_.phase = phase;
+	}
+	/** \ingroup getter/setter */
+	inline void getPointCloudModel(vec3 *location, ivec3 *color, real *amplitude, real *phase) {
+		getModelLocation(location);
+		getModelColor(color);
+		getModelAmplitude(amplitude);
+		getModelPhase(phase);
+	}
+
+	/**
+	\ingroup getter/setter
+	* @{
+	* @brief Directly Set Basic Data
+	*/
+	/**
+	* @param Location 3D Point Cloud Geometry Data
+	* @param Color 3D Point Cloud Color Data
+	* @param Amplitude 3D Point Cloud Model Amplitude Data of Point-Based Light Wave
+	* @param Phase 3D Point Cloud Model Phase Data of Point-Based Light Wave
+	*/
+	inline void getModelLocation(vec3 *location) { location = pc_data_.location; }
+	inline void getModelColor(ivec3 *color) { color = pc_data_.color; }
+	inline void getModelAmplitude(real *amplitude) { amplitude = pc_data_.amplitude; }
+	inline void getModelPhase(real *phase) { phase = pc_data_.phase; }
+	inline int getNumberOfPoints() { return n_points; }
 
 public:
 	/**
@@ -129,25 +168,6 @@ public:
 	virtual bool readConfig(const char* cfg_file);
 
 	/**
-	\ingroup getter/setter
-	* @{
-	* @brief Directly Set Basic Data
-	*/
-	/**
-	* @param VertexArray 3D Point Cloud Model Geometry Data (x0, y0, z0, x1, y1, z1 ...)
-	* @param AmplitudeArray 3D Point Cloud Model Amplitude Data of Point-Based Light Wave
-	* @param PhaseArray  3D Point Cloud Model Phase Data of Point-Based Light Wave
-	*/
-	void setPointCloudModel(const std::vector<real> &location, const std::vector<uchar> &color, const std::vector<real> &amplitude, const std::vector<real> &phase);
-	void getPointCloudModel(std::vector<real> &location, std::vector<uchar> &color, std::vector<real> &amplitude, std::vector<real> &phase);
-
-	void getModelLocation(std::vector<real> &location);
-	void getModelColor(std::vector<uchar> &color);
-	void getModelAmplitude(std::vector<real> &amplitude);
-	void getModelPhase(std::vector<real> &phase);
-	int getNumberOfPoints();
-
-	/**
 	* @brief Generate a hologram, main funtion.
 	* @return implement time (sec)
 	*/
@@ -165,7 +185,7 @@ private:
 	* @param dst Output Fringe Pattern
 	* @return implement time (sec)
 	*/
-	double genCghPointCloud(real* dst);
+	void genCghPointCloud(real* dst);
 
 	/**
 	* @overload
@@ -187,7 +207,7 @@ private:
 	* @param dst Output Fringe Pattern
 	* @return implement time (sec)
 	*/
-	double genCghPointCloud_cuda(real* dst);
+	void genCghPointCloud_cuda(real* dst);
 
 	/** @}	*/
 

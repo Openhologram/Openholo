@@ -2,6 +2,9 @@
 #include <windows.h>
 #include "sys.h"
 #include "function.h"
+#include "fftw3.h"
+#include <cuda_runtime.h>
+#include <cufft.h>
 
 ophGen::ophGen(void)
 	: Openholo()
@@ -15,8 +18,10 @@ ophGen::~ophGen(void)
 {
 }
 
-int ophGen::loadPointCloud(const char* pc_file, std::vector<real> *vertex_array, std::vector<uchar>* color_array, std::vector<real> *amplitude_array, std::vector<real> *phase_array)
+int ophGen::loadPointCloud(const char* pc_file, OphPointCloudData *pc_data_)
 {
+	LOG("Reading....%s...", pc_file);
+
 	std::ifstream File(pc_file, std::ios::in);
 	if (!File.is_open()) {
 		File.close();
@@ -27,10 +32,10 @@ int ophGen::loadPointCloud(const char* pc_file, std::vector<real> *vertex_array,
 	std::getline(File, Line);
 	int n_pts = atoi(Line.c_str());
 
-	vertex_array	!= nullptr ? vertex_array->reserve(n_pts * 3)	: vertex_array;
-	color_array		!= nullptr ? color_array->reserve(n_pts * 3)	: color_array;
-	amplitude_array != nullptr ? amplitude_array->reserve(n_pts)	: amplitude_array;
-	phase_array		!= nullptr ? phase_array->reserve(n_pts)		: phase_array;
+	pc_data_->location	= new vec3[n_pts];
+	pc_data_->color		= new ivec3[n_pts];
+	pc_data_->amplitude	= new real[n_pts];
+	pc_data_->phase		= new real[n_pts];
 
 	// parse input point cloud file
 	for (int i = 0; i < n_pts; ++i) {
@@ -40,23 +45,15 @@ int ophGen::loadPointCloud(const char* pc_file, std::vector<real> *vertex_array,
 		sscanf_s(Line.c_str(), "%d %lf %lf %lf %lf %lf\n", &idx, &pX, &pY, &pZ, &phase, &amplitude);
 
 		if (idx == i) {
-			if (vertex_array)
-			{
-				vertex_array->push_back(pX);
-				vertex_array->push_back(pY);
-				vertex_array->push_back(pZ);
-			}
-
-			if (color_array)
-			{
-				///point cloud data not include color data now.
-			}
-
-			if (amplitude_array)
-				amplitude_array->push_back(phase);
-
-			if (phase_array)
-				phase_array->push_back(amplitude);
+			pc_data_->location[idx][_X] = pX;
+			pc_data_->location[idx][_Y] = pY;
+			pc_data_->location[idx][_Z] = pY;
+			///point cloud data not include color data now.
+			///pc_data_->color_[idx][_X] = cX;
+			///pc_data_->color_[idx][_Y] = cY;
+			///pc_data_->color_[idx][_Z] = cZ;
+			pc_data_->phase[idx] = phase;
+			pc_data_->amplitude[idx] = amplitude;
 		}
 		else {
 			File.close();
@@ -64,11 +61,14 @@ int ophGen::loadPointCloud(const char* pc_file, std::vector<real> *vertex_array,
 		}
 	}
 	File.close();
+	LOG("done\n");
 	return n_pts;
 }
 
 bool ophGen::readConfig(const char* fname, OphPointCloudConfig& configdata)
 {
+	LOG("Reading....%s...", fname);
+
 	std::ifstream inFile(fname, std::ios::in);
 	if (!inFile.is_open()) {
 		LOG("file not found.\n");
@@ -130,6 +130,7 @@ bool ophGen::readConfig(const char* fname, OphPointCloudConfig& configdata)
 	configdata.tilt_angle.v[1] = stod(Value[16]);
 
 	inFile.close();
+	LOG("done\n");
 	return true;
 }
 
@@ -137,7 +138,7 @@ bool ophGen::readConfig(const char* fname, OphDepthMapConfig & config, OphDepthM
 {
 	std::string inputFileName_ = fname;
 
-	LOG("Reading....%s\n", fname);
+	LOG("Reading....%s...", fname);
 
 	std::ifstream inFile(fname);
 
@@ -265,9 +266,9 @@ bool ophGen::readConfig(const char* fname, OphDepthMapConfig & config, OphDepthM
 	return true;
 }
 
-void ophGen::normalize(const int frame)
+void ophGen::normalize(void)
 {
-	oph::normalize((real*)holo_encoded, holo_normalized, context_.pixel_number[_X], context_.pixel_number[_Y], frame);
+	oph::normalize((real*)holo_encoded, holo_normalized, context_.pixel_number[_X], context_.pixel_number[_Y]);
 }
 
 int ophGen::save(const char * fname, uint8_t bitsperpixel, uchar* src, uint px, uint py)
@@ -577,6 +578,227 @@ void ophGen::fft2(int n0, int n1, const oph::Complex<real>* in, oph::Complex<rea
 	fftw_destroy_plan(plan);
 	fftw_free(fft_in);
 	fftw_free(fft_out);
+}
+
+void ophGen::encodingSideBand(bool bCPU, ivec2 sig_location)
+{
+	if (holo_gen == nullptr) {
+		LOG("Not found diffracted data.");
+		return;
+	}
+
+	int pnx = context_.pixel_number[_X];
+	int pny = context_.pixel_number[_Y];
+
+	int cropx1, cropx2, cropx, cropy1, cropy2, cropy;
+	if (sig_location[1] == 0) { //Left or right half
+		cropy1 = 1;
+		cropy2 = pny;
+	}
+	else {
+		cropy = (int)floor(((real)pny) / 2);
+		cropy1 = cropy - (int)floor(((real)cropy) / 2);
+		cropy2 = cropy1 + cropy - 1;
+	}
+
+	if (sig_location[0] == 0) { // Upper or lower half
+		cropx1 = 1;
+		cropx2 = pnx;
+	}
+	else {
+		cropx = (int)floor(((real)pnx) / 2);
+		cropx1 = cropx - (int)floor(((real)cropx) / 2);
+		cropx2 = cropx1 + cropx - 1;
+	}
+
+	cropx1 -= 1;
+	cropx2 -= 1;
+	cropy1 -= 1;
+	cropy2 -= 1;
+
+	if (bCPU)
+		encodingSideBand_CPU(cropx1, cropx2, cropy1, cropy2, sig_location);
+	else
+		encodingSideBand_GPU(cropx1, cropx2, cropy1, cropy2, sig_location);
+}
+
+fftw_plan fft_plan_fwd;
+fftw_plan fft_plan_bwd;
+void ophGen::encodingSideBand_CPU(int cropx1, int cropx2, int cropy1, int cropy2, oph::ivec2 sig_location)
+{
+	int pnx = context_.pixel_number[_X];
+	int pny = context_.pixel_number[_Y];
+
+	oph::Complex<real>* h_crop = new oph::Complex<real>[pnx*pny];
+	memset(h_crop, 0.0, sizeof(oph::Complex<real>)*pnx*pny);
+
+	int p = 0;
+#pragma omp parallel for private(p)
+	for (p = 0; p < pnx*pny; p++)
+	{
+		int x = p % pnx;
+		int y = p / pnx;
+		if (x >= cropx1 && x <= cropx2 && y >= cropy1 && y <= cropy2)
+			h_crop[p] = holo_gen[p];
+	}
+
+	fftw_complex *in = NULL, *out = NULL;
+	fft_plan_bwd = fftw_plan_dft_2d(pny, pnx, in, out, FFTW_BACKWARD, FFTW_ESTIMATE);
+	fftwShift(h_crop, h_crop, in, out, pnx, pny, -1, true);
+	fftw_destroy_plan(fft_plan_bwd);
+	fftw_cleanup();
+
+	memset(holo_encoded, 0.0, sizeof(real)*pnx*pny);
+	int i = 0;
+#pragma omp parallel for private(i)	
+	for (i = 0; i < pnx*pny; i++) {
+		oph::Complex<real> shift_phase(1, 0);
+		get_shift_phase_value(shift_phase, i, sig_location);
+
+		holo_encoded[i] = (h_crop[i] * shift_phase).re;
+	}
+
+	delete[] h_crop;
+}
+
+extern "C"
+{
+	void cudaFFT(CUstream_st* stream, int nx, int ny, cufftDoubleComplex* in_filed, cufftDoubleComplex* output_field, int direction, bool bNormailized = false);
+	void cudaCropFringe(CUstream_st* stream, int nx, int ny, cufftDoubleComplex* in_field, cufftDoubleComplex* out_field, int cropx1, int cropx2, int cropy1, int cropy2);
+	void cudaGetFringe(CUstream_st* stream, int pnx, int pny, cufftDoubleComplex* in_field, cufftDoubleComplex* out_field, int sig_locationx, int sig_locationy,
+		real ssx, real ssy, real ppx, real ppy, real PI);
+}
+
+void ophGen::encodingSideBand_GPU(int cropx1, int cropx2, int cropy1, int cropy2, oph::ivec2 sig_location)
+{
+	int pnx = context_.pixel_number[0];
+	int pny = context_.pixel_number[1];
+	real ppx = context_.pixel_pitch[0];
+	real ppy = context_.pixel_pitch[1];
+	real ssx = context_.ss[0];
+	real ssy = context_.ss[1];
+
+	cufftDoubleComplex *k_temp_d_, *u_complex_gpu_;
+	cudaStream_t stream_;
+	cudaStreamCreate(&stream_);
+
+	cudaMalloc((void**)&u_complex_gpu_, sizeof(cufftDoubleComplex) * pnx * pny);
+	cudaMalloc((void**)&k_temp_d_, sizeof(cufftDoubleComplex) * pnx * pny);
+	cudaMemcpy(u_complex_gpu_, holo_gen, sizeof(cufftDoubleComplex) * pnx * pny, cudaMemcpyHostToDevice);
+
+	cudaMemsetAsync(k_temp_d_, 0, sizeof(cufftDoubleComplex)*pnx*pny, stream_);
+	cudaCropFringe(stream_, pnx, pny, u_complex_gpu_, k_temp_d_, cropx1, cropx2, cropy1, cropy2);
+
+	cudaMemsetAsync(u_complex_gpu_, 0, sizeof(cufftDoubleComplex)*pnx*pny, stream_);
+	cudaFFT(stream_, pnx, pny, k_temp_d_, u_complex_gpu_, 1, true);
+
+	cudaMemsetAsync(k_temp_d_, 0, sizeof(cufftDoubleComplex)*pnx*pny, stream_);
+	cudaGetFringe(stream_, pnx, pny, u_complex_gpu_, k_temp_d_, sig_location[0], sig_location[1], ssx, ssy, ppx, ppy, M_PI);
+
+	cufftDoubleComplex* sample_fd = (cufftDoubleComplex*)malloc(sizeof(cufftDoubleComplex)*pnx*pny);
+	memset(sample_fd, 0.0, sizeof(cufftDoubleComplex)*pnx*pny);
+
+	cudaMemcpyAsync(sample_fd, k_temp_d_, sizeof(cufftDoubleComplex)*pnx*pny, cudaMemcpyDeviceToHost), stream_;
+	memset(holo_encoded, 0.0, sizeof(real)*pnx*pny);
+
+	for (int i = 0; i < pnx * pny; i++)
+		holo_encoded[i] = sample_fd[i].x;
+
+	delete[] sample_fd;
+	cudaStreamDestroy(stream_);
+}
+
+void ophGen::get_shift_phase_value(oph::Complex<real>& shift_phase_val, int idx, oph::ivec2 sig_location)
+{
+	int pnx = context_.pixel_number[0];
+	int pny = context_.pixel_number[1];
+	real ppx = context_.pixel_pitch[0];
+	real ppy = context_.pixel_pitch[1];
+	real ssx = context_.ss[0];
+	real ssy = context_.ss[1];
+
+	if (sig_location[1] != 0)
+	{
+		int r = idx / pnx;
+		int c = idx % pnx;
+		real yy = (ssy / 2.0) - (ppy)*r - ppy;
+
+		oph::Complex<real> val;
+		if (sig_location[1] == 1)
+			val.im = 2 * M_PI * (yy / (4 * ppy));
+		else
+			val.im = 2 * M_PI * (-yy / (4 * ppy));
+
+		val.exp();
+		shift_phase_val *= val;
+	}
+
+	if (sig_location[0] != 0)
+	{
+		int r = idx / pnx;
+		int c = idx % pnx;
+		real xx = (-ssx / 2.0) - (ppx)*c - ppx;
+
+		oph::Complex<real> val;
+		if (sig_location[0] == -1)
+			val.im = 2 * M_PI * (-xx / (4 * ppx));
+		else
+			val.im = 2 * M_PI * (xx / (4 * ppx));
+
+		val.exp();
+		shift_phase_val *= val;
+	}
+}
+
+void ophGen::fftwShift(oph::Complex<real>* src, oph::Complex<real>* dst, fftw_complex * in, fftw_complex * out, int nx, int ny, int type, bool bNormalized)
+{
+	oph::Complex<real>* tmp = (oph::Complex<real>*)malloc(sizeof(oph::Complex<real>)*nx*ny);
+	memset(tmp, 0.0, sizeof(oph::Complex<real>)*nx*ny);
+	fftShift(nx, ny, src, tmp);
+
+	in = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * nx * ny);
+	out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * nx * ny);
+
+	for (int i = 0; i < nx*ny; i++)
+	{
+		in[i][0] = tmp[i].re;
+		in[i][1] = tmp[i].im;
+	}
+
+	if (type == 1)
+		fftw_execute_dft(fft_plan_fwd, in, out);
+	else
+		fftw_execute_dft(fft_plan_bwd, in, out);
+
+	int normalF = 1;
+	if (bNormalized) normalF = nx * ny;
+	memset(tmp, 0, sizeof(oph::Complex<real>)*nx*ny);
+
+	for (int k = 0; k < nx*ny; k++) {
+		tmp[k].re = out[k][0] / normalF;
+		tmp[k].im = out[k][1] / normalF;
+	}
+	fftw_free(in);
+	fftw_free(out);
+
+	memset(dst, 0.0, sizeof(oph::Complex<real>)*nx*ny);
+	fftShift(nx, ny, tmp, dst);
+
+	free(tmp);
+}
+
+void ophGen::fftShift(int nx, int ny, oph::Complex<real>* input, oph::Complex<real>* output)
+{
+	for (int i = 0; i < nx; i++)
+	{
+		for (int j = 0; j < ny; j++)
+		{
+			int ti = i - nx / 2; if (ti < 0) ti += nx;
+			int tj = j - ny / 2; if (tj < 0) tj += ny;
+
+			output[ti + tj * nx] = input[i + j * nx];
+		}
+	}
 }
 
 void ophGen::ophFree(void)
