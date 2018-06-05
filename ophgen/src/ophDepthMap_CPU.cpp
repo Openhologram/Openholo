@@ -110,7 +110,7 @@ void ophDepthMap::change_depth_quan_CPU()
 * @param frame : the frame number of the image.
 * @see calc_Holo_by_Depth, propagation_AngularSpectrum_CPU
 */
-void ophDepthMap::calc_Holo_CPU(int frame)
+void ophDepthMap::calc_Holo_CPU(void)
 {
 	int pnx = context_.pixel_number[0];
 	int pny = context_.pixel_number[1];
@@ -139,7 +139,7 @@ void ophDepthMap::calc_Holo_CPU(int frame)
 
 		if (sum > 0.0)
 		{
-			LOG("Frame#: %d, Depth: %d of %d, z = %f mm\n", frame, dtr, dm_config_.num_of_depth, -temp_depth * 1000);
+			LOG("Depth: %d of %d, z = %f mm\n", dtr, dm_config_.num_of_depth, -temp_depth * 1000);
 
 			oph::Complex<real> rand_phase_val;
 			get_rand_phase_value(rand_phase_val);
@@ -156,7 +156,7 @@ void ophDepthMap::calc_Holo_CPU(int frame)
 			}
 		}
 		else
-			LOG("Frame#: %d, Depth: %d of %d : Nothing here\n", frame, dtr, dm_config_.num_of_depth);
+			LOG("Depth: %d of %d : Nothing here\n", dtr, dm_config_.num_of_depth);
 
 		delete[] u_o;
 	}
@@ -209,178 +209,6 @@ void ophDepthMap::propagation_AngularSpectrum_CPU(oph::Complex<real>* input_u, r
 	}
 }
 
-/**
-* @brief Encode the CGH according to a signal location parameter on the CPU.
-* @details The CPU variable, holo_gen on CPU has the final result.
-* @param cropx1 : the start x-coordinate to crop.
-* @param cropx2 : the end x-coordinate to crop.
-* @param cropy1 : the start y-coordinate to crop.
-* @param cropy2 : the end y-coordinate to crop.
-* @param sig_location : ivec2 type,
-*  sig_location[0]: upper or lower half, sig_location[1]:left or right half.
-* @see encodingSymmetrization, fftwShift
-*/
-void ophDepthMap::encoding_CPU(int cropx1, int cropx2, int cropy1, int cropy2, ivec2 sig_location)
-{
-	int pnx = context_.pixel_number[_X];
-	int pny = context_.pixel_number[_Y];
-	int frm = dm_params_.NUMBER_OF_FRAME;
-
-	oph::Complex<real>* h_crop = new oph::Complex<real>[pnx*pny*frm];
-	memset(h_crop, 0.0, sizeof(oph::Complex<real>)*pnx*pny*frm);
-
-	int p = 0;
-#pragma omp parallel for private(p)
-	for (p = 0; p < pnx*pny*frm; p++)
-	{
-		int x = p % pnx;
-		int y = p / pnx;
-		if (x >= cropx1 && x <= cropx2 && y >= cropy1 && y <= cropy2)
-			h_crop[p] = holo_gen[p];
-	}
-
-	fftw_complex *in = NULL, *out = NULL;
-	fft_plan_bwd_ = fftw_plan_dft_2d(pny, pnx, in, out, FFTW_BACKWARD, FFTW_ESTIMATE);
-	fftwShift(h_crop, h_crop, in, out, pnx, pny, -1, true);
-	fftw_destroy_plan(fft_plan_bwd_);
-	fftw_cleanup();
-
-	memset(holo_encoded, 0.0, sizeof(real)*pnx*pny*frm);
-	int i = 0;
-#pragma omp parallel for private(i)	
-	for (i = 0; i < pnx*pny * frm; i++) {
-		oph::Complex<real> shift_phase(1, 0);
-		get_shift_phase_value(shift_phase, i, sig_location);
-
-		holo_encoded[i] = (h_crop[i] * shift_phase).re;
-	}
-
-	delete[] h_crop;
-}
-
-/**
-* @brief Convert data from the spatial domain to the frequency domain using 2D FFT on CPU.
-* @details It is equivalent to Matlab code, dst = ifftshift(fft2(fftshift(src))).
-* @param src : input data variable
-* @param dst : output data variable
-* @param in : input data pointer connected with FFTW plan
-* @param out : ouput data pointer connected with FFTW plan
-* @param nx : the number of column of the input data
-* @param ny : the number of row of the input data
-* @param type : If type == 1, forward FFT, if type == -1, backward FFT.
-* @param bNomarlized : If bNomarlized == true, normalize the result after FFT.
-* @see propagation_AngularSpectrum_CPU, encoding_CPU
-*/
-void ophDepthMap::fftwShift(oph::Complex<real>* src, oph::Complex<real>* dst, fftw_complex* in, fftw_complex* out, int nx, int ny, int type, bool bNomarlized)
-{
-	oph::Complex<real>* tmp = (oph::Complex<real>*)malloc(sizeof(oph::Complex<real>)*nx*ny);
-	memset(tmp, 0.0, sizeof(oph::Complex<real>)*nx*ny);
-	fftShift(nx, ny, src, tmp);
-
-	in = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * nx * ny);
-	out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * nx * ny);
-	
-	for (int i = 0; i < nx*ny; i++)
-	{
-		in[i][0] = tmp[i].re;
-		in[i][1] = tmp[i].im;
-	}
-
-	if (type == 1)
-		fftw_execute_dft(fft_plan_fwd_, in, out);
-	else
-		fftw_execute_dft(fft_plan_bwd_, in, out);
-	
-	int normalF = 1;
-	if (bNomarlized) normalF = nx * ny;
-	memset(tmp, 0, sizeof(oph::Complex<real>)*nx*ny);
-
-	for (int k = 0; k < nx*ny; k++) {
-		tmp[k].re = out[k][0] / normalF;
-		tmp[k].im = out[k][1] / normalF;
-	}
-	fftw_free(in);
-	fftw_free(out);
-
-	memset(dst, 0.0, sizeof(oph::Complex<real>)*nx*ny);
-	fftShift(nx, ny, tmp, dst);
-	
-	free(tmp);
-	
-}
-
-/**
-* @brief Swap the top-left quadrant of data with the bottom-right , and the top-right quadrant with the bottom-left.
-* @param nx : the number of column of the input data
-* @param ny : the number of row of the input data
-* @param input : input data variable
-* @param output : output data variable
-* @see fftwShift
-*/
-void ophDepthMap::fftShift(int nx, int ny, oph::Complex<real>* input, oph::Complex<real>* output)
-{
-	for (int i = 0; i < nx; i++)
-	{
-		for (int j = 0; j < ny; j++)
-		{
-			int ti = i - nx / 2; if (ti < 0) ti += nx;
-			int tj = j - ny / 2; if (tj < 0) tj += ny;
-
-			output[ti + tj * nx] = input[i + j * nx];
-		}
-	}
-}
-
-/**
-* @brief Calculate the shift phase value.
-* @param shift_phase_val : output variable.
-* @param idx : the current pixel position.
-* @param sig_location :  signal location.
-* @see encoding_CPU
-*/
-void ophDepthMap::get_shift_phase_value(oph::Complex<real>& shift_phase_val, int idx, ivec2 sig_location)
-{
-	int pnx = context_.pixel_number[0];
-	int pny = context_.pixel_number[1];
-	real ppx = context_.pixel_pitch[0];
-	real ppy = context_.pixel_pitch[1];
-	real ssx = context_.ss[0];
-	real ssy = context_.ss[1];
-
-	if (sig_location[1] != 0)
-	{
-		int r = idx / pnx;
-		int c = idx % pnx;
-		real yy = (ssy / 2.0) - (ppy)*r - ppy;
-
-		oph::Complex<real> val;
-		if (sig_location[1] == 1)
-			val.im = 2 * M_PI * (yy / (4 * ppy));
-		else
-			val.im = 2 * M_PI * (-yy / (4 * ppy));
-
-		val.exp();
-		shift_phase_val *= val;
-	}
-
-	if (sig_location[0] != 0)
-	{
-		int r = idx / pnx;
-		int c = idx % pnx;
-		real xx = (-ssx / 2.0) - (ppx)*c - ppx;
-
-		oph::Complex<real> val;
-		if (sig_location[0] == -1)
-			val.im = 2 * M_PI * (-xx / (4 * ppx));
-		else
-			val.im = 2 * M_PI * (xx / (4 * ppx));
-
-		val.exp();
-		shift_phase_val *= val;
-	}
-
-}
-
 
 //=====reconstruction =======================================================================
 /**
@@ -388,13 +216,6 @@ void ophDepthMap::get_shift_phase_value(oph::Complex<real>& shift_phase_val, int
 */
 void ophDepthMap::reconstructImage()
 {
-	//if (!p_hologram) {
-		//p_hologram = (real*)malloc(sizeof(real)*context_.pixel_number[0] * context_.pixel_number[1]);
-		//if (!readMatFileDouble("u255_fringe.mat", p_hologram))
-		//LOG("Error: No Hologram Data\n");
-		//return;
-	//}
-
 	dm_simuls_.Pixel_pitch_xy_[0] = context_.pixel_pitch[0] / dm_simuls_.test_pixel_number_scale_;
 	dm_simuls_.Pixel_pitch_xy_[1] = context_.pixel_pitch[1] / dm_simuls_.test_pixel_number_scale_;
 
@@ -505,11 +326,9 @@ void ophDepthMap::testPropagation2EyePupil(fftw_complex* in, fftw_complex* out)
 		kernel.exp();
 
 		dm_simuls_.hh_complex_[p] = hh[p] * kernel;
-
 	}
 
 	free(hh);
-
 }
 
 /**

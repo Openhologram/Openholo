@@ -136,14 +136,14 @@ public:
 	virtual bool readConfig(const char* fname, OphPointCloudConfig& config);
 	virtual bool readConfig(const char* fname, OphDepthMapConfig& config, OphDepthMapParams& params, OphDepthMapSimul& simuls);
 
-	virtual void normalize(const int frame = 0);
+	virtual void normalize(void);
 
 	/** \ingroup write_module */
 	virtual int save(const char* fname, uint8_t bitsperpixel = 8, uchar* src = nullptr, uint px = 0, uint py = 0);
 	virtual int load(const char* fname, void* dst = nullptr);
 
 	/**	*/
-	void fft2(int n0, int n1, const oph::Complex<real>* in, oph::Complex<real>* out, int sign, unsigned int flag = FFTW_ESTIMATE);
+	void fft2(int n0, int n1, const oph::Complex<real>* in, oph::Complex<real>* out, int sign = FFTW_FORWARD, unsigned int flag = FFTW_ESTIMATE);
 
 protected:
 	/** 
@@ -187,6 +187,64 @@ public:
 	
 	/** @brief Frequency Shift */
 	//void freqShift(oph::Complex<real>* holo, Complex<real>* encoded, const vec2 holosize, int shift_x, int shift_y);
+
+protected:
+	/** \ingroup encode_module
+	* @{ */
+	/**
+	* @brief Encode the CGH according to a signal location parameter.
+	* @param sig_location : ivec2 type,
+	*  sig_location[0]: upper or lower half, sig_location[1]:left or right half.
+	* @see encoding_CPU, encoding_GPU
+	*/
+	void encodingSideBand(bool bCPU, ivec2 sig_location);
+	/**
+	* @brief Encode the CGH according to a signal location parameter on the CPU.
+	* @details The CPU variable, holo_gen on CPU has the final result.
+	* @param cropx1 : the start x-coordinate to crop.
+	* @param cropx2 : the end x-coordinate to crop.
+	* @param cropy1 : the start y-coordinate to crop.
+	* @param cropy2 : the end y-coordinate to crop.
+	* @param sig_location : ivec2 type,
+	*  sig_location[0]: upper or lower half, sig_location[1]:left or right half.
+	* @see encodingSymmetrization, fftwShift
+	*/
+	void encodingSideBand_CPU(int cropx1, int cropx2, int cropy1, int cropy2, oph::ivec2 sig_location);
+	void encodingSideBand_GPU(int cropx1, int cropx2, int cropy1, int cropy2, oph::ivec2 sig_location);
+
+	/**
+	* @brief Calculate the shift phase value.
+	* @param shift_phase_val : output variable.
+	* @param idx : the current pixel position.
+	* @param sig_location :  signal location.
+	* @see encodingSideBand_CPU
+	*/
+	void get_shift_phase_value(oph::Complex<real>& shift_phase_val, int idx, oph::ivec2 sig_location);
+
+	/**
+	* @brief Convert data from the spatial domain to the frequency domain using 2D FFT on CPU.
+	* @details It is equivalent to Matlab code, dst = ifftshift(fft2(fftshift(src))).
+	* @param src : input data variable
+	* @param dst : output data variable
+	* @param in : input data pointer connected with FFTW plan
+	* @param out : ouput data pointer connected with FFTW plan
+	* @param nx : the number of column of the input data
+	* @param ny : the number of row of the input data
+	* @param type : If type == 1, forward FFT, if type == -1, backward FFT.
+	* @param bNomarlized : If bNomarlized == true, normalize the result after FFT.
+	* @see propagation_AngularSpectrum_CPU, encoding_CPU
+	*/
+	void fftwShift(oph::Complex<real>* src, oph::Complex<real>* dst, fftw_complex* in, fftw_complex* out, int nx, int ny, int type, bool bNormalized = false);
+
+	/**
+	* @brief Swap the top-left quadrant of data with the bottom-right , and the top-right quadrant with the bottom-left.
+	* @param nx : the number of column of the input data
+	* @param ny : the number of row of the input data
+	* @param input : input data variable
+	* @param output : output data variable
+	* @see fftwShift
+	*/
+	void fftShift(int nx, int ny, oph::Complex<real>* input, oph::Complex<real>* output);
 
 protected:
 	/**
