@@ -148,14 +148,6 @@ void ophDepthMap::encodeHologram(void)
 		encodingSymmetrization(ivec2(0, 1));
 }
 
-void ophDepthMap::encodeHologram2(void)
-{
-	vec2 holo_size;
-	holo_size[0] = context_.pixel_number[0];
-	holo_size[1] = context_.pixel_number[1];
-	numericalInterference(holo_gen, holo_encoded, holo_size);
-}
-
 void ophDepthMap::normalize()
 {
 	int pnx = context_.pixel_number[_X];

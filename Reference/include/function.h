@@ -38,7 +38,7 @@ namespace oph
 		for (int i = 0; i < size; i++) {
 			if (*(src + i) < min) min = *(src + i);
 		}
-		return max;
+		return min;
 	}
 
 	inline real& maxOfArr(const std::vector<real>& arr) {
@@ -93,7 +93,7 @@ namespace oph
 	template<typename T>
 	inline void realPart(const oph::Complex<T>* src, T* dst, const int& size) {
 		for (int i = 0; i < size; i++) {
-			*(dst + i) = *(src + i).re;
+			*(dst + i) = (src + i)->re;
 		}
 	}
 
@@ -114,8 +114,9 @@ namespace oph
 	*/
 	template<typename T>
 	inline void normalize(const Complex<T>* src, Complex<T>* dst, const int& size) {
+		
 		real* abs = new real[size];
-		oph::absCplxArr<real>(dst, abs, size);
+		oph::absCplxArr<real>(src, abs, size);
 
 		real* max = new real;
 		*max = oph::maxOfArr<real>(abs, size);
@@ -192,7 +193,7 @@ namespace oph
 
 	template<typename T>
 	inline void memsetArr(T* pArr, const T& _Value, const oph::uint& beginIndex, const oph::uint& endIndex) {
-		for (uint i = beginIndex; i <= endIndex; i++) {
+		for (int i = beginIndex; i <= endIndex; i++) {
 			*(pArr + i) = _Value;
 		}
 	}
