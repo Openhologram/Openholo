@@ -47,7 +47,8 @@ int ophGen::loadPointCloud(const char* pc_file, OphPointCloudData *pc_data_, uin
 	// parse input point cloud file
 	for (int i = 0; i < n_pts; ++i) {
 		int idx;
-		real pX, pY, pZ, pR, pG, pB, phase, amplitude;
+		real pX, pY, pZ, phase, amplitude;
+		int pR, pG, pB;
 		std::getline(File, Line);
 
 		sscanf_s(Line.c_str(), "%d ", &idx);
