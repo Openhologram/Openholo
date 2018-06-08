@@ -18,9 +18,11 @@ ophGen::~ophGen(void)
 {
 }
 
-int ophGen::loadPointCloud(const char* pc_file, OphPointCloudData *pc_data_)
+int ophGen::loadPointCloud(const char* pc_file, OphPointCloudData *pc_data_, uint flag)
 {
 	LOG("Reading....%s...", pc_file);
+
+	auto start = _cur_time;
 
 	std::ifstream File(pc_file, std::ios::in);
 	if (!File.is_open()) {
@@ -37,23 +39,42 @@ int ophGen::loadPointCloud(const char* pc_file, OphPointCloudData *pc_data_)
 	pc_data_->amplitude	= new real[n_pts];
 	pc_data_->phase		= new real[n_pts];
 
+	memset(pc_data_->location, NULL, sizeof(vec3) * n_pts);
+	memset(pc_data_->color, NULL, sizeof(ivec3) * n_pts);
+	memset(pc_data_->amplitude, NULL, sizeof(real) * n_pts);
+	memset(pc_data_->phase, NULL, sizeof(real) * n_pts);
+
 	// parse input point cloud file
 	for (int i = 0; i < n_pts; ++i) {
 		int idx;
-		real pX, pY, pZ, phase, amplitude;
+		real pX, pY, pZ, pR, pG, pB, phase, amplitude;
 		std::getline(File, Line);
-		sscanf_s(Line.c_str(), "%d %lf %lf %lf %lf %lf\n", &idx, &pX, &pY, &pZ, &phase, &amplitude);
 
+		sscanf_s(Line.c_str(), "%d ", &idx);
 		if (idx == i) {
-			pc_data_->location[idx][_X] = pX;
-			pc_data_->location[idx][_Y] = pY;
-			pc_data_->location[idx][_Z] = pY;
-			///point cloud data not include color data now.
-			///pc_data_->color_[idx][_X] = cX;
-			///pc_data_->color_[idx][_Y] = cY;
-			///pc_data_->color_[idx][_Z] = cZ;
-			pc_data_->phase[idx] = phase;
-			pc_data_->amplitude[idx] = amplitude;
+			if (flag & PC_XYZ){
+				sscanf_s(Line.c_str(), "%lf %lf %lf ", &pX, &pY, &pZ);
+				pc_data_->location[idx][_X] = pX;
+				pc_data_->location[idx][_Y] = pY;
+				pc_data_->location[idx][_Z] = pY;
+			}
+
+			if (flag & PC_RGB){
+				sscanf_s(Line.c_str(), "%d %d %d ", &pR, &pG, &pB);
+				pc_data_->color[idx][_X] = pR;
+				pc_data_->color[idx][_Y] = pG;
+				pc_data_->color[idx][_Z] = pB;
+			}
+			if (flag & PC_PHASE){
+				sscanf_s(Line.c_str(), "%lf ", &phase);
+				pc_data_->phase[idx] = phase;
+			}
+			if (flag & PC_AMPLITUDE){
+				sscanf_s(Line.c_str(), "%lf ", &amplitude);
+				pc_data_->amplitude[idx] = amplitude;
+			}
+
+			sscanf_s(Line.c_str(), "\n");
 		}
 		else {
 			File.close();
@@ -61,13 +82,20 @@ int ophGen::loadPointCloud(const char* pc_file, OphPointCloudData *pc_data_)
 		}
 	}
 	File.close();
-	LOG("done\n");
+
+	auto end = _cur_time;
+
+	auto during = ((std::chrono::duration<real>)(end - start)).count();
+
+	LOG("%.5lfsec...done\n", during);
 	return n_pts;
 }
 
 bool ophGen::readConfig(const char* fname, OphPointCloudConfig& configdata)
 {
 	LOG("Reading....%s...", fname);
+
+	auto start = _cur_time;
 
 	std::ifstream inFile(fname, std::ios::in);
 	if (!inFile.is_open()) {
@@ -130,7 +158,12 @@ bool ophGen::readConfig(const char* fname, OphPointCloudConfig& configdata)
 	configdata.tilt_angle.v[1] = stod(Value[16]);
 
 	inFile.close();
-	LOG("done\n");
+
+	auto end = _cur_time;
+
+	auto during = ((std::chrono::duration<real>)(end - start)).count();
+
+	LOG("%.5lfsec...done\n", during);
 	return true;
 }
 
@@ -139,6 +172,8 @@ bool ophGen::readConfig(const char* fname, OphDepthMapConfig & config, OphDepthM
 	std::string inputFileName_ = fname;
 
 	LOG("Reading....%s...", fname);
+
+	auto start = _cur_time;
 
 	std::ifstream inFile(fname);
 
@@ -261,7 +296,11 @@ bool ophGen::readConfig(const char* fname, OphDepthMapConfig & config, OphDepthM
 	//=====================================================================================
 	inFile.close();
 
-	LOG("done\n");
+	auto end = _cur_time;
+
+	auto during = ((std::chrono::duration<real>)(end - start)).count();
+
+	LOG("%.5lfsec...done\n", during);
 
 	return true;
 }
@@ -283,18 +322,14 @@ int ophGen::save(const char * fname, uint8_t bitsperpixel, uchar* src, uint px, 
 	if (px == 0 && py == 0)
 		p = ivec2(context_.pixel_number[_X], context_.pixel_number[_Y]);
 
-	if (checkExtension(fname, ".ohf"))	// save as *.ohf
-		return Openholo::saveAsOhf(fname, bitsperpixel, source, p[_X], p[_Y]);
-	else {										// save as image file - (bmp)
-		if (checkExtension(fname, ".bmp")) 	// when the extension is bmp
-			return Openholo::saveAsImg(fname, bitsperpixel, source, p[_X], p[_Y]);
-		else {									// when extension is not .ohf, .bmp - force bmp
-			char buf[256];
-			memset(buf, 0x00, sizeof(char) * 256);
-			sprintf_s(buf, "%s.bmp", fname);
+	if (checkExtension(fname, ".bmp")) 	// when the extension is bmp
+		return Openholo::saveAsImg(fname, bitsperpixel, source, p[_X], p[_Y]);
+	else {									// when extension is not .ohf, .bmp - force bmp
+		char buf[256];
+		memset(buf, 0x00, sizeof(char) * 256);
+		sprintf_s(buf, "%s.bmp", fname);
 
-			return Openholo::saveAsImg(buf, bitsperpixel, source, p[_X], p[_Y]);
-		}
+		return Openholo::saveAsImg(buf, bitsperpixel, source, p[_X], p[_Y]);
 	}
 }
 
@@ -334,24 +369,16 @@ int ophGen::load(const char * fname, void * dst)
 		delete[] holo_normalized;
 	}
 
-	if (checkExtension(fname, ".ohf")) {
+	if (checkExtension(fname, ".bmp"))
+	{
 		if (dst != nullptr)
-			return Openholo::loadAsOhf(fname, dst);
+			return Openholo::loadAsImg(fname, dst);
 		else
-			return Openholo::loadAsOhf(fname, holo_normalized);
-	} 
-	else {
-		if (checkExtension(fname, ".bmp"))
-		{
-			if (dst != nullptr)
-				return Openholo::loadAsImg(fname, dst);
-			else
-				return Openholo::loadAsImg(fname, holo_normalized);
-		}
-		else			// when extension is not .ohf, .bmp
-		{
-			// how to load another image file format?
-		}
+			return Openholo::loadAsImg(fname, holo_normalized);
+	}
+	else			// when extension is not .ohf, .bmp
+	{
+		// how to load another image file format?
 	}
 
 	return 0;
@@ -581,7 +608,7 @@ void ophGen::fft2(int n0, int n1, const oph::Complex<real>* in, oph::Complex<rea
 	fftw_free(fft_out);
 }
 
-void ophGen::encodingSideBand(bool bCPU, ivec2 sig_location)
+void ophGen::encodeSideBand(bool bCPU, ivec2 sig_location)
 {
 	if (holo_gen == nullptr) {
 		LOG("Not found diffracted data.");
@@ -618,14 +645,14 @@ void ophGen::encodingSideBand(bool bCPU, ivec2 sig_location)
 	cropy2 -= 1;
 
 	if (bCPU)
-		encodingSideBand_CPU(cropx1, cropx2, cropy1, cropy2, sig_location);
+		encodeSideBand_CPU(cropx1, cropx2, cropy1, cropy2, sig_location);
 	else
-		encodingSideBand_GPU(cropx1, cropx2, cropy1, cropy2, sig_location);
+		encodeSideBand_GPU(cropx1, cropx2, cropy1, cropy2, sig_location);
 }
 
 fftw_plan fft_plan_fwd;
 fftw_plan fft_plan_bwd;
-void ophGen::encodingSideBand_CPU(int cropx1, int cropx2, int cropy1, int cropy2, oph::ivec2 sig_location)
+void ophGen::encodeSideBand_CPU(int cropx1, int cropx2, int cropy1, int cropy2, oph::ivec2 sig_location)
 {
 	int pnx = context_.pixel_number[_X];
 	int pny = context_.pixel_number[_Y];
@@ -664,13 +691,62 @@ void ophGen::encodingSideBand_CPU(int cropx1, int cropx2, int cropy1, int cropy2
 
 extern "C"
 {
-	void cudaFFT(CUstream_st* stream, int nx, int ny, cufftDoubleComplex* in_filed, cufftDoubleComplex* output_field, int direction, bool bNormailized = false);
+	/**
+	* \defgroup gpu_model GPU Modules
+	* @{
+	*/
+	/**
+	* @brief Convert data from the spatial domain to the frequency domain using 2D FFT on GPU.
+	* @details call CUDA Kernel - fftShift and CUFFT Library.
+	* @param stream : CUDA Stream
+	* @param nx : the number of column of the input data
+	* @param ny : the number of row of the input data
+	* @param in_field : input complex data variable
+	* @param output_field : output complex data variable
+	* @param direction : If direction == -1, forward FFT, if type == 1, inverse FFT.
+	* @param bNomarlized : If bNomarlized == true, normalize the result after FFT.
+	* @see propagation_AngularSpectrum_GPU, encoding_GPU
+	*/
+	void cudaFFT(CUstream_st* stream, int nx, int ny, cufftDoubleComplex* in_filed, cufftDoubleComplex* output_field, int direction, bool bNormailized = false);	
+	
+	/**
+	* @brief Crop input data according to x, y coordinates on GPU.
+	* @details call CUDA Kernel - cropFringe. 
+	* @param stream : CUDA Stream
+	* @param nx : the number of column of the input data
+	* @param ny : the number of row of the input data
+	* @param in_field : input complex data variable
+	* @param output_field : output complex data variable
+	* @param cropx1 : the start x-coordinate to crop.
+	* @param cropx2 : the end x-coordinate to crop.
+	* @param cropy1 : the start y-coordinate to crop.
+	* @param cropy2 : the end y-coordinate to crop.
+	* @see encoding_GPU
+	*/
 	void cudaCropFringe(CUstream_st* stream, int nx, int ny, cufftDoubleComplex* in_field, cufftDoubleComplex* out_field, int cropx1, int cropx2, int cropy1, int cropy2);
+
+	/**
+	* @brief Encode the CGH according to a signal location parameter on the GPU.
+	* @details The variable, ((real*)p_hologram) has the final result.
+	* @param stream : CUDA Stream
+	* @param pnx : the number of column of the input data
+	* @param pny : the number of row of the input data
+	* @param in_field : input data
+	* @param out_field : output data
+	* @param sig_locationx : signal location of x-axis, left or right half
+	* @param sig_locationy : signal location of y-axis, upper or lower half
+	* @param ssx : pnx * ppx
+	* @param ssy : pny * ppy
+	* @param ppx : pixel pitch of x-axis
+	* @param ppy : pixel pitch of y-axis
+	* @param PI : Pi
+	* @see encoding_GPU
+	*/
 	void cudaGetFringe(CUstream_st* stream, int pnx, int pny, cufftDoubleComplex* in_field, cufftDoubleComplex* out_field, int sig_locationx, int sig_locationy,
 		real ssx, real ssy, real ppx, real ppy, real PI);
 }
 
-void ophGen::encodingSideBand_GPU(int cropx1, int cropx2, int cropy1, int cropy2, oph::ivec2 sig_location)
+void ophGen::encodeSideBand_GPU(int cropx1, int cropx2, int cropy1, int cropy2, oph::ivec2 sig_location)
 {
 	int pnx = context_.pixel_number[0];
 	int pny = context_.pixel_number[1];
@@ -748,6 +824,21 @@ void ophGen::get_shift_phase_value(oph::Complex<real>& shift_phase_val, int idx,
 
 		val.exp();
 		shift_phase_val *= val;
+	}
+}
+
+void ophGen::get_rand_phase_value(oph::Complex<real>& rand_phase_val, bool rand_phase)
+{
+	if (rand_phase)
+	{
+		rand_phase_val.re = 0.0;
+		rand_phase_val.im = 2 * M_PI * oph::rand(0.0, 1.0);
+		rand_phase_val.exp();
+
+	}
+	else {
+		rand_phase_val.re = 1.0;
+		rand_phase_val.im = 0.0;
 	}
 }
 

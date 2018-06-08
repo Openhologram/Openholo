@@ -1,5 +1,7 @@
 #include "ophPointCloud.h"
-#include "function.h"
+#include "include.h"
+
+#include <sys.h>
 
 ophPointCloud::ophPointCloud(void)
 	: ophGen()

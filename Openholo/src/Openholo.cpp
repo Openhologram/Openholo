@@ -18,7 +18,6 @@ Openholo::~Openholo(void)
 void Openholo::initialize(void)
 {
 	context_ = { 0 };
-	p_hologram = nullptr;
 }
 
 int Openholo::checkExtension(const char * fname, const char * ext)
@@ -35,86 +34,10 @@ int Openholo::checkExtension(const char * fname, const char * ext)
 		return 1;
 }
 
-int Openholo::saveAsOhf(const char * fname, uint8_t bitsperpixel, void* src, int pic_width, int pic_height)
-{
-	//OphContext tmp = getContext();
-
-	//int _height = pic_width;
-	//int _width = pic_height;
-
-	//if (pic_width == 0)
-	//	_width = tmp.pixel_number.v[0];
-	//if ( pic_height == 0)
-	//	_height = tmp.pixel_number.v[1];
-
-	//int _pixelbytesize = _height * _width * bitsperpixel / 8;
-	//int _filesize = _pixelbytesize + sizeof(ohfdata);
-
-	//FILE *fp;
-	//fopen_s(&fp, fname, "wb");
-	//if (fp == nullptr) return -1;
-
-	//ohfdata *ohf = (ohfdata*)calloc(1, sizeof(ohfdata));
-	//memset(ohf, 0x00, sizeof(ohfdata));
-
-	//ohf->file_header.signature[0] = 'O';
-	//ohf->file_header.signature[1] = 'H';
-	//ohf->file_header.signature[2] = 'F';
-
-	//ohf->file_header.filesize = _filesize;
-	//ohf->file_header.offsetbits = sizeof(ohfdata);
-
-	//ohf->field_header.headersize = sizeof(ohffieldheader);
-
-	//ohf->field_header.pixelnum_x = _width;
-	//ohf->field_header.pixelnum_y = _height;
-
-	//ohf->field_header.pixelpitch_x = tmp.pixel_pitch.v[0];
-	//ohf->field_header.pixelpitch_y = tmp.pixel_pitch.v[1];
-
-	//ohf->field_header.pitchunit[0] = 'm';
-	//ohf->field_header.pitchunit[1] = 't';
-
-	//ohf->field_header.colortype[0] = 'G';
-	//ohf->field_header.colortype[1] = 'R';
-	//ohf->field_header.colortype[2] = 'Y';
-
-	//ohf->field_header.wavelength = tmp.lambda;
-	//ohf->field_header.wavelengthunit[0] = 'm';
-	//ohf->field_header.wavelengthunit[1] = 't';
-
-	//ohf->field_header.complexfieldtype[0] = 'i';
-	//ohf->field_header.complexfieldtype[1] = 'm';
-	//ohf->field_header.complexfieldtype[2] = 'a';
-	//ohf->field_header.complexfieldtype[3] = 'g';
-	//ohf->field_header.complexfieldtype[4] = 'e';
-	////ohf->field_header.complexfieldtype[5] = '\0';
-
-	//ohf->field_header.fieldtype[0] = 'A';
-	//ohf->field_header.fieldtype[1] = 'P';
-
-	//ohf->field_header.imageformat[0] = 'b';
-	//ohf->field_header.imageformat[1] = 'm';
-	//ohf->field_header.imageformat[2] = 'p';
-	////ohf->field_header.imageformat[3] = '\0';
-	////ohf->field_header.imageformat[4] = '\0';
-	////ohf->field_header.imageformat[5] = '\0';
-	////ohf->field_header.imageformat[6] = '\0';
-	////ohf->field_header.imageformat[7] = '\0';
-	////ohf->field_header.imageformat[8] = '\0';
-	////ohf->field_header.imageformat[9] = '\0';
-
-	//fwrite(ohf, 1, sizeof(ohfdata), fp);
-
-	//fwrite(src, 1, _pixelbytesize, fp);
-	//fclose(fp);
-	//free(ohf);
-
-	return 1;
-}
-
 int Openholo::saveAsImg(const char * fname, uint8_t bitsperpixel, void* src, int pic_width, int pic_height)
 {
+	LOG("Saving...%s...", fname);
+	auto start = _cur_time;
 	OphContext tmp = getContext();
 
 	int _width = pic_width, _height = pic_height;
@@ -161,32 +84,14 @@ int Openholo::saveAsImg(const char * fname, uint8_t bitsperpixel, void* src, int
 	fwrite(src, 1, _pixelbytesize, fp);
 	fclose(fp);
 	free(pbitmap);
+
+	auto end = _cur_time;
+
+	auto during = ((std::chrono::duration<real>)(end - start)).count();
+
+	LOG("%.5lfsec...done\n", during);
+
 	return 1;
-}
-
-int Openholo::loadAsOhf(const char * fname, void* dst)
-{
-	FILE *infile;
-	fopen_s(&infile, fname, "rb");
-	if (infile == nullptr) { printf("No such file"); return 0; }
-
-	ohfheader hf;
-	ohffieldheader fHeader;
-	fread(&hf, sizeof(ohfheader), 1, infile);
-	if (hf.signature[0] != 'O' || hf.signature[1] != 'H' || hf.signature[2] != 'F') { printf("Not OHF File"); return 0; }
-
-	fread(&fHeader, sizeof(ohffieldheader), 1, infile);
-
-	int n_x = context_.pixel_number.v[0];
-	int n_y = context_.pixel_number.v[1];
-
-	p_hologram = (oph::uchar*)calloc(1, sizeof(oph::uchar)*n_x*n_y);
-
-	fread(dst, sizeof(oph::uchar*), fHeader.pixelnum_x * fHeader.pixelnum_y, infile);
-
-	fclose(infile);
-
-	return 0;
 }
 
 int Openholo::loadAsImg(const char * fname, void* dst)
@@ -300,6 +205,4 @@ void Openholo::convertToFormatGray8(unsigned char * src, unsigned char * dst, in
 
 void Openholo::ophFree(void)
 {
-	free(p_hologram);
-	p_hologram = nullptr;
 }

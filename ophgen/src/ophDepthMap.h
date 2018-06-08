@@ -189,7 +189,6 @@ private:
 	void propagation_AngularSpectrum_CPU(oph::Complex<real>* input_u, real propagation_dist);
 	void propagation_AngularSpectrum_GPU(cufftDoubleComplex* input_u, real propagation_dist);
 
-	void get_rand_phase_value(oph::Complex<real>& rand_phase_val);
 
 	/** \ingroup recon_module
 	* @{ */

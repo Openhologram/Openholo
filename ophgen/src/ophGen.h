@@ -103,6 +103,19 @@ struct GEN_DLL OphDepthMapSimul
 
 class GEN_DLL ophGen : public Openholo
 {
+protected:
+	enum OPH_DIFF {
+		DIFF_RS,
+		DIFF_FRESNEL,
+	};
+
+	enum PC_FLAG {
+		PC_XYZ			= 1,
+		PC_RGB			= 2,
+		PC_AMPLITUDE	= 4,
+		PC_PHASE		= 8,
+	};
+
 public:
 	/**
 	* @brief Constructor
@@ -127,7 +140,7 @@ public:
 	* @param output parameter. point cloud data, phases container's pointer
 	* @return positive integer is points number of point cloud, return a negative integer if the load fails
 	*/
-	int loadPointCloud(const char* pc_file, OphPointCloudData *pc_data_);
+	int loadPointCloud(const char* pc_file, OphPointCloudData *pc_data_, uint flag = PC_XYZ | PC_AMPLITUDE | PC_PHASE);
 
 	/**
 	* @param input parameter. configuration data file name
@@ -190,14 +203,13 @@ public:
 
 protected:
 	/** \ingroup encode_module
-	* @{ */
 	/**
 	* @brief Encode the CGH according to a signal location parameter.
 	* @param sig_location : ivec2 type,
 	*  sig_location[0]: upper or lower half, sig_location[1]:left or right half.
 	* @see encoding_CPU, encoding_GPU
 	*/
-	void encodingSideBand(bool bCPU, ivec2 sig_location);
+	void encodeSideBand(bool bCPU, ivec2 sig_location);
 	/**
 	* @brief Encode the CGH according to a signal location parameter on the CPU.
 	* @details The CPU variable, holo_gen on CPU has the final result.
@@ -209,8 +221,8 @@ protected:
 	*  sig_location[0]: upper or lower half, sig_location[1]:left or right half.
 	* @see encodingSymmetrization, fftwShift
 	*/
-	void encodingSideBand_CPU(int cropx1, int cropx2, int cropy1, int cropy2, oph::ivec2 sig_location);
-	void encodingSideBand_GPU(int cropx1, int cropx2, int cropy1, int cropy2, oph::ivec2 sig_location);
+	void encodeSideBand_CPU(int cropx1, int cropx2, int cropy1, int cropy2, oph::ivec2 sig_location);
+	void encodeSideBand_GPU(int cropx1, int cropx2, int cropy1, int cropy2, oph::ivec2 sig_location);
 
 	/**
 	* @brief Calculate the shift phase value.
@@ -220,6 +232,14 @@ protected:
 	* @see encodingSideBand_CPU
 	*/
 	void get_shift_phase_value(oph::Complex<real>& shift_phase_val, int idx, oph::ivec2 sig_location);
+
+	/**
+	* @brief Assign random phase value if RANDOM_PHASE == 1
+	* @details If RANDOM_PHASE == 1, calculate a random phase value using random generator;
+	*  otherwise, random phase value is 1.
+	* @param rand_phase_val : Input & Ouput value.
+	*/
+	void get_rand_phase_value(oph::Complex<real>& rand_phase_val, bool rand_phase);
 
 	/**
 	* @brief Convert data from the spatial domain to the frequency domain using 2D FFT on CPU.

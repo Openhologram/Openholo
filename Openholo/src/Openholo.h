@@ -47,7 +47,6 @@ public:
 	inline void setWaveLength(real w) { context_.lambda = w; }
 
 	OphContext& getContext(void) { return context_; }
-	void*		getBuffer(void) { return p_hologram; }
 
 public:
 	/**
@@ -65,12 +64,10 @@ protected:
 	int checkExtension(const char* fname, const char* ext);
 
 protected:
-	int saveAsOhf(const char* fname, uint8_t bitsperpixel, void* src, int pic_width, int pic_height);
 	int saveAsImg(const char* fname, uint8_t bitsperpixel, void* src, int pic_width, int pic_height);
 
 	/**
 	*/
-	int loadAsOhf(const char* fname, void* dst);
 	int loadAsImg(const char* fname, void* dst);
 
 	/**
@@ -104,7 +101,6 @@ protected:
 
 protected:
 	OphContext	context_;
-	void*		p_hologram;
 
 protected:
 	/**
