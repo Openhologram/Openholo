@@ -112,7 +112,6 @@ protected:
 	virtual ~ophDepthMap();
 
 public:
-	
 	void setMode(bool isCPU);
 
 	/** \ingroup init_module */
@@ -202,7 +201,6 @@ private:
 
 	*/
 	void free_gpu(void);
-
 	virtual void ophFree(void);
 
 private:

@@ -131,6 +131,7 @@ public:
 	inline int getNumberOfPoints() { return n_points; }
 
 public:
+	void initialize(void);
 	/**
 	* @brief Set the value of a variable isCPU_(true or false)
 	* @details <pre>
@@ -154,7 +155,7 @@ public:
 	* @param InputModelFile PointCloud(*.dat) input file path
 	* @return number of Pointcloud (if it failed loading, it returned -1)
 	*/
-	virtual int loadPointCloud(const char* pc_file);
+	virtual int loadPointCloud(const char* pc_file, uint flag = PC_XYZ | PC_PHASE | PC_AMPLITUDE);
 
 	/**
 	\defgroup Import_Configfile
@@ -172,6 +173,8 @@ public:
 	* @return implement time (sec)
 	*/
 	double generateHologram();
+	double diffract(void);
+	void encode(void);
 
 private:
 	/**

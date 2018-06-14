@@ -12,6 +12,7 @@ ophGen::ophGen(void)
 	, holo_encoded(nullptr)
 	, holo_normalized(nullptr)
 {
+	context_ = { 0 };
 }
 
 ophGen::~ophGen(void)
@@ -30,9 +31,9 @@ int ophGen::loadPointCloud(const char* pc_file, OphPointCloudData *pc_data_, uin
 		return -1;
 	}
 
-	std::string Line;
-	std::getline(File, Line);
-	int n_pts = atoi(Line.c_str());
+	int n_pts;
+
+	File >> n_pts;
 
 	pc_data_->location	= new vec3[n_pts];
 	pc_data_->color		= new ivec3[n_pts];
@@ -49,33 +50,29 @@ int ophGen::loadPointCloud(const char* pc_file, OphPointCloudData *pc_data_, uin
 		int idx;
 		real pX, pY, pZ, phase, amplitude;
 		int pR, pG, pB;
-		std::getline(File, Line);
 
-		sscanf_s(Line.c_str(), "%d ", &idx);
+		File >> idx;
 		if (idx == i) {
 			if (flag & PC_XYZ){
-				sscanf_s(Line.c_str(), "%lf %lf %lf ", &pX, &pY, &pZ);
+				File >> pX >> pY >> pZ;
 				pc_data_->location[idx][_X] = pX;
 				pc_data_->location[idx][_Y] = pY;
 				pc_data_->location[idx][_Z] = pY;
 			}
-
 			if (flag & PC_RGB){
-				sscanf_s(Line.c_str(), "%d %d %d ", &pR, &pG, &pB);
+				File >> pR >> pG, pB;
 				pc_data_->color[idx][_X] = pR;
 				pc_data_->color[idx][_Y] = pG;
 				pc_data_->color[idx][_Z] = pB;
 			}
 			if (flag & PC_PHASE){
-				sscanf_s(Line.c_str(), "%lf ", &phase);
+				File >> phase;
 				pc_data_->phase[idx] = phase;
 			}
 			if (flag & PC_AMPLITUDE){
-				sscanf_s(Line.c_str(), "%lf ", &amplitude);
+				File >> amplitude;
 				pc_data_->amplitude[idx] = amplitude;
 			}
-
-			sscanf_s(Line.c_str(), "\n");
 		}
 		else {
 			File.close();
@@ -154,6 +151,8 @@ bool ophGen::readConfig(const char* fname, OphPointCloudConfig& configdata)
 
 	context_.lambda = stod(Value[14]);
 	context_.k = (2 * M_PI) / context_.lambda;
+	context_.ss[_X] = context_.pixel_number[_X] * context_.pixel_pitch[_X];
+	context_.ss[_Y] = context_.pixel_number[_Y] * context_.pixel_pitch[_Y];
 
 	configdata.tilt_angle.v[0] = stod(Value[15]);
 	configdata.tilt_angle.v[1] = stod(Value[16]);

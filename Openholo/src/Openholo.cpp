@@ -8,16 +8,10 @@
 Openholo::Openholo(void)
 	: Base()
 {
-	initialize();
 }
 
 Openholo::~Openholo(void)
 {
-}
-
-void Openholo::initialize(void)
-{
-	context_ = { 0 };
 }
 
 int Openholo::checkExtension(const char * fname, const char * ext)
@@ -38,15 +32,8 @@ int Openholo::saveAsImg(const char * fname, uint8_t bitsperpixel, void* src, int
 {
 	LOG("Saving...%s...", fname);
 	auto start = _cur_time;
-	OphContext tmp = getContext();
 
 	int _width = pic_width, _height = pic_height;
-
-	if (pic_width == 0)
-		_width = tmp.pixel_number[_X];
-
-	if (pic_height == 0)
-		_height = tmp.pixel_number[_Y];
 
 	int _pixelbytesize = _height * _width * bitsperpixel / 8;
 	int _filesize = _pixelbytesize + sizeof(bitmap);

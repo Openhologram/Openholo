@@ -202,10 +202,7 @@ void ophDepthMap::propagation_AngularSpectrum_CPU(oph::Complex<real>* input_u, r
 			u_frequency = kernel * input_u[i];
 		
 		for (uint frm = 0; frm < dm_params_.NUMBER_OF_FRAME; frm++)
-		{
-			uint frame = pnx * pny * frm;
-			holo_gen[i + frame] += u_frequency;
-		}
+			holo_gen[i] += u_frequency;
 	}
 }
 
