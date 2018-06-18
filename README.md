@@ -2,4 +2,4 @@
 2차 년도
 test : 2
 
-test7766
+test77
