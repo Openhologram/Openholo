@@ -112,7 +112,6 @@ protected:
 	virtual ~ophDepthMap();
 
 public:
-	
 	void setMode(bool isCPU);
 
 	/** \ingroup init_module */
@@ -123,7 +122,6 @@ public:
 
 	/** \ingroup encode_module */
 	void encodeHologram(void);
-	void encodeHologram2(void);
 
 	/** \ingroup write_module */
 	virtual int save(const char* fname = nullptr, uint8_t bitsperpixel = 24);
@@ -202,7 +200,6 @@ private:
 
 	*/
 	void free_gpu(void);
-
 	virtual void ophFree(void);
 
 private:

@@ -132,14 +132,6 @@ void ophDepthMap::encodeHologram(void)
 		encodeSideBand(isCPU_, ivec2(0, 1));
 }
 
-void ophDepthMap::encodeHologram2(void)
-{
-	vec2 holo_size;
-	holo_size[0] = context_.pixel_number[0];
-	holo_size[1] = context_.pixel_number[1];
-	numericalInterference(holo_gen, holo_encoded, holo_size);
-}
-
 /**
 * @brief Read image and depth map.
 * @details Read input files and load image & depth map data.
