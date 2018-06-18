@@ -93,20 +93,20 @@ public:
 	/** \ingroup getter/setter */
 	inline vec3* getLocationPC(void) { return pc_data_.location; }
 	/** \ingroup getter/setter */
-	inline ivec3* getColorPC(void) { return pc_data_.color; }
+	inline vec3* getColorPC(void) { return pc_data_.color; }
 	/** \ingroup getter/setter */
 	inline real* getAmplitudePC(void) { return pc_data_.amplitude; }
 	/** \ingroup getter/setter */
 	inline real* getPhasePC(void) { return pc_data_.phase; }
 	/** \ingroup getter/setter */
-	inline void setPointCloudModel(vec3* location, ivec3 *color, real *amplitude, real *phase) {
+	inline void setPointCloudModel(vec3* location, vec3 *color, real *amplitude, real *phase) {
 		pc_data_.location = location;
 		pc_data_.color = color;
 		pc_data_.amplitude = amplitude;
 		pc_data_.phase = phase;
 	}
 	/** \ingroup getter/setter */
-	inline void getPointCloudModel(vec3 *location, ivec3 *color, real *amplitude, real *phase) {
+	inline void getPointCloudModel(vec3 *location, vec3 *color, real *amplitude, real *phase) {
 		getModelLocation(location);
 		getModelColor(color);
 		getModelAmplitude(amplitude);
@@ -125,7 +125,7 @@ public:
 	* @param Phase 3D Point Cloud Model Phase Data of Point-Based Light Wave
 	*/
 	inline void getModelLocation(vec3 *location) { location = pc_data_.location; }
-	inline void getModelColor(ivec3 *color) { color = pc_data_.color; }
+	inline void getModelColor(vec3 *color) { color = pc_data_.color; }
 	inline void getModelAmplitude(real *amplitude) { amplitude = pc_data_.amplitude; }
 	inline void getModelPhase(real *phase) { phase = pc_data_.phase; }
 	inline int getNumberOfPoints() { return n_points; }
