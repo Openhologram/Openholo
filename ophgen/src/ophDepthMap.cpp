@@ -129,7 +129,7 @@ double ophDepthMap::generateHologram()
 void ophDepthMap::encodeHologram(void)
 {
 	if (dm_params_.Encoding_Method_ == 0)
-		encodingSideBand(isCPU_, ivec2(0, 1));
+		encodeSideBand(isCPU_, ivec2(0, 1));
 }
 
 /**
@@ -295,29 +295,6 @@ void ophDepthMap::calc_Holo_by_Depth(void)
 		calc_Holo_CPU();
 	else
 		calc_Holo_GPU();
-}
-
-/**
-* @brief Assign random phase value if RANDOM_PHASE == 1
-* @details If RANDOM_PHASE == 1, calculate a random phase value using random generator;
-*  otherwise, random phase value is 1.
-* @param rand_phase_val : Input & Ouput value.
-*/
-void ophDepthMap::get_rand_phase_value(oph::Complex<real>& rand_phase_val)
-{
-	if (dm_params_.RANDOM_PHASE)
-	{
-		std::default_random_engine generator;
-		std::uniform_real_distribution<real> distribution(0.0, 1.0);
-
-		rand_phase_val.re = 0.0;
-		rand_phase_val.im = 2 * M_PI * distribution(generator);
-		rand_phase_val.exp();
-
-	} else {
-		rand_phase_val.re = 1.0;
-		rand_phase_val.im = 0.0;
-	}
 }
 
 /**

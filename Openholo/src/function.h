@@ -192,7 +192,7 @@ namespace oph
 
 	template<typename T>
 	inline void memsetArr(T* pArr, const T& _Value, const oph::uint& beginIndex, const oph::uint& endIndex) {
-		for (int i = beginIndex; i <= endIndex; i++) {
+		for (uint i = beginIndex; i <= endIndex; i++) {
 			*(pArr + i) = _Value;
 		}
 	}

@@ -142,7 +142,7 @@ void ophDepthMap::calc_Holo_CPU(void)
 			LOG("Depth: %d of %d, z = %f mm\n", dtr, dm_config_.num_of_depth, -temp_depth * 1000);
 
 			oph::Complex<real> rand_phase_val;
-			get_rand_phase_value(rand_phase_val);
+			get_rand_phase_value(rand_phase_val, dm_params_.RANDOM_PHASE);
 
 			oph::Complex<real> carrier_phase_delay(0, context_.k* temp_depth);
 			carrier_phase_delay.exp();
@@ -202,10 +202,7 @@ void ophDepthMap::propagation_AngularSpectrum_CPU(oph::Complex<real>* input_u, r
 			u_frequency = kernel * input_u[i];
 		
 		for (uint frm = 0; frm < dm_params_.NUMBER_OF_FRAME; frm++)
-		{
-			uint frame = pnx * pny * frm;
-			holo_gen[i + frame] += u_frequency;
-		}
+			holo_gen[i] += u_frequency;
 	}
 }
 
@@ -300,7 +297,7 @@ void ophDepthMap::testPropagation2EyePupil(fftw_complex* in, fftw_complex* out)
 
 	for (int k = 0; k < pnx*pny; k++)
 	{
-		hh[k].re = ((real*)p_hologram)[k];
+		hh[k].re = holo_encoded[k];
 		hh[k].im = 0.0;
 	}
 

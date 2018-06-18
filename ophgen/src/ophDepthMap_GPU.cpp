@@ -26,7 +26,6 @@ cufftDoubleComplex *u_complex_gpu_;
 cufftDoubleComplex *k_temp_d_;
 
 cudaStream_t	stream_;
-cudaEvent_t		start, stop;
 
 extern "C"
 {
@@ -48,21 +47,8 @@ extern "C"
 	*/
 	void cudaFFT(CUstream_st* stream, int nx, int ny, cufftDoubleComplex* in_filed, cufftDoubleComplex* output_field, int direction,  bool bNormailized = false);
 
-	/**
-	* @brief Crop input data according to x, y coordinates on GPU.
-	* @details call CUDA Kernel - cropFringe. 
-	* @param stream : CUDA Stream
-	* @param nx : the number of column of the input data
-	* @param ny : the number of row of the input data
-	* @param in_field : input complex data variable
-	* @param output_field : output complex data variable
-	* @param cropx1 : the start x-coordinate to crop.
-	* @param cropx2 : the end x-coordinate to crop.
-	* @param cropy1 : the start y-coordinate to crop.
-	* @param cropy2 : the end y-coordinate to crop.
-	* @see encoding_GPU
-	*/
-	void cudaCropFringe(CUstream_st* stream, int nx, int ny, cufftDoubleComplex* in_field, cufftDoubleComplex* out_field, int cropx1, int cropx2, int cropy1, int cropy2);
+
+	//void cudaCropFringe(CUstream_st* stream, int nx, int ny, cufftDoubleComplex* in_field, cufftDoubleComplex* out_field, int cropx1, int cropx2, int cropy1, int cropy2);
 
 	/**
 	* @brief Find each depth plane of the input image and apply carrier phase delay to it on GPU.
@@ -106,25 +92,8 @@ extern "C"
 	void cudaPropagation_AngularSpKernel(CUstream_st* stream_, int pnx, int pny, cufftDoubleComplex* input_d, cufftDoubleComplex* u_complex,
 		real ppx, real ppy, real ssx, real ssy, real lambda, real params_k, real propagation_dist);
 
-	/**
-	* @brief Encode the CGH according to a signal location parameter on the GPU.
-	* @details The variable, ((real*)p_hologram) has the final result.
-	* @param stream : CUDA Stream
-	* @param pnx : the number of column of the input data
-	* @param pny : the number of row of the input data
-	* @param in_field : input data
-	* @param out_field : output data 
-	* @param sig_locationx : signal location of x-axis, left or right half
-	* @param sig_locationy : signal location of y-axis, upper or lower half
-	* @param ssx : pnx * ppx
-	* @param ssy : pny * ppy
-	* @param ppx : pixel pitch of x-axis
-	* @param ppy : pixel pitch of y-axis
-	* @param PI : Pi
-	* @see encoding_GPU
-	*/
-	void cudaGetFringe(CUstream_st* stream, int pnx, int pny, cufftDoubleComplex* in_field, cufftDoubleComplex* out_field, int sig_locationx, int sig_locationy,
-		real ssx, real ssy, real ppx, real ppy, real PI);
+	//void cudaGetFringe(CUstream_st* stream, int pnx, int pny, cufftDoubleComplex* in_field, cufftDoubleComplex* out_field, int sig_locationx, int sig_locationy,
+	//	real ssx, real ssy, real ppx, real ppy, real PI);
 
 	/**
 	* @brief Quantize depth map on the GPU, only when the number of depth quantization is not the default value (i.e. FLAG_CHANGE_DEPTH_QUANTIZATION == 1 ).
@@ -244,15 +213,8 @@ void ophDepthMap::change_depth_quan_GPU()
 */
 void ophDepthMap::calc_Holo_GPU(void)
 {
-	cudaEvent_t start, stop;
-
-	cudaEventCreate(&start);
-	cudaEventCreate(&stop);
-
 	if (!stream_)
 		cudaStreamCreate(&stream_);
-
-	cudaEventRecord(start, stream_);
 
 	int pnx = context_.pixel_number[0];
 	int pny = context_.pixel_number[1];
@@ -264,7 +226,7 @@ void ophDepthMap::calc_Holo_GPU(void)
 	for (int p = 0; p < depth_sz; ++p)
 	{
 		oph::Complex<real> rand_phase_val;
-		get_rand_phase_value(rand_phase_val);
+		get_rand_phase_value(rand_phase_val, dm_params_.RANDOM_PHASE);
 
 		int dtr = dm_config_.render_depth[p];
 		real temp_depth = dlevel_transform_[dtr - 1];
@@ -283,7 +245,7 @@ void ophDepthMap::calc_Holo_GPU(void)
 
 			propagation_AngularSpectrum_GPU(u_o_gpu_, -temp_depth);
 		}
-		LOG("Depth: %d of %d, z = %f mm\n", dtr, dm_config_.num_of_depth, -temp_depth * 1000);
+		LOG("Depth: %3d of %d, z = %6.5lf mm\n", dtr, dm_config_.num_of_depth, -temp_depth * 1000);
 	}
 
 	cufftDoubleComplex* p_holo_gen = new cufftDoubleComplex[N];
@@ -295,13 +257,7 @@ void ophDepthMap::calc_Holo_GPU(void)
 		holo_gen[n].im = p_holo_gen[n].y;
 	}
 
-	cudaEventRecord(stop, stream_);
-	cudaEventSynchronize(stop);
 	delete[] p_holo_gen;
-
-	float elapsedTime = 0.0f;
-	cudaEventElapsedTime(&elapsedTime, start, stop);
-	LOG("GPU Time= %f s. \n", elapsedTime / 1000.f);
 }
 
 /**

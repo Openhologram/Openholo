@@ -1,5 +1,7 @@
 #include "ophPointCloud.h"
-#include "function.h"
+#include "include.h"
+
+#include <sys.h>
 
 ophPointCloud::ophPointCloud(void)
 	: ophGen()
@@ -23,14 +25,34 @@ ophPointCloud::~ophPointCloud(void)
 {
 }
 
+void ophPointCloud::initialize(void)
+{	
+	// Output Image Size
+	int n_x = context_.pixel_number[_X];
+	int n_y = context_.pixel_number[_Y];
+
+	// Memory Location for Result Image
+	if (holo_gen != nullptr) delete[] holo_gen;
+	holo_gen = new oph::Complex<real>[n_x * n_y];
+	memset(holo_gen, 0, sizeof(Complex<real>) * n_x * n_y);
+
+	if (holo_encoded != nullptr) delete[] holo_encoded;
+	holo_encoded = new real[n_x * n_y];
+	memset(holo_encoded, 0, sizeof(real) * n_x * n_y);
+
+	if (holo_normalized != nullptr) delete[] holo_normalized;
+	holo_normalized = new uchar[n_x * n_y];
+	memset(holo_normalized, 0, sizeof(uchar) * n_x * n_y);
+}
+
 void ophPointCloud::setMode(bool IsCPU)
 {
 	IsCPU_ = IsCPU;
 }
 
-int ophPointCloud::loadPointCloud(const char* pc_file)
+int ophPointCloud::loadPointCloud(const char* pc_file, uint flag)
 {
-	n_points = ophGen::loadPointCloud(pc_file, &pc_data_);
+	n_points = ophGen::loadPointCloud(pc_file, &pc_data_, flag);
 
 	return n_points;
 }
@@ -40,26 +62,14 @@ bool ophPointCloud::readConfig(const char* cfg_file)
 	if (!ophGen::readConfig(cfg_file, pc_config_))
 		return false;
 
+	initialize();
+
 	return true;
 }
 
 real ophPointCloud::generateHologram()
 {
 	auto start_time = _cur_time;
-
-	// Output Image Size
-	int n_x = context_.pixel_number[_X];
-	int n_y = context_.pixel_number[_Y];
-
-	// Memory Location for Result Image
-	if (holo_gen != nullptr) delete[] holo_gen;
-	holo_gen = new oph::Complex<real>[n_x * n_y];
-
-	if (holo_encoded != nullptr) delete[] holo_encoded;
-	holo_encoded = new real[n_x * n_y];
-
-	if (holo_normalized != nullptr) delete[] holo_normalized;
-	holo_normalized = new uchar[n_x * n_y];
 
 	// Create CGH Fringe Pattern by 3D Point Cloud
 	if (IsCPU_ == true) { //Run CPU
@@ -79,14 +89,54 @@ real ophPointCloud::generateHologram()
 
 	auto end_time = _cur_time;
 
-	return ((std::chrono::duration<real>)(end_time - start_time)).count();
+	auto during_time = ((std::chrono::duration<real>)(end_time - start_time)).count();
+
+	LOG("Implement time : %.5lf\n", during_time);
+
+	return during_time;
+}
+
+double ophPointCloud::diffract(void)
+{
+	auto start_time = _cur_time;
+
+	initialize();
+
+	if (IsCPU_) {
+#ifdef _OPENMP
+		std::cout << "Generate Hologram with Multi Core CPU" << std::endl;
+#else
+		std::cout << "Generate Hologram with Single Core CPU" << std::endl;
+#endif
+		genCghPointCloud(holo_encoded);
+	}
+	else {
+		std::cout << "Generate Hologram with GPU" << std::endl;
+
+		genCghPointCloud_cuda(holo_encoded);
+		std::cout << ">>> CUDA GPGPU" << std::endl;
+	}
+
+	auto end_time = _cur_time;
+
+	auto during_time = ((std::chrono::duration<real>)(end_time - start_time)).count();
+
+	LOG("Implement time : %.5lf\n", during_time);
+
+	return during_time;
+}
+
+void ophPointCloud::encode(void)
+{
+	encodeSideBand(IsCPU_, ivec2(0, 1));
 }
 
 void ophPointCloud::genCghPointCloud(real* dst)
 {
 	// Output Image Size
-	int n_x = context_.pixel_number[_X];
-	int n_y = context_.pixel_number[_Y];
+	ivec2 pn;
+	pn[_X] = context_.pixel_number[_X];
+	pn[_Y] = context_.pixel_number[_Y];
 
 	// Tilt Angle
 	real thetaX = RADIAN(pc_config_.tilt_angle[_X]);
@@ -96,42 +146,80 @@ void ophPointCloud::genCghPointCloud(real* dst)
 	real k = context_.k;
 
 	// Pixel pitch at eyepiece lens plane (by simple magnification) ==> SLM pitch
-	real pixel_x = context_.pixel_pitch.v[0];
-	real pixel_y = context_.pixel_pitch.v[1];
+	vec2 pp;
+	pp[_X] = context_.pixel_pitch[_X];
+	pp[_Y] = context_.pixel_pitch[_Y];
 
 	// Length (Width) of complex field at eyepiece plane (by simple magnification)
-	real Length_x = pixel_x * n_x;
-	real Length_y = pixel_y * n_y;
+	vec2 ss;
+	ss[_X] = context_.ss[_X];
+	ss[_Y] = context_.ss[_Y];
 
 	int j; // private variable for Multi Threading
 #ifdef _OPENMP
 	int num_threads = 0;
 #pragma omp parallel
 	{
-		num_threads = omp_get_num_threads(); // get number of Multi Threading
+	num_threads = omp_get_num_threads(); // get number of Multi Threading
 #pragma omp for private(j)
 #endif
 		for (j = 0; j < n_points; ++j) { //Create Fringe Pattern
-			real x = pc_data_.location[j][_X] * pc_config_.scale[_X];
-			real y = pc_data_.location[j][_Y] * pc_config_.scale[_Y];
-			real z = pc_data_.location[j][_Z] * pc_config_.scale[_Z] + pc_config_.offset_depth;
+			real pcx = pc_data_.location[j][_X] * pc_config_.scale[_X];
+			real pcy = pc_data_.location[j][_Y] * pc_config_.scale[_Y];
+			real pcz = pc_data_.location[j][_Z] * pc_config_.scale[_Z] + pc_config_.offset_depth;
 			real amplitude = pc_data_.amplitude[j];
 
-			for (int row = 0; row < n_y; ++row) {
-				// Y coordinate of the current pixel : Note that y index is reversed order
-				real SLM_y = (Length_y / 2) - ((real)row + 0.5f) * pixel_y;
+			for (int row = 0; row < pn[_Y]; ++row) {
+				// Y coordinate of the current pixel : Note that pcy index is reversed order
+				real SLM_y = (ss[_Y] / 2) - ((real)row + 0.5f) * pp[_Y];
 
-				for (int col = 0; col < n_x; ++col) {
+				for (int col = 0; col < pn[_X]; ++col) {
 					// X coordinate of the current pixel
-					real SLM_x = ((real)col + 0.5f) * pixel_x - (Length_x / 2);
+					real SLM_x = ((real)col + 0.5f) * pp[_X] - (ss[_X] / 2);
 
-					real r = sqrtf((SLM_x - x)*(SLM_x - x) + (SLM_y - y)*(SLM_y - y) + z * z);
+					real r = sqrtf((SLM_x - pcx)*(SLM_x - pcx) + (SLM_y - pcy)*(SLM_y - pcy) + pcz * pcz);
 					real phi = k * r - k * SLM_x*sinf(thetaX) - k * SLM_y*sinf(thetaY); // Phase for printer
 					real result = amplitude * cosf(phi);
 
-					*(dst + col + row * n_x) += result; //R-S Integral
+					*(dst + col + row * pn[_X]) += result; //R-S Integral
 				}
 			}
+
+			/// <<
+			//real tx = context_.lambda / (2 * pp[_X]);
+			//real ty = context_.lambda / (2 * pp[_Y]);
+
+			//real xbound[2] = { pcx + abs(tx / sqrt(1 - pow(tx, 2)) * pcz), pcx - abs(tx / sqrt(1 - pow(tx, 2)) * pcz) };
+			//real ybound[2] = { pcy + abs(ty / sqrt(1 - pow(ty, 2)) * pcz), pcy - abs(ty / sqrt(1 - pow(ty, 2)) * pcz) };
+
+			//real Xbound[2] = { floor((xbound[0] + ss[_X] / 2) / pp[_X]) + 1, floor((xbound[1] + ss[_X] / 2) / pp[_X]) + 1 };
+			//real Ybound[2] = { pn[_Y] - floor((ybound[1] + ss[_Y] / 2) / pp[_Y]), pn[_Y] - floor((ybound[0] + ss[_Y] / 2) / pp[_Y]) };
+
+			//if (Xbound[0] > pn[_X])
+			//	Xbound[0] = pn[_X];
+			//if (Xbound[1] < 0)
+			//	Xbound[1] = 0;
+			//if (Ybound[0] > pn[_Y])
+			//	Ybound[0] = pn[_Y];
+			//if (Ybound[1] < 0)
+			//	Ybound[1] = 0;
+
+
+			//for (int xxtr = Xbound[1]; xxtr < Xbound[0]; xxtr++)
+			//{
+			//	for (int yytr = Ybound[1]; yytr < Ybound[0]; yytr++)
+			//	{
+			//		auto xxx = -ss[_X] / 2 + (xxtr - 1) * pp[_X];
+			//		auto yyy = -ss[_Y] / 2 + (pn[_Y] - yytr) * pp[_Y];
+			//		auto r = sqrt(pow(xxx - pcx, 2) + pow(yyy - pcy, 2) + pow(pcz, 2));
+
+			//		real range_x[2] = { pcx + abs(tx / sqrt(1 - pow(tx, 2)) * sqrt(pow(yyy - pcy, 2) + pow(pcz, 2))), pcx - abs(tx / sqrt(1 - pow(tx, 2)) * sqrt(pow(yyy - pcy, 2) + pow(pcz, 2))) };
+			//		real range_y[2] = { pcy + abs(ty / sqrt(1 - pow(ty, 2)) * sqrt(pow(xxx - pcx, 2) + pow(pcz, 2))), pcx - abs(ty / sqrt(1 - pow(ty, 2)) * sqrt(pow(xxx - pcx, 2) + pow(pcz, 2))) };
+
+			//		if ((xxx < range_x[0] && xxx > range_x[1]) && (yyy < range_y[0] && yyy > range_y[1]))
+			//			*(holo_gen + xxtr + yytr * pn[_X]) += amplitude * -pcz / (context_.lambda/* * j*/) * exp(/*-i **/ k * r) / pow(r, 2);
+			//	}
+			//}
 		}
 #ifdef _OPENMP
 	}

@@ -112,7 +112,6 @@ protected:
 	virtual ~ophDepthMap();
 
 public:
-	
 	void setMode(bool isCPU);
 
 	/** \ingroup init_module */
@@ -188,7 +187,6 @@ private:
 	void propagation_AngularSpectrum_CPU(oph::Complex<real>* input_u, real propagation_dist);
 	void propagation_AngularSpectrum_GPU(cufftDoubleComplex* input_u, real propagation_dist);
 
-	void get_rand_phase_value(oph::Complex<real>& rand_phase_val);
 
 	/** \ingroup recon_module
 	* @{ */
@@ -202,7 +200,6 @@ private:
 
 	*/
 	void free_gpu(void);
-
 	virtual void ophFree(void);
 
 private:
