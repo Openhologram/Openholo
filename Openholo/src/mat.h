@@ -345,6 +345,9 @@ namespace oph
 	typedef oph::TwoDimMatrix<real_t> OphRealTField;
 	typedef oph::TwoDimMatrix<Complex<real>> OphComplexField;
 	typedef oph::TwoDimMatrix<Complex<real_t>> OphComplexTField;
+
+	typedef OphComplexField Mat;
+	typedef OphComplexField MatF;
 }
 
 #endif // !__mat_h

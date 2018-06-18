@@ -36,12 +36,12 @@ int ophGen::loadPointCloud(const char* pc_file, OphPointCloudData *pc_data_, uin
 	File >> n_pts;
 
 	pc_data_->location	= new vec3[n_pts];
-	pc_data_->color		= new ivec3[n_pts];
+	pc_data_->color		= new vec3[n_pts];
 	pc_data_->amplitude	= new real[n_pts];
 	pc_data_->phase		= new real[n_pts];
 
 	memset(pc_data_->location, NULL, sizeof(vec3) * n_pts);
-	memset(pc_data_->color, NULL, sizeof(ivec3) * n_pts);
+	memset(pc_data_->color, NULL, sizeof(vec3) * n_pts);
 	memset(pc_data_->amplitude, NULL, sizeof(real) * n_pts);
 	memset(pc_data_->phase, NULL, sizeof(real) * n_pts);
 

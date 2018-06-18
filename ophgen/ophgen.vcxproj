@@ -106,7 +106,6 @@ xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)Reference\include\"
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="src\fftw3.h" />
     <ClInclude Include="src\ophDepthMap.h" />
     <ClInclude Include="src\ophGen.h" />
     <ClInclude Include="src\ophPointCloud.h" />

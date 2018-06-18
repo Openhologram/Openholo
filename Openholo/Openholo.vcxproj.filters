@@ -63,6 +63,9 @@
     <ClInclude Include="src\mat.h">
       <Filter>__utilities\header</Filter>
     </ClInclude>
+    <ClInclude Include="src\fftw3.h">
+      <Filter>__utilities\header</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Openholo.cpp">

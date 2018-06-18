@@ -239,7 +239,7 @@ struct GEN_DLL OphPointCloudConfig {
 };
 struct GEN_DLL OphPointCloudData {
 	vec3* location;
-	ivec3* color;
+	vec3* color;
 	real* amplitude;
 	real* phase;
 
