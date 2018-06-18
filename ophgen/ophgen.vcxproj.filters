@@ -36,6 +36,9 @@
     <ClInclude Include="src\ophGen.h">
       <Filter>__ophGen</Filter>
     </ClInclude>
+    <ClInclude Include="src\encoding.h">
+      <Filter>__Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\ophDepthMap.cpp">

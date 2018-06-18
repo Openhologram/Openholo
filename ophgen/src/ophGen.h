@@ -118,37 +118,44 @@ protected:
 	real*					holo_encoded;
 	oph::uchar*				holo_normalized;
 
-public:
+protected:
 	/**
 	* @brief Encoding Functions
 	*/
 
 	/** @brief Phase and Amplitude */
-	void calPhase(oph::Complex<real>* holo, real* encoded, const vec2 holosize);
-	void calAmplitude(oph::Complex<real>* holo, real* encoded, const vec2 holosize);
+	void calPhase(oph::Complex<real>* holo, real* encoded, const ivec2 holosize);
+	void calAmplitude(oph::Complex<real>* holo, real* encoded, const ivec2 holosize);
+
+	//void encoding(oph::Complex<real>*holo, real* encoded, const ivec2 holosize, unsigned int flag);
+	void encoding(int px, int py, unsigned int flag);
+
+	void phase2amplitude(real* encoded, const int size);
 
 	/** @brief Single Side Band Encoding */
 	enum passband {left, rig, top, btm};
-	//void singleSideBand(oph::Complex<real>* holo, real* encoded, const vec2 holosize, int passband);
+	//void singleSideBand(oph::Complex<real>* holo, real* encoded, const ivec2 holosize, int passband);
 	
 	/** @brief Numerical Interface */
-	void numericalInterference(oph::Complex<real>* holo, real* encoded, const vec2 holosize);
-	void numericalInterference(void);
+	//void numericalInterference(oph::Complex<real>* holo, real* encoded, const ivec2 holosize);
+	void numericalInterference(oph::Complex<real>* holo, real* encoded, const int size);
 
 	/** @brief Two Phase Encoding */
 	/**
 	* @param output parameter(encoded) : (sizeX*2, sizeY)
 	*/
-	void twoPhaseEncoding(oph::Complex<real>* holo, real* encoded, const vec2 holosize);
+	//void twoPhaseEncoding(oph::Complex<real>* holo, real* encoded, const ivec2 holosize);
+	void twoPhaseEncoding(oph::Complex<real>* holo, real* encoded, const int size);
 	
 	/** @brief Burckhardt Encoding */
 	/**
 	* @param output parameter(encoded) : (sizeX*3, sizeY)
 	*/
-	void burckhardt(oph::Complex<real>* holo, real* encoded, const vec2 holosize);
+	//void burckhardt(oph::Complex<real>* holo, real* encoded, const ivec2 holosize);
+	void burckhardt(oph::Complex<real>* holo, real* encoded, const int size);
 	
 	/** @brief Frequency Shift */
-	//void freqShift(oph::Complex<real>* holo, Complex<real>* encoded, const vec2 holosize, int shift_x, int shift_y);
+	void freqShift(oph::Complex<real>* holo, Complex<real>* encoded, const ivec2 holosize, int shift_x, int shift_y);
 
 protected:
 	/** \ingroup encode_module
