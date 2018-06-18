@@ -43,7 +43,6 @@
 
 using namespace oph;
 
-template<typename T> class TwoDimMatrix;
 class GEN_DLL ophPointCloud : public ophGen
 {
 public:
