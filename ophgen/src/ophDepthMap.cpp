@@ -140,18 +140,6 @@ void ophDepthMap::encodeHologram2(void)
 	numericalInterference(holo_gen, holo_encoded, holo_size);
 }
 
-void ophDepthMap::normalize()
-{
-	int pnx = context_.pixel_number[_X];
-	int pny = context_.pixel_number[_Y];
-	int cur_frame = 0;
-	for (uint frm = 0; frm < dm_params_.NUMBER_OF_FRAME; frm++)
-	{
-		cur_frame = frm * pnx * pny;
-		oph::normalize(holo_encoded, holo_normalized, pnx, pny, cur_frame);
-	}
-}
-
 /**
 * @brief Read image and depth map.
 * @details Read input files and load image & depth map data.
