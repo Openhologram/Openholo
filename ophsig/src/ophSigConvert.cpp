@@ -12,7 +12,6 @@ bool ophSigConvert::loadParam(std::string cfg) {
 		inFile.close();
 		return false;
 	}
-
 	std::string Line;
 	std::stringstream LineStream;
 
@@ -77,7 +76,6 @@ bool ophSigConvert::loadParam(std::string cfg) {
 			}
 			LineStream.clear();
 		}
-
 	}
 
 	inFile.close();
@@ -122,7 +120,6 @@ bool ophSigConvert::sigConvertOffaxis() {
 			expSource.at<std::complex<float>>(i, j)._Val[1] = ((2 * CV_PI) / ophSig::_cfgSig.lambda[0])*((x.at<float>(i, j)*std::sin(ophSigConvert::_angleX)) + (y.at<float>(i, j)*std::sin(ophSigConvert::_angleY)));
 		}
 	}
-
 	cv::Mat exp1(2, size, CV_32FC2, cv::Scalar(0));
 	exp(expSource, exp1);
 	cv::Mat offh(2, size, CV_32FC2, cv::Scalar(0));
@@ -155,7 +152,6 @@ bool ophSigConvert::sigConvertOffaxis() {
 			ophSig::complexH.at<std::complex<float>>(i, j, 0)._Val[1] = 0;
 		}
 	}
-
 	return true;
 }
 
@@ -276,7 +272,6 @@ bool ophSigConvert::sigConvertCAC() {
 				FFZP.at<std::complex<float>>(i, j)._Val[1] = sigmaf*((x.at<float>(i, j)*x.at<float>(i, j)) + (y.at<float>(i, j)*y.at<float>(i, j)));
 			}
 		}
-
 		exp(FFZP, FFZP);
 		cv::Mat FFZP1(2, size, CV_32FC2, cv::Scalar(0));
 		fftshift(FFZP, FFZP1);
@@ -295,7 +290,6 @@ bool ophSigConvert::sigConvertCAC() {
 				ophSig::complexH.at<std::complex<float>>(i, j, z) = IFH_CAC.at<std::complex<float>>(i, j);
 			}
 		}
-
 	}
 	return true;
 }
