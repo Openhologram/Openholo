@@ -123,7 +123,6 @@ public:
 
 	/** \ingroup encode_module */
 	void encodeHologram(void);
-	void encodeHologram2(void);
 
 	/** \ingroup write_module */
 	virtual int save(const char* fname = nullptr, uint8_t bitsperpixel = 24);
