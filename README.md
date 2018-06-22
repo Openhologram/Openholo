@@ -1,4 +1,4 @@
 # Openholo
 2차 년도
-test : 222786876
+test : 22
 
