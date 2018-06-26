@@ -2,7 +2,6 @@
 #define __function_h
 
 #include "complex.h"
-#include "real.h"
 #include "mat.h"
 #include "vec.h"
 #include "include.h"
@@ -26,14 +25,14 @@ namespace oph
 		return type(p);
 	}
 
-	inline real& minOfArr(const std::vector<real>& arr) {
+	inline const real minOfArr(const std::vector<real>& arr) {
 		real min = _MAXDOUBLE;
 		for (auto item : arr) { if (item < min) min = item; }
 		return min;
 	}
 	
 	template<typename T>
-	inline real& minOfArr(const T* src, const int& size) {
+	inline const real minOfArr(const T* src, const int& size) {
 		real min = _MAXDOUBLE;
 		for (int i = 0; i < size; i++) {
 			if (*(src + i) < min) min = *(src + i);
@@ -41,14 +40,14 @@ namespace oph
 		return max;
 	}
 
-	inline real& maxOfArr(const std::vector<real>& arr) {
+	inline const real maxOfArr(const std::vector<real>& arr) {
 		real max = _MINDOUBLE;
 		for (auto item : arr) { if (item > max) max = item; }
 		return max;
 	}
 
 	template<typename T>
-	inline real& maxOfArr(const T* src, const int& size) {
+	inline const real maxOfArr(const T* src, const int& size) {
 		real max = _MINDOUBLE;
 		for (int i = 0; i < size; i++) {
 			if (*(src + i) > max) max = *(src + i);

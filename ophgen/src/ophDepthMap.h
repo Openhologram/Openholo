@@ -85,6 +85,8 @@ Before building an execution file, you need to install MS Visual Studio 2015 C++
 
 #include <cufft.h>
 
+#include "include.h"
+
 
 using namespace oph;
 
@@ -190,9 +192,9 @@ private:
 
 	/** \ingroup recon_module
 	* @{ */
-	void reconstruction(fftw_complex* in, fftw_complex* out);
-	void testPropagation2EyePupil(fftw_complex* in, fftw_complex* out);
-	void writeSimulationImage(int num, real val);
+	//void reconstruction(fftw_complex* in, fftw_complex* out);
+	//void testPropagation2EyePupil(fftw_complex* in, fftw_complex* out);
+	//void writeSimulationImage(int num, real val);
 	void circshift(oph::Complex<real>* in, oph::Complex<real>* out, int shift_x, int shift_y, int nx, int ny);
 	/** @} */
 
@@ -223,7 +225,7 @@ private:
 	
 	OphDepthMapConfig		dm_config_;							///< structure variable for depthmap hologram configuration.
 	OphDepthMapParams		dm_params_;							///< structure variable for depthmap hologram parameters.
-	OphDepthMapSimul		dm_simuls_;							///< structure variable for depthmap simulation parameters.
+	//OphDepthMapSimul		dm_simuls_;							///< structure variable for depthmap simulation parameters.
 };
 
 #endif // !__ophDepthMap_h

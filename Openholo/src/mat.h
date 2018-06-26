@@ -1,7 +1,6 @@
 #ifndef __mat_h
 #define __mat_h
 
-#include "real.h"
 #include "ivec.h"
 #include "typedef.h"
 #include "complex.h"

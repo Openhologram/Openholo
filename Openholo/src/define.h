@@ -18,6 +18,19 @@ namespace oph
 #define RADIAN_F(theta) (theta*M_PI_F)/180.f
 #define DEGREE_F(theta) (theta*180.f)/M_PI_F
 
+#define OPH_FORWARD (-1)
+#define OPH_BACKWARD (1)
+
+#define OPH_MEASURE (0U)
+#define OPH_DESTROY_INPUT (1U << 0)
+#define OPH_UNALIGNED (1U << 1)
+#define OPH_CONSERVE_MEMORY (1U << 2)
+#define OPH_EXHAUSTIVE (1U << 3)
+#define OPH_PRESERVE_INPUT (1U << 4)
+#define OPH_PATIENT (1U << 5)
+#define OPH_ESTIMATE (1U << 6)
+#define OPH_WISDOM_ONLY (1U << 21)
+
 #ifndef _X
 #define _X 0
 #endif

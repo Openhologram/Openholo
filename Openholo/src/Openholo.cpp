@@ -4,6 +4,7 @@
 #include <fileapi.h>
 
 #include "sys.h"
+#include "include.h"
 
 Openholo::Openholo(void)
 	: Base()
@@ -187,6 +188,144 @@ void Openholo::convertToFormatGray8(unsigned char * src, unsigned char * dst, in
 		unsigned int b = src[i + 2];
 		dst[idx++] = (r + g + b) / 3;
 		i += bytesperpixel - 1;
+	}
+}
+
+void Openholo::fft1(int n, const oph::Complex<real>* in, oph::Complex<real>* out, int sign, uint flag)
+{
+	fftw_complex *fft_in, *fft_out;
+	fftw_plan plan;
+
+	fft_in = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * n);
+	fft_out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * n);
+
+	for (int i = 0; i < n; i++) {
+		fft_in[i][0] = in[i].re;
+		fft_in[i][1] = in[i].im;
+	}
+
+	plan = fftw_plan_dft_1d(n, fft_in, fft_out, sign, flag);
+
+	fftw_execute(plan);
+
+	for (int i = 0; i < n; i++) {
+		out[i].re = fft_out[i][0];
+		out[i].im = fft_out[i][1];
+	}
+
+	fftw_destroy_plan(plan);
+	fftw_free(fft_in);
+	fftw_free(fft_out);
+}
+
+void Openholo::fft2(oph::ivec2 n, const oph::Complex<real>* in, oph::Complex<real>* out, int sign, uint flag)
+{
+	int pnx = n[_X], pny = n[_Y];
+
+	fftw_complex *fft_in, *fft_out;
+	fftw_plan plan;
+
+	fft_in = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * pnx * pny);
+	fft_out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * pnx * pny);
+
+	for (int i = 0; i < pnx * pny; i++) {
+		fft_in[i][0] = in[i].re;
+		fft_in[i][1] = in[i].im;
+	}
+
+	plan = fftw_plan_dft_2d(pnx, pny, fft_in, fft_out, sign, flag);
+
+	fftw_execute(plan);
+
+	for (int i = 0; i < pnx * pny; i++) {
+		out[i].re = fft_out[i][0];
+		out[i].im = fft_out[i][1];
+	}
+
+	fftw_destroy_plan(plan);
+	fftw_free(fft_in);
+	fftw_free(fft_out);
+}
+
+void Openholo::fft3(oph::ivec3 n, const oph::Complex<real>* in, oph::Complex<real>* out, int sign, uint flag)
+{
+	int pnx = n[_X], pny = n[_Y], pnz = n[_Z];
+
+	fftw_complex *fft_in, *fft_out;
+	fftw_plan plan;
+
+	fft_in = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * pnx * pny * pnz);
+	fft_out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * pnx * pny * pnz);
+
+	for (int i = 0; i < pnx * pny * pnz; i++) {
+		fft_in[i][0] = in[i].re;
+		fft_in[i][1] = in[i].im;
+	}
+
+	plan = fftw_plan_dft_3d(pnx, pny, pnz, fft_in, fft_out, sign, flag);
+
+	fftw_execute(plan);
+
+	for (int i = 0; i < pnx * pny * pnz; i++) {
+		out[i].re = fft_out[i][0];
+		out[i].im = fft_out[i][1];
+	}
+
+	fftw_destroy_plan(plan);
+	fftw_free(fft_in);
+	fftw_free(fft_out);
+}
+
+void Openholo::fftwShift(oph::Complex<real>* src, oph::Complex<real>* dst, int nx, int ny, int type, bool bNormalized)
+{
+	oph::Complex<real>* tmp = (oph::Complex<real>*)malloc(sizeof(oph::Complex<real>)*nx*ny);
+	memset(tmp, 0, sizeof(oph::Complex<real>)*nx*ny);
+	fftShift(nx, ny, src, tmp);
+
+	fftw_plan fft_plan_fwd = nullptr, fft_plan_bwd = nullptr;
+
+	fftw_complex *in = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * nx * ny);
+	fftw_complex *out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * nx * ny);
+
+	for (int i = 0; i < nx*ny; i++)
+	{
+		in[i][0] = tmp[i].re;
+		in[i][1] = tmp[i].im;
+	}
+
+	if (type == 1)
+		fftw_execute_dft(fft_plan_fwd, in, out);
+	else
+		fftw_execute_dft(fft_plan_bwd, in, out);
+
+	int normalF = 1;
+	if (bNormalized) normalF = nx * ny;
+	memset(tmp, 0, sizeof(oph::Complex<real>)*nx*ny);
+
+	for (int k = 0; k < nx*ny; k++) {
+		tmp[k].re = out[k][0] / normalF;
+		tmp[k].im = out[k][1] / normalF;
+	}
+	fftw_free(in);
+	fftw_free(out);
+
+	memset(dst, 0, sizeof(oph::Complex<real>)*nx*ny);
+	fftShift(nx, ny, tmp, dst);
+
+	free(tmp);
+}
+
+void Openholo::fftShift(int nx, int ny, oph::Complex<real>* input, oph::Complex<real>* output)
+{
+	for (int i = 0; i < nx; i++)
+	{
+		for (int j = 0; j < ny; j++)
+		{
+			int ti = i - nx / 2; if (ti < 0) ti += nx;
+			int tj = j - ny / 2; if (tj < 0) tj += ny;
+
+			output[ti + tj * nx] = input[i + j * nx];
+		}
 	}
 }
 

@@ -8,8 +8,6 @@
 
 #include "Openholo.h"
 
-#include "fftw3.h"
-
 #ifdef GEN_EXPORT
 #define GEN_DLL __declspec(dllexport)
 #else
@@ -21,7 +19,7 @@ struct GEN_DLL OphContext {
 	oph::vec2		pixel_pitch;				///< SLM_PIXEL_PITCH_X & SLM_PIXEL_PITCH_Y
 
 	real			k;							///< 2 * PI / lambda(wavelength)
-	oph::vec2		ss;							///< pn * pp
+	vec2			ss;							///< pn * pp
 
 	real			lambda;						///< wave length
 };
@@ -30,7 +28,7 @@ struct OphPointCloudConfig;
 struct OphPointCloudData;
 struct OphDepthMapConfig;
 struct OphDepthMapParams;
-struct OphDepthMapSimul;
+//struct OphDepthMapSimul;
 
 class GEN_DLL ophGen : public Openholo
 {
@@ -94,7 +92,7 @@ public:
 	* @param output parameter. OphConfigParams struct variable can get configuration data
 	*/
 	virtual bool readConfig(const char* fname, OphPointCloudConfig& config);
-	virtual bool readConfig(const char* fname, OphDepthMapConfig& config, OphDepthMapParams& params, OphDepthMapSimul& simuls);
+	virtual bool readConfig(const char* fname, OphDepthMapConfig& config, OphDepthMapParams& params);
 
 	virtual void normalize(void);
 
@@ -103,7 +101,6 @@ public:
 	virtual int load(const char* fname, void* dst = nullptr);
 
 	/**	*/
-	void fft2(int n0, int n1, const oph::Complex<real>* in, oph::Complex<real>* out, int sign = FFTW_FORWARD, unsigned int flag = FFTW_ESTIMATE);
 
 protected:
 	/** 
@@ -197,31 +194,6 @@ protected:
 	*/
 	void get_rand_phase_value(oph::Complex<real>& rand_phase_val, bool rand_phase);
 
-	/**
-	* @brief Convert data from the spatial domain to the frequency domain using 2D FFT on CPU.
-	* @details It is equivalent to Matlab code, dst = ifftshift(fft2(fftshift(src))).
-	* @param src : input data variable
-	* @param dst : output data variable
-	* @param in : input data pointer connected with FFTW plan
-	* @param out : ouput data pointer connected with FFTW plan
-	* @param nx : the number of column of the input data
-	* @param ny : the number of row of the input data
-	* @param type : If type == 1, forward FFT, if type == -1, backward FFT.
-	* @param bNomarlized : If bNomarlized == true, normalize the result after FFT.
-	* @see propagation_AngularSpectrum_CPU, encoding_CPU
-	*/
-	void fftwShift(oph::Complex<real>* src, oph::Complex<real>* dst, fftw_complex* in, fftw_complex* out, int nx, int ny, int type, bool bNormalized = false);
-
-	/**
-	* @brief Swap the top-left quadrant of data with the bottom-right , and the top-right quadrant with the bottom-left.
-	* @param nx : the number of column of the input data
-	* @param ny : the number of row of the input data
-	* @param input : input data variable
-	* @param output : output data variable
-	* @see fftwShift
-	*/
-	void fftShift(int nx, int ny, oph::Complex<real>* input, oph::Complex<real>* output);
-
 protected:
 	/**
 	* @brief Pure virtual function for override in child classes
@@ -291,23 +263,23 @@ struct GEN_DLL OphDepthMapParams
 	oph::uint				NUMBER_OF_DEPTH_QUANTIZATION;		///< depth level of input depthmap.
 	bool					RANDOM_PHASE;						///< If true, random phase is imposed on each depth layer.
 };
-struct GEN_DLL OphDepthMapSimul
-{
-	// for Simulation (reconstruction)
-	//===================================================
-	std::string				Simulation_Result_File_Prefix_;		///< reconstruction variable for testing
-	int						test_pixel_number_scale_;			///< reconstruction variable for testing
-	oph::vec2				Pixel_pitch_xy_;					///< reconstruction variable for testing
-	oph::ivec2				SLM_pixel_number_xy_;				///< reconstruction variable for testing
-	real					f_field_;							///< reconstruction variable for testing
-	real					eye_length_;						///< reconstruction variable for testing
-	real					eye_pupil_diameter_;				///< reconstruction variable for testing
-	oph::vec2				eye_center_xy_;						///< reconstruction variable for testing
-	real					focus_distance_;					///< reconstruction variable for testing
-	int						sim_type_;							///< reconstruction variable for testing
-	real					sim_from_;							///< reconstruction variable for testing
-	real					sim_to_;							///< reconstruction variable for testing
-	int						sim_step_num_;						///< reconstruction variable for testing
-	real*					sim_final_;							///< reconstruction variable for testing
-	oph::Complex<real>*		hh_complex_;						///< reconstruction variable for testing
-};
+//struct GEN_DLL OphDepthMapSimul
+//{
+//	// for Simulation (reconstruction)
+//	//===================================================
+//	std::string				Simulation_Result_File_Prefix_;		///< reconstruction variable for testing
+//	int						test_pixel_number_scale_;			///< reconstruction variable for testing
+//	oph::vec2				Pixel_pitch_xy_;					///< reconstruction variable for testing
+//	oph::ivec2				SLM_pixel_number_xy_;				///< reconstruction variable for testing
+//	real					f_field_;							///< reconstruction variable for testing
+//	real					eye_length_;						///< reconstruction variable for testing
+//	real					eye_pupil_diameter_;				///< reconstruction variable for testing
+//	oph::vec2				eye_center_xy_;						///< reconstruction variable for testing
+//	real					focus_distance_;					///< reconstruction variable for testing
+//	int						sim_type_;							///< reconstruction variable for testing
+//	real					sim_from_;							///< reconstruction variable for testing
+//	real					sim_to_;							///< reconstruction variable for testing
+//	int						sim_step_num_;						///< reconstruction variable for testing
+//	real*					sim_final_;							///< reconstruction variable for testing
+//	oph::Complex<real>*		hh_complex_;						///< reconstruction variable for testing
+//};

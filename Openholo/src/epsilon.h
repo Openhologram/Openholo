@@ -1,7 +1,7 @@
 #ifndef __epsilon_h
 #define __epsilon_h
 
-#include "real.h"
+#include "typedef.h"
 
 namespace oph {
 

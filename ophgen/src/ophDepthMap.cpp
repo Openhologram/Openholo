@@ -61,7 +61,7 @@ void ophDepthMap::setMode(bool isCPU)
 */
 bool ophDepthMap::readConfig(const char* fname)
 {
-	bool b_ok = ophGen::readConfig(fname, dm_config_, dm_params_, dm_simuls_);
+	bool b_ok = ophGen::readConfig(fname, dm_config_, dm_params_);
 
 	return b_ok;
 }
@@ -329,46 +329,46 @@ int ophDepthMap::save(const char* fname, uint8_t bitsperpixel)
 */
 //commit test
 
-void ophDepthMap::writeSimulationImage(int num, real val)
-{
-	std::string outdir = std::string("./").append(dm_params_.RESULT_FOLDER);
-	if (!CreateDirectory(outdir.c_str(), NULL) && ERROR_ALREADY_EXISTS != GetLastError())
-	{
-		LOG("Fail to make output directory\n");
-		return;
-	}
-
-	std::string fname = std::string("./").append(dm_params_.RESULT_FOLDER).append("/").append(dm_simuls_.Simulation_Result_File_Prefix_).append("_");
-	fname = fname.append(dm_params_.RESULT_PREFIX).append(std::to_string(num)).append("_").append(dm_simuls_.sim_type_ == 0 ? "FOCUS_" : "EYE_Y_");
-	int v = (int)round(val * 1000);
-	fname = fname.append(std::to_string(v));
-	
-	int pnx = context_.pixel_number[0];
-	int pny = context_.pixel_number[1];
-	int px = pnx / 3;
-	int py = pny;
-
-	real min_val, max_val;
-	min_val = dm_simuls_.sim_final_[0];
-	max_val = dm_simuls_.sim_final_[0];
-	for (int i = 0; i < pnx*pny; ++i)
-	{
-		if (min_val > dm_simuls_.sim_final_[i])
-			min_val = dm_simuls_.sim_final_[i];
-		else if (max_val < dm_simuls_.sim_final_[i])
-			max_val = dm_simuls_.sim_final_[i];
-	}
-
-	uchar* data = new uchar[pnx*pny];
-	memset(data, 0, sizeof(uchar)*pnx*pny);
-		
-	for (int k = 0; k < pnx*pny; k++)
-		data[k] = (uint)((dm_simuls_.sim_final_[k] - min_val) / (max_val - min_val) * 255);
-
-	int ret = ophGen::save(fname.c_str(), 24, data, px, py);
-
-	delete[] data;
-}
+//void ophDepthMap::writeSimulationImage(int num, real val)
+//{
+//	std::string outdir = std::string("./").append(dm_params_.RESULT_FOLDER);
+//	if (!CreateDirectory(outdir.c_str(), NULL) && ERROR_ALREADY_EXISTS != GetLastError())
+//	{
+//		LOG("Fail to make output directory\n");
+//		return;
+//	}
+//
+//	std::string fname = std::string("./").append(dm_params_.RESULT_FOLDER).append("/").append(dm_simuls_.Simulation_Result_File_Prefix_).append("_");
+//	fname = fname.append(dm_params_.RESULT_PREFIX).append(std::to_string(num)).append("_").append(dm_simuls_.sim_type_ == 0 ? "FOCUS_" : "EYE_Y_");
+//	int v = (int)round(val * 1000);
+//	fname = fname.append(std::to_string(v));
+//	
+//	int pnx = context_.pixel_number[0];
+//	int pny = context_.pixel_number[1];
+//	int px = pnx / 3;
+//	int py = pny;
+//
+//	real min_val, max_val;
+//	min_val = dm_simuls_.sim_final_[0];
+//	max_val = dm_simuls_.sim_final_[0];
+//	for (int i = 0; i < pnx*pny; ++i)
+//	{
+//		if (min_val > dm_simuls_.sim_final_[i])
+//			min_val = dm_simuls_.sim_final_[i];
+//		else if (max_val < dm_simuls_.sim_final_[i])
+//			max_val = dm_simuls_.sim_final_[i];
+//	}
+//
+//	uchar* data = new uchar[pnx*pny];
+//	memset(data, 0, sizeof(uchar)*pnx*pny);
+//		
+//	for (int k = 0; k < pnx*pny; k++)
+//		data[k] = (uint)((dm_simuls_.sim_final_[k] - min_val) / (max_val - min_val) * 255);
+//
+//	int ret = ophGen::save(fname.c_str(), 24, data, px, py);
+//
+//	delete[] data;
+//}
 
 void ophDepthMap::ophFree(void)
 {

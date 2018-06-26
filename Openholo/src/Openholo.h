@@ -10,7 +10,7 @@
 #include "include.h"
 #include "vec.h"
 #include "ivec.h"
-#include "real.h"
+#include "fftw3.h"
 
 using namespace oph;
 
@@ -78,6 +78,39 @@ protected:
 	* @param input parameter. bytes per pixel
 	*/
 	void convertToFormatGray8(unsigned char* src, unsigned char* dst, int w, int h, int bytesperpixel);
+
+
+	/**
+
+	*/
+	void fft1(int n, const oph::Complex<real>* in, oph::Complex<real>* out, int sign = OPH_FORWARD, uint flag = OPH_ESTIMATE);
+	void fft2(oph::ivec2 n, const oph::Complex<real>* in, oph::Complex<real>* out, int sign = OPH_FORWARD, uint flag = OPH_ESTIMATE);
+	void fft3(oph::ivec3 n, const oph::Complex<real>* in, oph::Complex<real>* out, int sign = OPH_FORWARD, uint flag = OPH_ESTIMATE);
+
+	/**
+	* @brief Convert data from the spatial domain to the frequency domain using 2D FFT on CPU.
+	* @details It is equivalent to Matlab code, dst = ifftshift(fft2(fftshift(src))).
+	* @param src : input data variable
+	* @param dst : output data variable
+	* @param in : input data pointer connected with FFTW plan
+	* @param out : ouput data pointer connected with FFTW plan
+	* @param nx : the number of column of the input data
+	* @param ny : the number of row of the input data
+	* @param type : If type == 1, forward FFT, if type == -1, backward FFT.
+	* @param bNomarlized : If bNomarlized == true, normalize the result after FFT.
+	* @see propagation_AngularSpectrum_CPU, encoding_CPU
+	*/
+	void fftwShift(oph::Complex<real>* src, oph::Complex<real>* dst, int nx, int ny, int type, bool bNormalized = false);
+
+	/**
+	* @brief Swap the top-left quadrant of data with the bottom-right , and the top-right quadrant with the bottom-left.
+	* @param nx : the number of column of the input data
+	* @param ny : the number of row of the input data
+	* @param input : input data variable
+	* @param output : output data variable
+	* @see fftwShift
+	*/
+	void fftShift(int nx, int ny, oph::Complex<real>* input, oph::Complex<real>* output);
 
 protected:
 	/**

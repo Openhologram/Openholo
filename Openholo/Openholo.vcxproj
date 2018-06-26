@@ -30,7 +30,6 @@
     <ClInclude Include="src\ivec.h" />
     <ClInclude Include="src\mat.h" />
     <ClInclude Include="src\Openholo.h" />
-    <ClInclude Include="src\real.h" />
     <ClInclude Include="src\struct.h" />
     <ClInclude Include="src\sys.h" />
     <ClInclude Include="src\typedef.h" />

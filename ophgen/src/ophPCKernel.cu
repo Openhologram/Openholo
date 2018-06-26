@@ -8,7 +8,8 @@
 #include <device_functions.h>
 #include <cufft.h>
 
-#include "real.h"
+#include "typedef.h"
+
 
 // for PointCloud
 typedef struct KernelConst {

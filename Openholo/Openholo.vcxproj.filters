@@ -48,9 +48,6 @@
     <ClInclude Include="src\ivec.h">
       <Filter>__utilities\header</Filter>
     </ClInclude>
-    <ClInclude Include="src\real.h">
-      <Filter>__utilities\header</Filter>
-    </ClInclude>
     <ClInclude Include="src\sys.h">
       <Filter>__utilities\header</Filter>
     </ClInclude>
