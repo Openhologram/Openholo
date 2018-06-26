@@ -111,6 +111,7 @@ xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)Reference\include\"
     <ClInclude Include="src\ophDepthMap.h" />
     <ClInclude Include="src\ophGen.h" />
     <ClInclude Include="src\ophPointCloud.h" />
+    <ClInclude Include="src\ophWRP.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\ophDepthMap.cpp" />
@@ -118,6 +119,7 @@ xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)Reference\include\"
     <ClCompile Include="src\ophDepthMap_GPU.cpp" />
     <ClCompile Include="src\ophGen.cpp" />
     <ClCompile Include="src\ophPointCloud.cpp" />
+    <ClCompile Include="src\ophWRP.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="src\ophDMKernel.cu" />

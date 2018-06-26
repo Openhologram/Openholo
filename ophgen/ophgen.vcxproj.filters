@@ -38,6 +38,9 @@
     </ClInclude>
     <ClInclude Include="src\fftw3.h" />
     <ClInclude Include="src\encoding.h" />
+    <ClInclude Include="src\ophWRP.h">
+      <Filter>_2_WRP</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\ophDepthMap.cpp">
@@ -54,6 +57,9 @@
     </ClCompile>
     <ClCompile Include="src\ophPointCloud.cpp">
       <Filter>_1_Generation\_ophPointCloud</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ophWRP.cpp">
+      <Filter>_2_WRP</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
