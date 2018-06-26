@@ -4,11 +4,11 @@
 #define REAL_T_IS_FLOAT true
 
 #if REAL_T_IS_FLOAT & true
-typedef double real;
-typedef float  real_t;
+typedef double Real;
+typedef float  Real_t;
 #else
-typedef float real;
-typedef double real_t;
+typedef float Real;
+typedef double Real_t;
 #endif
 
 namespace oph

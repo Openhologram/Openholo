@@ -76,12 +76,12 @@ void ophDepthMap::initialize(void)
 	dlevel_.clear();
 
 	if (holo_gen) delete[] holo_gen;
-	holo_gen = new oph::Complex<real>[context_.pixel_number[_X] * context_.pixel_number[_Y]];
-	memset(holo_gen, 0.0, sizeof(oph::Complex<real>) * context_.pixel_number[_X] * context_.pixel_number[_Y]);
+	holo_gen = new oph::Complex<Real>[context_.pixel_number[_X] * context_.pixel_number[_Y]];
+	memset(holo_gen, 0.0, sizeof(oph::Complex<Real>) * context_.pixel_number[_X] * context_.pixel_number[_Y]);
 
 	if (holo_encoded) delete[] holo_encoded;
-	holo_encoded = new real[context_.pixel_number[_X] * context_.pixel_number[_Y]];
-	memset(holo_encoded, 0.0, sizeof(real) * context_.pixel_number[_X] * context_.pixel_number[_Y]);
+	holo_encoded = new Real[context_.pixel_number[_X] * context_.pixel_number[_Y]];
+	memset(holo_encoded, 0.0, sizeof(Real) * context_.pixel_number[_X] * context_.pixel_number[_Y]);
 
 	if (holo_normalized) delete[] holo_normalized;
 	holo_normalized = new uchar[context_.pixel_number[_X] * context_.pixel_number[_Y]];
@@ -123,7 +123,7 @@ double ophDepthMap::generateHologram()
 
 	auto time_end = _cur_time;
 
-	return ((std::chrono::duration<real>)(time_end - time_start)).count();
+	return ((std::chrono::duration<Real>)(time_end - time_start)).count();
 }
 
 void ophDepthMap::encodeHologram(void)
@@ -243,7 +243,7 @@ void ophDepthMap::getDepthValues()
 	if (dm_config_.num_of_depth > 1)
 	{
 		dstep_ = (dm_config_.far_depthmap - dm_config_.near_depthmap) / (dm_config_.num_of_depth - 1);
-		real val = dm_config_.near_depthmap;
+		Real val = dm_config_.near_depthmap;
 		while (val <= dm_config_.far_depthmap)
 		{
 			dlevel_.push_back(val);
@@ -275,7 +275,7 @@ void ophDepthMap::transformViewingWindow()
 	int pnx = context_.pixel_number[0];
 	int pny = context_.pixel_number[1];
 
-	real val;
+	Real val;
 	dlevel_transform_.clear();
 	for (int p = 0; p < dlevel_.size(); p++)
 	{
@@ -329,7 +329,7 @@ int ophDepthMap::save(const char* fname, uint8_t bitsperpixel)
 */
 //commit test
 
-//void ophDepthMap::writeSimulationImage(int num, real val)
+//void ophDepthMap::writeSimulationImage(int num, Real val)
 //{
 //	std::string outdir = std::string("./").append(dm_params_.RESULT_FOLDER);
 //	if (!CreateDirectory(outdir.c_str(), NULL) && ERROR_ALREADY_EXISTS != GetLastError())
@@ -348,7 +348,7 @@ int ophDepthMap::save(const char* fname, uint8_t bitsperpixel)
 //	int px = pnx / 3;
 //	int py = pny;
 //
-//	real min_val, max_val;
+//	Real min_val, max_val;
 //	min_val = dm_simuls_.sim_final_[0];
 //	max_val = dm_simuls_.sim_final_[0];
 //	for (int i = 0; i < pnx*pny; ++i)

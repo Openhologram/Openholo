@@ -18,10 +18,10 @@ struct GEN_DLL OphContext {
 	oph::ivec2		pixel_number;				///< SLM_PIXEL_NUMBER_X & SLM_PIXEL_NUMBER_Y
 	oph::vec2		pixel_pitch;				///< SLM_PIXEL_PITCH_X & SLM_PIXEL_PITCH_Y
 
-	real			k;							///< 2 * PI / lambda(wavelength)
+	Real			k;							///< 2 * PI / lambda(wavelength)
 	vec2			ss;							///< pn * pp
 
-	real			lambda;						///< wave length
+	Real			lambda;						///< wave length
 };
 
 struct OphPointCloudConfig;
@@ -37,17 +37,6 @@ protected:
 		DIFF_RS,
 		DIFF_FRESNEL,
 	};
-
-	enum ENCODE_FLAG {
-		SingleSideBand,
-		NumericalInterference,
-		PhaseToAmplitude,
-		Real,
-		OffAxisSSB,
-		Burckhardt,
-		TwoPhase,
-	};
-
 	enum PC_FLAG {
 		PC_XYZ			= 1,
 		PC_RGB			= 2,
@@ -68,13 +57,13 @@ protected:
 	virtual ~ophGen(void) = 0;
 
 public:
-	inline oph::Complex<real>* getGenBuffer(void) { return holo_gen; }
-	inline real* getEncodedBuffer(void) { return holo_encoded; }
+	inline oph::Complex<Real>* getGenBuffer(void) { return holo_gen; }
+	inline Real* getEncodedBuffer(void) { return holo_encoded; }
 	inline uchar* getNormalizedBuffer(void) { return holo_normalized; }
 
 	inline void setPixelNumber(int nx, int ny) { context_.pixel_number.v[0] = nx; context_.pixel_number.v[1] = ny; }
-	inline void setPixelPitch(real px, real py) { context_.pixel_pitch.v[0] = px; context_.pixel_pitch.v[1] = py; }
-	inline void setWaveLength(real w) { context_.lambda = w; }
+	inline void setPixelPitch(Real px, Real py) { context_.pixel_pitch.v[0] = px; context_.pixel_pitch.v[1] = py; }
+	inline void setWaveLength(Real w) { context_.lambda = w; }
 
 	OphContext& getContext(void) { return context_; }
 
@@ -111,8 +100,8 @@ protected:
 protected:
 	OphContext				context_;
 
-	oph::Complex<real>*		holo_gen;
-	real*					holo_encoded;
+	oph::Complex<Real>*		holo_gen;
+	Real*					holo_encoded;
 	oph::uchar*				holo_normalized;
 
 protected:
@@ -121,38 +110,38 @@ protected:
 	*/
 
 	/** @brief Phase and Amplitude */
-	void calPhase(oph::Complex<real>* holo, real* encoded, const ivec2 holosize);
-	void calAmplitude(oph::Complex<real>* holo, real* encoded, const ivec2 holosize);
+	void calPhase(oph::Complex<Real>* holo, Real* encoded, const ivec2 holosize);
+	void calAmplitude(oph::Complex<Real>* holo, Real* encoded, const ivec2 holosize);
 
-	//void encoding(oph::Complex<real>*holo, real* encoded, const ivec2 holosize, unsigned int flag);
+	//void encoding(oph::Complex<Real>*holo, Real* encoded, const ivec2 holosize, unsigned int flag);
 	void encoding(int px, int py, unsigned int flag);
 
-	void phase2amplitude(real* encoded, const int size);
+	void phase2amplitude(Real* encoded, const int size);
 
 	/** @brief Single Side Band Encoding */
 	enum passband {left, rig, top, btm};
-	//void singleSideBand(oph::Complex<real>* holo, real* encoded, const ivec2 holosize, int passband);
+	//void singleSideBand(oph::Complex<Real>* holo, Real* encoded, const ivec2 holosize, int passband);
 	
 	/** @brief Numerical Interface */
-	//void numericalInterference(oph::Complex<real>* holo, real* encoded, const ivec2 holosize);
-	void numericalInterference(oph::Complex<real>* holo, real* encoded, const int size);
+	//void numericalInterference(oph::Complex<Real>* holo, Real* encoded, const ivec2 holosize);
+	void numericalInterference(oph::Complex<Real>* holo, Real* encoded, const int size);
 
 	/** @brief Two Phase Encoding */
 	/**
 	* @param output parameter(encoded) : (sizeX*2, sizeY)
 	*/
-	//void twoPhaseEncoding(oph::Complex<real>* holo, real* encoded, const ivec2 holosize);
-	void twoPhaseEncoding(oph::Complex<real>* holo, real* encoded, const int size);
+	//void twoPhaseEncoding(oph::Complex<Real>* holo, Real* encoded, const ivec2 holosize);
+	void twoPhaseEncoding(oph::Complex<Real>* holo, Real* encoded, const int size);
 	
 	/** @brief Burckhardt Encoding */
 	/**
 	* @param output parameter(encoded) : (sizeX*3, sizeY)
 	*/
-	//void burckhardt(oph::Complex<real>* holo, real* encoded, const ivec2 holosize);
-	void burckhardt(oph::Complex<real>* holo, real* encoded, const int size);
+	//void burckhardt(oph::Complex<Real>* holo, Real* encoded, const ivec2 holosize);
+	void burckhardt(oph::Complex<Real>* holo, Real* encoded, const int size);
 	
 	/** @brief Frequency Shift */
-	void freqShift(oph::Complex<real>* holo, Complex<real>* encoded, const ivec2 holosize, int shift_x, int shift_y);
+	void freqShift(oph::Complex<Real>* holo, Complex<Real>* encoded, const ivec2 holosize, int shift_x, int shift_y);
 
 protected:
 	/** \ingroup encode_module
@@ -184,7 +173,7 @@ protected:
 	* @param sig_location :  signal location.
 	* @see encodingSideBand_CPU
 	*/
-	void get_shift_phase_value(oph::Complex<real>& shift_phase_val, int idx, oph::ivec2 sig_location);
+	void get_shift_phase_value(oph::Complex<Real>& shift_phase_val, int idx, oph::ivec2 sig_location);
 
 	/**
 	* @brief Assign random phase value if RANDOM_PHASE == 1
@@ -192,7 +181,7 @@ protected:
 	*  otherwise, random phase value is 1.
 	* @param rand_phase_val : Input & Ouput value.
 	*/
-	void get_rand_phase_value(oph::Complex<real>& rand_phase_val, bool rand_phase);
+	void get_rand_phase_value(oph::Complex<Real>& rand_phase_val, bool rand_phase);
 
 protected:
 	/**
@@ -205,30 +194,30 @@ protected:
 
 struct GEN_DLL OphPointCloudConfig {
 	oph::vec3 scale;								///< Scaling factor of coordinate of point cloud
-	real offset_depth;								///< Offset value of point cloud
+	Real offset_depth;								///< Offset value of point cloud
 
 	int8_t* filter_shape_flag;						///< Shape of spatial bandpass filter ("Circle" or "Rect" for now)
 	oph::vec2 filter_width;							///< Width of spatial bandpass filter
 
-	real focal_length_lens_in;						///< Focal length of input lens of Telecentric
-	real focal_length_lens_out;						///< Focal length of output lens of Telecentric
-	real focal_length_lens_eye_piece;				///< Focal length of eyepiece lens				
+	Real focal_length_lens_in;						///< Focal length of input lens of Telecentric
+	Real focal_length_lens_out;						///< Focal length of output lens of Telecentric
+	Real focal_length_lens_eye_piece;				///< Focal length of eyepiece lens				
 
 	oph::vec2 tilt_angle;							///< Tilt angle for spatial filtering
 };
 struct GEN_DLL OphPointCloudData {
 	vec3* location;
 	vec3* color;
-	real* amplitude;
-	real* phase;
+	Real* amplitude;
+	Real* phase;
 
 	OphPointCloudData() :location(nullptr), color(nullptr), amplitude(nullptr), phase(nullptr) {}
 };
 struct GEN_DLL OphDepthMapConfig {
-	real				field_lens;					///< FIELD_LENS at config file
+	Real				field_lens;					///< FIELD_LENS at config file
 
-	real				near_depthmap;				///< NEAR_OF_DEPTH_MAP at config file
-	real				far_depthmap;				///< FAR_OF_DEPTH_MAP at config file
+	Real				near_depthmap;				///< NEAR_OF_DEPTH_MAP at config file
+	Real				far_depthmap;				///< FAR_OF_DEPTH_MAP at config file
 
 	oph::uint			num_of_depth;				///< the number of depth level.
 													/**< <pre>
@@ -271,15 +260,15 @@ struct GEN_DLL OphDepthMapParams
 //	int						test_pixel_number_scale_;			///< reconstruction variable for testing
 //	oph::vec2				Pixel_pitch_xy_;					///< reconstruction variable for testing
 //	oph::ivec2				SLM_pixel_number_xy_;				///< reconstruction variable for testing
-//	real					f_field_;							///< reconstruction variable for testing
-//	real					eye_length_;						///< reconstruction variable for testing
-//	real					eye_pupil_diameter_;				///< reconstruction variable for testing
+//	Real					f_field_;							///< reconstruction variable for testing
+//	Real					eye_length_;						///< reconstruction variable for testing
+//	Real					eye_pupil_diameter_;				///< reconstruction variable for testing
 //	oph::vec2				eye_center_xy_;						///< reconstruction variable for testing
-//	real					focus_distance_;					///< reconstruction variable for testing
+//	Real					focus_distance_;					///< reconstruction variable for testing
 //	int						sim_type_;							///< reconstruction variable for testing
-//	real					sim_from_;							///< reconstruction variable for testing
-//	real					sim_to_;							///< reconstruction variable for testing
+//	Real					sim_from_;							///< reconstruction variable for testing
+//	Real					sim_to_;							///< reconstruction variable for testing
 //	int						sim_step_num_;						///< reconstruction variable for testing
-//	real*					sim_final_;							///< reconstruction variable for testing
-//	oph::Complex<real>*		hh_complex_;						///< reconstruction variable for testing
+//	Real*					sim_final_;							///< reconstruction variable for testing
+//	oph::Complex<Real>*		hh_complex_;						///< reconstruction variable for testing
 //};

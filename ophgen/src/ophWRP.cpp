@@ -66,44 +66,44 @@ bool ophWRP::readConfig(const char* cfg_file)
 
 
 
-void ophWRP::AddPixel2WRP(int x, int y, Complex<real> temp)
+void ophWRP::AddPixel2WRP(int x, int y, Complex<Real> temp)
 {
 	long long int Nx = context_.pixel_number.v[0];
 	long long int Ny = context_.pixel_number.v[1];
-	Complex<real> *p = getWRPBuff();
+	Complex<Real> *p = getWRPBuff();
 
 	if (x >= 0 && x<Nx && y >= 0 && y< Ny) {
 		long long int adr = x + y*Nx;
-		p[adr].re += temp.re;
-		p[adr].im += temp.im;
+		p[adr][_RE] += temp[_RE];
+		p[adr][_IM] += temp[_IM];
 	}
 
 }
 
-void ophWRP::AddPixel2WRP(int x, int y, oph::Complex<real> temp, oph::Complex<real>* wrp)
+void ophWRP::AddPixel2WRP(int x, int y, oph::Complex<Real> temp, oph::Complex<Real>* wrp)
 {
 	long long int Nx = context_.pixel_number.v[0];
 	long long int Ny = context_.pixel_number.v[1];
 
 	if (x >= 0 && x<Nx && y >= 0 && y< Ny) {
 		long long int adr = x + y*Nx;
-		wrp[adr].re += temp.re;
-		wrp[adr].im += temp.im;
+		wrp[adr][_RE] += temp[_RE];
+		wrp[adr][_IM] += temp[_IM];
 	}
 
 }
 
-oph::Complex<real>* ophWRP::subWRP_calcu(double wrp_d, Complex<real>* wrp, OphPointCloudData* pc)
+oph::Complex<Real>* ophWRP::subWRP_calcu(double wrp_d, Complex<Real>* wrp, OphPointCloudData* pc)
 {
 
-	real wave_num = context_.k;   // wave_number
-	real wave_len = context_.lambda;  //wave_length
+	Real wave_num = context_.k;   // wave_number
+	Real wave_len = context_.lambda;  //wave_length
 
-	int Nx = context_.pixel_number.v[0]; //slm_pixelNumberX
-	int Ny = context_.pixel_number.v[1]; //slm_pixelNumberY
+	int Nx = context_.pixel_number[_X]; //slm_pixelNumberX
+	int Ny = context_.pixel_number[_Y]; //slm_pixelNumberY
 
-	real wpx = context_.pixel_pitch.v[0];//wrp pitch
-	real wpy = context_.pixel_pitch.v[1];
+	Real wpx = context_.pixel_pitch[_X];//wrp pitch
+	Real wpy = context_.pixel_pitch[_Y];
 
 
 	int Nx_h = Nx >> 1;
@@ -119,9 +119,9 @@ oph::Complex<real>* ophWRP::subWRP_calcu(double wrp_d, Complex<real>* wrp, OphPo
 
 	for (int k = 0; k < num; k++) {
 
-		real x = pc->location[k][_X] * pc_config_.scale[_X];
-		real y = pc->location[k][_Y] * pc_config_.scale[_Y];
-		real z = pc->location[k][_Z] * pc_config_.scale[_Z] + pc_config_.offset_depth;
+		Real x = pc->location[k][_X] * pc_config_.scale[_X];
+		Real y = pc->location[k][_Y] * pc_config_.scale[_Y];
+		Real z = pc->location[k][_Z] * pc_config_.scale[_Z] + pc_config_.offset_depth;
 
 
 		float dz = wrp_d - z;
@@ -146,9 +146,9 @@ oph::Complex<real>* ophWRP::subWRP_calcu(double wrp_d, Complex<real>* wrp, OphPo
 				double r = sign*sqrt(dx*dx + dy*dy + dz*dz);
 
 				//double tmp_re,tmp_im;
-				Complex<real> tmp;
-				tmp.re = cosf(wave_num*r) / (r + 0.05);
-				tmp.im = sinf(wave_num*r) / (r + 0.05);
+				Complex<Real> tmp;
+				tmp[_RE] = cosf(wave_num*r) / (r + 0.05);
+				tmp[_IM] = sinf(wave_num*r) / (r + 0.05);
 
 				if (tx + wx >= 0 && tx + wx < Nx && ty + wy >= 0 && ty + wy < Ny)
 					AddPixel2WRP(wx + tx, wy + ty, tmp, wrp);
@@ -162,14 +162,14 @@ oph::Complex<real>* ophWRP::subWRP_calcu(double wrp_d, Complex<real>* wrp, OphPo
 
 double ophWRP::calculateWRP(double wrp_d)
 {
-	real wave_num = context_.k;   // wave_number
-	real wave_len = context_.lambda;  //wave_length
+	Real wave_num = context_.k;   // wave_number
+	Real wave_len = context_.lambda;  //wave_length
 
 	int Nx = context_.pixel_number.v[0]; //slm_pixelNumberX
 	int Ny = context_.pixel_number.v[1]; //slm_pixelNumberY
 
-	real wpx = context_.pixel_pitch.v[0];//wrp pitch
-	real wpy = context_.pixel_pitch.v[1];
+	Real wpx = context_.pixel_pitch.v[0];//wrp pitch
+	Real wpy = context_.pixel_pitch.v[1];
 
 
 	int Nx_h = Nx >> 1;
@@ -179,7 +179,7 @@ double ophWRP::calculateWRP(double wrp_d)
 
 	// Memory Location for Result Image
 	if (p_wrp_ != nullptr) free(p_wrp_);
-	p_wrp_ = (oph::Complex<real>*)calloc(1, sizeof(oph::Complex<real>) * Nx * Ny);
+	p_wrp_ = (oph::Complex<Real>*)calloc(1, sizeof(oph::Complex<Real>) * Nx * Ny);
 
 	int num = n_points;
 	std::chrono::system_clock::time_point time_start = std::chrono::system_clock::now();
@@ -191,9 +191,9 @@ double ophWRP::calculateWRP(double wrp_d)
 
 	for (int k = 0; k < num; k++) {
 
-		real x = pc->location[k][_X] * pc_config_.scale[_X];
-		real y = pc->location[k][_Y] * pc_config_.scale[_Y];
-		real z = pc->location[k][_Z] * pc_config_.scale[_Z] + pc_config_.offset_depth;
+		Real x = pc->location[k][_X] * pc_config_.scale[_X];
+		Real y = pc->location[k][_Y] * pc_config_.scale[_Y];
+		Real z = pc->location[k][_Z] * pc_config_.scale[_Z] + pc_config_.offset_depth;
 
 		float dz = wrp_d - z;
 		//	float tw = (int)fabs(wave_len*dz / wpx / wpx / 2 + 0.5) * 2 - 1;
@@ -217,9 +217,9 @@ double ophWRP::calculateWRP(double wrp_d)
 				double r = sign*sqrt(dx*dx + dy*dy + dz*dz);
 
 				//double tmp_re,tmp_im;
-				Complex<real> tmp;
-				tmp.re = cosf(wave_num*r) / (r + 0.05);
-				tmp.im = sinf(wave_num*r) / (r + 0.05);
+				Complex<Real> tmp;
+				tmp[_RE] = cosf(wave_num*r) / (r + 0.05);
+				tmp[_IM] = sinf(wave_num*r) / (r + 0.05);
 
 				if (tx + wx >= 0 && tx + wx < Nx && ty + wy >= 0 && ty + wy < Ny)
 					AddPixel2WRP(wx + tx, wy + ty, tmp);
@@ -229,38 +229,38 @@ double ophWRP::calculateWRP(double wrp_d)
 	}
 
 	std::chrono::system_clock::time_point time_finish = std::chrono::system_clock::now();
-	return ((std::chrono::duration<real>)(time_finish - time_start)).count();
+	return ((std::chrono::duration<Real>)(time_finish - time_start)).count();
 
 	//	return 0;
 }
 
-oph::Complex<real>** ophWRP::calculateWRP(int wrp_num)
+oph::Complex<Real>** ophWRP::calculateWRP(int wrp_num)
 {
 
 	if (wrp_num < 1)
 		return nullptr;
 
-	Complex<real>** wrp_list;
+	Complex<Real>** wrp_list = nullptr;
 
-	real wave_num = context_.k;   // wave_number
-	real wave_len = context_.lambda;  //wave_length
+	Real wave_num = context_.k;   // wave_number
+	Real wave_len = context_.lambda;  //wave_length
 
 	int Nx = context_.pixel_number.v[0]; //slm_pixelNumberX
 	int Ny = context_.pixel_number.v[1]; //slm_pixelNumberY
 
-	real wpx = context_.pixel_pitch.v[0];//wrp pitch
-	real wpy = context_.pixel_pitch.v[1];
+	Real wpx = context_.pixel_pitch.v[0];//wrp pitch
+	Real wpy = context_.pixel_pitch.v[1];
 
 
 	int Nx_h = Nx >> 1;
 	int Ny_h = Ny >> 1;
 
 	//OphPointCloudData *pc = obj_;
-	oph::Complex<real>* wrp;
+	oph::Complex<Real>* wrp = nullptr;
 
 	// Memory Location for Result Image
 	if (wrp != nullptr) free(wrp);
-	wrp = (oph::Complex<real>*)calloc(1, sizeof(oph::Complex<real>) * Nx * Ny);
+	wrp = (oph::Complex<Real>*)calloc(1, sizeof(oph::Complex<Real>) * Nx * Ny);
 
 	pobj2vecobj();
 

@@ -62,28 +62,28 @@ protected:
 
 public:
 	/** \ingroup getter/setter */
-	inline void setScale(real sx, real sy, real sz) { pc_config_.scale.v[0] = sx; pc_config_.scale.v[1] = sy; pc_config_.scale.v[2] = sz; }
+	inline void setScale(Real sx, Real sy, Real sz) { pc_config_.scale.v[0] = sx; pc_config_.scale.v[1] = sy; pc_config_.scale.v[2] = sz; }
 	/** \ingroup getter/setter */
-	inline void setOffsetDepth(real offset_depth) { pc_config_.offset_depth = offset_depth; }
+	inline void setOffsetDepth(Real offset_depth) { pc_config_.offset_depth = offset_depth; }
 	/** \ingroup getter/setter */
 	inline void setFilterShapeFlag(int8_t* fsf) { pc_config_.filter_shape_flag = fsf; }
 	/** \ingroup getter/setter */
-	inline void setFilterWidth(real wx, real wy) { pc_config_.filter_width.v[0] = wx; pc_config_.filter_width.v[1] = wy; }
+	inline void setFilterWidth(Real wx, Real wy) { pc_config_.filter_width.v[0] = wx; pc_config_.filter_width.v[1] = wy; }
 	/** \ingroup getter/setter */
-	inline void setFocalLength(real lens_in, real lens_out, real lens_eye_piece) { pc_config_.focal_length_lens_in = lens_in; pc_config_.focal_length_lens_out = lens_out; pc_config_.focal_length_lens_eye_piece = lens_eye_piece; }
+	inline void setFocalLength(Real lens_in, Real lens_out, Real lens_eye_piece) { pc_config_.focal_length_lens_in = lens_in; pc_config_.focal_length_lens_out = lens_out; pc_config_.focal_length_lens_eye_piece = lens_eye_piece; }
 	/** \ingroup getter/setter */
-	inline void setTiltAngle(real ax, real ay) { pc_config_.tilt_angle.v[0] = ax; pc_config_.tilt_angle.v[1] = ay; }
+	inline void setTiltAngle(Real ax, Real ay) { pc_config_.tilt_angle.v[0] = ax; pc_config_.tilt_angle.v[1] = ay; }
 
 	/** \ingroup getter/setter */
 	inline void getScale(vec3& scale) { scale = pc_config_.scale; }
 	/** \ingroup getter/setter */
-	inline real getOffsetDepth(void) { return pc_config_.offset_depth; }
+	inline Real getOffsetDepth(void) { return pc_config_.offset_depth; }
 	/** \ingroup getter/setter */
 	inline int8_t* getFilterShapeFlag(void) { return pc_config_.filter_shape_flag; }
 	/** \ingroup getter/setter */
 	inline void getFilterWidth(vec2& filterwidth) { filterwidth = pc_config_.filter_width; }
 	/** \ingroup getter/setter */
-	inline void getFocalLength(real* lens_in, real* lens_out, real* lens_eye_piece) {
+	inline void getFocalLength(Real* lens_in, Real* lens_out, Real* lens_eye_piece) {
 		if (lens_in != nullptr) *lens_in = pc_config_.focal_length_lens_in;
 		if (lens_out != nullptr) *lens_out = pc_config_.focal_length_lens_out;
 		if (lens_eye_piece != nullptr) *lens_eye_piece = pc_config_.focal_length_lens_eye_piece;
@@ -95,18 +95,18 @@ public:
 	/** \ingroup getter/setter */
 	inline vec3* getColorPC(void) { return pc_data_.color; }
 	/** \ingroup getter/setter */
-	inline real* getAmplitudePC(void) { return pc_data_.amplitude; }
+	inline Real* getAmplitudePC(void) { return pc_data_.amplitude; }
 	/** \ingroup getter/setter */
-	inline real* getPhasePC(void) { return pc_data_.phase; }
+	inline Real* getPhasePC(void) { return pc_data_.phase; }
 	/** \ingroup getter/setter */
-	inline void setPointCloudModel(vec3* location, vec3 *color, real *amplitude, real *phase) {
+	inline void setPointCloudModel(vec3* location, vec3 *color, Real *amplitude, Real *phase) {
 		pc_data_.location = location;
 		pc_data_.color = color;
 		pc_data_.amplitude = amplitude;
 		pc_data_.phase = phase;
 	}
 	/** \ingroup getter/setter */
-	inline void getPointCloudModel(vec3 *location, vec3 *color, real *amplitude, real *phase) {
+	inline void getPointCloudModel(vec3 *location, vec3 *color, Real *amplitude, Real *phase) {
 		getModelLocation(location);
 		getModelColor(color);
 		getModelAmplitude(amplitude);
@@ -126,8 +126,8 @@ public:
 	*/
 	inline void getModelLocation(vec3 *location) { location = pc_data_.location; }
 	inline void getModelColor(vec3 *color) { color = pc_data_.color; }
-	inline void getModelAmplitude(real *amplitude) { amplitude = pc_data_.amplitude; }
-	inline void getModelPhase(real *phase) { phase = pc_data_.phase; }
+	inline void getModelAmplitude(Real *amplitude) { amplitude = pc_data_.amplitude; }
+	inline void getModelPhase(Real *phase) { phase = pc_data_.phase; }
 	inline int getNumberOfPoints() { return n_points; }
 
 public:
@@ -188,7 +188,7 @@ private:
 	* @param dst Output Fringe Pattern
 	* @return implement time (sec)
 	*/
-	void genCghPointCloud(real* dst);
+	void genCghPointCloud(Real* dst);
 
 	/**
 	* @overload
@@ -210,7 +210,7 @@ private:
 	* @param dst Output Fringe Pattern
 	* @return implement time (sec)
 	*/
-	void genCghPointCloud_cuda(real* dst);
+	void genCghPointCloud_cuda(Real* dst);
 
 	/** @}	*/
 
@@ -232,7 +232,7 @@ private:
 
 extern "C"
 {
-	void cudaPointCloudKernel(const int block_x, const int block_y, const int thread_x, const int thread_y, float3 *PointCloud, real *amplitude, const GpuConst *Config, real *dst);
+	void cudaPointCloudKernel(const int block_x, const int block_y, const int thread_x, const int thread_y, float3 *PointCloud, Real *amplitude, const GpuConst *Config, Real *dst);
 }
 
 #endif // !__ophPointCloud_h

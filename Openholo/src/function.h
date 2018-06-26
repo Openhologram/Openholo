@@ -17,7 +17,7 @@ namespace oph
 
 	template<typename type, typename T>
 	inline type force_cast(const Complex<T>& p) {
-		return type(p.re);
+		return type(p._Val[_RE]);
 	}
 
 	template<typename type, typename T>
@@ -25,30 +25,30 @@ namespace oph
 		return type(p);
 	}
 
-	inline const real minOfArr(const std::vector<real>& arr) {
-		real min = _MAXDOUBLE;
+	inline const Real minOfArr(const std::vector<Real>& arr) {
+		Real min = _MAXDOUBLE;
 		for (auto item : arr) { if (item < min) min = item; }
 		return min;
 	}
 	
 	template<typename T>
-	inline const real minOfArr(const T* src, const int& size) {
-		real min = _MAXDOUBLE;
+	inline const Real minOfArr(const T* src, const int& size) {
+		Real min = _MAXDOUBLE;
 		for (int i = 0; i < size; i++) {
 			if (*(src + i) < min) min = *(src + i);
 		}
 		return max;
 	}
 
-	inline const real maxOfArr(const std::vector<real>& arr) {
-		real max = _MINDOUBLE;
+	inline const Real maxOfArr(const std::vector<Real>& arr) {
+		Real max = _MINDOUBLE;
 		for (auto item : arr) { if (item > max) max = item; }
 		return max;
 	}
 
 	template<typename T>
-	inline const real maxOfArr(const T* src, const int& size) {
-		real max = _MINDOUBLE;
+	inline const Real maxOfArr(const T* src, const int& size) {
+		Real max = _MINDOUBLE;
 		for (int i = 0; i < size; i++) {
 			if (*(src + i) > max) max = *(src + i);
 		}
@@ -57,7 +57,7 @@ namespace oph
 
 	template<typename T>
 	inline void abs(const oph::Complex<T>& src, oph::Complex<T>& dst) {
-		dst = oph::Complex<T>(::abs(src.re), ::abs(src.im));
+		dst = oph::Complex<T>(::abs(src._Val[_RE]), ::abs(src._Val[_IM]));
 	}
 
 	template<typename T>
@@ -79,7 +79,7 @@ namespace oph
 
 	template<typename T>
 	inline void absCplx(const oph::Complex<T>& src, T& dst) {
-		dst = sqrt(src.re*src.re + src.im*src.im);
+		dst = sqrt(src._Val[_RE]*src._Val[_RE] + src._Val[_IM]*src._Val[_IM]);
 	}
 
 	template<typename T>
@@ -92,7 +92,7 @@ namespace oph
 	template<typename T>
 	inline void realPart(const oph::Complex<T>* src, T* dst, const int& size) {
 		for (int i = 0; i < size; i++) {
-			*(dst + i) = *(src + i).re;
+			*(dst + i) = *(src + i)._Val[_RE];
 		}
 	}
 
@@ -105,7 +105,7 @@ namespace oph
 
 	template<typename T>
 	inline void angle(const oph::Complex<T>& src, T& dst) {
-		dst = atan2(src.im, src.re);
+		dst = atan2(src.imag(), src.real());
 	}
 
 	/**
@@ -113,11 +113,11 @@ namespace oph
 	*/
 	template<typename T>
 	inline void normalize(const Complex<T>* src, Complex<T>* dst, const int& size) {
-		real* abs = new real[size];
-		oph::absCplxArr<real>(dst, abs, size);
+		Real* abs = new Real[size];
+		oph::absCplxArr<Real>(dst, abs, size);
 
-		real* max = new real;
-		*max = oph::maxOfArr<real>(abs, size);
+		Real* max = new Real;
+		*max = oph::maxOfArr<Real>(abs, size);
 
 		for (int i = 0; i < size; i++) {
 			*(dst + i) = *(src + i) / *max;
@@ -213,16 +213,16 @@ namespace oph
 	}
 
 	/**
-	* @brief Get random real value from min to max 
+	* @brief Get random Real value from min to max 
 	* @param _SEED_VALUE : Random seed value can be used to create a specific random number pattern.
 	*					   If the seed values are the same, random numbers of the same pattern are always output.
 	*/
-	inline real rand(const real min, const real max, oph::ulong _SEED_VALUE = 0) {
+	inline Real rand(const Real min, const Real max, oph::ulong _SEED_VALUE = 0) {
 		std::mt19937_64 rand_dev;
 		if (!_SEED_VALUE) rand_dev = std::mt19937_64(_cur_time_duration_milli_sec);
 		else rand_dev = std::mt19937_64(_SEED_VALUE);
 
-		std::uniform_real_distribution<real> dist(min, max);
+		std::uniform_real_distribution<Real> dist(min, max);
 
 		return dist(rand_dev);
 	}

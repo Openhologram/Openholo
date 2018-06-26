@@ -46,24 +46,24 @@ public:
 	int loadwPointCloud(const char* pc_file, bool colorinfo);
 	virtual bool readConfig(const char* cfg_file);
 	double calculateWRP(double wrp_d);
-	oph::Complex<real>** calculateWRP(int n);
+	oph::Complex<Real>** calculateWRP(int n);
 
 private:
-	inline oph::Complex<real>* getWRPBuff(void) { return p_wrp_; };
+	inline oph::Complex<Real>* getWRPBuff(void) { return p_wrp_; };
 	OphPointCloudData* vector2pointer(std::vector<OphPointCloudData> vec);
-	Complex<real>* ophWRP::subWRP_calcu(double d, oph::Complex<real>* wrp, OphPointCloudData* sobj);
+	Complex<Real>* ophWRP::subWRP_calcu(double d, oph::Complex<Real>* wrp, OphPointCloudData* sobj);
 	int pobj2vecobj();
-	void AddPixel2WRP(int x, int y, oph::Complex<real> temp);
-	void AddPixel2WRP(int x, int y, oph::Complex<real> temp, oph::Complex<real>* wrp);
+	void AddPixel2WRP(int x, int y, oph::Complex<Real> temp);
+	void AddPixel2WRP(int x, int y, oph::Complex<Real> temp, oph::Complex<Real>* wrp);
 
 protected:
 
 	int n_points;   //number of points
-	std::vector<real> vertex_array_;
-	std::vector<real> amplitude_array_;
-	std::vector<real> phase_array_;
+	std::vector<Real> vertex_array_;
+	std::vector<Real> amplitude_array_;
+	std::vector<Real> phase_array_;
 
-	oph::Complex<real>* p_wrp_;   //wrp buffer
+	oph::Complex<Real>* p_wrp_;   //wrp buffer
 	OphPointCloudData* obj_;
 	vector<OphPointCloudData> vec_obj;
 

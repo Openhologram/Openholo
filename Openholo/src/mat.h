@@ -17,10 +17,10 @@ namespace oph
 	{
 	public:
 		using typeT = typename std::enable_if<
-			std::is_same<real, T>::value || std::is_same<real_t, T>::value ||
+			std::is_same<Real, T>::value || std::is_same<Real_t, T>::value ||
 			std::is_same<int, T>::value ||
 			std::is_same<uchar, T>::value ||
-			std::is_same<Complex<real>, T>::value || std::is_same<Complex<real_t>, T>::value, T>::type;
+			std::is_same<Complex<Real>, T>::value || std::is_same<Complex<Real_t>, T>::value, T>::type;
 
 		std::vector<T>* mat;
 		ivec2 size;
@@ -340,10 +340,10 @@ namespace oph
 
 	typedef oph::TwoDimMatrix<int> OphIntField;
 	typedef oph::TwoDimMatrix<uchar> OphByteField;
-	typedef oph::TwoDimMatrix<real> OphRealField;
-	typedef oph::TwoDimMatrix<real_t> OphRealTField;
-	typedef oph::TwoDimMatrix<Complex<real>> OphComplexField;
-	typedef oph::TwoDimMatrix<Complex<real_t>> OphComplexTField;
+	typedef oph::TwoDimMatrix<Real> OphRealField;
+	typedef oph::TwoDimMatrix<Real_t> OphRealTField;
+	typedef oph::TwoDimMatrix<Complex<Real>> OphComplexField;
+	typedef oph::TwoDimMatrix<Complex<Real_t>> OphComplexTField;
 
 	typedef OphComplexField Mat;
 	typedef OphComplexField MatF;

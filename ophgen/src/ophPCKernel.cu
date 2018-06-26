@@ -62,7 +62,7 @@ __global__ void kernelCghPointCloud_cuda(float3 *PointCloud, double *amplitude, 
 
 extern "C"
 {
-	void cudaPointCloudKernel(const int block_x, const int block_y, const int thread_x, const int thread_y, float3 *PointCloud, real *amplitude, const GpuConst *Config, real *dst) {
+	void cudaPointCloudKernel(const int block_x, const int block_y, const int thread_x, const int thread_y, float3 *PointCloud, Real *amplitude, const GpuConst *Config, Real *dst) {
 		dim3 Dg(block_x, block_y, 1);  //grid : designed 2D blocks
 		dim3 Db(thread_x, thread_y, 1);  //block : designed 2D threads
 

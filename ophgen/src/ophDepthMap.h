@@ -133,20 +133,20 @@ public:
 
 public:
 	/** \ingroup getter/setter */
-	inline void setFieldLens(real fieldlens)		{ dm_config_.field_lens		= fieldlens;	}
+	inline void setFieldLens(Real fieldlens)		{ dm_config_.field_lens		= fieldlens;	}
 	/** \ingroup getter/setter */
-	inline void setNearDepth(real neardepth)		{ dm_config_.near_depthmap	= neardepth;	}
+	inline void setNearDepth(Real neardepth)		{ dm_config_.near_depthmap	= neardepth;	}
 	/** \ingroup getter/setter */
-	inline void setFarDepth(real fardetph)			{ dm_config_.far_depthmap	= fardetph;		}
+	inline void setFarDepth(Real fardetph)			{ dm_config_.far_depthmap	= fardetph;		}
 	/** \ingroup getter/setter */
 	inline void setNumOfDepth(uint numofdepth)		{ dm_config_.num_of_depth	= numofdepth;	}
 
 	/** \ingroup getter/setter */
-	inline real getFieldLens(void)	{ return dm_config_.field_lens;		}
+	inline Real getFieldLens(void)	{ return dm_config_.field_lens;		}
 	/** \ingroup getter/setter */
-	inline real getNearDepth(void)	{ return dm_config_.near_depthmap;	}
+	inline Real getNearDepth(void)	{ return dm_config_.near_depthmap;	}
 	/** \ingroup getter/setter */
-	inline real getFarDepth(void)	{ return dm_config_.far_depthmap;	}
+	inline Real getFarDepth(void)	{ return dm_config_.far_depthmap;	}
 	/** \ingroup getter/setter */
 	inline uint getNumOfDepth(void) { return dm_config_.num_of_depth;	}
 	/** \ingroup getter/setter */
@@ -186,16 +186,16 @@ private:
 	void calc_Holo_by_Depth(void);
 	void calc_Holo_CPU(void);
 	void calc_Holo_GPU(void);
-	void propagation_AngularSpectrum_CPU(oph::Complex<real>* input_u, real propagation_dist);
-	void propagation_AngularSpectrum_GPU(cufftDoubleComplex* input_u, real propagation_dist);
+	void propagation_AngularSpectrum_CPU(oph::Complex<Real>* input_u, Real propagation_dist);
+	void propagation_AngularSpectrum_GPU(cufftDoubleComplex* input_u, Real propagation_dist);
 
 
 	/** \ingroup recon_module
 	* @{ */
 	//void reconstruction(fftw_complex* in, fftw_complex* out);
 	//void testPropagation2EyePupil(fftw_complex* in, fftw_complex* out);
-	//void writeSimulationImage(int num, real val);
-	void circshift(oph::Complex<real>* in, oph::Complex<real>* out, int shift_x, int shift_y, int nx, int ny);
+	//void writeSimulationImage(int num, Real val);
+	void circshift(oph::Complex<Real>* in, oph::Complex<Real>* out, int shift_x, int shift_y, int nx, int ny);
 	/** @} */
 
 	/**
@@ -210,18 +210,18 @@ private:
 
 	unsigned char*			img_src_gpu_;						///< GPU variable - image source data, values are from 0 to 255.
 	unsigned char*			dimg_src_gpu_;						///< GPU variable - depth map data, values are from 0 to 255.
-	real*					depth_index_gpu_;					///< GPU variable - quantized depth map data.
+	Real*					depth_index_gpu_;					///< GPU variable - quantized depth map data.
 	
-	real*					img_src_;							///< CPU variable - image source data, values are from 0 to 1.
-	real*					dmap_src_;							///< CPU variable - depth map data, values are from 0 to 1.
-	real*					depth_index_;						///< CPU variable - quantized depth map data.
+	Real*					img_src_;							///< CPU variable - image source data, values are from 0 to 1.
+	Real*					dmap_src_;							///< CPU variable - depth map data, values are from 0 to 1.
+	Real*					depth_index_;						///< CPU variable - quantized depth map data.
 	int*					alpha_map_;							///< CPU variable - calculated alpha map data, values are 0 or 1.
 
-	real*					dmap_;								///< CPU variable - physical distances of depth map.
+	Real*					dmap_;								///< CPU variable - physical distances of depth map.
 	
-	real					dstep_;								///< the physical increment of each depth map layer.
-	std::vector<real>		dlevel_;							///< the physical value of all depth map layer.
-	std::vector<real>		dlevel_transform_;					///< transfomed dlevel_ variable
+	Real					dstep_;								///< the physical increment of each depth map layer.
+	std::vector<Real>		dlevel_;							///< the physical value of all depth map layer.
+	std::vector<Real>		dlevel_transform_;					///< transfomed dlevel_ variable
 	
 	OphDepthMapConfig		dm_config_;							///< structure variable for depthmap hologram configuration.
 	OphDepthMapParams		dm_params_;							///< structure variable for depthmap hologram parameters.
