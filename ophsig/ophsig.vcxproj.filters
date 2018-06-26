@@ -21,9 +21,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\ophSig.cpp">
-      <Filter>__ophSig</Filter>
-    </ClCompile>
     <ClCompile Include="src\ophSigConvert.cpp">
       <Filter>_1_Transform</Filter>
     </ClCompile>
@@ -33,16 +30,19 @@
     <ClCompile Include="src\cwo.cpp">
       <Filter>__Add Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\ophSig.cpp">
+      <Filter>__ophSig</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\ophSig.h">
-      <Filter>__ophSig</Filter>
-    </ClInclude>
     <ClInclude Include="src\ophSigConvert.h">
       <Filter>_1_Transform</Filter>
     </ClInclude>
     <ClInclude Include="src\ophSigGetParam.h">
       <Filter>_3_Reconstruction</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ophSig.h">
+      <Filter>__ophSig</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
