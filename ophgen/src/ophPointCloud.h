@@ -133,15 +133,15 @@ public:
 public:
 	void initialize(void);
 	/**
-	* @brief Set the value of a variable isCPU(true or false)
+	* @brief Set the value of a variable is_CPU(true or false)
 	* @details <pre>
-	if isCPU == true
+	if is_CPU == true
 	CPU implementation
 	else
 	GPU implementation </pre>
-	* @param isCPU : the value for specifying whether the hologram generation method is implemented on the CPU or GPU
+	* @param is_CPU : the value for specifying whether the hologram generation method is implemented on the CPU or GPU
 	*/
-	void setMode(bool isCPU);
+	void setMode(bool is_CPU);
 
 	/**
 	\defgroup PointCloud_Load 
@@ -223,7 +223,7 @@ private:
 	*/
 	virtual void ophFree(void);
 
-	bool isCPU;
+	bool is_CPU;
 	int n_points;
 
 	OphPointCloudConfig pc_config_;

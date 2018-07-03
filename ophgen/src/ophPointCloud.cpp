@@ -45,9 +45,9 @@ void ophPointCloud::initialize(void)
 	memset(holo_normalized, 0, sizeof(uchar) * n_x * n_y);
 }
 
-void ophPointCloud::setMode(bool isCPU)
+void ophPointCloud::setMode(bool is_CPU)
 {
-	this->isCPU = isCPU;
+	this->is_CPU = is_CPU;
 }
 
 int ophPointCloud::loadPointCloud(const char* pc_file, uint flag)
@@ -69,10 +69,10 @@ bool ophPointCloud::readConfig(const char* cfg_file)
 
 Real ophPointCloud::generateHologram()
 {
-	auto start_time = _cur_time;
+	auto start_time = CUR_TIME;
 
 	// Create CGH Fringe Pattern by 3D Point Cloud
-	if (isCPU == true) { //Run CPU
+	if (is_CPU == true) { //Run CPU
 #ifdef _OPENMP
 		std::cout << "Generate Hologram with Multi Core CPU" << std::endl;
 #else
@@ -87,7 +87,7 @@ Real ophPointCloud::generateHologram()
 		std::cout << ">>> CUDA GPGPU" << std::endl;
 	}
 
-	auto end_time = _cur_time;
+	auto end_time = CUR_TIME;
 
 	auto during_time = ((std::chrono::duration<Real>)(end_time - start_time)).count();
 
@@ -98,11 +98,11 @@ Real ophPointCloud::generateHologram()
 
 double ophPointCloud::diffract(void)
 {
-	auto start_time = _cur_time;
+	auto start_time = CUR_TIME;
 
 	initialize();
 
-	if (isCPU) {
+	if (is_CPU) {
 #ifdef _OPENMP
 		std::cout << "Generate Hologram with Multi Core CPU" << std::endl;
 #else
@@ -117,7 +117,7 @@ double ophPointCloud::diffract(void)
 		std::cout << ">>> CUDA GPGPU" << std::endl;
 	}
 
-	auto end_time = _cur_time;
+	auto end_time = CUR_TIME;
 
 	auto during_time = ((std::chrono::duration<Real>)(end_time - start_time)).count();
 
@@ -128,7 +128,7 @@ double ophPointCloud::diffract(void)
 
 void ophPointCloud::encode(void)
 {
-	encodeSideBand(isCPU, ivec2(0, 1));
+	encodeSideBand(is_CPU, ivec2(0, 1));
 }
 
 void ophPointCloud::genCghPointCloudCPU(Real* dst)

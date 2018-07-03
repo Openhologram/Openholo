@@ -17,7 +17,7 @@
 ophDepthMap::ophDepthMap()
 	: ophGen()
 {
-	isCPU = true;
+	is_CPU = true;
 
 	// GPU Variables
 	img_src_gpu = 0;
@@ -42,17 +42,17 @@ ophDepthMap::~ophDepthMap()
 }
 
 /**
-* @brief Set the value of a variable isCPU(true or false)
+* @brief Set the value of a variable is_CPU(true or false)
 * @details <pre>
-    if isCPU == true
+    if is_CPU == true
 	   CPU implementation
 	else
 	   GPU implementation </pre>
-* @param isCPU : the value for specifying whether the hologram generation method is implemented on the CPU or GPU
+* @param is_CPU : the value for specifying whether the hologram generation method is implemented on the CPU or GPU
 */
-void ophDepthMap::setMode(bool isCPU) 
+void ophDepthMap::setMode(bool is_CPU) 
 { 
-	this->isCPU = isCPU; 
+	this->is_CPU = is_CPU; 
 }
 
 /**
@@ -87,7 +87,7 @@ void ophDepthMap::initialize(void)
 	holo_normalized = new uchar[context_.pixel_number[_X] * context_.pixel_number[_Y]];
 	memset(holo_normalized, 0.0, sizeof(uchar) * context_.pixel_number[_X] * context_.pixel_number[_Y]);
 	
-	if (isCPU)
+	if (is_CPU)
 		initCPU();
 	else
 		initGPU();
@@ -107,7 +107,7 @@ void ophDepthMap::initialize(void)
 */
 double ophDepthMap::generateHologram()
 {
-	auto time_start = _cur_time;
+	auto time_start = CUR_TIME;
 
 	initialize();
 
@@ -121,7 +121,7 @@ double ophDepthMap::generateHologram()
 
 	calcHoloByDepth();
 
-	auto time_end = _cur_time;
+	auto time_end = CUR_TIME;
 
 	return ((std::chrono::duration<Real>)(time_end - time_start)).count();
 }
@@ -129,7 +129,7 @@ double ophDepthMap::generateHologram()
 void ophDepthMap::encodeHologram(void)
 {
 	if (dm_params_.Encoding_Method_ == 0)
-		encodeSideBand(isCPU, ivec2(0, 1));
+		encodeSideBand(is_CPU, ivec2(0, 1));
 }
 
 /**
@@ -221,7 +221,7 @@ int ophDepthMap::readImageDepth(void)
 	else
 		memcpy(newdimg, dimg, sizeof(char)*pnx*pny);
 
-	if (isCPU)
+	if (is_CPU)
 		ret = prepareInputdataCPU(newimg, newdimg);
 	else
 		ret = prepareInputdataGPU(newimg, newdimg);
@@ -259,7 +259,7 @@ void ophDepthMap::getDepthValues()
 	
 	if (dm_params_.FLAG_CHANGE_DEPTH_QUANTIZATION == 1)
 	{
-		if (isCPU)
+		if (is_CPU)
 			changeDepthQuanCPU();
 		else
 			changeDepthQuanGPU();
@@ -291,7 +291,7 @@ void ophDepthMap::transformViewingWindow()
 */
 void ophDepthMap::calcHoloByDepth(void)
 {
-	if (isCPU)
+	if (is_CPU)
 		calcHoloCPU();
 	else
 		calcHoloGPU();

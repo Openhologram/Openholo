@@ -47,24 +47,24 @@ namespace oph
 #define _W 3
 #endif
 
-#ifndef _MAXFLOAT
-#define _MAXFLOAT	((float)3.40282347e+38)
+#ifndef MAX_FLOAT
+#define MAX_FLOAT	((float)3.40282347e+38)
 #endif
 
-#ifndef _MAXDOUBLE
-#define _MAXDOUBLE	((double)1.7976931348623158e+308)
+#ifndef MAX_DOUBLE
+#define MAX_DOUBLE	((double)1.7976931348623158e+308)
 #endif
 
-#ifndef _MINFLOAT
-#define _MINFLOAT	((float)1.17549435e-38)
+#ifndef MIN_FLOAT
+#define MIN_FLOAT	((float)1.17549435e-38)
 #endif
 
-#ifndef _MINDOUBLE
-#define _MINDOUBLE	((double)2.2250738585072014e-308)
+#ifndef MIN_DOUBLE
+#define MIN_DOUBLE	((double)2.2250738585072014e-308)
 #endif
 
-#define MINREAL _MINDOUBLE;
-#define MAXREAL _MAXDOUBLE;
+#define MIN_REAL MIN_DOUBLE;
+#define MAX_REAL MAX_DOUBLE;
 
 
 //Mode Flag
@@ -73,10 +73,10 @@ namespace oph
 
 #define WIDTHBYTES(bits) (((bits)+31)/32*4)
 
-#define _planes 1
-#define _compression 0
-#define _xpixelpermeter 0x130B //2835 , 72 DPI
-#define _ypixelpermeter 0x130B //2835 , 72 DPI
+#define OPH_PLANES 1
+#define OPH_COMPRESSION 0
+#define X_PIXEL_PER_METER 0x130B //2835 , 72 DPI
+#define Y_PIXEL_PER_METER 0x130B //2835 , 72 DPI
 }
 
 #endif // !__define_h

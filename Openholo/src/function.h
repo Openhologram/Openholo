@@ -11,9 +11,9 @@
 
 namespace oph
 {
-#define _cur_time std::chrono::system_clock::now()
-#define _cur_time_duration _cur_time.time_since_epoch()
-#define _cur_time_duration_milli_sec std::chrono::duration_cast<std::chrono::milliseconds>(_cur_time_duration).count()
+#define CUR_TIME std::chrono::system_clock::now()
+#define CUR_TIME_DURATION CUR_TIME.time_since_epoch()
+#define CUR_TIME_DURATION_MILLI_SEC std::chrono::duration_cast<std::chrono::milliseconds>(CUR_TIME_DURATION).count()
 
 	template<typename type, typename T>
 	inline type force_cast(const Complex<T>& p) {
@@ -26,14 +26,14 @@ namespace oph
 	}
 
 	inline const Real minOfArr(const std::vector<Real>& arr) {
-		Real min = _MAXDOUBLE;
+		Real min = MAX_DOUBLE;
 		for (auto item : arr) { if (item < min) min = item; }
 		return min;
 	}
 	
 	template<typename T>
 	inline const Real minOfArr(const T* src, const int& size) {
-		Real min = _MAXDOUBLE;
+		Real min = MAX_DOUBLE;
 		for (int i = 0; i < size; i++) {
 			if (*(src + i) < min) min = *(src + i);
 		}
@@ -41,14 +41,14 @@ namespace oph
 	}
 
 	inline const Real maxOfArr(const std::vector<Real>& arr) {
-		Real max = _MINDOUBLE;
+		Real max = MIN_DOUBLE;
 		for (auto item : arr) { if (item > max) max = item; }
 		return max;
 	}
 
 	template<typename T>
 	inline const Real maxOfArr(const T* src, const int& size) {
-		Real max = _MINDOUBLE;
+		Real max = MIN_DOUBLE;
 		for (int i = 0; i < size; i++) {
 			if (*(src + i) > max) max = *(src + i);
 		}
@@ -219,7 +219,7 @@ namespace oph
 	*/
 	inline Real rand(const Real min, const Real max, oph::ulong _SEED_VALUE = 0) {
 		std::mt19937_64 rand_dev;
-		if (!_SEED_VALUE) rand_dev = std::mt19937_64(_cur_time_duration_milli_sec);
+		if (!_SEED_VALUE) rand_dev = std::mt19937_64(CUR_TIME_DURATION_MILLI_SEC);
 		else rand_dev = std::mt19937_64(_SEED_VALUE);
 
 		std::uniform_real_distribution<Real> dist(min, max);
@@ -234,7 +234,7 @@ namespace oph
 	*/
 	inline int rand(const int min, const int max, oph::ulong _SEED_VALUE = 0) {
 		std::mt19937_64 rand_dev;
-		if (!_SEED_VALUE) rand_dev = std::mt19937_64(_cur_time_duration_milli_sec);
+		if (!_SEED_VALUE) rand_dev = std::mt19937_64(CUR_TIME_DURATION_MILLI_SEC);
 		else rand_dev = std::mt19937_64(_SEED_VALUE);
 
 		std::uniform_int_distribution<int> dist(min, max);

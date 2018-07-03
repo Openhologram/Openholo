@@ -346,7 +346,7 @@ namespace oph
 	typedef oph::matrix<Complex<Real_t>> OphComplexTField;
 
 	typedef OphComplexField Mat;
-	typedef OphComplexField MatF;
+	typedef OphComplexTField MatF;
 }
 
 #endif // !__mat_h

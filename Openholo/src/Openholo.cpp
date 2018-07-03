@@ -32,7 +32,7 @@ int Openholo::checkExtension(const char * fname, const char * ext)
 int Openholo::saveAsImg(const char * fname, uint8_t bitsperpixel, void* src, int pic_width, int pic_height)
 {
 	LOG("Saving...%s...", fname);
-	auto start = _cur_time;
+	auto start = CUR_TIME;
 
 	int _width = pic_width, _height = pic_height;
 
@@ -60,12 +60,12 @@ int Openholo::saveAsImg(const char * fname, uint8_t bitsperpixel, void* src, int
 	pbitmap->bitmapinfoheader.dibheadersize = sizeof(bitmapinfoheader);
 	pbitmap->bitmapinfoheader.width = _width;
 	pbitmap->bitmapinfoheader.height = _height;
-	pbitmap->bitmapinfoheader.planes = _planes;
+	pbitmap->bitmapinfoheader.planes = OPH_PLANES;
 	pbitmap->bitmapinfoheader.bitsperpixel = bitsperpixel;
-	pbitmap->bitmapinfoheader.compression = _compression;
+	pbitmap->bitmapinfoheader.compression = OPH_COMPRESSION;
 	pbitmap->bitmapinfoheader.imagesize = _pixelbytesize;
-	pbitmap->bitmapinfoheader.ypixelpermeter = _ypixelpermeter;
-	pbitmap->bitmapinfoheader.xpixelpermeter = _xpixelpermeter;
+	pbitmap->bitmapinfoheader.ypixelpermeter = Y_PIXEL_PER_METER;
+	pbitmap->bitmapinfoheader.xpixelpermeter = X_PIXEL_PER_METER;
 	pbitmap->bitmapinfoheader.numcolorspallette = 256;
 	fwrite(pbitmap, 1, sizeof(bitmap), fp);
 
@@ -73,7 +73,7 @@ int Openholo::saveAsImg(const char * fname, uint8_t bitsperpixel, void* src, int
 	fclose(fp);
 	free(pbitmap);
 
-	auto end = _cur_time;
+	auto end = CUR_TIME;
 
 	auto during = ((std::chrono::duration<Real>)(end - start)).count();
 
@@ -86,13 +86,13 @@ int Openholo::loadAsImg(const char * fname, void* dst)
 {
 	FILE *infile;
 	fopen_s(&infile, fname, "rb");
-	if (infile == nullptr) { printf("No such file"); return 0; }
+	if (infile == nullptr) { LOG("No such file"); return 0; }
 
 	// BMP Header Information
 	fileheader hf;
 	bitmapinfoheader hInfo;
 	fread(&hf, sizeof(fileheader), 1, infile);
-	if (hf.signature[0] != 'B' || hf.signature[1] != 'M') { printf("Not BMP File");  return 0; }
+	if (hf.signature[0] != 'B' || hf.signature[1] != 'M') { LOG("Not BMP File");  return 0; }
 
 	fread(&hInfo, sizeof(bitmapinfoheader), 1, infile);
 	fseek(infile, hf.fileoffset_to_pixelarray, SEEK_SET);
@@ -132,7 +132,7 @@ int Openholo::getImgSize(int & w, int & h, int & bytesperpixel, const char * fil
 	sprintf_s(bmpFile, "%s", file_name);
 	FILE *infile;
 	fopen_s(&infile, bmpFile, "rb");
-	if (infile == NULL) { printf("No Image File"); return 0; }
+	if (infile == NULL) { LOG("No Image File"); return 0; }
 
 	// BMP Header Information
 	fileheader hf;

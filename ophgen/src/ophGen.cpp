@@ -24,7 +24,7 @@ int ophGen::loadPointCloud(const char* pc_file, OphPointCloudData *pc_data_, uin
 {
 	LOG("Reading....%s...", pc_file);
 
-	auto start = _cur_time;
+	auto start = CUR_TIME;
 
 	std::ifstream File(pc_file, std::ios::in);
 	if (!File.is_open()) {
@@ -82,7 +82,7 @@ int ophGen::loadPointCloud(const char* pc_file, OphPointCloudData *pc_data_, uin
 	}
 	File.close();
 
-	auto end = _cur_time;
+	auto end = CUR_TIME;
 
 	auto during = ((std::chrono::duration<Real>)(end - start)).count();
 
@@ -94,7 +94,7 @@ bool ophGen::readConfig(const char* fname, OphPointCloudConfig& configdata)
 {
 	LOG("Reading....%s...", fname);
 
-	auto start = _cur_time;
+	auto start = CUR_TIME;
 
 	std::ifstream inFile(fname, std::ios::in);
 	if (!inFile.is_open()) {
@@ -160,7 +160,7 @@ bool ophGen::readConfig(const char* fname, OphPointCloudConfig& configdata)
 
 	inFile.close();
 
-	auto end = _cur_time;
+	auto end = CUR_TIME;
 
 	auto during = ((std::chrono::duration<Real>)(end - start)).count();
 
@@ -174,7 +174,7 @@ bool ophGen::readConfig(const char* fname, OphDepthMapConfig & config, OphDepthM
 
 	LOG("Reading....%s...", fname);
 
-	auto start = _cur_time;
+	auto start = CUR_TIME;
 
 	std::ifstream inFile(fname);
 
@@ -297,7 +297,7 @@ bool ophGen::readConfig(const char* fname, OphDepthMapConfig & config, OphDepthM
 	//=====================================================================================
 	inFile.close();
 
-	auto end = _cur_time;
+	auto end = CUR_TIME;
 
 	auto during = ((std::chrono::duration<Real>)(end - start)).count();
 

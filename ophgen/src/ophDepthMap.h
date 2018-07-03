@@ -114,7 +114,7 @@ protected:
 	virtual ~ophDepthMap();
 
 public:
-	void setMode(bool isCPU);
+	void setMode(bool is_CPU);
 
 	/** \ingroup init_module */
 	bool readConfig(const char* fname);
@@ -202,7 +202,7 @@ private:
 	virtual void ophFree(void);
 
 private:
-	bool					isCPU;								///< if true, it is implemented on the CPU, otherwise on the GPU.
+	bool					is_CPU;								///< if true, it is implemented on the CPU, otherwise on the GPU.
 
 	unsigned char*			img_src_gpu;						///< GPU variable - image source data, values are from 0 to 255.
 	unsigned char*			dimg_src_gpu;						///< GPU variable - depth map data, values are from 0 to 255.
