@@ -68,7 +68,7 @@ namespace oph
 	}
 
 	template<typename T>
-	inline void absMat(const oph::TwoDimMatrix<oph::Complex<T>>& src, oph::TwoDimMatrix<oph::Complex<T>>& dst) {
+	inline void absMat(const oph::matrix<oph::Complex<T>>& src, oph::matrix<oph::Complex<T>>& dst) {
 		if (src.getSize() != dst.getSize()) return;
 		oph::ivec2 matSize;
 		for (int x = 0; x < matSize[_X]; x++) {
@@ -200,7 +200,7 @@ namespace oph
 	* @brief Shifts the elements by shift_x, shift_y.
 	*/
 	template<typename T>
-	inline void circshift(const T* src, T* dst, int shift_x, int shift_y, int xdim, int ydim) {
+	inline void circShift(const T* src, T* dst, int shift_x, int shift_y, int xdim, int ydim) {
 		for (int i = 0; i < xdim; i++) {
 			int ti = (i + shift_x) % xdim;
 			if (ti < 0) ti = xdim + ti;
@@ -245,7 +245,7 @@ namespace oph
 	/**
 	* @brief
 	*/
-	inline void meshgrid() {
+	inline void meshGrid() {
 
 	}
 }

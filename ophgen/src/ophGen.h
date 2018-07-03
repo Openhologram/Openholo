@@ -57,12 +57,12 @@ protected:
 	virtual ~ophGen(void) = 0;
 
 public:
-	inline oph::Complex<Real>* getGenBuffer(void) { return holo_gen; }
+	inline oph::Complex<Real>* getHoloBuffer(void) { return holo_gen; }
 	inline Real* getEncodedBuffer(void) { return holo_encoded; }
 	inline uchar* getNormalizedBuffer(void) { return holo_normalized; }
 
-	inline void setPixelNumber(int nx, int ny) { context_.pixel_number.v[0] = nx; context_.pixel_number.v[1] = ny; }
-	inline void setPixelPitch(Real px, Real py) { context_.pixel_pitch.v[0] = px; context_.pixel_pitch.v[1] = py; }
+	inline void setPixelNumber(int nx, int ny) { context_.pixel_number[_X] = nx; context_.pixel_number[_Y] = ny; }
+	inline void setPixelPitch(Real px, Real py) { context_.pixel_pitch[_X] = px; context_.pixel_pitch[_Y] = py; }
 	inline void setWaveLength(Real w) { context_.lambda = w; }
 
 	OphContext& getContext(void) { return context_; }
@@ -173,7 +173,7 @@ protected:
 	* @param sig_location :  signal location.
 	* @see encodingSideBand_CPU
 	*/
-	void get_shift_phase_value(oph::Complex<Real>& shift_phase_val, int idx, oph::ivec2 sig_location);
+	void getShiftPhaseValue(oph::Complex<Real>& shift_phase_val, int idx, oph::ivec2 sig_location);
 
 	/**
 	* @brief Assign random phase value if RANDOM_PHASE == 1
@@ -181,7 +181,7 @@ protected:
 	*  otherwise, random phase value is 1.
 	* @param rand_phase_val : Input & Ouput value.
 	*/
-	void get_rand_phase_value(oph::Complex<Real>& rand_phase_val, bool rand_phase);
+	void getRandPhaseValue(oph::Complex<Real>& rand_phase_val, bool rand_phase);
 
 protected:
 	/**

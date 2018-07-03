@@ -45,9 +45,9 @@ void ophPointCloud::initialize(void)
 	memset(holo_normalized, 0, sizeof(uchar) * n_x * n_y);
 }
 
-void ophPointCloud::setMode(bool IsCPU)
+void ophPointCloud::setMode(bool isCPU)
 {
-	IsCPU_ = IsCPU;
+	this->isCPU = isCPU;
 }
 
 int ophPointCloud::loadPointCloud(const char* pc_file, uint flag)
@@ -72,18 +72,18 @@ Real ophPointCloud::generateHologram()
 	auto start_time = _cur_time;
 
 	// Create CGH Fringe Pattern by 3D Point Cloud
-	if (IsCPU_ == true) { //Run CPU
+	if (isCPU == true) { //Run CPU
 #ifdef _OPENMP
 		std::cout << "Generate Hologram with Multi Core CPU" << std::endl;
 #else
 		std::cout << "Generate Hologram with Single Core CPU" << std::endl;
 #endif
-		genCghPointCloud(holo_encoded); /// 홀로그램 데이터 Complex data로 변경 시 holo_gen으로
+		genCghPointCloudCPU(holo_encoded); /// 홀로그램 데이터 Complex data로 변경 시 holo_gen으로
 	}
 	else { //Run GPU
 		std::cout << "Generate Hologram with GPU" << std::endl;
 
-		genCghPointCloud_cuda(holo_encoded);
+		genCghPointCloudGPU(holo_encoded);
 		std::cout << ">>> CUDA GPGPU" << std::endl;
 	}
 
@@ -102,18 +102,18 @@ double ophPointCloud::diffract(void)
 
 	initialize();
 
-	if (IsCPU_) {
+	if (isCPU) {
 #ifdef _OPENMP
 		std::cout << "Generate Hologram with Multi Core CPU" << std::endl;
 #else
 		std::cout << "Generate Hologram with Single Core CPU" << std::endl;
 #endif
-		genCghPointCloud(holo_encoded);
+		genCghPointCloudCPU(holo_encoded);
 	}
 	else {
 		std::cout << "Generate Hologram with GPU" << std::endl;
 
-		genCghPointCloud_cuda(holo_encoded);
+		genCghPointCloudGPU(holo_encoded);
 		std::cout << ">>> CUDA GPGPU" << std::endl;
 	}
 
@@ -128,10 +128,10 @@ double ophPointCloud::diffract(void)
 
 void ophPointCloud::encode(void)
 {
-	encodeSideBand(IsCPU_, ivec2(0, 1));
+	encodeSideBand(isCPU, ivec2(0, 1));
 }
 
-void ophPointCloud::genCghPointCloud(Real* dst)
+void ophPointCloud::genCghPointCloudCPU(Real* dst)
 {
 	// Output Image Size
 	ivec2 pn;
@@ -227,10 +227,10 @@ void ophPointCloud::genCghPointCloud(Real* dst)
 #endif
 }
 
-void ophPointCloud::genCghPointCloud_cuda(Real* dst)
+void ophPointCloud::genCghPointCloudGPU(Real* dst)
 {
-	int _bx = context_.pixel_number.v[0] / THREAD_X;
-	int _by = context_.pixel_number.v[1] / THREAD_Y;
+	int _bx = context_.pixel_number[_X] / THREAD_X;
+	int _by = context_.pixel_number[_Y] / THREAD_Y;
 	int block_x = 2;
 	int block_y = 2;
 
@@ -242,7 +242,7 @@ void ophPointCloud::genCghPointCloud_cuda(Real* dst)
 	}
 
 	//threads number
-	const ulonglong bufferSize = context_.pixel_number.v[0] * context_.pixel_number.v[1] * sizeof(Real);
+	const ulonglong bufferSize = context_.pixel_number[_X] * context_.pixel_number[_Y] * sizeof(Real);
 
 	//Host Memory Location
 	float3 *HostPointCloud = (float3*)pc_data_.location;
@@ -251,9 +251,9 @@ void ophPointCloud::genCghPointCloud_cuda(Real* dst)
 	//Initializa Config for CUDA Kernel
 	oph::GpuConst HostConfig; {
 		HostConfig.n_points = n_points;
-		HostConfig.scaleX = pc_config_.scale.v[0];
-		HostConfig.scaleY = pc_config_.scale.v[1];
-		HostConfig.scaleZ = pc_config_.scale.v[2];
+		HostConfig.scaleX = pc_config_.scale[_X];
+		HostConfig.scaleY = pc_config_.scale[_Y];
+		HostConfig.scaleZ = pc_config_.scale[_Z];
 		HostConfig.offsetDepth = pc_config_.offset_depth;
 
 		// Output Image Size
@@ -261,8 +261,8 @@ void ophPointCloud::genCghPointCloud_cuda(Real* dst)
 		HostConfig.Ny = _by;
 
 		// Tilt Angle
-		Real thetaX = RADIAN(pc_config_.tilt_angle.v[0]);
-		Real thetaY = RADIAN(pc_config_.tilt_angle.v[1]);
+		Real thetaX = RADIAN(pc_config_.tilt_angle[0]);
+		Real thetaY = RADIAN(pc_config_.tilt_angle[1]);
 		HostConfig.sin_thetaX = sinf(thetaX);
 		HostConfig.sin_thetaY = sinf(thetaY);
 
@@ -270,8 +270,8 @@ void ophPointCloud::genCghPointCloud_cuda(Real* dst)
 		HostConfig.k = (2.f * CUDART_PI_F) / context_.lambda;
 
 		// Pixel pitch at eyepiece lens plane (by simple magnification) ==> SLM pitch
-		HostConfig.pixel_x = context_.pixel_pitch.v[0];
-		HostConfig.pixel_y = context_.pixel_pitch.v[1];
+		HostConfig.pixel_x = context_.pixel_pitch[0];
+		HostConfig.pixel_y = context_.pixel_pitch[1];
 
 		// Length (Width) of complex field at eyepiece plane (by simple magnification)
 		Real Length_x = HostConfig.pixel_x * HostConfig.Nx;

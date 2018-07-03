@@ -536,7 +536,7 @@ void ophGen::freqShift(oph::Complex<Real>* holo, Complex<Real>* encoded, const i
 	oph::Complex<Real>* AS = new oph::Complex<Real>[size];
 	fft2(holosize, holo, AS, OPH_FORWARD);
 	oph::Complex<Real>* shifted = new oph::Complex<Real>[size];
-	circshift<Complex<Real>>(AS, shifted, shift_x, shift_y, holosize.v[0], holosize.v[1]);
+	circShift<Complex<Real>>(AS, shifted, shift_x, shift_y, holosize.v[0], holosize.v[1]);
 	fft2(holosize, shifted, encoded, OPH_BACKWARD);
 }
 
@@ -613,7 +613,7 @@ void ophGen::encodeSideBand_CPU(int cropx1, int cropx2, int cropy1, int cropy2, 
 #pragma omp parallel for private(i)	
 	for (i = 0; i < pnx*pny; i++) {
 		oph::Complex<Real> shift_phase(1, 0);
-		get_shift_phase_value(shift_phase, i, sig_location);
+		getShiftPhaseValue(shift_phase, i, sig_location);
 
 		holo_encoded[i] = (h_crop[i] * shift_phase).real();
 	}
@@ -717,7 +717,7 @@ void ophGen::encodeSideBand_GPU(int cropx1, int cropx2, int cropy1, int cropy2, 
 	cudaStreamDestroy(stream_);
 }
 
-void ophGen::get_shift_phase_value(oph::Complex<Real>& shift_phase_val, int idx, oph::ivec2 sig_location)
+void ophGen::getShiftPhaseValue(oph::Complex<Real>& shift_phase_val, int idx, oph::ivec2 sig_location)
 {
 	int pnx = context_.pixel_number[0];
 	int pny = context_.pixel_number[1];
@@ -759,7 +759,7 @@ void ophGen::get_shift_phase_value(oph::Complex<Real>& shift_phase_val, int idx,
 	}
 }
 
-void ophGen::get_rand_phase_value(oph::Complex<Real>& rand_phase_val, bool rand_phase)
+void ophGen::getRandPhaseValue(oph::Complex<Real>& rand_phase_val, bool rand_phase)
 {
 	if (rand_phase)
 	{

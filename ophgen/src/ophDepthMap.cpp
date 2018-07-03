@@ -17,21 +17,21 @@
 ophDepthMap::ophDepthMap()
 	: ophGen()
 {
-	isCPU_ = true;
+	isCPU = true;
 
 	// GPU Variables
-	img_src_gpu_ = 0;
-	dimg_src_gpu_ = 0;
-	depth_index_gpu_ = 0;
+	img_src_gpu = 0;
+	dimg_src_gpu = 0;
+	depth_index_gpu = 0;
 
 	// CPU Variables
-	img_src_ = 0;
-	dmap_src_ = 0;
-	alpha_map_ = 0;
-	depth_index_ = 0;
-	dmap_ = 0;
-	dstep_ = 0;
-	dlevel_.clear();
+	img_src = 0;
+	dmap_src = 0;
+	alpha_map = 0;
+	depth_index = 0;
+	dmap = 0;
+	dstep = 0;
+	dlevel.clear();
 }
 
 /**
@@ -42,9 +42,9 @@ ophDepthMap::~ophDepthMap()
 }
 
 /**
-* @brief Set the value of a variable isCPU_(true or false)
+* @brief Set the value of a variable isCPU(true or false)
 * @details <pre>
-    if isCPU_ == true
+    if isCPU == true
 	   CPU implementation
 	else
 	   GPU implementation </pre>
@@ -52,7 +52,7 @@ ophDepthMap::~ophDepthMap()
 */
 void ophDepthMap::setMode(bool isCPU) 
 { 
-	isCPU_ = isCPU; 
+	this->isCPU = isCPU; 
 }
 
 /**
@@ -72,8 +72,8 @@ bool ophDepthMap::readConfig(const char* fname)
 */
 void ophDepthMap::initialize(void)
 {
-	dstep_ = 0;
-	dlevel_.clear();
+	dstep = 0;
+	dlevel.clear();
 
 	if (holo_gen) delete[] holo_gen;
 	holo_gen = new oph::Complex<Real>[context_.pixel_number[_X] * context_.pixel_number[_Y]];
@@ -87,10 +87,10 @@ void ophDepthMap::initialize(void)
 	holo_normalized = new uchar[context_.pixel_number[_X] * context_.pixel_number[_Y]];
 	memset(holo_normalized, 0.0, sizeof(uchar) * context_.pixel_number[_X] * context_.pixel_number[_Y]);
 	
-	if (isCPU_)
-		init_CPU();
+	if (isCPU)
+		initCPU();
 	else
-		init_GPU();
+		initGPU();
 }
 
 /**
@@ -119,7 +119,7 @@ double ophDepthMap::generateHologram()
 	if (dm_params_.Transform_Method_ == 0)
 		transformViewingWindow();
 
-	calc_Holo_by_Depth();
+	calcHoloByDepth();
 
 	auto time_end = _cur_time;
 
@@ -129,7 +129,7 @@ double ophDepthMap::generateHologram()
 void ophDepthMap::encodeHologram(void)
 {
 	if (dm_params_.Encoding_Method_ == 0)
-		encodeSideBand(isCPU_, ivec2(0, 1));
+		encodeSideBand(isCPU, ivec2(0, 1));
 }
 
 /**
@@ -221,10 +221,10 @@ int ophDepthMap::readImageDepth(void)
 	else
 		memcpy(newdimg, dimg, sizeof(char)*pnx*pny);
 
-	if (isCPU_)
-		ret = prepare_inputdata_CPU(newimg, newdimg);
+	if (isCPU)
+		ret = prepareInputdataCPU(newimg, newdimg);
 	else
-		ret = prepare_inputdata_GPU(newimg, newdimg);
+		ret = prepareInputdataGPU(newimg, newdimg);
 
 	delete[] img;
 	delete[] dimg;
@@ -234,53 +234,53 @@ int ophDepthMap::readImageDepth(void)
 
 /**
 * @brief Calculate the physical distances of depth map layers
-* @details Initialize 'dstep_' & 'dlevel_' variables.
-*  If FLAG_CHANGE_DEPTH_QUANTIZATION == 1, recalculate  'depth_index_' variable.
+* @details Initialize 'dstep' & 'dlevel' variables.
+*  If FLAG_CHANGE_DEPTH_QUANTIZATION == 1, recalculate  'depth_index' variable.
 * @see change_depth_quan_CPU, change_depth_quan_GPU
 */
 void ophDepthMap::getDepthValues()
 {
 	if (dm_config_.num_of_depth > 1)
 	{
-		dstep_ = (dm_config_.far_depthmap - dm_config_.near_depthmap) / (dm_config_.num_of_depth - 1);
+		dstep = (dm_config_.far_depthmap - dm_config_.near_depthmap) / (dm_config_.num_of_depth - 1);
 		Real val = dm_config_.near_depthmap;
 		while (val <= dm_config_.far_depthmap)
 		{
-			dlevel_.push_back(val);
-			val += dstep_;
+			dlevel.push_back(val);
+			val += dstep;
 		}
 
 	} else {
 
-		dstep_ = (dm_config_.far_depthmap + dm_config_.near_depthmap) / 2;
-		dlevel_.push_back(dm_config_.far_depthmap - dm_config_.near_depthmap);
+		dstep = (dm_config_.far_depthmap + dm_config_.near_depthmap) / 2;
+		dlevel.push_back(dm_config_.far_depthmap - dm_config_.near_depthmap);
 
 	}
 	
 	if (dm_params_.FLAG_CHANGE_DEPTH_QUANTIZATION == 1)
 	{
-		if (isCPU_)
-			change_depth_quan_CPU();
+		if (isCPU)
+			changeDepthQuanCPU();
 		else
-			change_depth_quan_GPU();
+			changeDepthQuanGPU();
 	}
 }
 
 /**
 * @brief Transform target object to reflect the system configuration of holographic display.
-* @details Calculate 'dlevel_transform_' variable by using 'field_lens' & 'dlevel_'.
+* @details Calculate 'dlevel_transform' variable by using 'field_lens' & 'dlevel'.
 */
 void ophDepthMap::transformViewingWindow()
 {
-	int pnx = context_.pixel_number[0];
-	int pny = context_.pixel_number[1];
+	int pnx = context_.pixel_number[_X];
+	int pny = context_.pixel_number[_Y];
 
 	Real val;
-	dlevel_transform_.clear();
-	for (int p = 0; p < dlevel_.size(); p++)
+	dlevel_transform.clear();
+	for (int p = 0; p < dlevel.size(); p++)
 	{
-		val = -dm_config_.field_lens * dlevel_[p] / (dlevel_[p] - dm_config_.field_lens);
-		dlevel_transform_.push_back(val);
+		val = -dm_config_.field_lens * dlevel[p] / (dlevel[p] - dm_config_.field_lens);
+		dlevel_transform.push_back(val);
 	}
 }
 
@@ -289,12 +289,12 @@ void ophDepthMap::transformViewingWindow()
 * @param frame : the frame number of the image.
 * @see calc_Holo_CPU, calc_Holo_GPU
 */
-void ophDepthMap::calc_Holo_by_Depth(void)
+void ophDepthMap::calcHoloByDepth(void)
 {
-	if (isCPU_)
-		calc_Holo_CPU();
+	if (isCPU)
+		calcHoloCPU();
 	else
-		calc_Holo_GPU();
+		calcHoloGPU();
 }
 
 /**
@@ -372,11 +372,11 @@ int ophDepthMap::save(const char* fname, uint8_t bitsperpixel)
 
 void ophDepthMap::ophFree(void)
 {
-	if (img_src_)			delete[] img_src_;
-	if (dmap_src_)			delete[] dmap_src_;
-	if (alpha_map_)			delete[] alpha_map_;
-	if (depth_index_)		delete[] depth_index_;
-	if (dmap_)				delete[] dmap_;
+	if (img_src)			delete[] img_src;
+	if (dmap_src)			delete[] dmap_src;
+	if (alpha_map)			delete[] alpha_map;
+	if (depth_index)		delete[] depth_index;
+	if (dmap)				delete[] dmap;
 
 	free_gpu();
 }

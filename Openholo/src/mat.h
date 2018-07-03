@@ -13,7 +13,7 @@ using namespace oph;
 namespace oph
 {
 	template<typename T>
-	struct _declspec(dllexport) TwoDimMatrix
+	class _declspec(dllexport) matrix
 	{
 	public:
 		using typeT = typename std::enable_if<
@@ -25,19 +25,19 @@ namespace oph
 		std::vector<T>* mat;
 		ivec2 size;
 
-		TwoDimMatrix(void) : size(1, 1) {
+		matrix(void) : size(1, 1) {
 			init();
 		}
 
-		TwoDimMatrix(int x, int y) : size(x, y) {
+		matrix(int x, int y) : size(x, y) {
 			init();
 		}
 
-		TwoDimMatrix(ivec2 _size) : size(_size) {
+		matrix(ivec2 _size) : size(_size) {
 			init();
 		}
 
-		TwoDimMatrix(TwoDimMatrix<T>& ref) : size(ref.size) {
+		matrix(matrix<T>& ref) : size(ref.size) {
 			init();
 			for (int x = 0; x < size[0]; x++)
 				for (int y = 0; y < size[1]; y++) {
@@ -45,7 +45,7 @@ namespace oph
 				}
 		}
 
-		~TwoDimMatrix() {
+		~matrix() {
 			release();
 		}
 
@@ -69,7 +69,7 @@ namespace oph
 		
 		oph::ivec2& getSize(void) { return size; }
 
-		TwoDimMatrix<T>& resize(int x, int y) {
+		matrix<T>& resize(int x, int y) {
 			release();
 
 			size[0] = x; size[1] = y;
@@ -79,7 +79,7 @@ namespace oph
 			return *this;
 		}	
 		
-		TwoDimMatrix<T>& identity(void) {
+		matrix<T>& identity(void) {
 			if (size[0] != size[0]) return this;
 			for (int x = 0; x < size[0]; x++) {
 				for (int y = 0; y < size[1]; y++) {
@@ -98,7 +98,7 @@ namespace oph
 			return determinant(*this, size[0]);
 		}
 
-		T determinant(TwoDimMatrix<T>& _mat, int _size) {
+		T determinant(matrix<T>& _mat, int _size) {
 			int p = 0, q = 0;
 			T det = 0;
 
@@ -113,10 +113,10 @@ namespace oph
 			return 0;
 		}
 
-		T cofactor(TwoDimMatrix<T>& _mat, int p, int q, int _size) {
+		T cofactor(matrix<T>& _mat, int p, int q, int _size) {
 			int i = 0, j = 0;
 			int x = 0, y = 0;
-			TwoDimMatrix<T> cmat(_size - 1, _size - 1);
+			matrix<T> cmat(_size - 1, _size - 1);
 			T cofactor = 0;
 
 			for (i = 0, x = 0; i<_size; i++) {
@@ -140,11 +140,11 @@ namespace oph
 			for (int k = 0; k < size[0]; k++) swap(mat[i][k], mat[j][k]);
 		}
 
-		TwoDimMatrix<T>& inverse(void) {
+		matrix<T>& inverse(void) {
 			if (size[0] != size[1]) return *this;
 			if (determinant() == 0) return *this;
 
-			TwoDimMatrix<T> inv(size);
+			matrix<T> inv(size);
 			inv.identity();
 
 			for (int k = 0; k < size[0]; k++) {
@@ -174,7 +174,7 @@ namespace oph
 			return *this;
 		}
 
-		TwoDimMatrix<T>& add(TwoDimMatrix<T>& p) {
+		matrix<T>& add(matrix<T>& p) {
 			if (size != p.size) return *this;
 
 			for (int x = 0; x < size[0]; x++) {
@@ -186,7 +186,7 @@ namespace oph
 			return *this;
 		}
 
-		TwoDimMatrix<T>& sub(TwoDimMatrix<T>& p) {
+		matrix<T>& sub(matrix<T>& p) {
 			if (size != p.size) return *this;
 
 			for (int x = 0; x < size[0]; x++) {
@@ -198,10 +198,10 @@ namespace oph
 			return *this;
 		}
 
-		TwoDimMatrix<T>& mul(TwoDimMatrix<T>& p) {
+		matrix<T>& mul(matrix<T>& p) {
 			if (size[0] != p.size[1]) return *this;
 
-			TwoDimMatrix<T> res(p.size[1], size[0]);
+			matrix<T> res(p.size[1], size[0]);
 
 			for (int x = 0; x < res.size[0]; x++) {
 				for (int y = 0; y < res.size[1]; y++) {
@@ -218,7 +218,7 @@ namespace oph
 			return *this;
 		}
 
-		TwoDimMatrix<T>& div(TwoDimMatrix<T>& p) {
+		matrix<T>& div(matrix<T>& p) {
 			if (size != p.size) return *this;
 
 			for (int x = 0; x < size[0]; x++) {
@@ -239,7 +239,7 @@ namespace oph
 			return mat[x][y];
 		}
 
-		inline bool operator =(TwoDimMatrix<T>& p) {
+		inline bool operator =(matrix<T>& p) {
 			if (size != p.size)
 				return false;
 
@@ -259,7 +259,7 @@ namespace oph
 				}
 		}
 
-		TwoDimMatrix<T>& operator ()(T args...) {
+		matrix<T>& operator ()(T args...) {
 			va_list ap;
 
 			__va_start(&ap, args);
@@ -278,23 +278,23 @@ namespace oph
 			return *this;
 		}
 
-		const TwoDimMatrix<T>& operator +(const TwoDimMatrix<T>& p) {
+		const matrix<T>& operator +(const matrix<T>& p) {
 			return *add(p);
 		}
 
-		const TwoDimMatrix<T>& operator -(const TwoDimMatrix<T>& p) {
+		const matrix<T>& operator -(const matrix<T>& p) {
 			return *sub(p);
 		}
 
-		const TwoDimMatrix<T>& operator *(const TwoDimMatrix<T>& p) {
+		const matrix<T>& operator *(const matrix<T>& p) {
 			return *mul(p);
 		}
 
-		const TwoDimMatrix<T>& operator /(const TwoDimMatrix<T>& p) {
+		const matrix<T>& operator /(const matrix<T>& p) {
 			return *div(p);
 		}
 
-		const TwoDimMatrix<T>& operator +(const T& p) {
+		const matrix<T>& operator +(const T& p) {
 			for (int x = 0; x < size[0]; x++)
 				for (int y = 0; y < size[1]; y++) {
 					mat[x][y] += p;
@@ -302,7 +302,7 @@ namespace oph
 			return *this;
 		}
 
-		const TwoDimMatrix<T>& operator -(const T& p) {
+		const matrix<T>& operator -(const T& p) {
 			for (int x = 0; x < size[0]; x++)
 				for (int y = 0; y < size[1]; y++) {
 					mat[x][y] -= p;
@@ -310,7 +310,7 @@ namespace oph
 			return *this;
 		}
 
-		const TwoDimMatrix<T>& operator *(const T& p) {
+		const matrix<T>& operator *(const T& p) {
 			for (int x = 0; x < size[0]; x++)
 				for (int y = 0; y < size[1]; y++) {
 					mat[x][y] *= p;
@@ -318,7 +318,7 @@ namespace oph
 			return *this;
 		}
 
-		const TwoDimMatrix<T>& operator /(const T& p) {
+		const matrix<T>& operator /(const T& p) {
 			for (int x = 0; x < size[0]; x++)
 				for (int y = 0; y < size[1]; y++) {
 					mat[x][y] /= p;
@@ -338,12 +338,12 @@ namespace oph
 		}
 	};
 
-	typedef oph::TwoDimMatrix<int> OphIntField;
-	typedef oph::TwoDimMatrix<uchar> OphByteField;
-	typedef oph::TwoDimMatrix<Real> OphRealField;
-	typedef oph::TwoDimMatrix<Real_t> OphRealTField;
-	typedef oph::TwoDimMatrix<Complex<Real>> OphComplexField;
-	typedef oph::TwoDimMatrix<Complex<Real_t>> OphComplexTField;
+	typedef oph::matrix<int> OphIntField;
+	typedef oph::matrix<uchar> OphByteField;
+	typedef oph::matrix<Real> OphRealField;
+	typedef oph::matrix<Real_t> OphRealTField;
+	typedef oph::matrix<Complex<Real>> OphComplexField;
+	typedef oph::matrix<Complex<Real_t>> OphComplexTField;
 
 	typedef OphComplexField Mat;
 	typedef OphComplexField MatF;

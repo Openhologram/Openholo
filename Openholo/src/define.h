@@ -43,6 +43,10 @@ namespace oph
 #define _Z 2
 #endif
 
+#ifndef _W
+#define _W 3
+#endif
+
 #ifndef _MAXFLOAT
 #define _MAXFLOAT	((float)3.40282347e+38)
 #endif

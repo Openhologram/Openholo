@@ -133,15 +133,15 @@ public:
 public:
 	void initialize(void);
 	/**
-	* @brief Set the value of a variable isCPU_(true or false)
+	* @brief Set the value of a variable isCPU(true or false)
 	* @details <pre>
-	if isCPU_ == true
+	if isCPU == true
 	CPU implementation
 	else
 	GPU implementation </pre>
 	* @param isCPU : the value for specifying whether the hologram generation method is implemented on the CPU or GPU
 	*/
-	void setMode(bool IsCPU);
+	void setMode(bool isCPU);
 
 	/**
 	\defgroup PointCloud_Load 
@@ -188,7 +188,7 @@ private:
 	* @param dst Output Fringe Pattern
 	* @return implement time (sec)
 	*/
-	void genCghPointCloud(Real* dst);
+	void genCghPointCloudCPU(Real* dst);
 
 	/**
 	* @overload
@@ -210,7 +210,7 @@ private:
 	* @param dst Output Fringe Pattern
 	* @return implement time (sec)
 	*/
-	void genCghPointCloud_cuda(Real* dst);
+	void genCghPointCloudGPU(Real* dst);
 
 	/** @}	*/
 
@@ -223,7 +223,7 @@ private:
 	*/
 	virtual void ophFree(void);
 
-	bool IsCPU_;
+	bool isCPU;
 	int n_points;
 
 	OphPointCloudConfig pc_config_;
