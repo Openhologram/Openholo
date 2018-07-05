@@ -4,6 +4,7 @@
 #include <fileapi.h>
 
 #include "sys.h"
+#include "include.h"
 
 Openholo::Openholo(void)
 	: Base()
@@ -31,7 +32,7 @@ int Openholo::checkExtension(const char * fname, const char * ext)
 int Openholo::saveAsImg(const char * fname, uint8_t bitsperpixel, void* src, int pic_width, int pic_height)
 {
 	LOG("Saving...%s...", fname);
-	auto start = _cur_time;
+	auto start = CUR_TIME;
 
 	int _width = pic_width, _height = pic_height;
 
@@ -59,12 +60,12 @@ int Openholo::saveAsImg(const char * fname, uint8_t bitsperpixel, void* src, int
 	pbitmap->bitmapinfoheader.dibheadersize = sizeof(bitmapinfoheader);
 	pbitmap->bitmapinfoheader.width = _width;
 	pbitmap->bitmapinfoheader.height = _height;
-	pbitmap->bitmapinfoheader.planes = _planes;
+	pbitmap->bitmapinfoheader.planes = OPH_PLANES;
 	pbitmap->bitmapinfoheader.bitsperpixel = bitsperpixel;
-	pbitmap->bitmapinfoheader.compression = _compression;
+	pbitmap->bitmapinfoheader.compression = OPH_COMPRESSION;
 	pbitmap->bitmapinfoheader.imagesize = _pixelbytesize;
-	pbitmap->bitmapinfoheader.ypixelpermeter = _ypixelpermeter;
-	pbitmap->bitmapinfoheader.xpixelpermeter = _xpixelpermeter;
+	pbitmap->bitmapinfoheader.ypixelpermeter = Y_PIXEL_PER_METER;
+	pbitmap->bitmapinfoheader.xpixelpermeter = X_PIXEL_PER_METER;
 	pbitmap->bitmapinfoheader.numcolorspallette = 256;
 	fwrite(pbitmap, 1, sizeof(bitmap), fp);
 
@@ -72,9 +73,9 @@ int Openholo::saveAsImg(const char * fname, uint8_t bitsperpixel, void* src, int
 	fclose(fp);
 	free(pbitmap);
 
-	auto end = _cur_time;
+	auto end = CUR_TIME;
 
-	auto during = ((std::chrono::duration<real>)(end - start)).count();
+	auto during = ((std::chrono::duration<Real>)(end - start)).count();
 
 	LOG("%.5lfsec...done\n", during);
 
@@ -85,13 +86,13 @@ int Openholo::loadAsImg(const char * fname, void* dst)
 {
 	FILE *infile;
 	fopen_s(&infile, fname, "rb");
-	if (infile == nullptr) { printf("No such file"); return 0; }
+	if (infile == nullptr) { LOG("No such file"); return 0; }
 
 	// BMP Header Information
 	fileheader hf;
 	bitmapinfoheader hInfo;
 	fread(&hf, sizeof(fileheader), 1, infile);
-	if (hf.signature[0] != 'B' || hf.signature[1] != 'M') { printf("Not BMP File");  return 0; }
+	if (hf.signature[0] != 'B' || hf.signature[1] != 'M') { LOG("Not BMP File");  return 0; }
 
 	fread(&hInfo, sizeof(bitmapinfoheader), 1, infile);
 	fseek(infile, hf.fileoffset_to_pixelarray, SEEK_SET);
@@ -131,7 +132,7 @@ int Openholo::getImgSize(int & w, int & h, int & bytesperpixel, const char * fil
 	sprintf_s(bmpFile, "%s", file_name);
 	FILE *infile;
 	fopen_s(&infile, bmpFile, "rb");
-	if (infile == NULL) { printf("No Image File"); return 0; }
+	if (infile == NULL) { LOG("No Image File"); return 0; }
 
 	// BMP Header Information
 	fileheader hf;
@@ -187,6 +188,144 @@ void Openholo::convertToFormatGray8(unsigned char * src, unsigned char * dst, in
 		unsigned int b = src[i + 2];
 		dst[idx++] = (r + g + b) / 3;
 		i += bytesperpixel - 1;
+	}
+}
+
+void Openholo::fft1(int n, const Complex<Real>* in, Complex<Real>* out, int sign, uint flag)
+{
+	fftw_complex *fft_in, *fft_out;
+	fftw_plan plan;
+
+	fft_in = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * n);
+	fft_out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * n);
+
+	for (int i = 0; i < n; i++) {
+		fft_in[i][_RE] = in[i].real();
+		fft_in[i][_IM] = in[i].imag();
+	}
+
+	plan = fftw_plan_dft_1d(n, fft_in, fft_out, sign, flag);
+
+	fftw_execute(plan);
+
+	for (int i = 0; i < n; i++) {
+		out[i][_RE] = fft_out[i][_RE];
+		out[i][_IM] = fft_out[i][_IM];
+	}
+
+	fftw_destroy_plan(plan);
+	fftw_free(fft_in);
+	fftw_free(fft_out);
+}
+
+void Openholo::fft2(oph::ivec2 n, const Complex<Real>* in, Complex<Real>* out, int sign, uint flag)
+{
+	int pnx = n[_X], pny = n[_Y];
+
+	fftw_complex *fft_in, *fft_out;
+	fftw_plan plan;
+
+	fft_in = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * pnx * pny);
+	fft_out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * pnx * pny);
+
+	for (int i = 0; i < pnx * pny; i++) {
+		fft_in[i][_RE] = in[i].real();
+		fft_in[i][_IM] = in[i].imag();
+	}
+
+	plan = fftw_plan_dft_2d(pnx, pny, fft_in, fft_out, sign, flag);
+
+	fftw_execute(plan);
+
+	for (int i = 0; i < pnx * pny; i++) {
+		out[i][_RE] = fft_out[i][_RE];
+		out[i][_IM] = fft_out[i][_IM];
+	}
+
+	fftw_destroy_plan(plan);
+	fftw_free(fft_in);
+	fftw_free(fft_out);
+}
+
+void Openholo::fft3(oph::ivec3 n, const Complex<Real>* in, Complex<Real>* out, int sign, uint flag)
+{
+	int pnx = n[_X], pny = n[_Y], pnz = n[_Z];
+
+	fftw_complex *fft_in, *fft_out;
+	fftw_plan plan;
+
+	fft_in = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * pnx * pny * pnz);
+	fft_out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * pnx * pny * pnz);
+
+	for (int i = 0; i < pnx * pny * pnz; i++) {
+		fft_in[i][_RE] = in[i].real();
+		fft_in[i][_IM] = in[i].imag();
+	}
+
+	plan = fftw_plan_dft_3d(pnx, pny, pnz, fft_in, fft_out, sign, flag);
+
+	fftw_execute(plan);
+
+	for (int i = 0; i < pnx * pny * pnz; i++) {
+		out[i][_RE] = fft_out[i][_RE];
+		out[i][_IM] = fft_out[i][_IM];
+	}
+
+	fftw_destroy_plan(plan);
+	fftw_free(fft_in);
+	fftw_free(fft_out);
+}
+
+void Openholo::fftwShift(Complex<Real>* src, Complex<Real>* dst, int nx, int ny, int type, bool bNormalized)
+{
+	Complex<Real>* tmp = (Complex<Real>*)malloc(sizeof(Complex<Real>)*nx*ny);
+	memset(tmp, 0, sizeof(Complex<Real>)*nx*ny);
+	fftShift(nx, ny, src, tmp);
+
+	fftw_plan fft_plan_fwd = nullptr, fft_plan_bwd = nullptr;
+
+	fftw_complex *in = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * nx * ny);
+	fftw_complex *out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * nx * ny);
+
+	for (int i = 0; i < nx*ny; i++)
+	{
+		in[i][_RE] = tmp[i][_RE];
+		in[i][_IM] = tmp[i][_IM];
+	}
+
+	if (type == 1)
+		fftw_execute_dft(fft_plan_fwd, in, out);
+	else
+		fftw_execute_dft(fft_plan_bwd, in, out);
+
+	int normalF = 1;
+	if (bNormalized) normalF = nx * ny;
+	memset(tmp, 0, sizeof(Complex<Real>)*nx*ny);
+
+	for (int k = 0; k < nx*ny; k++) {
+		tmp[k][_RE] = out[k][_RE] / normalF;
+		tmp[k][_IM] = out[k][_IM] / normalF;
+	}
+	fftw_free(in);
+	fftw_free(out);
+
+	memset(dst, 0, sizeof(Complex<Real>)*nx*ny);
+	fftShift(nx, ny, tmp, dst);
+
+	free(tmp);
+}
+
+void Openholo::fftShift(int nx, int ny, Complex<Real>* input, Complex<Real>* output)
+{
+	for (int i = 0; i < nx; i++)
+	{
+		for (int j = 0; j < ny; j++)
+		{
+			int ti = i - nx / 2; if (ti < 0) ti += nx;
+			int tj = j - ny / 2; if (tj < 0) tj += ny;
+
+			output[ti + tj * nx] = input[i + j * nx];
+		}
 	}
 }
 

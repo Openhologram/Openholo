@@ -2,7 +2,6 @@
 #include <windows.h>
 #include "sys.h"
 #include "function.h"
-#include "fftw3.h"
 #include <cuda_runtime.h>
 #include <cufft.h>
 
@@ -23,7 +22,7 @@ int ophGen::loadPointCloud(const char* pc_file, OphPointCloudData *pc_data_, uin
 {
 	LOG("Reading....%s...", pc_file);
 
-	auto start = _cur_time;
+	auto start = CUR_TIME;
 
 	std::ifstream File(pc_file, std::ios::in);
 	if (!File.is_open()) {
@@ -36,19 +35,19 @@ int ophGen::loadPointCloud(const char* pc_file, OphPointCloudData *pc_data_, uin
 	File >> n_pts;
 
 	pc_data_->location	= new vec3[n_pts];
-	pc_data_->color		= new ivec3[n_pts];
-	pc_data_->amplitude	= new real[n_pts];
-	pc_data_->phase		= new real[n_pts];
+	pc_data_->color		= new vec3[n_pts];
+	pc_data_->amplitude	= new Real[n_pts];
+	pc_data_->phase		= new Real[n_pts];
 
 	memset(pc_data_->location, NULL, sizeof(vec3) * n_pts);
-	memset(pc_data_->color, NULL, sizeof(ivec3) * n_pts);
-	memset(pc_data_->amplitude, NULL, sizeof(real) * n_pts);
-	memset(pc_data_->phase, NULL, sizeof(real) * n_pts);
+	memset(pc_data_->color, NULL, sizeof(vec3) * n_pts);
+	memset(pc_data_->amplitude, NULL, sizeof(Real) * n_pts);
+	memset(pc_data_->phase, NULL, sizeof(Real) * n_pts);
 
 	// parse input point cloud file
 	for (int i = 0; i < n_pts; ++i) {
 		int idx;
-		real pX, pY, pZ, phase, amplitude;
+		Real pX, pY, pZ, phase, amplitude;
 		int pR, pG, pB;
 
 		File >> idx;
@@ -60,7 +59,7 @@ int ophGen::loadPointCloud(const char* pc_file, OphPointCloudData *pc_data_, uin
 				pc_data_->location[idx][_Z] = pY;
 			}
 			if (flag & PC_RGB){
-				File >> pR >> pG, pB;
+				File >> pR >> pG >> pB;
 				pc_data_->color[idx][_X] = pR;
 				pc_data_->color[idx][_Y] = pG;
 				pc_data_->color[idx][_Z] = pB;
@@ -81,9 +80,9 @@ int ophGen::loadPointCloud(const char* pc_file, OphPointCloudData *pc_data_, uin
 	}
 	File.close();
 
-	auto end = _cur_time;
+	auto end = CUR_TIME;
 
-	auto during = ((std::chrono::duration<real>)(end - start)).count();
+	auto during = ((std::chrono::duration<Real>)(end - start)).count();
 
 	LOG("%.5lfsec...done\n", during);
 	return n_pts;
@@ -93,7 +92,7 @@ bool ophGen::readConfig(const char* fname, OphPointCloudConfig& configdata)
 {
 	LOG("Reading....%s...", fname);
 
-	auto start = _cur_time;
+	auto start = CUR_TIME;
 
 	std::ifstream inFile(fname, std::ios::in);
 	if (!inFile.is_open()) {
@@ -159,21 +158,21 @@ bool ophGen::readConfig(const char* fname, OphPointCloudConfig& configdata)
 
 	inFile.close();
 
-	auto end = _cur_time;
+	auto end = CUR_TIME;
 
-	auto during = ((std::chrono::duration<real>)(end - start)).count();
+	auto during = ((std::chrono::duration<Real>)(end - start)).count();
 
 	LOG("%.5lfsec...done\n", during);
 	return true;
 }
 
-bool ophGen::readConfig(const char* fname, OphDepthMapConfig & config, OphDepthMapParams& params, OphDepthMapSimul& simuls)
+bool ophGen::readConfig(const char* fname, OphDepthMapConfig & config, OphDepthMapParams& params)
 {
 	std::string inputFileName_ = fname;
 
 	LOG("Reading....%s...", fname);
 
-	auto start = _cur_time;
+	auto start = CUR_TIME;
 
 	std::ifstream inFile(fname);
 
@@ -210,7 +209,7 @@ bool ophGen::readConfig(const char* fname, OphDepthMapConfig & config, OphDepthM
 	getline(inFile, temp, '\n');	getline(inFile, temp, '\n');	getline(inFile, temp, '\n');
 
 	inFile >> config.field_lens;									getline(inFile, temp, '\n');
-	inFile >> context_.lambda;									getline(inFile, temp, '\n');
+	inFile >> context_.lambda;										getline(inFile, temp, '\n');
 	context_.k = 2 * M_PI / context_.lambda;
 
 	inFile >> context_.pixel_number[0];								getline(inFile, temp, '\n');
@@ -225,7 +224,7 @@ bool ophGen::readConfig(const char* fname, OphDepthMapConfig & config, OphDepthM
 	// skip 3 lines
 	getline(inFile, temp, '\n');	getline(inFile, temp, '\n');	getline(inFile, temp, '\n');
 
-	real NEAR_OF_DEPTH_MAP, FAR_OF_DEPTH_MAP;
+	Real NEAR_OF_DEPTH_MAP, FAR_OF_DEPTH_MAP;
 	inFile >> NEAR_OF_DEPTH_MAP;									getline(inFile, temp, '\n');
 	inFile >> FAR_OF_DEPTH_MAP;										getline(inFile, temp, '\n');
 
@@ -277,28 +276,28 @@ bool ophGen::readConfig(const char* fname, OphDepthMapConfig & config, OphDepthM
 	//==Simulation parameters ======================================================================
 	getline(inFile, temp, '\n');	getline(inFile, temp, '\n');	getline(inFile, temp, '\n');
 
-	inFile >> simuls.Simulation_Result_File_Prefix_;				getline(inFile, temp, '\n');
-	inFile >> simuls.test_pixel_number_scale_;						getline(inFile, temp, '\n');
-	inFile >> simuls.eye_length_;									getline(inFile, temp, '\n');
-	inFile >> simuls.eye_pupil_diameter_;							getline(inFile, temp, '\n');
-	inFile >> simuls.eye_center_xy_[0];								getline(inFile, temp, '\n');
-	inFile >> simuls.eye_center_xy_[1];								getline(inFile, temp, '\n');
-	inFile >> simuls.focus_distance_;								getline(inFile, temp, '\n');
+	//inFile >> simuls.Simulation_Result_File_Prefix_;				getline(inFile, temp, '\n');
+	//inFile >> simuls.test_pixel_number_scale_;						getline(inFile, temp, '\n');
+	//inFile >> simuls.eye_length_;									getline(inFile, temp, '\n');
+	//inFile >> simuls.eye_pupil_diameter_;							getline(inFile, temp, '\n');
+	//inFile >> simuls.eye_center_xy_[0];								getline(inFile, temp, '\n');
+	//inFile >> simuls.eye_center_xy_[1];								getline(inFile, temp, '\n');
+	//inFile >> simuls.focus_distance_;								getline(inFile, temp, '\n');
 
 	getline(inFile, temp, '\n');	getline(inFile, temp, '\n');	getline(inFile, temp, '\n');
 	getline(inFile, temp, '\n');	getline(inFile, temp, '\n');
 
-	inFile >> simuls.sim_type_;										getline(inFile, temp, '\n');
-	inFile >> simuls.sim_from_;										getline(inFile, temp, '\n');
-	inFile >> simuls.sim_to_;										getline(inFile, temp, '\n');
-	inFile >> simuls.sim_step_num_;									getline(inFile, temp, '\n');
+	//inFile >> simuls.sim_type_;										getline(inFile, temp, '\n');
+	//inFile >> simuls.sim_from_;										getline(inFile, temp, '\n');
+	//inFile >> simuls.sim_to_;										getline(inFile, temp, '\n');
+	//inFile >> simuls.sim_step_num_;									getline(inFile, temp, '\n');
 
 	//=====================================================================================
 	inFile.close();
 
-	auto end = _cur_time;
+	auto end = CUR_TIME;
 
-	auto during = ((std::chrono::duration<real>)(end - start)).count();
+	auto during = ((std::chrono::duration<Real>)(end - start)).count();
 
 	LOG("%.5lfsec...done\n", during);
 
@@ -307,7 +306,7 @@ bool ophGen::readConfig(const char* fname, OphDepthMapConfig & config, OphDepthM
 
 void ophGen::normalize(void)
 {
-	oph::normalize((real*)holo_encoded, holo_normalized, context_.pixel_number[_X], context_.pixel_number[_Y]);
+	oph::normalize((Real*)holo_encoded, holo_normalized, context_.pixel_number[_X], context_.pixel_number[_Y]);
 }
 
 int ophGen::save(const char * fname, uint8_t bitsperpixel, uchar* src, uint px, uint py)
@@ -427,16 +426,16 @@ void ophGen::encoding(unsigned int ENCODE_FLAG, unsigned int passband) {
 }
 void ophGen::numericalInterference(oph::Complex<real>* holo, real* encoded, const int size)
 {
-	real* temp1 = new real[size];
-	oph::absCplxArr<real>(holo, temp1, size);
+	Real* temp1 = new Real[size];
+	oph::absCplxArr<Real>(holo, temp1, size);
 
-	real* ref = new real;
-	*ref = oph::maxOfArr<real>(temp1, size);
+	Real* ref = new Real;
+	*ref = oph::maxOfArr<Real>(temp1, size);
 
-	oph::Complex<real>* temp2 = new oph::Complex<real>[size];
+	oph::Complex<Real>* temp2 = new oph::Complex<Real>[size];
 	temp2 = holo;
 	for_i(size,
-		temp2[i].re += *ref;
+		temp2[i][_RE] += *ref;
 	);
 
 	real* temp3 = new real[size];
@@ -450,10 +449,10 @@ void ophGen::numericalInterference(oph::Complex<real>* holo, real* encoded, cons
 	delete ref;
 }
 
-void ophGen::twoPhaseEncoding(oph::Complex<real>* holo, real* encoded, const int size)
+void ophGen::twoPhaseEncoding(oph::Complex<Real>* holo, Real* encoded, const int size)
 {
-	Complex<real>* normCplx = new Complex<real>[size];
-	oph::normalize<real>(holo, normCplx, size);
+	Complex<Real>* normCplx = new Complex<Real>[size];
+	oph::normalize<Real>(holo, normCplx, size);
 
 	real* amp = new real[size];
 	oph::getAmplitude(normCplx, amp, size);
@@ -474,15 +473,15 @@ void ophGen::twoPhaseEncoding(oph::Complex<real>* holo, real* encoded, const int
 	delete[] normCplx, amp, pha, delPhase;
 }
 
-void ophGen::burckhardt(oph::Complex<real>* holo, real* encoded, const int size)
+void ophGen::burckhardt(oph::Complex<Real>* holo, Real* encoded, const int size)
 {
-	Complex<real>* norm = new Complex<real>[size];
+	Complex<Real>* norm = new Complex<Real>[size];
 	oph::normalize(holo, norm, size);
-	//for (int i = 0; i < size; i++) {				// for debugging
-	//	cout << "norm(" << i << ": " << *(norm + i) << endl;
-	//}
-	real* phase = new real[size];
-	oph::getPhase(holo, phase, size);
+	for (int i = 0; i < size; i++) {				// for debugging
+		cout << "norm(" << i << ": " << *(norm + i) << endl;
+	}
+	Real* phase = new Real[size];
+	calPhase(holo, phase, size);
 
 	for (int i = 0; i < size; i++) {				// for debugging
 		cout << "phase(" << i << ": " << *(phase + i) << endl;
@@ -491,12 +490,12 @@ void ophGen::burckhardt(oph::Complex<real>* holo, real* encoded, const int size)
 	real* ampl = new real[size];
 	oph::getAmplitude(holo, ampl, size);
 
-	real* A1 = new real[size];
-	memsetArr<real>(A1, 0, 0, size - 1);
-	real* A2 = new real[size];
-	memsetArr<real>(A2, 0, 0, size - 1);
-	real* A3 = new real[size];
-	memsetArr<real>(A3, 0, 0, size - 1);
+	Real* A1 = new Real[size];
+	memsetArr<Real>(A1, 0, 0, size - 1);
+	Real* A2 = new Real[size];
+	memsetArr<Real>(A2, 0, 0, size - 1);
+	Real* A3 = new Real[size];
+	memsetArr<Real>(A3, 0, 0, size - 1);
 
 	for_i(size,
 		if (*(phase + i) >= 0 && *(phase + i) < (2 * M_PI / 3))
@@ -531,7 +530,7 @@ void ophGen::burckhardt(oph::Complex<real>* holo, real* encoded, const int size)
 	//}
 }
 
-void ophGen::freqShift(oph::Complex<real>* holo, Complex<real>* encoded, const ivec2 holosize, int shift_x, int shift_y)
+void ophGen::freqShift(oph::Complex<Real>* holo, Complex<Real>* encoded, const ivec2 holosize, int shift_x, int shift_y)
 {
 	int size = holosize.v[0] * holosize.v[1];
 
@@ -655,10 +654,6 @@ void ophGen::fft2(int n0, int n1, const oph::Complex<real>* in, oph::Complex<rea
 		out[i].im = fft_out[i][1];
 	}
 
-	fftw_destroy_plan(plan);
-	fftw_free(fft_in);
-	fftw_free(fft_out);
-}
 
 void ophGen::encodeSideBand(bool bCPU, ivec2 sig_location)
 {
@@ -676,8 +671,8 @@ void ophGen::encodeSideBand(bool bCPU, ivec2 sig_location)
 		cropy2 = pny;
 	}
 	else {
-		cropy = (int)floor(((real)pny) / 2);
-		cropy1 = cropy - (int)floor(((real)cropy) / 2);
+		cropy = (int)floor(((Real)pny) / 2);
+		cropy1 = cropy - (int)floor(((Real)cropy) / 2);
 		cropy2 = cropy1 + cropy - 1;
 	}
 
@@ -686,8 +681,8 @@ void ophGen::encodeSideBand(bool bCPU, ivec2 sig_location)
 		cropx2 = pnx;
 	}
 	else {
-		cropx = (int)floor(((real)pnx) / 2);
-		cropx1 = cropx - (int)floor(((real)cropx) / 2);
+		cropx = (int)floor(((Real)pnx) / 2);
+		cropx1 = cropx - (int)floor(((Real)cropx) / 2);
 		cropx2 = cropx1 + cropx - 1;
 	}
 
@@ -709,8 +704,8 @@ void ophGen::encodeSideBand_CPU(int cropx1, int cropx2, int cropy1, int cropy2, 
 	int pnx = context_.pixel_number[_X];
 	int pny = context_.pixel_number[_Y];
 
-	oph::Complex<real>* h_crop = new oph::Complex<real>[pnx*pny];
-	memset(h_crop, 0.0, sizeof(oph::Complex<real>)*pnx*pny);
+	oph::Complex<Real>* h_crop = new oph::Complex<Real>[pnx*pny];
+	memset(h_crop, 0.0, sizeof(oph::Complex<Real>)*pnx*pny);
 
 	int p = 0;
 #pragma omp parallel for private(p)
@@ -722,20 +717,19 @@ void ophGen::encodeSideBand_CPU(int cropx1, int cropx2, int cropy1, int cropy2, 
 			h_crop[p] = holo_gen[p];
 	}
 
-	fftw_complex *in = NULL, *out = NULL;
-	fft_plan_bwd = fftw_plan_dft_2d(pny, pnx, in, out, FFTW_BACKWARD, FFTW_ESTIMATE);
-	fftwShift(h_crop, h_crop, in, out, pnx, pny, -1, true);
-	fftw_destroy_plan(fft_plan_bwd);
-	fftw_cleanup();
+	oph::Complex<Real> *in = nullptr, *out = nullptr;
 
-	memset(holo_encoded, 0.0, sizeof(real)*pnx*pny);
+	fft2(oph::ivec2(pnx, pny), in, out, OPH_BACKWARD);
+	fftwShift(h_crop, h_crop, pnx, pny, OPH_FORWARD, true);
+
+	memset(holo_encoded, 0.0, sizeof(Real)*pnx*pny);
 	int i = 0;
 #pragma omp parallel for private(i)	
 	for (i = 0; i < pnx*pny; i++) {
-		oph::Complex<real> shift_phase(1, 0);
-		get_shift_phase_value(shift_phase, i, sig_location);
+		oph::Complex<Real> shift_phase(1, 0);
+		getShiftPhaseValue(shift_phase, i, sig_location);
 
-		holo_encoded[i] = (h_crop[i] * shift_phase).re;
+		holo_encoded[i] = (h_crop[i] * shift_phase).real();
 	}
 
 	delete[] h_crop;
@@ -779,7 +773,7 @@ extern "C"
 
 	/**
 	* @brief Encode the CGH according to a signal location parameter on the GPU.
-	* @details The variable, ((real*)p_hologram) has the final result.
+	* @details The variable, ((Real*)p_hologram) has the final result.
 	* @param stream : CUDA Stream
 	* @param pnx : the number of column of the input data
 	* @param pny : the number of row of the input data
@@ -795,17 +789,17 @@ extern "C"
 	* @see encoding_GPU
 	*/
 	void cudaGetFringe(CUstream_st* stream, int pnx, int pny, cufftDoubleComplex* in_field, cufftDoubleComplex* out_field, int sig_locationx, int sig_locationy,
-		real ssx, real ssy, real ppx, real ppy, real PI);
+		Real ssx, Real ssy, Real ppx, Real ppy, Real PI);
 }
 
 void ophGen::encodeSideBand_GPU(int cropx1, int cropx2, int cropy1, int cropy2, oph::ivec2 sig_location)
 {
 	int pnx = context_.pixel_number[0];
 	int pny = context_.pixel_number[1];
-	real ppx = context_.pixel_pitch[0];
-	real ppy = context_.pixel_pitch[1];
-	real ssx = context_.ss[0];
-	real ssy = context_.ss[1];
+	Real ppx = context_.pixel_pitch[0];
+	Real ppy = context_.pixel_pitch[1];
+	Real ssx = context_.ss[0];
+	Real ssy = context_.ss[1];
 
 	cufftDoubleComplex *k_temp_d_, *u_complex_gpu_;
 	cudaStream_t stream_;
@@ -828,7 +822,7 @@ void ophGen::encodeSideBand_GPU(int cropx1, int cropx2, int cropy1, int cropy2, 
 	memset(sample_fd, 0.0, sizeof(cufftDoubleComplex)*pnx*pny);
 
 	cudaMemcpyAsync(sample_fd, k_temp_d_, sizeof(cufftDoubleComplex)*pnx*pny, cudaMemcpyDeviceToHost), stream_;
-	memset(holo_encoded, 0.0, sizeof(real)*pnx*pny);
+	memset(holo_encoded, 0.0, sizeof(Real)*pnx*pny);
 
 	for (int i = 0; i < pnx * pny; i++)
 		holo_encoded[i] = sample_fd[i].x;
@@ -837,26 +831,26 @@ void ophGen::encodeSideBand_GPU(int cropx1, int cropx2, int cropy1, int cropy2, 
 	cudaStreamDestroy(stream_);
 }
 
-void ophGen::get_shift_phase_value(oph::Complex<real>& shift_phase_val, int idx, oph::ivec2 sig_location)
+void ophGen::getShiftPhaseValue(oph::Complex<Real>& shift_phase_val, int idx, oph::ivec2 sig_location)
 {
 	int pnx = context_.pixel_number[0];
 	int pny = context_.pixel_number[1];
-	real ppx = context_.pixel_pitch[0];
-	real ppy = context_.pixel_pitch[1];
-	real ssx = context_.ss[0];
-	real ssy = context_.ss[1];
+	Real ppx = context_.pixel_pitch[0];
+	Real ppy = context_.pixel_pitch[1];
+	Real ssx = context_.ss[0];
+	Real ssy = context_.ss[1];
 
 	if (sig_location[1] != 0)
 	{
 		int r = idx / pnx;
 		int c = idx % pnx;
-		real yy = (ssy / 2.0) - (ppy)*r - ppy;
+		Real yy = (ssy / 2.0) - (ppy)*r - ppy;
 
-		oph::Complex<real> val;
+		oph::Complex<Real> val;
 		if (sig_location[1] == 1)
-			val.im = 2 * M_PI * (yy / (4 * ppy));
+			val[_IM] = 2 * M_PI * (yy / (4 * ppy));
 		else
-			val.im = 2 * M_PI * (-yy / (4 * ppy));
+			val[_IM] = 2 * M_PI * (-yy / (4 * ppy));
 
 		val.exp();
 		shift_phase_val *= val;
@@ -866,82 +860,31 @@ void ophGen::get_shift_phase_value(oph::Complex<real>& shift_phase_val, int idx,
 	{
 		int r = idx / pnx;
 		int c = idx % pnx;
-		real xx = (-ssx / 2.0) - (ppx)*c - ppx;
+		Real xx = (-ssx / 2.0) - (ppx)*c - ppx;
 
-		oph::Complex<real> val;
+		oph::Complex<Real> val;
 		if (sig_location[0] == -1)
-			val.im = 2 * M_PI * (-xx / (4 * ppx));
+			val[_IM] = 2 * M_PI * (-xx / (4 * ppx));
 		else
-			val.im = 2 * M_PI * (xx / (4 * ppx));
+			val[_IM] = 2 * M_PI * (xx / (4 * ppx));
 
 		val.exp();
 		shift_phase_val *= val;
 	}
 }
 
-void ophGen::get_rand_phase_value(oph::Complex<real>& rand_phase_val, bool rand_phase)
+void ophGen::getRandPhaseValue(oph::Complex<Real>& rand_phase_val, bool rand_phase)
 {
 	if (rand_phase)
 	{
-		rand_phase_val.re = 0.0;
-		rand_phase_val.im = 2 * M_PI * oph::rand(0.0, 1.0);
+		rand_phase_val[_RE] = 0.0;
+		rand_phase_val[_IM] = 2 * M_PI * oph::rand(0.0, 1.0);
 		rand_phase_val.exp();
 
 	}
 	else {
-		rand_phase_val.re = 1.0;
-		rand_phase_val.im = 0.0;
-	}
-}
-
-void ophGen::fftwShift(oph::Complex<real>* src, oph::Complex<real>* dst, fftw_complex * in, fftw_complex * out, int nx, int ny, int type, bool bNormalized)
-{
-	oph::Complex<real>* tmp = (oph::Complex<real>*)malloc(sizeof(oph::Complex<real>)*nx*ny);
-	memset(tmp, 0.0, sizeof(oph::Complex<real>)*nx*ny);
-	fftShift(nx, ny, src, tmp);
-
-	in = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * nx * ny);
-	out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * nx * ny);
-
-	for (int i = 0; i < nx*ny; i++)
-	{
-		in[i][0] = tmp[i].re;
-		in[i][1] = tmp[i].im;
-	}
-
-	if (type == 1)
-		fftw_execute_dft(fft_plan_fwd, in, out);
-	else
-		fftw_execute_dft(fft_plan_bwd, in, out);
-
-	int normalF = 1;
-	if (bNormalized) normalF = nx * ny;
-	memset(tmp, 0, sizeof(oph::Complex<real>)*nx*ny);
-
-	for (int k = 0; k < nx*ny; k++) {
-		tmp[k].re = out[k][0] / normalF;
-		tmp[k].im = out[k][1] / normalF;
-	}
-	fftw_free(in);
-	fftw_free(out);
-
-	memset(dst, 0.0, sizeof(oph::Complex<real>)*nx*ny);
-	fftShift(nx, ny, tmp, dst);
-
-	free(tmp);
-}
-
-void ophGen::fftShift(int nx, int ny, oph::Complex<real>* input, oph::Complex<real>* output)
-{
-	for (int i = 0; i < nx; i++)
-	{
-		for (int j = 0; j < ny; j++)
-		{
-			int ti = i - nx / 2; if (ti < 0) ti += nx;
-			int tj = j - ny / 2; if (tj < 0) tj += ny;
-
-			output[ti + tj * nx] = input[i + j * nx];
-		}
+		rand_phase_val[_RE] = 1.0;
+		rand_phase_val[_IM] = 0.0;
 	}
 }
 

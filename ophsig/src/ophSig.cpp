@@ -28,6 +28,36 @@ void ophSig::add(cv::Mat &A, cv::Mat &B, cv::Mat &out)
 	}
 }
 
+void ophSig::nmz(cv::Mat &input, cv::Mat &output)
+{
+	float max_real = 0;
+	float max_imag = 0;
+	cv::Mat temp_real(input.rows, input.cols, CV_32FC1);
+	cv::Mat temp_imag(input.rows, input.cols, CV_32FC1);
+
+	for (int i = 0; i < input.rows; i++)
+	{
+		for (int j = 0; j < input.cols; j++)
+		{
+			temp_real.at<float>(i, j) = input.at<std::complex<float>>(i, j)._Val[0];
+			temp_imag.at<float>(i, j) = input.at<std::complex<float>>(i, j)._Val[1];
+		}
+	}
+	max(temp_real, max_real);
+	max(temp_imag, max_imag);
+	output.create(input.rows, input.cols, CV_32FC2);
+
+	for (int i = 0; i < input.rows; i++)
+	{
+		for (int j = 0; j < input.cols; j++)
+		{
+			output.at<std::complex<float>>(i, j)._Val[0] = temp_real.at<float>(i, j) / max_real;
+			output.at<std::complex<float>>(i, j)._Val[1] = temp_imag.at<float>(i, j) / max_imag;
+		}
+	}
+}
+
+
 void ophSig::fftshift2d(cv::Mat &in, cv::Mat &out)
 {
 	if (in.channels() == 1)
@@ -253,7 +283,6 @@ void ophSig::max(cv::Mat &in, float &out)
 	{
 		for (int j = 0; j < in.size[1]; j++)
 		{
-
 			if (in.at<float>(i, j) > out) { out = in.at<float>(i, j); }
 		}
 	}
@@ -430,6 +459,15 @@ bool ophSig::loadHolo(std::string cosh, std::string sinh, std::string type,float
 		{
 			cv::Mat cos = cv::imread(cosh, CV_LOAD_IMAGE_COLOR);
 			cv::Mat sin = cv::imread(sinh, CV_LOAD_IMAGE_COLOR);
+
+			if (!cos.empty()) {
+				printf("cos file not found.\n");
+				return false;
+			}
+			if (!sin.empty()) {
+				printf("sin file not found.\n");
+				return false;
+			}
 			int size[] = { _cfgSig.rows,_cfgSig.cols,3 };
 			complexH.create(3, size, CV_32FC2);
 			cv::Mat cosh_H(3, size, CV_32F, cv::Scalar(0));
@@ -505,6 +543,16 @@ bool ophSig::loadHolo(std::string cosh, std::string sinh, std::string type,float
 		{
 			cv::Mat cos = cv::imread(cosh, 0);
 			cv::Mat sin = cv::imread(sinh, 0);
+
+			if (cos.empty()) {
+				printf("cos file not found.\n");
+				return false;
+			}
+			if (sin.empty()) {
+				printf("sin file not found.\n");
+				return false;
+			}
+
 			int size1[] = { cos.size[0],cos.size[1],1 };
 			int size[] = { cos.size[0],cos.size[1] };
 			complexH.create(3, size1, CV_32FC2);
@@ -540,7 +588,6 @@ bool ophSig::loadHolo(std::string cosh, std::string sinh, std::string type,float
 					sinh_h.at<float>(i, j) = sinh_h.at<float>(i, j) - out;
 				}
 			}
-
 			min(cosh_h, out);
 			for (int i = 0; i < _cfgSig.rows; i++)
 			{
@@ -549,7 +596,6 @@ bool ophSig::loadHolo(std::string cosh, std::string sinh, std::string type,float
 					cosh_h.at<float>(i, j) = cosh_h.at<float>(i, j) - out;
 				}
 			}
-
 			for (int i = 0; i < _cfgSig.rows; i++)
 			{
 				for (int j = 0; j < _cfgSig.cols; j++)
@@ -559,15 +605,25 @@ bool ophSig::loadHolo(std::string cosh, std::string sinh, std::string type,float
 				}
 			}
 		}
-
 	}
-
 	else if (type == "bin")
 	{
 		if (flag == 0)
 		{
 			std::ifstream fileStream(cosh, std::ifstream::binary);
 			std::ifstream fileStream2(sinh, std::ifstream::binary);
+
+			if (!fileStream.is_open()) {
+				printf("cos file not found.\n");
+				fileStream.close();
+				return false;
+			}
+			if (!fileStream2.is_open()) {
+				printf("sin file not found.\n");
+				fileStream2.close();
+				return false;
+			}
+
 			int dim[] = { _cfgSig.rows,_cfgSig.cols };
 			int dim1[] = { _cfgSig.rows,_cfgSig.cols,1 };
 			complexH.create(3, dim1, CV_32FC2);
@@ -610,7 +666,6 @@ bool ophSig::loadHolo(std::string cosh, std::string sinh, std::string type,float
 					sinh_h.at<float>(i, j) = sinh_h.at<float>(i, j) - out;
 				}
 			}
-
 			min(cosh_h, out);
 			for (int i = 0; i < _cfgSig.rows; i++)
 			{
@@ -619,7 +674,6 @@ bool ophSig::loadHolo(std::string cosh, std::string sinh, std::string type,float
 					cosh_h.at<float>(i, j) = cosh_h.at<float>(i, j) - out;
 				}
 			}
-
 			for (int i = 0; i < cosh_h.size[0]; i++)
 			{
 				for (int j = 0; j < cosh_h.size[1]; j++)
@@ -655,7 +709,6 @@ bool ophSig::loadHolo(std::string cosh, std::string sinh, std::string type,float
 				rstTemp4 = sinh + "_R." + "bin";
 				rstTemp5 = sinh + "_G." + "bin";
 				rstTemp6 = sinh + "_B." + "bin";
-
 			}
 			else {
 				rstTemp1 = cosh.substr(0, ret) + "_R" + cosh.substr(ret, cosh.size());
@@ -669,7 +722,6 @@ bool ophSig::loadHolo(std::string cosh, std::string sinh, std::string type,float
 			cv::String real_name[] = { rstTemp1,rstTemp2,rstTemp3 };
 			cv::String imag_name[] = { rstTemp4,rstTemp5,rstTemp6 };
 
-
 			float *temp1 = new  float[total];
 			float *temp2 = new  float[total];
 
@@ -677,6 +729,17 @@ bool ophSig::loadHolo(std::string cosh, std::string sinh, std::string type,float
 			{
 				std::ifstream fileStream(real_name[z], std::ifstream::binary);
 				std::ifstream fileStream2(imag_name[z], std::ifstream::binary);
+
+				if (!fileStream.is_open()) {
+					printf("cos file not found.\n");
+					fileStream.close();
+					return false;
+				}
+				if (!fileStream2.is_open()) {
+					printf("sin file not found.\n");
+					fileStream2.close();
+					return false;
+				}
 
 				fileStream.read(reinterpret_cast<char*>(temp1), sizeof(float) * total);
 				fileStream2.read(reinterpret_cast<char*>(temp2), sizeof(float) * total);
@@ -691,10 +754,8 @@ bool ophSig::loadHolo(std::string cosh, std::string sinh, std::string type,float
 						cosh_h.at<float>(col, row) = temp1[i];
 						sinh_h.at<float>(col, row) = temp2[i];
 						i++;
-
 					}
 				}
-
 				float out;
 				mean(sinh_h, out);
 				sinh_h = sinh_h / out;
@@ -716,7 +777,6 @@ bool ophSig::loadHolo(std::string cosh, std::string sinh, std::string type,float
 						sinh_h.at<float>(i, j) = sinh_h.at<float>(i, j) - out;
 					}
 				}
-
 				min(cosh_h, out);
 				for (int i = 0; i < _cfgSig.rows; i++)
 				{
@@ -725,19 +785,16 @@ bool ophSig::loadHolo(std::string cosh, std::string sinh, std::string type,float
 						cosh_h.at<float>(i, j) = cosh_h.at<float>(i, j) - out;
 					}
 				}
-
 				for (int i = 0; i < _cfgSig.rows; i++)
 				{
 					for (int j = 0; j < _cfgSig.cols; j++)
 					{
 						complexH.at<std::complex<float>>(i, j, z)._Val[0] = cosh_h.at<float>(i, j);
 						complexH.at<std::complex<float>>(i, j, z)._Val[1] = sinh_h.at<float>(i, j);
-
 					}
 				}
 				fileStream.close();
 				fileStream2.close();
-
 			}
 			delete[] temp1;
 			delete[] temp2;
@@ -745,7 +802,6 @@ bool ophSig::loadHolo(std::string cosh, std::string sinh, std::string type,float
 	}
 	return true;
 }
-
 
 bool ophSig::saveHolo(std::string cosh, std::string sinh, std::string type,float flag) {
 	if (type == "bmp")
@@ -755,38 +811,70 @@ bool ophSig::saveHolo(std::string cosh, std::string sinh, std::string type,float
 			int size[] = { _cfgSig.rows, _cfgSig.cols };
 			cv::Mat sin(2, size, CV_8UC3, cv::Scalar(0));
 			cv::Mat cos(2, size, CV_8UC3, cv::Scalar(0));
-			for (int i = 0; i < _cfgSig.rows; i++)
-			{
-				for (int j = 0; j < _cfgSig.rows; j++)
-				{
-					cos.at<cv::Vec3b>(i, j)[0] = (uchar)(256 * complexH.at<std::complex<float>>(i, j, 0)._Val[0]);
-					cos.at<cv::Vec3b>(i, j)[1] = (uchar)(256 * complexH.at<std::complex<float>>(i, j, 1)._Val[0]);
-					cos.at<cv::Vec3b>(i, j)[2] = (uchar)(256 * complexH.at<std::complex<float>>(i, j, 2)._Val[0]);
-					sin.at<cv::Vec3b>(i, j)[0] = (uchar)(256 * complexH.at<std::complex<float>>(i, j, 0)._Val[1]);
-					sin.at<cv::Vec3b>(i, j)[1] = (uchar)(256 * complexH.at<std::complex<float>>(i, j, 1)._Val[1]);
-					sin.at<cv::Vec3b>(i, j)[2] = (uchar)(256 * complexH.at<std::complex<float>>(i, j, 2)._Val[1]);
+
+			float minVal, maxVal, iminVal, imaxVal;
+
+			for (int z = 0; z < complexH.dims; z++){
+				for (int j = 0; j < _cfgSig.cols; j++) {
+					for (int i = 0; i < _cfgSig.rows; i++) {
+
+						if ((i == 0) && (j == 0)) { minVal = complexH.at<std::complex<float>>(i, j, z).real(); maxVal = complexH.at<std::complex<float>>(i, j, z).real(); }
+						else {
+							if (complexH.at<std::complex<float>>(i, j, z).real() < minVal) minVal = complexH.at<std::complex<float>>(i, j, z).real();
+							if (complexH.at<std::complex<float>>(i, j, z).real() > maxVal) maxVal = complexH.at<std::complex<float>>(i, j, z).real();
+						}
+						if ((i == 0) && (j == 0)) { iminVal = complexH.at<std::complex<float>>(i, j, z).imag(); imaxVal = complexH.at<std::complex<float>>(i, j, z).imag(); }
+						else {
+							if (complexH.at<std::complex<float>>(i, j, z).imag() < iminVal) iminVal = complexH.at<std::complex<float>>(i, j, z).imag();
+							if (complexH.at<std::complex<float>>(i, j, z).imag() > imaxVal) imaxVal = complexH.at<std::complex<float>>(i, j, z).imag();
+						}
+					}
 				}
-			}
+				for (int i = 0; i < _cfgSig.rows; i++)
+				{
+					for (int j = 0; j < _cfgSig.cols; j++)
+					{
+						cos.at<cv::Vec3b>(i, j)[z] = (complexH.at<std::complex<float>>(i, j, z).real() - minVal) / (maxVal - minVal) * 255;
+						sin.at<cv::Vec3b>(i, j)[z] = (complexH.at<std::complex<float>>(i, j, z).imag() - iminVal) / (imaxVal - iminVal) * 255;
+					}
+				}
+			}		
 			cv::imwrite(cosh, cos);
 			cv::imwrite(sinh, sin);
 		}
 		else if (flag == 0)
 		{
-			int size[] = { complexH.size[0], complexH.size[1] };
+			float minVal, maxVal, iminVal, imaxVal;
+
+			int size[] = { _cfgSig.rows, _cfgSig.cols };
 			cv::Mat sin(2, size, CV_8UC1, cv::Scalar(0));
 			cv::Mat cos(2, size, CV_8UC1, cv::Scalar(0));
-			for (int i = 0; i < complexH.size[0]; i++)
-			{
-				for (int j = 0; j < complexH.size[1]; j++)
-				{
-					cos.at<uchar>(i, j) = 256 * complexH.at<std::complex<float>>(i, j, 0).real();
-					sin.at<uchar>(i, j) = 256 * complexH.at<std::complex<float>>(i, j, 0).imag();
+
+			for (int j = 0; j < complexH.size[1]; j++) {
+				for (int i = 0; i < complexH.size[0]; i++) {
+
+					if ((i == 0) && (j == 0)) { minVal = complexH.at<std::complex<float>>(i, j, 0).real(); maxVal = complexH.at<std::complex<float>>(i, j, 0).real(); }
+					else {
+						if (complexH.at<std::complex<float>>(i, j, 0).real() < minVal) minVal = complexH.at<std::complex<float>>(i, j, 0).real();
+						if (complexH.at<std::complex<float>>(i, j, 0).real() > maxVal) maxVal = complexH.at<std::complex<float>>(i, j, 0).real();
+					}
+					if ((i == 0) && (j == 0)) { iminVal = complexH.at<std::complex<float>>(i, j, 0).imag(); imaxVal = complexH.at<std::complex<float>>(i, j, 0).imag(); }
+					else {
+						if (complexH.at<std::complex<float>>(i, j, 0).imag() < iminVal) iminVal = complexH.at<std::complex<float>>(i, j, 0).imag();
+						if (complexH.at<std::complex<float>>(i, j, 0).imag() > imaxVal) imaxVal = complexH.at<std::complex<float>>(i, j, 0).imag();
+					}
 				}
 			}
+			for (int j = 0; j < complexH.size[1]; j++) {
+				for (int i = 0; i < complexH.size[0]; i++) {
+					cos.at<uchar>(i, j) = (complexH.at<std::complex<float>>(i, j, 0).real() - minVal) / (maxVal - minVal) * 255;
+					sin.at<uchar>(i, j) = (complexH.at<std::complex<float>>(i, j, 0).imag() - iminVal) / (imaxVal - iminVal) * 255;
+				}
+			}
+			
 			cv::imwrite(cosh, cos);
 			cv::imwrite(sinh, sin);
 		}
-
 	}
 
 	else if (type == "bin")
@@ -795,6 +883,18 @@ bool ophSig::saveHolo(std::string cosh, std::string sinh, std::string type,float
 		{
 			std::ofstream cos(cosh, std::ios::binary);
 			std::ofstream sin(sinh, std::ios::binary);
+
+			if (!cos.is_open()) {
+				printf("cos file not found.\n");
+				cos.close();
+				return false;
+			}
+			if (!sin.is_open()) {
+				printf("sin file not found.\n");
+				sin.close();
+				return false;
+			}
+
 			int dim[] = { complexH.size[0], complexH.size[1] };
 
 			float *temp1 = new  float[complexH.size[0] * complexH.size[1]];
@@ -809,7 +909,6 @@ bool ophSig::saveHolo(std::string cosh, std::string sinh, std::string type,float
 					i++;
 				}
 			}
-
 
 			cos.write(reinterpret_cast<const char*>(temp1), sizeof(float) * complexH.size[0] * complexH.size[1]);
 			sin.write(reinterpret_cast<const char*>(temp2), sizeof(float) * complexH.size[0] * complexH.size[1]);
@@ -836,7 +935,6 @@ bool ophSig::saveHolo(std::string cosh, std::string sinh, std::string type,float
 				rstTemp4 = sinh + "_B." + "bin";
 				rstTemp5 = sinh + "_G." + "bin";
 				rstTemp6 = sinh + "_R." + "bin";
-
 			}
 			else {
 				rstTemp1 = cosh.substr(0, ret) + "_B" + cosh.substr(ret, cosh.size());
@@ -854,10 +952,19 @@ bool ophSig::saveHolo(std::string cosh, std::string sinh, std::string type,float
 			float *temp2 = new  float[_cfgSig.rows * _cfgSig.cols];
 			for (int z = 0; z < 3; z++)
 			{
-
 				std::ofstream cos(real_name[z], std::ios::binary);
 				std::ofstream sin(imag_name[z], std::ios::binary);
 
+				if (!cos.is_open()) {
+					printf("cos file not found.\n");
+					cos.close();
+					return false;
+				}
+				if (!sin.is_open()) {
+					printf("sin file not found.\n");
+					sin.close();
+					return false;
+				}
 				int  i = 0;
 				for (int row = 0; row < _cfgSig.rows; row++)
 				{
@@ -868,11 +975,8 @@ bool ophSig::saveHolo(std::string cosh, std::string sinh, std::string type,float
 						i++;
 					}
 				}
-
-
 				cos.write(reinterpret_cast<const char*>(temp1), sizeof(float) * _cfgSig.rows * _cfgSig.cols);
 				sin.write(reinterpret_cast<const char*>(temp2), sizeof(float) * _cfgSig.rows * _cfgSig.cols);
-
 
 				cos.close();
 				sin.close();
@@ -942,8 +1046,8 @@ bool ophSig::loadParam(std::string cfg) {
 	return true;
 }
 
-cv::Mat ophSig::propagationHolo(float depth) {
-	std::cout << complexH.at<std::complex<float>>(0, 1, 0);
+bool ophSig::propagationHolo(float depth) {
+
 	cv::Mat temp(complexH.size[0], complexH.size[1], CV_32FC2, cv::Scalar(0));
 	if (complexH.dims == 3)
 	{
@@ -1000,10 +1104,8 @@ cv::Mat ophSig::propagationHolo(float depth) {
 	this->mul(ky, ky, ky);
 	temp2.create(kx.rows, kx.cols, CV_32FC1);
 
-
 	this->add(kx, ky, temp2);
 	temp3.create(temp2.rows, temp2.cols, CV_32FC2);
-
 
 	for (int i = 0; i < temp3.rows; i++)
 	{
@@ -1017,6 +1119,110 @@ cv::Mat ophSig::propagationHolo(float depth) {
 	this->exp(temp3, FFZP);
 	this->fftshift2d(FFZP, FFZP2);
 
+	FH.create(temp.rows, temp.cols, CV_32FC2);
+	this->fft2d(temp, FH);
+	FHI.create(temp.rows, temp.cols, CV_32FC2);
+	this->mul(FH, FFZP2, FHI);
+
+	H.create(temp.rows, temp.cols, CV_32FC2);
+	this->ifft2d(FHI, H);
+
+	if (complexH.dims == 3)
+	{
+		for (int i = 0; i < temp.rows; i++)
+		{
+			for (int j = 0; j < temp.cols; j++)
+			{
+				complexH.at<std::complex<float>>(i, j, 0) = H.at<std::complex<float>>(i, j);
+			}
+		}
+	}
+	else
+	{
+		for (int i = 0; i < temp.rows; i++)
+		{
+			for (int j = 0; j < temp.cols; j++)
+			{
+				complexH.at<std::complex<float>>(i, j) = H.at<std::complex<float>>(i, j);
+			}
+		}
+	}
+
+	return true;
+}
+
+bool ophSig::propagationHolo(float depth, float lambda) {
+
+	cv::Mat temp(complexH.size[0], complexH.size[1], CV_32FC2, cv::Scalar(0));
+	if (complexH.dims == 3)
+	{
+		for (int i = 0; i < temp.rows; i++)
+		{
+			for (int j = 0; j < temp.cols; j++)
+			{
+				temp.at<std::complex<float>>(i, j) = complexH.at<std::complex<float>>(i, j, 0);
+			}
+		}
+	}
+	else {
+		complexH.copyTo(temp);
+	}
+	int index = 0;
+	int Z = 0;
+	float sigma;
+	float sigmaf;
+	cv::Mat x, y, kx, ky;
+	cv::Mat temp2, temp3;
+	cv::Mat H, FH, FHI;
+	cv::Mat OUT_H;
+	int size[] = { temp.rows, temp.cols };
+	cv::Mat FFZP(2, size, CV_32FC2, cv::Scalar(0));
+	cv::Mat FFZP2(2, size, CV_32FC2, cv::Scalar(0));
+	sigma = CV_PI / (lambda * depth);
+	sigmaf = (depth * lambda) / (4 * CV_PI);
+
+	float row, col, color;
+	row = temp.size[0];
+	col = temp.size[1];
+	color = temp.dims;
+
+	int size1[] = { row };
+	int size2[] = { col };
+	cv::Mat r(1, size1, CV_32FC2, cv::Scalar(0));
+	cv::Mat c(1, size2, CV_32FC2, cv::Scalar(0));
+
+	c = r * 3;
+	r = this->linspace(1, row, row);
+	c = this->linspace(1, col, col);
+	for (int i = 0; i < r.rows; i++)
+	{
+		r.at<float>(i) = (2 * CV_PI*(r.at<float>(i) - 1) / _cfgSig.width - CV_PI*(row - 1) / _cfgSig.width);
+	}
+
+	for (int i = 0; i < c.rows; i++)
+	{
+		c.at<float>(i) = (2 * CV_PI*(c.at<float>(i) - 1) / _cfgSig.height - CV_PI*(row - 1) / _cfgSig.height);
+	}
+	this->meshgrid(r, c, kx, ky);
+
+	this->mul(kx, kx, kx);
+	this->mul(ky, ky, ky);
+	temp2.create(kx.rows, kx.cols, CV_32FC1);
+
+	this->add(kx, ky, temp2);
+	temp3.create(temp2.rows, temp2.cols, CV_32FC2);
+
+	for (int i = 0; i < temp3.rows; i++)
+	{
+		for (int j = 0; j < temp3.cols; j++)
+		{
+			temp3.at<std::complex<float>>(i, j)._Val[0] = 0;
+			temp3.at<std::complex<float>>(i, j)._Val[1] = temp2.at<float>(i, j);
+		}
+	}
+	temp3 = temp3 * sigmaf;
+	this->exp(temp3, FFZP);
+	this->fftshift2d(FFZP, FFZP2);
 
 	FH.create(temp.rows, temp.cols, CV_32FC2);
 	this->fft2d(temp, FH);
@@ -1026,11 +1232,32 @@ cv::Mat ophSig::propagationHolo(float depth) {
 	H.create(temp.rows, temp.cols, CV_32FC2);
 	this->ifft2d(FHI, H);
 
-	return H;
+	if (complexH.dims == 3)
+	{
+		for (int i = 0; i < temp.rows; i++)
+		{
+			for (int j = 0; j < temp.cols; j++)
+			{
+				complexH.at<std::complex<float>>(i, j, 0) = H.at<std::complex<float>>(i, j);
+			}
+		}
+	}
+	else
+	{
+		for (int i = 0; i < temp.rows; i++)
+		{
+			for (int j = 0; j < temp.cols; j++)
+			{
+				complexH.at<std::complex<float>>(i, j) = H.at<std::complex<float>>(i, j);
+			}
+		}
+	}
+
+	return true;
 }
 
 cv::Mat ophSig::propagationHolo(cv::Mat complexH, float depth) {
-	std::cout << complexH.at<std::complex<float>>(0, 1, 0);
+	
 	cv::Mat temp(complexH.size[0], complexH.size[1], CV_32FC2, cv::Scalar(0));
 	if (complexH.dims == 3)
 	{

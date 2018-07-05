@@ -4,9 +4,6 @@
     <Filter Include="_1_Generation">
       <UniqueIdentifier>{dfea2ebb-3b19-4387-80e6-7f45263c5f13}</UniqueIdentifier>
     </Filter>
-    <Filter Include="__Header Files">
-      <UniqueIdentifier>{82ea7e39-2225-497c-a698-1e1ce25438d8}</UniqueIdentifier>
-    </Filter>
     <Filter Include="_1_Generation\_ophDepthMap">
       <UniqueIdentifier>{39a6e860-534a-4613-bc6b-269e5d1ee8ba}</UniqueIdentifier>
     </Filter>
@@ -30,17 +27,16 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\fftw3.h">
-      <Filter>__Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\ophDepthMap.h">
       <Filter>_1_Generation\_ophDepthMap</Filter>
     </ClInclude>
     <ClInclude Include="src\ophGen.h">
       <Filter>__ophGen</Filter>
     </ClInclude>
-    <ClInclude Include="src\encoding.h">
-      <Filter>__Header Files</Filter>
+    <ClInclude Include="src\fftw3.h" />
+    <ClInclude Include="src\encoding.h" />
+    <ClInclude Include="src\ophWRP.h">
+      <Filter>_2_WRP</Filter>
     </ClInclude>
     <ClInclude Include="ophLightField.h">
       <Filter>_1_Generation\_ophLF</Filter>
@@ -67,6 +63,9 @@
     </ClCompile>
     <ClCompile Include="src\ophPointCloud.cpp">
       <Filter>_1_Generation\_ophPointCloud</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ophWRP.cpp">
+      <Filter>_2_WRP</Filter>
     </ClCompile>
     <ClCompile Include="ophLightField.cpp">
       <Filter>_1_Generation\_ophLF</Filter>

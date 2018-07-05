@@ -7,14 +7,14 @@ const int vec2::n = 2;
 
 bool vec2::unit() 
 { 
-    real val = norm(*this);
+    Real val = norm(*this);
 
     if (val < epsilon) return false; 
     (*this) = (*this)/val; 
     return true; 
 }
 
-real vec2::length() const 
+Real vec2::length() const 
 { 
     return norm(*this); 
 }
@@ -25,14 +25,14 @@ int vec2::is_parallel(
       //          0: this and other vectors are not parallel
       //             or at least one of the vectors is zero
       const vec2& vv,
-      real angle_tolerance // (default=ON_DEFAULT_ANGLE_TOLERANCE) radians
+      Real angle_tolerance // (default=ON_DEFAULT_ANGLE_TOLERANCE) radians
       ) const
 {
   int rc = 0;
-  const real ll = norm(*this) * norm(vv);
+  const Real ll = norm(*this) * norm(vv);
   if ( ll > 0.0 ) {
-    const real cos_angle = (inner(*this, vv))/ll;
-    const real cos_tol = cos(angle_tolerance);
+    const Real cos_angle = (inner(*this, vv))/ll;
+    const Real cos_tol = cos(angle_tolerance);
     if ( cos_angle >= cos_tol )
       rc = 1;
     else if ( cos_angle <= -cos_tol )
@@ -46,11 +46,11 @@ bool vec2::is_perpendicular(
       //         false: this and other vectors are not perpendicular
       //                or at least one of the vectors is zero
       const vec2& vv,
-      real angle_tolerance // (default=ON_DEFAULT_ANGLE_TOLERANCE) radians
+      Real angle_tolerance // (default=ON_DEFAULT_ANGLE_TOLERANCE) radians
       ) const
 {
   bool rc = false;
-  const real ll = norm(*this)*norm(vv);
+  const Real ll = norm(*this)*norm(vv);
   if ( ll > 0.0 ) {
     if ( fabs(inner(*this, vv)/ll) <= sin(angle_tolerance) )
       rc = true;
@@ -92,7 +92,7 @@ int scan(FILE* fp, const vec2& v)
 {
     int a = fscanf(fp, " (");
     for(int i = 0; i < 2;++i){
-	a += fscanf(fp, " %lg", const_cast<real*>(&v[i]));
+	a += fscanf(fp, " %lg", const_cast<Real*>(&v[i]));
     }
     a += fscanf(fp, " )");
     return a;
@@ -109,7 +109,7 @@ int apx_equal(const vec2& a, const vec2& b)
     return c;
 }
 
-int apx_equal(const vec2& a, const vec2& b, real eps)
+int apx_equal(const vec2& a, const vec2& b, Real eps)
 {
     int c = 1;
 
@@ -127,14 +127,14 @@ const int vec3::n = 3;
 
 bool vec3::unit() 
 { 
-    real val = norm(*this);
+    Real val = norm(*this);
 
     if (val < epsilon) return false; 
     (*this) = (*this)/val; 
     return true; 
 }
 
-real vec3::length() const 
+Real vec3::length() const 
 { 
     return norm(*this); 
 }
@@ -145,14 +145,14 @@ int vec3::is_parallel(
       //          0: this and other vectors are not parallel
       //             or at least one of the vectors is zero
       const vec3& vv,
-      real angle_tolerance // (default=ON_DEFAULT_ANGLE_TOLERANCE) radians
+      Real angle_tolerance // (default=ON_DEFAULT_ANGLE_TOLERANCE) radians
       ) const
 {
   int rc = 0;
-  const real ll = norm(*this) * norm(vv);
+  const Real ll = norm(*this) * norm(vv);
   if ( ll > 0.0 ) {
-    const real cos_angle = (inner(*this, vv))/ll;
-    const real cos_tol = cos(angle_tolerance);
+    const Real cos_angle = (inner(*this, vv))/ll;
+    const Real cos_tol = cos(angle_tolerance);
     if ( cos_angle >= cos_tol )
       rc = 1;
     else if ( cos_angle <= -cos_tol )
@@ -166,11 +166,11 @@ bool vec3::is_perpendicular(
       //         false: this and other vectors are not perpendicular
       //                or at least one of the vectors is zero
       const vec3& vv,
-      real angle_tolerance // (default=ON_DEFAULT_ANGLE_TOLERANCE) radians
+      Real angle_tolerance // (default=ON_DEFAULT_ANGLE_TOLERANCE) radians
       ) const
 {
     bool rc = false;
-    const real ll = norm(*this) * norm(vv);
+    const Real ll = norm(*this) * norm(vv);
     if ( ll > 0.0 ) {
 	if ( fabs(inner(oph::unit(*this), oph::unit(vv))/ll) <= sin(angle_tolerance) )
 	    rc = true;
@@ -183,7 +183,7 @@ bool vec3::perpendicular( const vec3& vv )
 {
   //bool rc = false;
     int i, j, k; 
-    real a, b;
+    Real a, b;
     k = 2;
     if ( fabs(vv[1]) > fabs(vv[0]) ) {
 	if ( fabs(vv[2]) > fabs(vv[1]) ) {
@@ -269,14 +269,14 @@ vec3::perpendicular(
     if (!N2.unit())
 	return false;
 
-    const real s0 = 1.0/V0.length();
-    const real s1 = 1.0/V1.length();
-    const real s2 = 1.0/V2.length();
+    const Real s0 = 1.0/V0.length();
+    const Real s1 = 1.0/V1.length();
+    const Real s2 = 1.0/V2.length();
 
     // choose normal with smallest total error
-    const real e0 = s0*fabs(inner(N0,V0)) + s1*fabs(inner(N0,V1)) + s2*fabs(inner(N0,V2));
-    const real e1 = s0*fabs(inner(N1,V0)) + s1*fabs(inner(N1,V1)) + s2*fabs(inner(N1,V2));
-    const real e2 = s0*fabs(inner(N2,V0)) + s1*fabs(inner(N2,V1)) + s2*fabs(inner(N2,V2));
+    const Real e0 = s0*fabs(inner(N0,V0)) + s1*fabs(inner(N0,V1)) + s2*fabs(inner(N0,V2));
+    const Real e1 = s0*fabs(inner(N1,V0)) + s1*fabs(inner(N1,V1)) + s2*fabs(inner(N1,V2));
+    const Real e2 = s0*fabs(inner(N2,V0)) + s1*fabs(inner(N2,V1)) + s2*fabs(inner(N2,V2));
 
     if ( e0 <= e1 ) {
 	if ( e0 <= e2 ) {
@@ -309,7 +309,7 @@ int scan(FILE* fp, const vec3& v)
 {
     int a = fscanf(fp, " (");
     for(int i = 0; i < 3;++i){
-	a += fscanf(fp, " %lg", const_cast<real*>(&v[i]));
+	a += fscanf(fp, " %lg", const_cast<Real*>(&v[i]));
     }
     a += fscanf(fp, " )");
     return a;
@@ -326,7 +326,7 @@ int apx_equal(const vec3& a, const vec3& b)
     return c;
 }
 
-int apx_equal(const vec3& a, const vec3& b, real eps)
+int apx_equal(const vec3& a, const vec3& b, Real eps)
 {
     int c = 1;
 
@@ -343,14 +343,14 @@ const int vec4::n = 4;
 
 bool vec4::unit() 
 { 
-    real val = norm(*this);
+    Real val = norm(*this);
 
     if (val < epsilon) return false; 
     (*this) = (*this)/val; 
     return true; 
 }
 
-real vec4::length() const 
+Real vec4::length() const 
 { 
     return norm(*this); 
 }
@@ -368,7 +368,7 @@ int scan(FILE* fp, const vec4& v)
 {
     int a = fscanf(fp, " (");
     for(int i = 0; i < 4;++i){
-	a += fscanf(fp, " %lg", const_cast<real*>(&v[i]));
+	a += fscanf(fp, " %lg", const_cast<Real*>(&v[i]));
     }
     a += fscanf(fp, " )");
     return a;
@@ -385,7 +385,7 @@ int apx_equal(const vec4& a, const vec4& b)
     return c;
 }
 
-int apx_equal(const vec4& a, const vec4& b, real eps)
+int apx_equal(const vec4& a, const vec4& b, Real eps)
 {
     int c = 1;
 
