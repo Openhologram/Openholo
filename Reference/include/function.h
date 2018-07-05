@@ -105,8 +105,10 @@ namespace oph
 	}
 
 	template<typename T>
-	inline void angle(const oph::Complex<T>& src, T& dst) {
-		dst = atan2(src.im, src.re);
+	inline T angle(const oph::Complex<T>& src) {
+		T* dst = new T;
+		*dst = atan2(src.im, src.re);
+		return *dst;
 	}
 
 	/**
@@ -114,13 +116,15 @@ namespace oph
 	*/
 	template<typename T>
 	inline void normalize(const Complex<T>* src, Complex<T>* dst, const int& size) {
-		
 		real* abs = new real[size];
 		oph::absCplxArr<real>(src, abs, size);
-
+		//for (int i = 0; i < size; i++) {				// for debugging
+		//	cout << "abs(" << i << ": " << *(abs + i) << endl;
+		//}
 		real* max = new real;
 		*max = oph::maxOfArr<real>(abs, size);
-
+		//cout << "max" << *(max) << endl;
+		
 		for (int i = 0; i < size; i++) {
 			*(dst + i) = *(src + i) / *max;
 		}
@@ -132,7 +136,7 @@ namespace oph
 	* @brief Normalize all elements of T* src from 0 to 255.
 	*/
 	template<typename T>
-	inline void normalize(T* src, oph::uchar* dst, const oph::uint nx, const oph::uint ny, const int frame = 0) {
+	inline void normalize(T* src, oph::uchar* dst, const oph::uint nx, const oph::uint ny) {
 		T minVal, maxVal;
 		for (oph::uint ydx = 0; ydx < ny; ydx++){
 			for (oph::uint xdx = 0; xdx < nx; xdx++){
@@ -146,7 +150,7 @@ namespace oph
 		}
 		for (oph::uint ydx = 0; ydx < ny; ydx++) {
 			for (oph::uint xdx = 0; xdx < nx; xdx++) {
-				T *src_pos = src + xdx + ydx * nx + frame;
+				T *src_pos = src + xdx + ydx * nx;
 				oph::uchar *res_pos = dst + xdx + (ny - ydx - 1)*nx;
 				*(res_pos) = oph::force_cast<oph::uchar>(((*(src_pos)-minVal) / (maxVal - minVal)) * 255 + 0.5);
 			}
@@ -193,7 +197,7 @@ namespace oph
 
 	template<typename T>
 	inline void memsetArr(T* pArr, const T& _Value, const oph::uint& beginIndex, const oph::uint& endIndex) {
-		for (int i = beginIndex; i <= endIndex; i++) {
+		for (uint i = beginIndex; i <= endIndex; i++) {
 			*(pArr + i) = _Value;
 		}
 	}
@@ -243,6 +247,17 @@ namespace oph
 
 		return dist(rand_dev);
 	}
+
+	inline void getPhase(oph::Complex<real>* src, real* dst, const int& size)
+	{
+		for (int i; i < size; i++) {
+			*(dst+i) = angle<real>(*(src + i));
+		}
+	}
+	inline void getAmplitude(oph::Complex<real>* src, real* dst, const int& size) {
+		absCplxArr<real>(src, dst, size);
+	}
+
 
 	/**
 	* @brief

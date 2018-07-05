@@ -34,7 +34,7 @@ struct OphDepthMapSimul;
 
 class GEN_DLL ophGen : public Openholo
 {
-protected:
+public:
 	enum DIFF_FLAG {
 		DIFF_RS,
 		DIFF_FRESNEL,
@@ -43,11 +43,12 @@ protected:
 	enum ENCODE_FLAG {
 		SingleSideBand,
 		NumericalInterference,
-		PhaseToAmplitude,
+		Phase,
+		Amplitude,
 		Real,
 		OffAxisSSB,
 		Burckhardt,
-		TwoPhase,
+		TwoPhase
 	};
 
 	enum PC_FLAG {
@@ -118,40 +119,33 @@ protected:
 	real*					holo_encoded;
 	oph::uchar*				holo_normalized;
 
-protected:
+public:
 	/**
 	* @brief Encoding Functions
 	*/
 
-	/** @brief Phase and Amplitude */
-	void calPhase(oph::Complex<real>* holo, real* encoded, const ivec2 holosize);
-	void calAmplitude(oph::Complex<real>* holo, real* encoded, const ivec2 holosize);
-
 	//void encoding(oph::Complex<real>*holo, real* encoded, const ivec2 holosize, unsigned int flag);
-	void encoding(int px, int py, unsigned int flag);
+	void encoding(unsigned int ENCODE_FLAG);
+	void encoding(unsigned int ENCODE_FLAG, unsigned int passband);
+	enum passband { left, rig, top, btm };
 
-	void phase2amplitude(real* encoded, const int size);
-
-	/** @brief Single Side Band Encoding */
-	enum passband {left, rig, top, btm};
-	//void singleSideBand(oph::Complex<real>* holo, real* encoded, const ivec2 holosize, int passband);
-	
-	/** @brief Numerical Interface */
-	//void numericalInterference(oph::Complex<real>* holo, real* encoded, const ivec2 holosize);
+protected:
 	void numericalInterference(oph::Complex<real>* holo, real* encoded, const int size);
 
-	/** @brief Two Phase Encoding */
+	//void phaseToAmplitude(real* encoded, const int size);
+
+	void singleSideBand(oph::Complex<real>* holo, real* encoded, const ivec2 holosize, int passband);
+	
 	/**
 	* @param output parameter(encoded) : (sizeX*2, sizeY)
 	*/
-	//void twoPhaseEncoding(oph::Complex<real>* holo, real* encoded, const ivec2 holosize);
 	void twoPhaseEncoding(oph::Complex<real>* holo, real* encoded, const int size);
 	
-	/** @brief Burckhardt Encoding */
 	/**
+	* @brief Burckhardt Encoding
+	* C.B. Burckhardt, ¡°A simplification of Lee¡¯s method of generating holograms by computer,¡± Applied Optics, vol. 9, no. 8, pp. 1949-1949, 1970.
 	* @param output parameter(encoded) : (sizeX*3, sizeY)
 	*/
-	//void burckhardt(oph::Complex<real>* holo, real* encoded, const ivec2 holosize);
 	void burckhardt(oph::Complex<real>* holo, real* encoded, const int size);
 	
 	/** @brief Frequency Shift */
@@ -311,3 +305,4 @@ struct GEN_DLL OphDepthMapSimul
 	real*					sim_final_;							///< reconstruction variable for testing
 	oph::Complex<real>*		hh_complex_;						///< reconstruction variable for testing
 };
+

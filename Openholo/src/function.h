@@ -243,6 +243,17 @@ namespace oph
 		return dist(rand_dev);
 	}
 
+	inline void getPhase(oph::Complex<real>* src, real* dst, const int& size)
+	{
+		for (int i; i < size; i++) {
+			angle<real>(*(src + i), *(dst + i));
+		}
+	}
+	inline void getAmplitude(oph::Complex<real>* src, real* dst, const int& size) {
+		absCplxArr<real>(src, dst, size);
+	}
+
+
 	/**
 	* @brief
 	*/

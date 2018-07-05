@@ -60,32 +60,4 @@ typedef struct {
 } bitmap;
 #pragma pack(pop)
 
-
-
-typedef struct {
-	uint8_t signature[3];
-	uint64_t filesize;
-	uint32_t offsetbits;
-}ohfheader;
-
-typedef struct {
-	uint32_t headersize;
-	uint32_t pixelnum_x;
-	uint32_t pixelnum_y;
-	double pixelpitch_x;
-	double pixelpitch_y;
-	uint8_t pitchunit[2];
-	uint8_t colortype[3];
-	double wavelength;
-	uint8_t wavelengthunit[2];
-	uint8_t complexfieldtype[6];
-	uint8_t fieldtype[2];
-	uint8_t imageformat[10];
-}ohffieldheader;
-
-typedef struct {
-	ohfheader file_header;
-	ohffieldheader field_header;
-}ohfdata;
-
 #endif // !__struct_h

@@ -106,6 +106,8 @@ xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)Reference\include\"
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="ophLightField.h" />
+    <ClInclude Include="ophTriangle.h" />
     <ClInclude Include="src\encoding.h" />
     <ClInclude Include="src\fftw3.h" />
     <ClInclude Include="src\ophDepthMap.h" />
@@ -113,6 +115,7 @@ xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)Reference\include\"
     <ClInclude Include="src\ophPointCloud.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="ophLightField.cpp" />
     <ClCompile Include="src\ophDepthMap.cpp" />
     <ClCompile Include="src\ophDepthMap_CPU.cpp" />
     <ClCompile Include="src\ophDepthMap_GPU.cpp" />

@@ -36,14 +36,20 @@
     <ClInclude Include="src\ophDepthMap.h">
       <Filter>_1_Generation\_ophDepthMap</Filter>
     </ClInclude>
-    <ClInclude Include="src\ophPointCloud.h">
-      <Filter>_1_Generation\_ophPointCloud</Filter>
-    </ClInclude>
     <ClInclude Include="src\ophGen.h">
       <Filter>__ophGen</Filter>
     </ClInclude>
     <ClInclude Include="src\encoding.h">
       <Filter>__Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ophLightField.h">
+      <Filter>_1_Generation\_ophLF</Filter>
+    </ClInclude>
+    <ClInclude Include="ophTriangle.h">
+      <Filter>_1_Generation\_ophTriangle</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ophPointCloud.h">
+      <Filter>_1_Generation\_ophPointCloud</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -61,6 +67,9 @@
     </ClCompile>
     <ClCompile Include="src\ophPointCloud.cpp">
       <Filter>_1_Generation\_ophPointCloud</Filter>
+    </ClCompile>
+    <ClCompile Include="ophLightField.cpp">
+      <Filter>_1_Generation\_ophLF</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

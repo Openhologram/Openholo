@@ -18,6 +18,7 @@
 
 #include "struct.h"
 #include "define.h"
+#include "enumerator.h"
 #include "function.h"
 #include "typedef.h"
 
