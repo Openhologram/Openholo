@@ -115,7 +115,7 @@ bool ophGen::readConfig(const char* fname, OphPointCloudConfig& configdata)
 
 	xml_node = xml_doc.FirstChild();
 
-#if REAL_T_IS_FLOAT == true
+#if REAL_IS_DOUBLE & true
 	(xml_node->FirstChildElement("ScalingXofPointCloud"))->QueryDoubleText(&configdata.scale[_X]);
 	(xml_node->FirstChildElement("ScalingYofPointCloud"))->QueryDoubleText(&configdata.scale[_Y]);
 	(xml_node->FirstChildElement("ScalingZofPointCloud"))->QueryDoubleText(&configdata.scale[_Z]);
@@ -306,7 +306,7 @@ bool ophGen::readConfig(const char* fname, OphDepthMapConfig & config, OphDepthM
 
 	(xml_node->FirstChildElement("RandomPahse"))->QueryBoolText(&params.RANDOM_PHASE);
 	
-#if REAL_T_IS_FLOAT == true
+#if REAL_IS_DOUBLE & true
 	(xml_node->FirstChildElement("FieldLens"))->QueryDoubleText(&config.field_lens);
 	(xml_node->FirstChildElement("WaveLength"))->QueryDoubleText(&context_.lambda);
 	(xml_node->FirstChildElement("SLMpixelPitchX"))->QueryDoubleText(&context_.pixel_pitch[_X]);
