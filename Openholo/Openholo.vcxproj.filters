@@ -42,9 +42,6 @@
     <ClInclude Include="src\complex.h">
       <Filter>__utilities\header</Filter>
     </ClInclude>
-    <ClInclude Include="src\epsilon.h">
-      <Filter>__utilities\header</Filter>
-    </ClInclude>
     <ClInclude Include="src\ivec.h">
       <Filter>__utilities\header</Filter>
     </ClInclude>
@@ -63,18 +60,21 @@
     <ClInclude Include="src\fftw3.h">
       <Filter>__utilities\header</Filter>
     </ClInclude>
+    <ClInclude Include="src\epsilon.h">
+      <Filter>__utilities\header</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Openholo.cpp">
       <Filter>_1_Openholo</Filter>
     </ClCompile>
-    <ClCompile Include="src\epsilon.cpp">
-      <Filter>__utilities\cpp</Filter>
-    </ClCompile>
     <ClCompile Include="src\sys.cpp">
       <Filter>__utilities\cpp</Filter>
     </ClCompile>
     <ClCompile Include="src\vec.cpp">
+      <Filter>__utilities\cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="src\epsilon.cpp">
       <Filter>__utilities\cpp</Filter>
     </ClCompile>
   </ItemGroup>

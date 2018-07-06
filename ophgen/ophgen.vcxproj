@@ -20,7 +20,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <CharacterSet>Unicode</CharacterSet>
+    <CharacterSet>MultiByte</CharacterSet>
     <PlatformToolset>v140</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
   </PropertyGroup>
@@ -107,11 +107,11 @@ xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)Reference\include\"
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="src\encoding.h" />
-    <ClInclude Include="src\fftw3.h" />
     <ClInclude Include="src\ophDepthMap.h" />
     <ClInclude Include="src\ophGen.h" />
     <ClInclude Include="src\ophPointCloud.h" />
     <ClInclude Include="src\ophWRP.h" />
+    <ClInclude Include="src\tinyxml2.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\ophDepthMap.cpp" />
@@ -120,6 +120,7 @@ xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)Reference\include\"
     <ClCompile Include="src\ophGen.cpp" />
     <ClCompile Include="src\ophPointCloud.cpp" />
     <ClCompile Include="src\ophWRP.cpp" />
+    <ClCompile Include="src\tinyxml2.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="src\ophDMKernel.cu" />
