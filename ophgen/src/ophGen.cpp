@@ -385,52 +385,147 @@ int ophGen::load(const char * fname, void * dst)
 
 #define for_i(itr, oper) for(int i=0; i<itr; i++){ oper }
 
+void ophGen::loadComplex(char* real_file, char* imag_file, int n_x, int n_y) {
+
+	context_.pixel_number.v[_X] = n_x;
+	context_.pixel_number.v[_Y] = n_y;
+
+	ifstream freal, fimag;
+	freal.open(real_file);
+	fimag.open(imag_file);
+	if (!freal) {
+		cout << "open failed - real" << endl;
+		cin.get();
+		return;
+	}
+	if (!fimag) {
+		cout << "open failed - imag" << endl;
+		cin.get();
+		return;
+	}
+
+	if (holo_gen != nullptr) delete[] holo_gen;
+	holo_gen = new oph::Complex<Real>[n_x * n_y];
+	memset(holo_gen, 0, sizeof(Complex<Real>) * n_x * n_y);
+
+	Real realVal, imagVal;
+	
+	int i;
+	i = 0;
+	for (int i = 0; i < n_x * n_y; i++) {
+		freal >> realVal;
+		fimag >> imagVal;
+
+		Complex<Real> compVal;
+		compVal(realVal, imagVal);
+
+		holo_gen[i] = compVal;
+		if (realVal == EOF || imagVal == EOF)
+			break;
+	}
+}
+
+void ophGen::normalizeEncoded() {
+	oph::normalize((Real*)holo_encoded, holo_normalized, encode_size.v[_X], encode_size.v[_Y]);
+}
+
 void ophGen::encoding(unsigned int ENCODE_FLAG) {
 
-	const int size = context_.pixel_number.v[0] * context_.pixel_number.v[1];
+	const int size = context_.pixel_number.v[_X] * context_.pixel_number.v[_Y];
+
+	if (ENCODE_FLAG == ENCODE_BURCKHARDT)	{
+		encode_size.v[_X] = context_.pixel_number.v[_X] * 3;
+		encode_size.v[_Y] = context_.pixel_number.v[_Y];
+	}
+	else if (ENCODE_FLAG == ENCODE_TWOPHASE)	{
+		encode_size.v[_X] = context_.pixel_number.v[_X] * 2;
+		encode_size.v[_Y] = context_.pixel_number.v[_Y];
+	}
+	else	{
+		encode_size.v[_X] = context_.pixel_number.v[_X];
+		encode_size.v[_Y] = context_.pixel_number.v[_Y];
+	}
+
+	/*	initialize	*/
+	if (holo_encoded != nullptr) delete[] holo_encoded;
+	holo_encoded = new Real[encode_size.v[_X] * encode_size.v[_Y]];
+	memset(holo_encoded, 0, sizeof(Real) * encode_size.v[_X] * encode_size.v[_Y]);
+	
+	if (holo_normalized != nullptr) delete[] holo_normalized;
+	holo_normalized = new uchar[encode_size.v[_X] * encode_size.v[_Y]];
+	memset(holo_normalized, 0, sizeof(uchar) * encode_size.v[_X] * encode_size.v[_Y]);
+
 
 	switch (ENCODE_FLAG)
 	{
-	case NumericalInterference:
+	case ENCODE_SIMPLENI:
 		numericalInterference(holo_gen, holo_encoded, size);
 		break;
-	case Real:
-		realPart<real>(holo_gen, holo_encoded, size);
+	case ENCODE_REAL:
+		realPart<Real>(holo_gen, holo_encoded, size);
 		break;
-	case Burckhardt:
+	case ENCODE_BURCKHARDT:
 		burckhardt(holo_gen, holo_encoded, size);
 		break;
-	case TwoPhase:
+	case ENCODE_TWOPHASE:
 		twoPhaseEncoding(holo_gen, holo_encoded, size);
 		break;
-	case Phase:
+	case ENCODE_PHASE:
 		getPhase(holo_gen, holo_encoded, size);
 		break;
-	case Amplitude:
+	case ENCODE_AMPLITUDE:
 		getAmplitude(holo_gen, holo_encoded, size);
 		break;
+	case ENCODE_SSB:
+	case ENCODE_OFFSSB:
+		cout << "error: PUT PASSBAND" << endl;
+		cin.get();
+		return;
+	default:
+		cout << "error: WRONG ENCODE_FLAG" << endl;
+		cin.get();
+		return;
 	}
 }
 void ophGen::encoding(unsigned int ENCODE_FLAG, unsigned int passband) {
-	const int size = context_.pixel_number.v[0] * context_.pixel_number.v[1];
+	
+	const int size = context_.pixel_number.v[_X] * context_.pixel_number.v[_Y];
+	
+	encode_size.v[_X] = context_.pixel_number.v[_X];
+	encode_size.v[_Y] = context_.pixel_number.v[_Y];
+
+	/*	initialize	*/
+	int encode_size = size;
+	if (holo_encoded != nullptr) delete[] holo_encoded;
+	holo_encoded = new Real[encode_size];
+	memset(holo_encoded, 0, sizeof(Real) * encode_size);
+
+	if (holo_normalized != nullptr) delete[] holo_normalized;
+	holo_normalized = new uchar[encode_size];
+	memset(holo_normalized, 0, sizeof(uchar) * encode_size);
+
 	switch (ENCODE_FLAG)
 	{
-	case SingleSideBand:
+	case ENCODE_SSB:
 		singleSideBand(holo_gen, holo_encoded, context_.pixel_number, passband);
 		break;
-	case OffAxisSSB:
-		freqShift(holo_gen, holo_gen, size, 0, 100);
+	case ENCODE_OFFSSB:
+		freqShift(holo_gen, holo_gen, context_.pixel_number, 0, 100);
 		singleSideBand(holo_gen, holo_encoded, context_.pixel_number, passband);
 		break;
+	default:
+		cout << "error: WRONG ENCODE_FLAG" << endl;
+		cin.get();
+		return;
 	}
 }
-void ophGen::numericalInterference(oph::Complex<real>* holo, real* encoded, const int size)
+void ophGen::numericalInterference(oph::Complex<Real>* holo, Real* encoded, const int size)
 {
 	Real* temp1 = new Real[size];
 	oph::absCplxArr<Real>(holo, temp1, size);
 
 	Real* ref = new Real;
-	*ref = oph::maxOfArr<Real>(temp1, size);
+	*ref = oph::maxOfArr(temp1, size);
 
 	oph::Complex<Real>* temp2 = new oph::Complex<Real>[size];
 	temp2 = holo;
@@ -438,8 +533,8 @@ void ophGen::numericalInterference(oph::Complex<real>* holo, real* encoded, cons
 		temp2[i][_RE] += *ref;
 	);
 
-	real* temp3 = new real[size];
-	oph::absCplxArr<real>(temp2, temp3, size);
+	Real* temp3 = new Real[size];
+	oph::absCplxArr<Real>(temp2, temp3, size);
 
 	for_i(size,
 		encoded[i] = temp3[i] * temp3[i];
@@ -454,15 +549,15 @@ void ophGen::twoPhaseEncoding(oph::Complex<Real>* holo, Real* encoded, const int
 	Complex<Real>* normCplx = new Complex<Real>[size];
 	oph::normalize<Real>(holo, normCplx, size);
 
-	real* amp = new real[size];
-	oph::getAmplitude(normCplx, amp, size);
+	Real* amp = new Real[size];
+	oph::getAmplitude(normCplx, encoded, size);
 
-	real* pha = new real[size];
+	Real* pha = new Real[size];
 	oph::getPhase(normCplx, pha, size);
 
 	for_i(size, *(pha + i) += M_PI;);
 
-	real* delPhase = new real[size];
+	Real* delPhase = new Real[size];
 	for_i(size, *(delPhase + i) = acos(*(amp + i)););
 
 	for_i(size,
@@ -477,18 +572,12 @@ void ophGen::burckhardt(oph::Complex<Real>* holo, Real* encoded, const int size)
 {
 	Complex<Real>* norm = new Complex<Real>[size];
 	oph::normalize(holo, norm, size);
-	for (int i = 0; i < size; i++) {				// for debugging
-		cout << "norm(" << i << ": " << *(norm + i) << endl;
-	}
+
 	Real* phase = new Real[size];
-	calPhase(holo, phase, size);
+	oph::getPhase(norm, phase, size);
 
-	for (int i = 0; i < size; i++) {				// for debugging
-		cout << "phase(" << i << ": " << *(phase + i) << endl;
-	}
-
-	real* ampl = new real[size];
-	oph::getAmplitude(holo, ampl, size);
+	Real* ampl = new Real[size];
+	oph::getAmplitude(norm, ampl, size);
 
 	Real* A1 = new Real[size];
 	memsetArr<Real>(A1, 0, 0, size - 1);
@@ -502,7 +591,6 @@ void ophGen::burckhardt(oph::Complex<Real>* holo, Real* encoded, const int size)
 		{
 			*(A1 + i) = *(ampl + i)*(cos(*(phase + i)) + sin(*(phase + i)) / sqrt(3));
 			*(A2 + i) = 2 * sin(*(phase + i)) / sqrt(3);
-			//cout << "A1,A2 : " << i << endl;
 		}
 		else if (*(phase + i) >= (2 * M_PI / 3) && *(phase + i) < (4 * M_PI / 3))
 		{
@@ -515,144 +603,83 @@ void ophGen::burckhardt(oph::Complex<Real>* holo, Real* encoded, const int size)
 			*(A1 + i) = 2 * sin(*(phase + i) - (4 * M_PI / 3)) / sqrt(3);
 		}
 	);
-	//for (int i = 0; i < size; i++) {				// for debugging
-	//	cout << "A1(" << i << ": " << *(A1 + i) << endl;
-	//	cout << "A2(" << i << ": " << *(A2 + i) << endl;
-	//	cout << "A3(" << i << ": " << *(A3 + i) << endl;
-	//}
-	for_i(size / 3,
+
+	for_i(size,
 		*(encoded + (3 * i)) = *(A1 + i);
 	*(encoded + (3 * i + 1)) = *(A2 + i);
 	*(encoded + (3 * i + 2)) = *(A3 + i);
 	);
-	//for (int i = 0; i < size; i++) {				// for debugging
-	//	cout << "encoded(" << i << ": " << *(encoded + i) << endl;
-	//}
+
 }
 
-void ophGen::freqShift(oph::Complex<Real>* holo, Complex<Real>* encoded, const ivec2 holosize, int shift_x, int shift_y)
+void ophGen::singleSideBand(oph::Complex<Real>* holo, Real* encoded, const ivec2 holosize, int SSB_PASSBAND)
 {
-	int size = holosize.v[0] * holosize.v[1];
+	int size = holosize.v[_X] * holosize.v[_Y];
 
-	oph::Complex<real>* AS = new oph::Complex<real>[size];
-	//fft2(holosize.v[0], holosize.v[1], holo, AS, FFTW_FORWARD);
+	oph::Complex<Real>* AS = new oph::Complex<Real>[size];
+	fft2(holosize, holo, AS, OPH_FORWARD, OPH_ESTIMATE);
+	
+	//fftwShift(holo, AS, holosize.v[_X], holosize.v[_Y], 1);
 
-	fftw_complex *in = NULL, *out = NULL;
-	fftwShift(holo, AS, in, out, holosize.v[_X], holosize.v[_Y], 1);
-
-	oph::Complex<real>* shifted = new oph::Complex<real>[size];
-	circshift<Complex<real>>(AS, shifted, shift_x, shift_y, holosize.v[0], holosize.v[1]);
-	fft2(holosize.v[0], holosize.v[1], shifted, encoded, FFTW_BACKWARD);
-
-	in = NULL, out = NULL;
-	fftwShift(shifted, encoded, in, out, holosize.v[_X], holosize.v[_Y], -1);
-}
-
-void ophGen::singleSideBand(oph::Complex<real>* holo, real* encoded, const ivec2 holosize, int passband)
-{
-	int size = holosize.v[0] * holosize.v[1];
-
-	oph::Complex<real>* AS = new oph::Complex<real>[size];
-	//fft2(holosize.v[0], holosize.v[1], holo, AS, FFTW_FORWARD);
-	fftw_complex *in = NULL, *out = NULL;
-	fftwShift(holo, AS, in, out, holosize.v[_X], holosize.v[_Y], 1);
-
-	for (int i = size - 10; i < size; i++)	// for debugging
-		cout << "AS(" << i << "): " << (AS + i)->re << " + " << (AS + i)->im << "i " << endl;
-
-	switch (passband)
+	switch (SSB_PASSBAND)
 	{
-	case left:
-		cout << "left" << endl;	// for debugging
-		for (int i = 0; i < holosize.v[1]; i++)
+	case SSB_LEFT:
+		for (int i = 0; i < holosize.v[_Y]; i++)
 		{
-			for (int j = holosize.v[0] / 2; j < holosize.v[0]; j++)
+			for (int j = holosize.v[_X] / 2; j < holosize.v[_X]; j++)
 			{
-				AS[i*holosize.v[0] + j] = 0;
+				AS[i*holosize.v[_X] + j] = 0;
 			}
 		}
-	case rig:
-		for (int i = 0; i < holosize.v[1]; i++)
+		break;
+	case SSB_RIGHT:
+		for (int i = 0; i < holosize.v[_Y]; i++)
 		{
-			for (int j = 0; j < holosize.v[0] / 2; j++)
+			for (int j = 0; j < holosize.v[_X] / 2; j++)
 			{
-				AS[i*holosize.v[0] + j] = 0;
+				AS[i*holosize.v[_X] + j] = 0;
 			}
 		}
-	case top:
+		break;
+	case SSB_TOP:
 		for (int i = size / 2; i < size; i++)
 		{
 			AS[i] = 0;
 		}
-	case btm:
+		break;
+		
+	case SSB_BOTTOM:
 		for (int i = 0; i < size / 2; i++)
 		{
 			AS[i] = 0;
 		}
+		break;
 	}
 
-	oph::Complex<real>* filtered = new oph::Complex<real>[size];
-	in = NULL, out = NULL;
-	fftwShift(holo, AS, in, out, holosize.v[_X], holosize.v[_Y], -1);
-	for (int i = size - 10; i < size; i++)	// for debugging
-		cout << "filtered(" << i << "): " << (filtered + i)->re << " + " << (filtered + i)->im << "i " << endl;
+	oph::Complex<Real>* filtered = new oph::Complex<Real>[size];
+	fft2(holosize, AS, filtered, OPH_BACKWARD, OPH_ESTIMATE);
 
-	real* realPart = new real[size];
-	oph::realPart<real>(filtered, realPart, size);
-	for (int i = size - 10; i < size; i++)	// for debugging
-		cout << "real(" << i << "): " << *(realPart + i) << endl;
+	Real* realFiltered = new Real[size];
+	oph::realPart<Real>(filtered, realFiltered, size);
 
-	real *minReal = new real;
-	*minReal = oph::minOfArr(realPart, size);
-	cout << "min: " << *minReal << endl;
+	oph::normalize(realFiltered, encoded, size);
 
-	real* realPos = new real[size];
-	for_i(size,
-		*(realPos + i) = *(realPart + i) - *minReal;
-	);
-	for (int i = size - 10; i < size; i++)	// for debugging
-		cout << "real-min(" << i << "): " << *(realPos + i) << endl;
-
-	real *maxReal = new real;
-	*maxReal = oph::maxOfArr(realPos, size);
-	for (int i = size - 10; i < size; i++)	// for debugging
-		cout << "max(" << i << "): " << *(maxReal + i) << endl;
-
-	for_i(size,
-		*(encoded + i) = *(realPos + i) / *maxReal;
-	);
-	for (int i = size - 10; i < size; i++)	// for debugging
-		cout << "(real-min)/max(" << i << "): " << *(encoded + i) << endl;
-
-	delete[] AS, filtered, realPart, realPos;
-	delete maxReal, minReal;
+	delete[] AS, filtered , realFiltered;
 }
 
-void ophGen::fft2(int n0, int n1, const oph::Complex<real>* in, oph::Complex<real>* out, int sign, unsigned int flag)
+
+void ophGen::freqShift(oph::Complex<Real>* src, Complex<Real>* dst, const ivec2 holosize, int shift_x, int shift_y)
 {
-	int pnx, pny;
-	n0 == 0 ? pnx = context_.pixel_number[_X] : pnx = n0;
-	n1 == 0 ? pny = context_.pixel_number[_Y] : pny = n1;
+	int size = holosize.v[_X] * holosize.v[_Y];
 
-	fftw_complex *fft_in, *fft_out;
-	fftw_plan plan;
+	oph::Complex<Real>* AS = new oph::Complex<Real>[size];
+	fft2(holosize, src, AS, OPH_FORWARD, OPH_ESTIMATE);
 
-	fft_in = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * pnx * pny);
-	fft_out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * pnx * pny);
+	oph::Complex<Real>* shifted = new oph::Complex<Real>[size];
+	oph::circShift<Complex<Real>>(AS, shifted, shift_x, shift_y, holosize.v[_X], holosize.v[_Y]);
 
-	for (int i = 0; i < pnx * pny; i++) {
-		fft_in[i][0] = in[i].re;
-		fft_in[i][1] = in[i].im;
-	}
-
-	plan = fftw_plan_dft_2d(pnx, pny, fft_in, fft_out, sign, flag);
-
-	fftw_execute(plan);
-
-	for (int i = 0; i < pnx * pny; i++) {
-		out[i].re = fft_out[i][0];
-		out[i].im = fft_out[i][1];
-	}
+	fft2(holosize, shifted, dst, OPH_BACKWARD, OPH_ESTIMATE);
+}
 
 
 void ophGen::encodeSideBand(bool bCPU, ivec2 sig_location)

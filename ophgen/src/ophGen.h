@@ -39,14 +39,14 @@ public:
 	};
 
 	enum ENCODE_FLAG {
-		SingleSideBand,
-		NumericalInterference,
-		Phase,
-		Amplitude,
-		Real,
-		OffAxisSSB,
-		Burckhardt,
-		TwoPhase
+		ENCODE_PHASE,
+		ENCODE_AMPLITUDE,
+		ENCODE_REAL,
+		ENCODE_SIMPLENI,
+		ENCODE_BURCKHARDT,
+		ENCODE_TWOPHASE,
+		ENCODE_SSB,
+		ENCODE_OFFSSB,
 	};
 
 	enum PC_FLAG {
@@ -97,6 +97,7 @@ public:
 
 	virtual void normalize(void);
 
+
 	/** \ingroup write_module */
 	virtual int save(const char* fname, uint8_t bitsperpixel = 8, uchar* src = nullptr, uint px = 0, uint py = 0);
 	virtual int load(const char* fname, void* dst = nullptr);
@@ -116,38 +117,46 @@ protected:
 	Real*					holo_encoded;
 	oph::uchar*				holo_normalized;
 
-protected:
+public:
 	/**
 	* @brief Encoding Functions
+	* ENCODE_PHASE
+	* ENCODE_AMPLITUDE
+	* ENCODE_REAL
+	* ENCODE_SIMPLENI	:	Simple Numerical Interference
+	* ENCODE_BURCKHARDT	:	Burckhardt Encoding
+	*						- C.B. Burckhardt, ¡°A simplification of Lee¡¯s method of generating holograms by computer,¡± Applied Optics, vol. 9, no. 8, pp. 1949-1949, 1970.
+	*						@param output parameter(encoded) : (sizeX*3, sizeY)
+	* ENCODE_TWOPHASE	:	Two Phase Encoding
+	*						@param output parameter(encoded) : (sizeX*2, sizeY)
 	*/
-
-	//void encoding(oph::Complex<real>*holo, real* encoded, const ivec2 holosize, unsigned int flag);
 	void encoding(unsigned int ENCODE_FLAG);
-	void encoding(unsigned int ENCODE_FLAG, unsigned int passband);
-	enum passband { left, rig, top, btm };
+	/*
+	* @brief Encoding Functions
+	* ENCODE_SSB		:	Single Side Band Encoding
+	*						@param passband : left, rig, top, btm
+	* ENCODE_OFFSSB		:	Off-axis + Single Side Band Encoding
+	*/
+	void encoding(unsigned int ENCODE_FLAG, unsigned int SSB_PASSBAND);
+	enum SSB_PASSBAND { SSB_LEFT, SSB_RIGHT, SSB_TOP, SSB_BOTTOM };
+
+public:
+	void loadComplex(char* real_file, char* imag_file, int n_x, int n_y);
+	void normalizeEncoded(void);
 
 protected:
-	void numericalInterference(oph::Complex<real>* holo, real* encoded, const int size);
+	void numericalInterference(oph::Complex<Real>* holo, Real* encoded, const int size);
+	void twoPhaseEncoding(oph::Complex<Real>* holo, Real* encoded, const int size);
+	void burckhardt(oph::Complex<Real>* holo, Real* encoded, const int size);
+	void singleSideBand(oph::Complex<Real>* holo, Real* encoded, const ivec2 holosize, int passband);
 
-	//void phaseToAmplitude(real* encoded, const int size);
-
-	void singleSideBand(oph::Complex<real>* holo, real* encoded, const ivec2 holosize, int passband);
-	
-	/**
-	* @param output parameter(encoded) : (sizeX*2, sizeY)
-	*/
-	void twoPhaseEncoding(oph::Complex<real>* holo, real* encoded, const int size);
-	
-	/**
-	* @brief Burckhardt Encoding
-	* C.B. Burckhardt, ¡°A simplification of Lee¡¯s method of generating holograms by computer,¡± Applied Optics, vol. 9, no. 8, pp. 1949-1949, 1970.
-	* @param output parameter(encoded) : (sizeX*3, sizeY)
-	*/
-	void burckhardt(oph::Complex<real>* holo, real* encoded, const int size);
-	
 	/** @brief Frequency Shift */
-	void freqShift(oph::Complex<Real>* holo, Complex<Real>* encoded, const ivec2 holosize, int shift_x, int shift_y);
+	void freqShift(oph::Complex<Real>* src, Complex<Real>* dst, const ivec2 holosize, int shift_x, int shift_y);
 
+protected:
+	ivec2 encode_size;
+public:
+	ivec2& getEncodeSize(void) { return encode_size; }
 protected:
 	/** \ingroup encode_module
 	/**

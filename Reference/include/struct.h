@@ -4,7 +4,7 @@
 namespace oph
 {
 	// for PointCloud
-	typedef struct OPH_DLL KernelConst {
+	typedef struct __declspec(dllexport) KernelConst {
 		int n_points;	///number of point cloud
 
 		double scaleX;		/// Scaling factor of x coordinate of point cloud
