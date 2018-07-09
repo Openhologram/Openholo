@@ -1,10 +1,7 @@
 #ifndef __real_h
 #define __real_h
 
-typedef double real;
-typedef float  real_t;
 
-#define REAL_T_IS_FLOAT 1
 
 namespace oph {
 

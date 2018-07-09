@@ -8,7 +8,6 @@
 //   Dae-Hyun Kim
 
 
-#include "real.h"
 #include "ivec.h"
 #include "epsilon.h"
 #include <math.h>
@@ -17,30 +16,30 @@
 namespace oph {
 	
 /**
-* @brief structure for 2-dimensional real type vector and its arithmetic.
+* @brief structure for 2-dimensional Real type vector and its arithmetic.
 */
 struct __declspec(dllexport) vec2 {
-    real v[2];
+    Real v[2];
     static const int n;
 
     inline vec2() { }
-	inline vec2(real a) { v[1 - 1] = a;  v[2 - 1] = a; }
-	inline vec2(real v_1, real v_2) { v[1 - 1] = v_1;  v[2 - 1] = v_2; }
+	inline vec2(Real a) { v[1 - 1] = a;  v[2 - 1] = a; }
+	inline vec2(Real v_1, Real v_2) { v[1 - 1] = v_1;  v[2 - 1] = v_2; }
 	inline vec2(const ivec2& a) { v[1 - 1] = a[1 - 1];  v[2 - 1] = a[2 - 1]; }
 	inline vec2(const vec2& a) { v[1 - 1] = a[1 - 1];  v[2 - 1] = a[2 - 1]; }
 
 
 	inline vec2& operator=(const vec2& a) { v[1 - 1] = a[1 - 1];  v[2 - 1] = a[2 - 1]; return *this; }
-    inline real& operator[] (int i) { return v[i]; }
-    inline const real&  operator[] (int i) const { return v[i]; }
-    inline real& operator() (int i) { return v[i % 2]; }
-    inline const real&  operator() (int i) const { return v[i % 2]; }
+    inline Real& operator[] (int i) { return v[i]; }
+    inline const Real&  operator[] (int i) const { return v[i]; }
+    inline Real& operator() (int i) { return v[i % 2]; }
+    inline const Real&  operator() (int i) const { return v[i % 2]; }
 
     bool unit(); 
-    real length() const; 
+    Real length() const; 
 
     inline bool is_zero() const { return (v[0] == 0.0 && v[1] == 0.0); }
-    inline bool is_tiny(real tiny_tol = epsilon) const {
+    inline bool is_tiny(Real tiny_tol = epsilon) const {
 	return (fabs(v[0]) <= tiny_tol && fabs(v[1]) <= tiny_tol);
     }
 
@@ -51,7 +50,7 @@ struct __declspec(dllexport) vec2 {
     //             or at least one of the vectors is zero
     int is_parallel( 
         const vec2&,                 // other vector     
-        real = angle_tolerance // optional angle tolerance (radians)
+        Real = angle_tolerance // optional angle tolerance (radians)
         ) const;
 
     // returns true:  this and other vectors are perpendicular
@@ -59,7 +58,7 @@ struct __declspec(dllexport) vec2 {
     //                or at least one of the vectors is zero
     bool is_perpendicular(
         const vec2&,           // other vector     
-        real = angle_tolerance // optional angle tolerance (radians)
+        Real = angle_tolerance // optional angle tolerance (radians)
         ) const;
  
     //
@@ -91,14 +90,14 @@ inline vec2 operator + (const vec2& a, const vec2& b)
     return c;
 }
 
-inline vec2 operator + (real a, const vec2& b)
+inline vec2 operator + (Real a, const vec2& b)
 {
     vec2 c;
     for(int i = 0; i < 2;++i) { c[i] = a + b[i]; }
     return c;
 }
 
-inline vec2 operator + (const vec2& a, real b)
+inline vec2 operator + (const vec2& a, Real b)
 {
     vec2 c;
     for(int i = 0; i < 2;++i) { c[i] = a[i] + b; }
@@ -114,14 +113,14 @@ inline vec2 operator - (const vec2& a, const vec2& b)
     return c;
 }
 
-inline vec2 operator - (real a, const vec2& b)
+inline vec2 operator - (Real a, const vec2& b)
 {
     vec2 c;
     for(int i = 0; i < 2;++i) { c[i] = a - b[i]; }
     return c;
 }
 
-inline vec2 operator - (const vec2& a, real b)
+inline vec2 operator - (const vec2& a, Real b)
 {
     vec2 c;
     for(int i = 0; i < 2;++i) { c[i] = a[i] - b; }
@@ -137,14 +136,14 @@ inline vec2 operator * (const vec2& a, const vec2& b)
     return c;
 }
 
-inline vec2 operator * (real a, const vec2& b)
+inline vec2 operator * (Real a, const vec2& b)
 {
     vec2 c;
     for(int i = 0; i < 2;++i) { c[i] = a * b[i]; }
     return c;
 }
 
-inline vec2 operator * (const vec2& a, real b)
+inline vec2 operator * (const vec2& a, Real b)
 {
     vec2 c;
     for(int i = 0; i < 2;++i) { c[i] = a[i] * b; }
@@ -160,14 +159,14 @@ inline vec2 operator / (const vec2& a, const vec2& b)
     return c;
 }
 
-inline vec2 operator / (real a, const vec2& b)
+inline vec2 operator / (Real a, const vec2& b)
 {
     vec2 c;
     for(int i = 0; i < 2;++i) { c[i] = a / b[i]; }
     return c;
 }
 
-inline vec2 operator / (const vec2& a, real b)
+inline vec2 operator / (const vec2& a, Real b)
 {
     vec2 c;
     for(int i = 0; i < 2;++i) { c[i] = a[i] / b; }
@@ -184,7 +183,7 @@ inline vec2 operator += (vec2& a, const vec2& b)
     return a = (a + b);
 }
 
-inline vec2 operator += (vec2& a, real b)
+inline vec2 operator += (vec2& a, Real b)
 {
     return a = (a + b);
 }
@@ -196,7 +195,7 @@ inline vec2 operator -= (vec2& a, const vec2& b)
     return a = (a - b);
 }
 
-inline vec2 operator -= (vec2& a, real b)
+inline vec2 operator -= (vec2& a, Real b)
 {
     return a = (a - b);
 }
@@ -208,7 +207,7 @@ inline vec2 operator *= (vec2& a, const vec2& b)
     return a = (a * b);
 }
 
-inline vec2 operator *= (vec2& a, real b)
+inline vec2 operator *= (vec2& a, Real b)
 {
     return a = (a * b);
 }
@@ -220,7 +219,7 @@ inline vec2 operator /= (vec2& a, const vec2& b)
     return a = (a / b);
 }
 
-inline vec2 operator /= (vec2& a, real b)
+inline vec2 operator /= (vec2& a, Real b)
 {
     return a = (a / b);
 }
@@ -237,14 +236,14 @@ inline int operator == (const vec2& a, const vec2& b)
     return c;
 }
 
-inline int operator == (real a, const vec2& b)
+inline int operator == (Real a, const vec2& b)
 {
     int c = 1;
     for(int i = 0; i < 2;++i) { c = c && a == b[i]; }
     return c;
 }
 
-inline int operator == (const vec2& a, real b)
+inline int operator == (const vec2& a, Real b)
 {
     int c = 1;
     for(int i = 0; i < 2;++i) { c = c && a[i] == b; }
@@ -260,14 +259,14 @@ inline int operator < (const vec2& a, const vec2& b)
     return c;
 }
 
-inline int operator < (real a, const vec2& b)
+inline int operator < (Real a, const vec2& b)
 {
     int c = 1;
     for(int i = 0; i < 2;++i) { c = c && a < b[i]; }
     return c;
 }
 
-inline int operator < (const vec2& a, real b)
+inline int operator < (const vec2& a, Real b)
 {
     int c = 1;
     for(int i = 0; i < 2;++i) { c = c && a[i] < b; }
@@ -283,14 +282,14 @@ inline int operator <= (const vec2& a, const vec2& b)
     return c;
 }
 
-inline int operator <= (real a, const vec2& b)
+inline int operator <= (Real a, const vec2& b)
 {
     int c = 1;
     for(int i = 0; i < 2;++i) { c = c && a <= b[i]; }
     return c;
 }
 
-inline int operator <= (const vec2& a, real b)
+inline int operator <= (const vec2& a, Real b)
 {
     int c = 1;
     for(int i = 0; i < 2;++i) { c = c && a[i] <= b; }
@@ -306,14 +305,14 @@ inline int operator > (const vec2& a, const vec2& b)
     return c;
 }
 
-inline int operator > (real a, const vec2& b)
+inline int operator > (Real a, const vec2& b)
 {
     int c = 1;
     for(int i = 0; i < 2;++i) { c = c && a > b[i]; }
     return c;
 }
 
-inline int operator > (const vec2& a, real b)
+inline int operator > (const vec2& a, Real b)
 {
     int c = 1;
     for(int i = 0; i < 2;++i) { c = c && a[i] > b; }
@@ -329,14 +328,14 @@ inline int operator >= (const vec2& a, const vec2& b)
     return c;
 }
 
-inline int operator >= (real a, const vec2& b)
+inline int operator >= (Real a, const vec2& b)
 {
     int c = 1;
     for(int i = 0; i < 2;++i) { c = c && a >= b[i]; }
     return c;
 }
 
-inline int operator >= (const vec2& a, real b)
+inline int operator >= (const vec2& a, Real b)
 {
     int c = 1;
     for(int i = 0; i < 2;++i) { c = c && a[i] >= b; }
@@ -354,9 +353,9 @@ inline vec2 operator - (const vec2& a)
 }
 
 //| R^n -> R
-inline real sum(const vec2& a)
+inline Real sum(const vec2& a)
 {
-    real s = 0;
+    Real s = 0;
 
     s += a[1 - 1];
     s += a[2 - 1];
@@ -364,33 +363,33 @@ inline real sum(const vec2& a)
     return s;
 }
 
-inline real inner(const vec2& a, const vec2& b)
+inline Real inner(const vec2& a, const vec2& b)
 {
     vec2 tmp = a * b;
     return sum(tmp);
 }
 
-inline real norm(const vec2& a)
+inline Real norm(const vec2& a)
 {
     return sqrt(inner(a, a));
 }
 
-inline real squaredNorm(const vec2& a) {
+inline Real squaredNorm(const vec2& a) {
 	return inner(a, a);
 }
 
 inline vec2 unit(const vec2& a)
 {
-    real n = norm(a);
+    Real n = norm(a);
     if(n < epsilon)
 	return 0;
     else
 	return a / n;
 }
 
-inline real angle(const vec2& a, const vec2& b)
+inline Real angle(const vec2& a, const vec2& b)
 {
-    real ang = inner(unit(a), unit(b));
+    Real ang = inner(unit(a), unit(b));
     if(ang > 1 - epsilon)
 	return 0;
     else if(ang < -1 + epsilon)
@@ -414,32 +413,32 @@ void store(FILE* fp, const vec2& v);
 int scan(FILE* fp, const vec2& v);
 
 int apx_equal(const vec2& a, const vec2& b);
-int apx_equal(const vec2& a, const vec2& b, real eps);
+int apx_equal(const vec2& a, const vec2& b, Real eps);
 
 /**
-* @brief structure for 3-dimensional real type vector and its arithmetic.
+* @brief structure for 3-dimensional Real type vector and its arithmetic.
 */
 struct __declspec(dllexport) vec3 {
-    real v[3];
+    Real v[3];
     static const int n;
 
     inline vec3() { }
-	inline vec3(real a) { v[1 - 1] = a;  v[2 - 1] = a;  v[3 - 1] = a; }
-	inline vec3(real v_1, real v_2, real v_3) { v[1 - 1] = v_1;  v[2 - 1] = v_2;  v[3 - 1] = v_3; }
+	inline vec3(Real a) { v[1 - 1] = a;  v[2 - 1] = a;  v[3 - 1] = a; }
+	inline vec3(Real v_1, Real v_2, Real v_3) { v[1 - 1] = v_1;  v[2 - 1] = v_2;  v[3 - 1] = v_3; }
 	inline vec3(const ivec3& a) { v[1 - 1] = a[1 - 1];  v[2 - 1] = a[2 - 1];  v[3 - 1] = a[3 - 1]; }
 	inline vec3(const vec3& a) { v[1 - 1] = a[1 - 1];  v[2 - 1] = a[2 - 1];  v[3 - 1] = a[3 - 1]; }
 
 	inline vec3& operator=(const vec3& a) { v[1 - 1] = a[1 - 1];  v[2 - 1] = a[2 - 1];  v[3 - 1] = a[3 - 1]; return *this; }
-    inline real& operator[] (int i) { return v[i]; }
-    inline const real&  operator[] (int i) const { return v[i]; }
-    inline real& operator() (int i) { return v[i % 3]; }
-    inline const real&  operator() (int i) const { return v[i % 3]; }
+    inline Real& operator[] (int i) { return v[i]; }
+    inline const Real&  operator[] (int i) const { return v[i]; }
+    inline Real& operator() (int i) { return v[i % 3]; }
+    inline const Real&  operator() (int i) const { return v[i % 3]; }
  
     inline bool is_zero() const { return (v[0] == 0.0 && v[1] == 0.0 && v[2] == 0.0); }
-	inline bool is_tiny(real tiny_tol = epsilon) const { return (fabs(v[0]) <= tiny_tol && fabs(v[1]) <= tiny_tol && fabs(v[2]) <= tiny_tol); }
+	inline bool is_tiny(Real tiny_tol = epsilon) const { return (fabs(v[0]) <= tiny_tol && fabs(v[1]) <= tiny_tol && fabs(v[2]) <= tiny_tol); }
 
     bool unit(); 
-    real length() const; 
+    Real length() const; 
 
  
     //
@@ -449,7 +448,7 @@ struct __declspec(dllexport) vec3 {
     //             or at least one of the vectors is zero
     int is_parallel( 
         const vec3&,                 // other vector     
-        real = angle_tolerance // optional angle tolerance (radians)
+        Real = angle_tolerance // optional angle tolerance (radians)
         ) const;
 
     //
@@ -458,7 +457,7 @@ struct __declspec(dllexport) vec3 {
     //                or at least one of the vectors is zero
     bool is_perpendicular(
         const vec3&,                 // other vector     
-        real = angle_tolerance // optional angle tolerance (radians)
+        Real = angle_tolerance // optional angle tolerance (radians)
         ) const;
 
     //
@@ -486,14 +485,14 @@ inline vec3 operator + (const vec3& a, const vec3& b)
     return c;
 }
 
-inline vec3 operator + (real a, const vec3& b)
+inline vec3 operator + (Real a, const vec3& b)
 {
     vec3 c;
     for(int i = 0; i < 3;++i) { c[i] = a + b[i]; }
     return c;
 }
 
-inline vec3 operator + (const vec3& a, real b)
+inline vec3 operator + (const vec3& a, Real b)
 {
     vec3 c;
     for(int i = 0; i < 3;++i) { c[i] = a[i] + b; }
@@ -509,14 +508,14 @@ inline vec3 operator - (const vec3& a, const vec3& b)
     return c;
 }
 
-inline vec3 operator - (real a, const vec3& b)
+inline vec3 operator - (Real a, const vec3& b)
 {
     vec3 c;
     for(int i = 0; i < 3;++i) { c[i] = a - b[i]; }
     return c;
 }
 
-inline vec3 operator - (const vec3& a, real b)
+inline vec3 operator - (const vec3& a, Real b)
 {
     vec3 c;
     for(int i = 0; i < 3;++i) { c[i] = a[i] - b; }
@@ -532,14 +531,14 @@ inline vec3 operator * (const vec3& a, const vec3& b)
     return c;
 }
 
-inline vec3 operator * (real a, const vec3& b)
+inline vec3 operator * (Real a, const vec3& b)
 {
     vec3 c;
     for(int i = 0; i < 3;++i) { c[i] = a * b[i]; }
     return c;
 }
 
-inline vec3 operator * (const vec3& a, real b)
+inline vec3 operator * (const vec3& a, Real b)
 {
     vec3 c;
     for(int i = 0; i < 3;++i) { c[i] = a[i] * b; }
@@ -555,14 +554,14 @@ inline vec3 operator / (const vec3& a, const vec3& b)
     return c;
 }
 
-inline vec3 operator / (real a, const vec3& b)
+inline vec3 operator / (Real a, const vec3& b)
 {
     vec3 c;
     for(int i = 0; i < 3;++i) { c[i] = a / b[i]; }
     return c;
 }
 
-inline vec3 operator / (const vec3& a, real b)
+inline vec3 operator / (const vec3& a, Real b)
 {
     vec3 c;
     for(int i = 0; i < 3;++i) { c[i] = a[i] / b; }
@@ -577,7 +576,7 @@ inline vec3 operator += (vec3& a, const vec3& b)
     return a = (a + b);
 }
 
-inline vec3 operator += (vec3& a, real b)
+inline vec3 operator += (vec3& a, Real b)
 {
     return a = (a + b);
 }
@@ -589,7 +588,7 @@ inline vec3 operator -= (vec3& a, const vec3& b)
     return a = (a - b);
 }
 
-inline vec3 operator -= (vec3& a, real b)
+inline vec3 operator -= (vec3& a, Real b)
 {
     return a = (a - b);
 }
@@ -601,7 +600,7 @@ inline vec3 operator *= (vec3& a, const vec3& b)
     return a = (a * b);
 }
 
-inline vec3 operator *= (vec3& a, real b)
+inline vec3 operator *= (vec3& a, Real b)
 {
     return a = (a * b);
 }
@@ -613,7 +612,7 @@ inline vec3 operator /= (vec3& a, const vec3& b)
     return a = (a / b);
 }
 
-inline vec3 operator /= (vec3& a, real b)
+inline vec3 operator /= (vec3& a, Real b)
 {
     return a = (a / b);
 }
@@ -630,14 +629,14 @@ inline int operator == (const vec3& a, const vec3& b)
     return c;
 }
 
-inline int operator == (real a, const vec3& b)
+inline int operator == (Real a, const vec3& b)
 {
     int c = 1;
     for(int i = 0; i < 3;++i) { c = c && a == b[i]; }
     return c;
 }
 
-inline int operator == (const vec3& a, real b)
+inline int operator == (const vec3& a, Real b)
 {
     int c = 1;
     for(int i = 0; i < 3;++i) { c = c && a[i] == b; }
@@ -653,14 +652,14 @@ inline int operator < (const vec3& a, const vec3& b)
     return c;
 }
 
-inline int operator < (real a, const vec3& b)
+inline int operator < (Real a, const vec3& b)
 {
     int c = 1;
     for(int i = 0; i < 3;++i) { c = c && a < b[i]; }
     return c;
 }
 
-inline int operator < (const vec3& a, real b)
+inline int operator < (const vec3& a, Real b)
 {
     int c = 1;
     for(int i = 0; i < 3;++i) { c = c && a[i] < b; }
@@ -676,14 +675,14 @@ inline int operator <= (const vec3& a, const vec3& b)
     return c;
 }
 
-inline int operator <= (real a, const vec3& b)
+inline int operator <= (Real a, const vec3& b)
 {
     int c = 1;
     for(int i = 0; i < 3;++i) { c = c && a <= b[i]; }
     return c;
 }
 
-inline int operator <= (const vec3& a, real b)
+inline int operator <= (const vec3& a, Real b)
 {
     int c = 1;
     for(int i = 0; i < 3;++i) { c = c && a[i] <= b; }
@@ -699,14 +698,14 @@ inline int operator > (const vec3& a, const vec3& b)
     return c;
 }
 
-inline int operator > (real a, const vec3& b)
+inline int operator > (Real a, const vec3& b)
 {
     int c = 1;
     for(int i = 0; i < 3;++i) { c = c && a > b[i]; }
     return c;
 }
 
-inline int operator > (const vec3& a, real b)
+inline int operator > (const vec3& a, Real b)
 {
     int c = 1;
     for(int i = 0; i < 3;++i) { c = c && a[i] > b; }
@@ -722,14 +721,14 @@ inline int operator >= (const vec3& a, const vec3& b)
     return c;
 }
 
-inline int operator >= (real a, const vec3& b)
+inline int operator >= (Real a, const vec3& b)
 {
     int c = 1;
     for(int i = 0; i < 3;++i) { c = c && a >= b[i]; }
     return c;
 }
 
-inline int operator >= (const vec3& a, real b)
+inline int operator >= (const vec3& a, Real b)
 {
     int c = 1;
     for(int i = 0; i < 3;++i) { c = c && a[i] >= b; }
@@ -754,9 +753,9 @@ inline vec3 absolute(const vec3& val)
 
 
 //| R^n -> R
-inline real sum(const vec3& a)
+inline Real sum(const vec3& a)
 {
-    real s = 0;
+    Real s = 0;
     
     s += a[1 - 1];
     
@@ -767,33 +766,33 @@ inline real sum(const vec3& a)
     return s;
 }
 
-inline real inner(const vec3& a, const vec3& b)
+inline Real inner(const vec3& a, const vec3& b)
 {
     vec3 tmp = a * b;
     return sum(tmp);
 }
 
-inline real squaredNorm(const vec3& a) {
+inline Real squaredNorm(const vec3& a) {
 	return inner(a, a);
 }
 
-inline real norm(const vec3& a)
+inline Real norm(const vec3& a)
 {
     return sqrt(inner(a, a));
 }
 
 inline vec3 unit(const vec3& a)
 {
-    real n = norm(a);
+    Real n = norm(a);
     if(n < zero_epsilon)
 	return 0;
     else
 	return a / n;
 }
 
-inline real angle(const vec3& a, const vec3& b)
+inline Real angle(const vec3& a, const vec3& b)
 {
-    real ang = inner(unit(a), unit(b));
+    Real ang = inner(unit(a), unit(b));
     if(ang > 1 - epsilon)
 	return 0;
     else if(ang < -1 + epsilon)
@@ -812,34 +811,34 @@ void store(FILE* fp, const vec3& v);
 int scan(FILE* fp, const vec3& v);
 
 int apx_equal(const vec3& a, const vec3& b);
-int apx_equal(const vec3& a, const vec3& b, real eps);
+int apx_equal(const vec3& a, const vec3& b, Real eps);
 
 /**
-* @brief structure for 4-dimensional real type vector and its arithmetic.
+* @brief structure for 4-dimensional Real type vector and its arithmetic.
 */
 struct __declspec(dllexport) vec4 {
-    real v[4];
+    Real v[4];
     static const int n;
 
     inline vec4() { }
-	inline vec4(real a) { v[1 - 1] = a;  v[2 - 1] = a;  v[3 - 1] = a;  v[4 - 1] = a; }
-	inline vec4(real v_1, real v_2, real v_3, real v_4) { v[1 - 1] = v_1;  v[2 - 1] = v_2;  v[3 - 1] = v_3;  v[4 - 1] = v_4; }
+	inline vec4(Real a) { v[1 - 1] = a;  v[2 - 1] = a;  v[3 - 1] = a;  v[4 - 1] = a; }
+	inline vec4(Real v_1, Real v_2, Real v_3, Real v_4) { v[1 - 1] = v_1;  v[2 - 1] = v_2;  v[3 - 1] = v_3;  v[4 - 1] = v_4; }
 	inline vec4(const ivec4& a) { v[1 - 1] = a[1 - 1];  v[2 - 1] = a[2 - 1];  v[3 - 1] = a[3 - 1];  v[4 - 1] = a[4 - 1]; }
 	inline vec4(const vec4& a) { v[1 - 1] = a[1 - 1];  v[2 - 1] = a[2 - 1];  v[3 - 1] = a[3 - 1];  v[4 - 1] = a[4 - 1]; }
 
 	inline vec4& operator=(const vec4& a) { v[1 - 1] = a[1 - 1];  v[2 - 1] = a[2 - 1];  v[3 - 1] = a[3 - 1];  v[4 - 1] = a[4 - 1]; return *this; }
-    inline real& operator[] (int i) { return v[i]; }
-    inline const real&  operator[] (int i) const { return v[i]; }
-    inline real& operator() (int i) { return v[i % 4]; }
-    inline const real&  operator() (int i) const { return v[i % 4]; }
+    inline Real& operator[] (int i) { return v[i]; }
+    inline const Real&  operator[] (int i) const { return v[i]; }
+    inline Real& operator() (int i) { return v[i % 4]; }
+    inline const Real&  operator() (int i) const { return v[i % 4]; }
 
     inline bool is_zero() const { return (v[0] == 0.0 && v[1] == 0.0 && v[2] == 0.0 && v[3] == 0.0); }
-    inline bool is_tiny(real tiny_tol = epsilon) const {
+    inline bool is_tiny(Real tiny_tol = epsilon) const {
 	return (fabs(v[0]) <= tiny_tol && fabs(v[1]) <= tiny_tol && fabs(v[2]) <= tiny_tol && fabs(v[3]) <= tiny_tol);
     }
 
     bool unit(); 
-    real length() const; 
+    Real length() const; 
 };
 
 
@@ -856,14 +855,14 @@ inline vec4 operator + (const vec4& a, const vec4& b)
     return c;
 }
 
-inline vec4 operator + (real a, const vec4& b)
+inline vec4 operator + (Real a, const vec4& b)
 {
     vec4 c;
     for(int i = 0; i < 4;++i) { c[i] = a + b[i]; }
     return c;
 }
 
-inline vec4 operator + (const vec4& a, real b)
+inline vec4 operator + (const vec4& a, Real b)
 {
     vec4 c;
     for(int i = 0; i < 4;++i) { c[i] = a[i] + b; }
@@ -879,14 +878,14 @@ inline vec4 operator - (const vec4& a, const vec4& b)
     return c;
 }
 
-inline vec4 operator - (real a, const vec4& b)
+inline vec4 operator - (Real a, const vec4& b)
 {
     vec4 c;
     for(int i = 0; i < 4;++i) { c[i] = a - b[i]; }
     return c;
 }
 
-inline vec4 operator - (const vec4& a, real b)
+inline vec4 operator - (const vec4& a, Real b)
 {
     vec4 c;
     for(int i = 0; i < 4;++i) { c[i] = a[i] - b; }
@@ -902,14 +901,14 @@ inline vec4 operator * (const vec4& a, const vec4& b)
     return c;
 }
 
-inline vec4 operator * (real a, const vec4& b)
+inline vec4 operator * (Real a, const vec4& b)
 {
     vec4 c;
     for(int i = 0; i < 4;++i) { c[i] = a * b[i]; }
     return c;
 }
 
-inline vec4 operator * (const vec4& a, real b)
+inline vec4 operator * (const vec4& a, Real b)
 {
     vec4 c;
     for(int i = 0; i < 4;++i) { c[i] = a[i] * b; }
@@ -925,14 +924,14 @@ inline vec4 operator / (const vec4& a, const vec4& b)
     return c;
 }
 
-inline vec4 operator / (real a, const vec4& b)
+inline vec4 operator / (Real a, const vec4& b)
 {
     vec4 c;
     for(int i = 0; i < 4;++i) { c[i] = a / b[i]; }
     return c;
 }
 
-inline vec4 operator / (const vec4& a, real b)
+inline vec4 operator / (const vec4& a, Real b)
 {
     vec4 c;
     for(int i = 0; i < 4;++i) { c[i] = a[i] / b; }
@@ -949,7 +948,7 @@ inline vec4 operator += (vec4& a, const vec4& b)
     return a = (a + b);
 }
 
-inline vec4 operator += (vec4& a, real b)
+inline vec4 operator += (vec4& a, Real b)
 {
     return a = (a + b);
 }
@@ -961,7 +960,7 @@ inline vec4 operator -= (vec4& a, const vec4& b)
     return a = (a - b);
 }
 
-inline vec4 operator -= (vec4& a, real b)
+inline vec4 operator -= (vec4& a, Real b)
 {
     return a = (a - b);
 }
@@ -973,7 +972,7 @@ inline vec4 operator *= (vec4& a, const vec4& b)
     return a = (a * b);
 }
 
-inline vec4 operator *= (vec4& a, real b)
+inline vec4 operator *= (vec4& a, Real b)
 {
     return a = (a * b);
 }
@@ -985,7 +984,7 @@ inline vec4 operator /= (vec4& a, const vec4& b)
     return a = (a / b);
 }
 
-inline vec4 operator /= (vec4& a, real b)
+inline vec4 operator /= (vec4& a, Real b)
 {
     return a = (a / b);
 }
@@ -1002,14 +1001,14 @@ inline int operator == (const vec4& a, const vec4& b)
     return c;
 }
 
-inline int operator == (real a, const vec4& b)
+inline int operator == (Real a, const vec4& b)
 {
     int c = 1;
     for(int i = 0; i < 4;++i) { c = c && a == b[i]; }
     return c;
 }
 
-inline int operator == (const vec4& a, real b)
+inline int operator == (const vec4& a, Real b)
 {
     int c = 1;
     for(int i = 0; i < 4;++i) { c = c && a[i] == b; }
@@ -1025,14 +1024,14 @@ inline int operator < (const vec4& a, const vec4& b)
     return c;
 }
 
-inline int operator < (real a, const vec4& b)
+inline int operator < (Real a, const vec4& b)
 {
     int c = 1;
     for(int i = 0; i < 4;++i) { c = c && a < b[i]; }
     return c;
 }
 
-inline int operator < (const vec4& a, real b)
+inline int operator < (const vec4& a, Real b)
 {
     int c = 1;
     for(int i = 0; i < 4;++i) { c = c && a[i] < b; }
@@ -1048,14 +1047,14 @@ inline int operator <= (const vec4& a, const vec4& b)
     return c;
 }
 
-inline int operator <= (real a, const vec4& b)
+inline int operator <= (Real a, const vec4& b)
 {
     int c = 1;
     for(int i = 0; i < 4;++i) { c = c && a <= b[i]; }
     return c;
 }
 
-inline int operator <= (const vec4& a, real b)
+inline int operator <= (const vec4& a, Real b)
 {
     int c = 1;
     for(int i = 0; i < 4;++i) { c = c && a[i] <= b; }
@@ -1071,14 +1070,14 @@ inline int operator > (const vec4& a, const vec4& b)
     return c;
 }
 
-inline int operator > (real a, const vec4& b)
+inline int operator > (Real a, const vec4& b)
 {
     int c = 1;
     for(int i = 0; i < 4;++i) { c = c && a > b[i]; }
     return c;
 }
 
-inline int operator > (const vec4& a, real b)
+inline int operator > (const vec4& a, Real b)
 {
     int c = 1;
     for(int i = 0; i < 4;++i) { c = c && a[i] > b; }
@@ -1094,14 +1093,14 @@ inline int operator >= (const vec4& a, const vec4& b)
     return c;
 }
 
-inline int operator >= (real a, const vec4& b)
+inline int operator >= (Real a, const vec4& b)
 {
     int c = 1;
     for(int i = 0; i < 4;++i) { c = c && a >= b[i]; }
     return c;
 }
 
-inline int operator >= (const vec4& a, real b)
+inline int operator >= (const vec4& a, Real b)
 {
     int c = 1;
     for(int i = 0; i < 4;++i) { c = c && a[i] >= b; }
@@ -1125,9 +1124,9 @@ inline vec4 absolute(const vec4& val)
 
 
 //| R^n -> R
-inline real sum(const vec4& a)
+inline Real sum(const vec4& a)
 {
-    real s = 0;
+    Real s = 0;
     
     s += a[1 - 1];
     
@@ -1140,31 +1139,31 @@ inline real sum(const vec4& a)
     return s;
 }
 
-inline real inner(const vec4& a, const vec4& b)
+inline Real inner(const vec4& a, const vec4& b)
 {
     vec4 tmp = a * b;
     return sum(tmp);
 }
-inline real squaredNorm(const vec4& a) {
+inline Real squaredNorm(const vec4& a) {
 	return inner(a, a);
 }
-inline real norm(const vec4& a)
+inline Real norm(const vec4& a)
 {
     return sqrt(inner(a, a));
 }
 
 inline vec4 unit(const vec4& a)
 {
-    real n = norm(a);
+    Real n = norm(a);
     if(n < epsilon)
 	return 0;
     else
 	return a / n;
 }
 
-inline real angle(const vec4& a, const vec4& b)
+inline Real angle(const vec4& a, const vec4& b)
 {
-    real ang = inner(unit(a), unit(b));
+    Real ang = inner(unit(a), unit(b));
     if(ang > 1 - epsilon)
 	return 0;
     else if(ang < -1 + epsilon)
@@ -1184,7 +1183,7 @@ void store(FILE* fp, const vec4& v);
 int scan(FILE* fp, const vec4& v);
 
 int apx_equal(const vec4& a, const vec4& b);
-int apx_equal(const vec4& a, const vec4& b, real eps);
+int apx_equal(const vec4& a, const vec4& b, Real eps);
 
 vec3 cross(const vec3& a, const vec3& b);
 

@@ -30,9 +30,6 @@
     <ClInclude Include="src\ophDepthMap.h">
       <Filter>_1_Generation\_ophDepthMap</Filter>
     </ClInclude>
-    <ClInclude Include="src\ophPointCloud.h">
-      <Filter>_1_Generation\_ophPointCloud</Filter>
-    </ClInclude>
     <ClInclude Include="src\ophGen.h">
       <Filter>__ophGen</Filter>
     </ClInclude>

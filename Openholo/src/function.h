@@ -31,13 +31,12 @@ namespace oph
 		return min;
 	}
 	
-	template<typename T>
-	inline const Real minOfArr(const T* src, const int& size) {
+	inline const Real minOfArr(const Real* src, const int& size) {
 		Real min = MAX_DOUBLE;
 		for (int i = 0; i < size; i++) {
 			if (*(src + i) < min) min = *(src + i);
 		}
-		return max;
+		return min;
 	}
 
 	inline const Real maxOfArr(const std::vector<Real>& arr) {
@@ -46,8 +45,7 @@ namespace oph
 		return max;
 	}
 
-	template<typename T>
-	inline const Real maxOfArr(const T* src, const int& size) {
+	inline const Real maxOfArr(const Real* src, const int& size) {
 		Real max = MIN_DOUBLE;
 		for (int i = 0; i < size; i++) {
 			if (*(src + i) > max) max = *(src + i);
@@ -92,7 +90,7 @@ namespace oph
 	template<typename T>
 	inline void realPart(const oph::Complex<T>* src, T* dst, const int& size) {
 		for (int i = 0; i < size; i++) {
-			*(dst + i) = *(src + i)._Val[_RE];
+			*(dst + i) = (src + i)->_Val[_RE];
 		}
 	}
 
@@ -104,8 +102,10 @@ namespace oph
 	}
 
 	template<typename T>
-	inline void angle(const oph::Complex<T>& src, T& dst) {
+	inline T angle(const oph::Complex<T>& src) {
+		T dst;
 		dst = atan2(src.imag(), src.real());
+		return dst;
 	}
 
 	/**
@@ -114,16 +114,30 @@ namespace oph
 	template<typename T>
 	inline void normalize(const Complex<T>* src, Complex<T>* dst, const int& size) {
 		Real* abs = new Real[size];
-		oph::absCplxArr<Real>(dst, abs, size);
+		oph::absCplxArr<Real>(src, abs, size);
 
 		Real* max = new Real;
-		*max = oph::maxOfArr<Real>(abs, size);
-
+		*max = oph::maxOfArr(abs, size);
+		
 		for (int i = 0; i < size; i++) {
 			*(dst + i) = *(src + i) / *max;
 		}
 		delete[] abs;
 		delete max;
+	}
+	template<typename T>
+	inline void normalize(const T* src, T* dst, const int& size) {
+		
+		Real* min = new Real;
+		*min = oph::minOfArr(src, size);
+
+		Real* max = new Real;
+		*max = oph::maxOfArr(src, size);
+
+		for (int i = 0; i < size; i++) {
+			*(dst + i) = (*(src + i)-*min) / *max;
+		}
+		delete min, max;
 	}
 
 	/**
@@ -241,6 +255,18 @@ namespace oph
 
 		return dist(rand_dev);
 	}
+
+	inline void getPhase(oph::Complex<Real>* src, Real* dst, const int& size)
+	{
+		for (int i = 0; i < size; i++) {
+			*(dst + i) = angle<Real>(*(src + i));
+		}
+	
+	}
+	inline void getAmplitude(oph::Complex<Real>* src, Real* dst, const int& size) {
+		absCplxArr<Real>(src, dst, size);
+	}
+
 
 	/**
 	* @brief
