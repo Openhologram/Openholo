@@ -191,7 +191,7 @@ void Openholo::convertToFormatGray8(unsigned char * src, unsigned char * dst, in
 	}
 }
 
-void Openholo::fft1(int n, const Complex<Real>* in, Complex<Real>* out, int sign, uint flag)
+void Openholo::fft1(int n, Complex<Real>* in, Complex<Real>* out, int sign, uint flag)
 {
 	fftw_complex *fft_in, *fft_out;
 	fftw_plan plan;
@@ -218,7 +218,7 @@ void Openholo::fft1(int n, const Complex<Real>* in, Complex<Real>* out, int sign
 	fftw_free(fft_out);
 }
 
-void Openholo::fft2(oph::ivec2 n, const Complex<Real>* in, Complex<Real>* out, int sign, uint flag)
+void Openholo::fft2(oph::ivec2 n, Complex<Real>* in, Complex<Real>* out, int sign, uint flag)
 {
 	int pnx = n[_X], pny = n[_Y];
 
@@ -228,6 +228,14 @@ void Openholo::fft2(oph::ivec2 n, const Complex<Real>* in, Complex<Real>* out, i
 	fft_in = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * pnx * pny);
 	fft_out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * pnx * pny);
 
+
+	in = new Complex<Real>[pnx * pny];
+	out = new Complex<Real>[pnx * pny];
+
+	for (int j = 0; j < pny; j++)
+		for (int i = 0; i < pnx; i++)
+			in[pnx * j + i][_RE] = 255 * i / pnx;
+		
 	for (int i = 0; i < pnx * pny; i++) {
 		fft_in[i][_RE] = in[i].real();
 		fft_in[i][_IM] = in[i].imag();
@@ -247,7 +255,7 @@ void Openholo::fft2(oph::ivec2 n, const Complex<Real>* in, Complex<Real>* out, i
 	fftw_free(fft_out);
 }
 
-void Openholo::fft3(oph::ivec3 n, const Complex<Real>* in, Complex<Real>* out, int sign, uint flag)
+void Openholo::fft3(oph::ivec3 n, Complex<Real>* in, Complex<Real>* out, int sign, uint flag)
 {
 	int pnx = n[_X], pny = n[_Y], pnz = n[_Z];
 
@@ -293,7 +301,7 @@ void Openholo::fftwShift(Complex<Real>* src, Complex<Real>* dst, int nx, int ny,
 		in[i][_IM] = tmp[i][_IM];
 	}
 
-	if (type == 1)
+	if (type == OPH_FORWARD)
 		fftw_execute_dft(fft_plan_fwd, in, out);
 	else
 		fftw_execute_dft(fft_plan_bwd, in, out);

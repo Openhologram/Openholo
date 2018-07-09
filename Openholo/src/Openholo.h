@@ -83,9 +83,9 @@ protected:
 	/**
 
 	*/
-	void fft1(int n, const Complex<Real>* in, Complex<Real>* out, int sign = OPH_FORWARD, uint flag = OPH_ESTIMATE);
-	void fft2(oph::ivec2 n, const Complex<Real>* in, Complex<Real>* out, int sign = OPH_FORWARD, uint flag = OPH_ESTIMATE);
-	void fft3(oph::ivec3 n, const Complex<Real>* in, Complex<Real>* out, int sign = OPH_FORWARD, uint flag = OPH_ESTIMATE);
+	void fft1(int n, Complex<Real>* in, Complex<Real>* out, int sign = OPH_FORWARD, uint flag = OPH_ESTIMATE);
+	void fft2(oph::ivec2 n, Complex<Real>* in, Complex<Real>* out, int sign = OPH_FORWARD, uint flag = OPH_ESTIMATE);
+	void fft3(oph::ivec3 n, Complex<Real>* in, Complex<Real>* out, int sign = OPH_FORWARD, uint flag = OPH_ESTIMATE);
 
 	/**
 	* @brief Convert data from the spatial domain to the frequency domain using 2D FFT on CPU.

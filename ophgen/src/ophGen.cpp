@@ -348,14 +348,14 @@ bool ophGen::readConfig(const char* fname, OphDepthMapConfig & config, OphDepthM
 	//inFile >> params.RESULT_PREFIX;									getline(inFile, temp, '\n');
 	//inFile >> params.FLAG_STATIC_IMAGE;								getline(inFile, temp, '\n');
 	//inFile >> params.START_OF_FRAME_NUMBERING;						getline(inFile, temp, '\n');
-	//inFile >> params.NUMBER_OF_FRAME;								getline(inFile, temp, '\n');
-	//inFile >> params.NUMBER_OF_DIGIT_OF_FRAME_NUMBERING;			getline(inFile, temp, '\n');
+	//inFile >> params.NUMBER_OF_FRAME;									getline(inFile, temp, '\n');
+	//inFile >> params.NUMBER_OF_DIGIT_OF_FRAME_NUMBERING;				getline(inFile, temp, '\n');
 
 	//// skip 3 lines
-	//getline(inFile, temp, '\n');	getline(inFile, temp, '\n');	getline(inFile, temp, '\n');
+	//getline(inFile, temp, '\n');	getline(inFile, temp, '\n');		getline(inFile, temp, '\n');
 
 	//inFile >> params.Transform_Method_;								getline(inFile, temp, '\n');
-	//inFile >> params.Propagation_Method_;							getline(inFile, temp, '\n');
+	//inFile >> params.Propagation_Method_;								getline(inFile, temp, '\n');
 	//inFile >> params.Encoding_Method_;								getline(inFile, temp, '\n');
 
 	//// skip 3 lines
