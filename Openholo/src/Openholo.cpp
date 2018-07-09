@@ -290,7 +290,8 @@ void Openholo::fftwShift(Complex<Real>* src, Complex<Real>* dst, int nx, int ny,
 	memset(tmp, 0, sizeof(Complex<Real>)*nx*ny);
 	fftShift(nx, ny, src, tmp);
 
-	fftw_plan fft_plan_fwd = nullptr, fft_plan_bwd = nullptr;
+	//fftw_plan fft_plan_fwd = nullptr, fft_plan_bwd = nullptr;
+	fftw_plan fft_plan;
 
 	fftw_complex *in = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * nx * ny);
 	fftw_complex *out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * nx * ny);
@@ -300,11 +301,14 @@ void Openholo::fftwShift(Complex<Real>* src, Complex<Real>* dst, int nx, int ny,
 		in[i][_RE] = tmp[i][_RE];
 		in[i][_IM] = tmp[i][_IM];
 	}
+	
+	fft_plan = fftw_plan_dft_2d(nx, ny, in, out, type, OPH_ESTIMATE);
+	fftw_execute(fft_plan);
 
-	if (type == OPH_FORWARD)
-		fftw_execute_dft(fft_plan_fwd, in, out);
-	else
-		fftw_execute_dft(fft_plan_bwd, in, out);
+	//if (type == OPH_FORWARD)
+	//	fftw_execute_dft(fft_plan_fwd, in, out);
+	//else
+	//	fftw_execute_dft(fft_plan_bwd, in, out);
 
 	int normalF = 1;
 	if (bNormalized) normalF = nx * ny;
