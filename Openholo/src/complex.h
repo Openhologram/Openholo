@@ -51,7 +51,7 @@ namespace oph {
 		}
 
 		T angle(void)
-		{matrix identity
+		{
 			if (std::is_same<double, T>::value)
 				return atan2(_Val[_IM], _Val[_RE]);
 			else if (std::is_same<float, T>::value)

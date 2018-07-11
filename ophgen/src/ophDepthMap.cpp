@@ -1,6 +1,5 @@
-#define OPH_DM_EXPORT 
-
 #include	"ophDepthMap.h"
+
 #include	<windows.h>
 #include	<random>
 #include	<iomanip>
@@ -42,35 +41,84 @@ ophDepthMap::~ophDepthMap()
 }
 
 /**
-* @brief Set the value of a variable is_CPU(true or false)
+* @brief Set the value of a variable isCPU_(true or false)
 * @details <pre>
-    if is_CPU == true
+    if isCPU_ == true
 	   CPU implementation
 	else
 	   GPU implementation </pre>
-* @param is_CPU : the value for specifying whether the hologram generation method is implemented on the CPU or GPU
+* @param isCPU : the value for specifying whether the hologram generation method is implemented on the CPU or GPU
 */
-void ophDepthMap::setMode(bool is_CPU) 
+void ophDepthMap::setMode(bool isCPU) 
 { 
-	this->is_CPU = is_CPU; 
+	is_CPU = isCPU;
 }
 
 /**
 * @brief Read parameters from a config file(config_openholo.txt).
 * @return true if config infomation are sucessfully read, flase otherwise.
 */
-bool ophDepthMap::readConfig(const char* fname)
+bool ophDepthMap::readConfig(const char * fname)
 {
 	bool b_ok = ophGen::readConfig(fname, dm_config_, dm_params_);
 
-	return b_ok;
+
+	return true;
+}
+
+double ophDepthMap::generateHologram(void)
+{
+	auto time_start = CUR_TIME;
+
+	initialize();
+
+	if (!readImageDepth())
+		LOG("Error: Reading image.\n");
+
+	getDepthValues();
+
+	//if (dm_params_.Transform_Method_ == 0)
+		transformViewingWindow();
+
+	calcHoloByDepth();
+
+	auto time_end = CUR_TIME;
+
+	return ((std::chrono::duration<Real>)(time_end - time_start)).count();
+}
+
+void ophDepthMap::encodeHologram(void)
+{
+	encodeSideBand(is_CPU, ivec2(0, 1));
+}
+
+int ophDepthMap::save(const char * fname, uint8_t bitsperpixel)
+{
+	std::string outdir = std::string("./").append(dm_params_.RESULT_FOLDER);
+
+	if (!CreateDirectory(outdir.c_str(), NULL) && ERROR_ALREADY_EXISTS != GetLastError())
+	{
+		LOG("Fail to make output directory\n");
+		return 0;
+	}
+
+	std::string resName = std::string("./").append(dm_params_.RESULT_FOLDER).append("/").append(dm_params_.RESULT_PREFIX).append(".bmp");
+
+	int pnx = context_.pixel_number[_X];
+	int pny = context_.pixel_number[_Y];
+	int px = static_cast<int>(pnx / 3);
+	int py = pny;
+
+	ophGen::save(resName.c_str(), bitsperpixel, holo_normalized, px, py);
+
+	return 1;
 }
 
 /**
 * @brief Initialize variables for CPU and GPU implementation.
 * @see init_CPU, init_GPU
 */
-void ophDepthMap::initialize(void)
+void ophDepthMap::initialize()
 {
 	dstep = 0;
 	dlevel.clear();
@@ -86,52 +134,12 @@ void ophDepthMap::initialize(void)
 	if (holo_normalized) delete[] holo_normalized;
 	holo_normalized = new uchar[context_.pixel_number[_X] * context_.pixel_number[_Y]];
 	memset(holo_normalized, 0.0, sizeof(uchar) * context_.pixel_number[_X] * context_.pixel_number[_Y]);
-	
+
 	if (is_CPU)
 		initCPU();
 	else
 		initGPU();
 }
-
-/**
-* @brief Generate a hologram, main funtion.
-* @details For each frame, 
-*    1. Read image depth data.
-*    2. Compute the physical distance of depth map.
-*    3. Transform target object to reflect the system configuration of holographic display.
-*    4. Generate a hologram.
-*    5. Encode the generated hologram.
-*    6. Write the hologram to a image.
-* .
-* @see readImageDepth, getDepthValues, transformViewingWindow, calc_Holo_by_Depth, encodingSymmetrization, writeResultimage
-*/
-double ophDepthMap::generateHologram()
-{
-	auto time_start = CUR_TIME;
-
-	initialize();
-
-	if (!readImageDepth())
-		LOG("Error: Reading image.\n");
-
-	getDepthValues();
-
-	if (dm_params_.Transform_Method_ == 0)
-		transformViewingWindow();
-
-	calcHoloByDepth();
-
-	auto time_end = CUR_TIME;
-
-	return ((std::chrono::duration<Real>)(time_end - time_start)).count();
-}
-
-void ophDepthMap::encodeHologram(void)
-{
-	if (dm_params_.Encoding_Method_ == 0)
-		encodeSideBand(is_CPU, ivec2(0, 1));
-}
-
 /**
 * @brief Read image and depth map.
 * @details Read input files and load image & depth map data.
@@ -140,13 +148,13 @@ void ophDepthMap::encodeHologram(void)
 * @return true if image data are sucessfully read, flase otherwise.
 * @see prepare_inputdata_CPU, prepare_inputdata_GPU
 */
-int ophDepthMap::readImageDepth(void)
+bool ophDepthMap::readImageDepth()
 {	
 	std::string sdir = std::string("./").append(dm_params_.SOURCE_FOLDER).append("/").append(dm_params_.IMAGE_PREFIX).append("*.bmp");
 
 	_finddatai64_t fd;
 	intptr_t handle;
-	handle = _findfirst64(sdir.c_str(), &fd); 
+	handle = _findfirst64(sdir.c_str(), &fd);
 	if (handle == -1)
 	{
 		LOG("Error: Source image does not exist: %s.\n", sdir.c_str());
@@ -229,13 +237,13 @@ int ophDepthMap::readImageDepth(void)
 	delete[] img;
 	delete[] dimg;
 
-	return ret;
+	return true;
 }
 
 /**
 * @brief Calculate the physical distances of depth map layers
-* @details Initialize 'dstep' & 'dlevel' variables.
-*  If FLAG_CHANGE_DEPTH_QUANTIZATION == 1, recalculate  'depth_index' variable.
+* @details Initialize 'dstep_' & 'dlevel_' variables.
+*  If FLAG_CHANGE_DEPTH_QUANTIZATION == 1, recalculate  'depth_index_' variable.
 * @see change_depth_quan_CPU, change_depth_quan_GPU
 */
 void ophDepthMap::getDepthValues()
@@ -243,7 +251,7 @@ void ophDepthMap::getDepthValues()
 	if (dm_config_.num_of_depth > 1)
 	{
 		dstep = (dm_config_.far_depthmap - dm_config_.near_depthmap) / (dm_config_.num_of_depth - 1);
-		Real val = dm_config_.near_depthmap;
+		double val = dm_config_.near_depthmap;
 		while (val <= dm_config_.far_depthmap)
 		{
 			dlevel.push_back(val);
@@ -268,14 +276,14 @@ void ophDepthMap::getDepthValues()
 
 /**
 * @brief Transform target object to reflect the system configuration of holographic display.
-* @details Calculate 'dlevel_transform' variable by using 'field_lens' & 'dlevel'.
+* @details Calculate 'dlevel_transform_' variable by using 'field_lens' & 'dlevel_'.
 */
 void ophDepthMap::transformViewingWindow()
 {
-	int pnx = context_.pixel_number[_X];
-	int pny = context_.pixel_number[_Y];
+	int pnx = context_.pixel_number[0];
+	int pny = context_.pixel_number[1];
 
-	Real val;
+	double val;
 	dlevel_transform.clear();
 	for (int p = 0; p < dlevel.size(); p++)
 	{
@@ -287,96 +295,18 @@ void ophDepthMap::transformViewingWindow()
 /**
 * @brief Generate a hologram.
 * @param frame : the frame number of the image.
-* @see calc_Holo_CPU, calc_Holo_GPU
+* @see Calc_Holo_CPU, Calc_Holo_GPU
 */
-void ophDepthMap::calcHoloByDepth(void)
+void ophDepthMap::calcHoloByDepth()
 {
 	if (is_CPU)
 		calcHoloCPU();
 	else
 		calcHoloGPU();
-}
-
-/**
-* @brief Write the result image.
-* @param ftr : the frame number of the image.
-*/
-
-int ophDepthMap::save(const char* fname, uint8_t bitsperpixel)
-{
-	std::string outdir = std::string("./").append(dm_params_.RESULT_FOLDER);
-
-	if (!CreateDirectory(outdir.c_str(), NULL) && ERROR_ALREADY_EXISTS != GetLastError())
-	{
-		LOG("Fail to make output directory\n");
-		return 0;
-	}
 	
-	std::string resName = std::string("./").append(dm_params_.RESULT_FOLDER).append("/").append(dm_params_.RESULT_PREFIX).append(".bmp");
-
-	int pnx = context_.pixel_number[_X];
-	int pny = context_.pixel_number[_Y];
-	int px = static_cast<int>(pnx / 3);
-	int py = pny;
-
-	ophGen::save(resName.c_str(), bitsperpixel, holo_normalized, px, py);
-
-	return 1;
 }
-
-/**
-* @brief It is a testing function used for the reconstruction.
-*/
-//commit test
-
-//void ophDepthMap::writeSimulationImage(int num, Real val)
-//{
-//	std::string outdir = std::string("./").append(dm_params_.RESULT_FOLDER);
-//	if (!CreateDirectory(outdir.c_str(), NULL) && ERROR_ALREADY_EXISTS != GetLastError())
-//	{
-//		LOG("Fail to make output directory\n");
-//		return;
-//	}
-//
-//	std::string fname = std::string("./").append(dm_params_.RESULT_FOLDER).append("/").append(dm_simuls_.Simulation_Result_File_Prefix_).append("_");
-//	fname = fname.append(dm_params_.RESULT_PREFIX).append(std::to_string(num)).append("_").append(dm_simuls_.sim_type_ == 0 ? "FOCUS_" : "EYE_Y_");
-//	int v = (int)round(val * 1000);
-//	fname = fname.append(std::to_string(v));
-//	
-//	int pnx = context_.pixel_number[0];
-//	int pny = context_.pixel_number[1];
-//	int px = pnx / 3;
-//	int py = pny;
-//
-//	Real min_val, max_val;
-//	min_val = dm_simuls_.sim_final_[0];
-//	max_val = dm_simuls_.sim_final_[0];
-//	for (int i = 0; i < pnx*pny; ++i)
-//	{
-//		if (min_val > dm_simuls_.sim_final_[i])
-//			min_val = dm_simuls_.sim_final_[i];
-//		else if (max_val < dm_simuls_.sim_final_[i])
-//			max_val = dm_simuls_.sim_final_[i];
-//	}
-//
-//	uchar* data = new uchar[pnx*pny];
-//	memset(data, 0, sizeof(uchar)*pnx*pny);
-//		
-//	for (int k = 0; k < pnx*pny; k++)
-//		data[k] = (uint)((dm_simuls_.sim_final_[k] - min_val) / (max_val - min_val) * 255);
-//
-//	int ret = ophGen::save(fname.c_str(), 24, data, px, py);
-//
-//	delete[] data;
-//}
 
 void ophDepthMap::ophFree(void)
 {
-	if (img_src)			delete[] img_src;
-	if (dmap_src)			delete[] dmap_src;
-	if (alpha_map)			delete[] alpha_map;
-	if (depth_index)		delete[] depth_index;
-	if (dmap)				delete[] dmap;
 
-	free_gpu();
 }

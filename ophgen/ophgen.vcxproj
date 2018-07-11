@@ -108,7 +108,6 @@ xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)Reference\include\"
   <ItemGroup>
     <ClInclude Include="ophLightField.h" />
     <ClInclude Include="ophTriangle.h" />
-    <ClInclude Include="src\encoding.h" />
     <ClInclude Include="src\ophDepthMap.h" />
     <ClInclude Include="src\ophGen.h" />
     <ClInclude Include="src\ophPointCloud.h" />

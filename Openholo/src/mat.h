@@ -39,8 +39,8 @@ namespace oph
 
 		matrix(matrix<T>& ref) : size(ref.size) {
 			init();
-			for (int x = 0; x < size[0]; x++)
-				for (int y = 0; y < size[1]; y++) {
+			for (int y = 0; y < size[_Y]; y++)
+				for (int x = 0; x < size[_X]; x++) {
 					mat[x][y] = ref[x][y];
 				}
 		}
@@ -51,9 +51,9 @@ namespace oph
 
 		void init(void) {
 			mat = new std::vector<T>[size[0]];
-			for (int x = 0; x < size[0]; x++) {
-				for (int y = 0; y < size[1]; y++) {
-					if (x == y && size[0] == size[1])
+			for (int y = 0; y < size[_Y]; y++) {
+				for (int x = 0; x < size[_X]; x++) {
+					if (x == y && size[_X] == size[_Y])
 						mat[x].push_back(1);
 					else
 						mat[x].push_back(0);
@@ -203,8 +203,8 @@ namespace oph
 
 			matrix<T> res(p.size[1], size[0]);
 
-			for (int x = 0; x < res.size[0]; x++) {
-				for (int y = 0; y < res.size[1]; y++) {
+			for (int y = 0; y < res.size[0]; y++) {
+				for (int x = 0; x < res.size[1]; x++) {
 					res[x][y] = 0;
 					for (int num = 0; num < size[1]; num++)	{
 						res[x][y] += mat[x][num] * p[num][y];
@@ -221,8 +221,8 @@ namespace oph
 		matrix<T>& div(matrix<T>& p) {
 			if (size != p.size) return *this;
 
-			for (int x = 0; x < size[0]; x++) {
-				for (int y = 0; y < size[1]; y++) {
+			for (int y = 0; y < size[_Y]; y++) {
+				for (int x = 0; x < size[_X]; x++) {
 					mat[x][y] /= p[x][y];
 				}
 			}
@@ -243,8 +243,8 @@ namespace oph
 			if (size != p.size)
 				return false;
 
-			for (int x = 0; x < size[0]; x++)
-				for (int y = 0; y < size[1]; y++) {
+			for (int y = 0; y < size[_Y]; y++)
+				for (int x = 0; x < size[_X]; x++) {
 					mat[x][y] = p[x][y];
 				}
 
@@ -252,8 +252,8 @@ namespace oph
 		}
 
 		inline void operator =(T* p) {
-			for (int x = 0; x < size[_X]; x++)
-				for (int y = 0; y < size[_Y]; y++) {
+			for (int y = 0; y < size[_Y]; y++)
+				for (int x = 0; x < size[_X]; x++) {
 					mat[x][y] = *p;
 					p++;
 				}
@@ -264,8 +264,8 @@ namespace oph
 
 			__va_start(&ap, args);
 
-			for (int x = 0; x < size[0]; x++)
-				for (int y = 0; y < size[1]; y++) {
+			for (int y = 0; y < size[_Y]; y++)
+				for (int x = 0; x < size[X]; x++) {
 					if (x == 0 && y == 0) {
 						mat[x][y] = args;
 						continue;
@@ -295,32 +295,32 @@ namespace oph
 		}
 
 		const matrix<T>& operator +(const T& p) {
-			for (int x = 0; x < size[0]; x++)
-				for (int y = 0; y < size[1]; y++) {
+			for (int y = 0; y < size[_Y]; y++)
+				for (int x = 0; x < size[_X]; x++) {
 					mat[x][y] += p;
 				}
 			return *this;
 		}
 
 		const matrix<T>& operator -(const T& p) {
-			for (int x = 0; x < size[0]; x++)
-				for (int y = 0; y < size[1]; y++) {
+			for (int y = 0; y < size[_Y]; y++)
+				for (int x = 0; x < size[_X]; x++) {
 					mat[x][y] -= p;
 				}
 			return *this;
 		}
 
 		const matrix<T>& operator *(const T& p) {
-			for (int x = 0; x < size[0]; x++)
-				for (int y = 0; y < size[1]; y++) {
+			for (int y = 0; y < size[_Y]; y++)
+				for (int x = 0; x < size[_X]; x++) {
 					mat[x][y] *= p;
 				}
 			return *this;
 		}
 
 		const matrix<T>& operator /(const T& p) {
-			for (int x = 0; x < size[0]; x++)
-				for (int y = 0; y < size[1]; y++) {
+			for (int y = 0; y < size[_Y]; y++)
+				for (int x = 0; x < size[_X]; x++) {
 					mat[x][y] /= p;
 				}
 			return *this;
@@ -328,8 +328,8 @@ namespace oph
 
 		//print test
 		void Print(const char* _context) {
-			for (int x = 0; x < size[0]; x++) {
-				for (int y = 0; y < size[1]; y++) {
+			for (int y = 0; y < size[_Y]; y++) {
+				for (int x = 0; x < size[_X]; x++) {
 					printf(_context, mat[x][y]);
 				}
 				cout << endl;

@@ -14,6 +14,10 @@
 #define GEN_DLL __declspec(dllimport)
 #endif
 
+#pragma comment(lib, "libfftw3-3.lib")
+
+#include "fftw3.h"
+
 struct GEN_DLL OphContext {
 	oph::ivec2		pixel_number;				///< SLM_PIXEL_NUMBER_X & SLM_PIXEL_NUMBER_Y
 	oph::vec2		pixel_pitch;				///< SLM_PIXEL_PITCH_X & SLM_PIXEL_PITCH_Y

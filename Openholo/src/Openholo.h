@@ -83,10 +83,12 @@ protected:
 	/**
 
 	*/
-	void fft1(int n, Complex<Real>* in, Complex<Real>* out, int sign = OPH_FORWARD, uint flag = OPH_ESTIMATE);
-	void fft2(oph::ivec2 n, Complex<Real>* in, Complex<Real>* out, int sign = OPH_FORWARD, uint flag = OPH_ESTIMATE);
-	void fft3(oph::ivec3 n, Complex<Real>* in, Complex<Real>* out, int sign = OPH_FORWARD, uint flag = OPH_ESTIMATE);
+	void fft1(int n, Complex<Real>* in, int sign = OPH_FORWARD, uint flag = OPH_ESTIMATE);
+	void fft2(oph::ivec2 n, Complex<Real>* in, int sign = OPH_FORWARD, uint flag = OPH_ESTIMATE);
+	void fft3(oph::ivec3 n, Complex<Real>* in, int sign = OPH_FORWARD, uint flag = OPH_ESTIMATE);
 
+	void fftExecute(Complex<Real>* out);
+	void fftFree(void);
 	/**
 	* @brief Convert data from the spatial domain to the frequency domain using 2D FFT on CPU.
 	* @details It is equivalent to Matlab code, dst = ifftshift(fft2(fftshift(src))).
@@ -117,6 +119,12 @@ protected:
 	* @brief Pure virtual function for override in child classes
 	*/
 	virtual void ophFree(void);
+
+private:
+	fftw_plan plan_fwd, plan_bwd;
+	fftw_complex *fft_in, *fft_out;
+	int pnx, pny, pnz;
+	int fft_sign;
 };
 
 #endif // !__Openholo_h

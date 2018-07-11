@@ -288,3 +288,4 @@ __pycache__/
 *.xsd.cs
 *.dll
 *.lib
+/ophgen/src/src.zip
