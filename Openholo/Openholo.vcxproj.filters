@@ -63,6 +63,9 @@
     <ClInclude Include="src\epsilon.h">
       <Filter>__utilities\header</Filter>
     </ClInclude>
+    <ClInclude Include="src\PLYparser.h">
+      <Filter>__utilities\header</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Openholo.cpp">
@@ -75,6 +78,9 @@
       <Filter>__utilities\cpp</Filter>
     </ClCompile>
     <ClCompile Include="src\epsilon.cpp">
+      <Filter>__utilities\cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="src\PLYparser.cpp">
       <Filter>__utilities\cpp</Filter>
     </ClCompile>
   </ItemGroup>

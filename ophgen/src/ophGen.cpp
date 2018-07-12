@@ -6,6 +6,7 @@
 #include <cufft.h>
 
 #include "tinyxml2.h"
+#include "PLYparser.h"
 
 ophGen::ophGen(void)
 	: Openholo()
@@ -20,74 +21,21 @@ ophGen::~ophGen(void)
 {
 }
 
-int ophGen::loadPointCloud(const char* pc_file, OphPointCloudData *pc_data_, uint flag)
+int ophGen::loadPointCloud(const char* pc_file, OphPointCloudData *pc_data_)
 {
 	LOG("Reading....%s...", pc_file);
 
 	auto start = CUR_TIME;
 
-	std::ifstream File(pc_file, std::ios::in);
-	if (!File.is_open()) {
-		File.close();
-		return -1;
-	}
-
-	int n_pts;
-
-	File >> n_pts;
-
-	pc_data_->location	= new vec3[n_pts];
-	pc_data_->color		= new vec3[n_pts];
-	pc_data_->amplitude	= new Real[n_pts];
-	pc_data_->phase		= new Real[n_pts];
-
-	memset(pc_data_->location, NULL, sizeof(vec3) * n_pts);
-	memset(pc_data_->color, NULL, sizeof(vec3) * n_pts);
-	memset(pc_data_->amplitude, NULL, sizeof(Real) * n_pts);
-	memset(pc_data_->phase, NULL, sizeof(Real) * n_pts);
-
-	// parse input point cloud file
-	for (int i = 0; i < n_pts; ++i) {
-		int idx;
-		Real pX, pY, pZ, phase, amplitude;
-		int pR, pG, pB;
-
-		File >> idx;
-		if (idx == i) {
-			if (flag & PC_XYZ){
-				File >> pX >> pY >> pZ;
-				pc_data_->location[idx][_X] = pX;
-				pc_data_->location[idx][_Y] = pY;
-				pc_data_->location[idx][_Z] = pY;
-			}
-			if (flag & PC_RGB){
-				File >> pR >> pG >> pB;
-				pc_data_->color[idx][_X] = pR;
-				pc_data_->color[idx][_Y] = pG;
-				pc_data_->color[idx][_Z] = pB;
-			}
-			if (flag & PC_PHASE){
-				File >> phase;
-				pc_data_->phase[idx] = phase;
-			}
-			if (flag & PC_AMPLITUDE){
-				File >> amplitude;
-				pc_data_->amplitude[idx] = amplitude;
-			}
-		}
-		else {
-			File.close();
-			return -1;
-		}
-	}
-	File.close();
+	PLYparser plyIO;
+	plyIO.loadPLY(pc_file, pc_data_->n_points, pc_data_->n_colors, &pc_data_->vertex, &pc_data_->color, &pc_data_->phase, pc_data_->isPhaseParse);
 
 	auto end = CUR_TIME;
 
 	auto during = ((std::chrono::duration<Real>)(end - start)).count();
 
 	LOG("%.5lfsec...done\n", during);
-	return n_pts;
+	return pc_data_->n_points;
 }
 
 bool ophGen::readConfig(const char* fname, OphPointCloudConfig& configdata)
@@ -900,7 +848,6 @@ void ophGen::encodeSideBand_CPU(int cropx1, int cropx2, int cropy1, int cropy2, 
 
 	oph::Complex<Real> *in = nullptr, *out = nullptr;
 
-	fft2(oph::ivec2(pnx, pny), in, OPH_BACKWARD);
 	fftwShift(h_crop, h_crop, pnx, pny, OPH_BACKWARD, true);
 
 	memset(holo_encoded, 0.0, sizeof(Real)*pnx*pny);

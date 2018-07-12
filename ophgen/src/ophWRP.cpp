@@ -11,8 +11,6 @@ ophWRP::ophWRP(void) :ophGen()
 {
 }*/
 
-
-
 OphPointCloudData* ophWRP::vector2pointer(std::vector<OphPointCloudData> vec)
 {
 	if (n_points<0)
@@ -43,14 +41,13 @@ int ophWRP::pobj2vecobj()
 	return 0;
 }
 
-
 int ophWRP::loadwPointCloud(const char* pc_file, bool colorinfo)
 {
 
 	//	if(colorinfo==true)
 	//	n_points = ophGen::loadPointCloud(pc_file,obj_, PC_XYZ | PC_RGB);
 	//	if(colorinfo==false)
-	n_points = ophGen::loadPointCloud(pc_file, obj_, PC_XYZ);
+	n_points = ophGen::loadPointCloud(pc_file, obj_);
 
 	return n_points;
 
@@ -63,8 +60,6 @@ bool ophWRP::readConfig(const char* cfg_file)
 
 	return true;
 }
-
-
 
 void ophWRP::AddPixel2WRP(int x, int y, Complex<Real> temp)
 {
@@ -118,10 +113,10 @@ oph::Complex<Real>* ophWRP::subWRP_calcu(double wrp_d, Complex<Real>* wrp, OphPo
 #endif
 
 	for (int k = 0; k < num; k++) {
-
-		Real x = pc->location[k][_X] * pc_config_.scale[_X];
-		Real y = pc->location[k][_Y] * pc_config_.scale[_Y];
-		Real z = pc->location[k][_Z] * pc_config_.scale[_Z] + pc_config_.offset_depth;
+		int idx = 3 * k;
+		Real x = pc->vertex[idx + _X] * pc_config_.scale[_X];
+		Real y = pc->vertex[idx + _Y] * pc_config_.scale[_Y];
+		Real z = pc->vertex[idx + _Z] * pc_config_.scale[_Z] + pc_config_.offset_depth;
 
 
 		float dz = wrp_d - z;
@@ -190,10 +185,10 @@ double ophWRP::calculateWRP(double wrp_d)
 #endif
 
 	for (int k = 0; k < num; k++) {
-
-		Real x = pc->location[k][_X] * pc_config_.scale[_X];
-		Real y = pc->location[k][_Y] * pc_config_.scale[_Y];
-		Real z = pc->location[k][_Z] * pc_config_.scale[_Z] + pc_config_.offset_depth;
+		int idx = 3 * k;
+		Real x = pc->vertex[idx + _X] * pc_config_.scale[_X];
+		Real y = pc->vertex[idx + _Y] * pc_config_.scale[_Y];
+		Real z = pc->vertex[idx + _Z] * pc_config_.scale[_Z] + pc_config_.offset_depth;
 
 		float dz = wrp_d - z;
 		//	float tw = (int)fabs(wave_len*dz / wpx / wpx / 2 + 0.5) * 2 - 1;

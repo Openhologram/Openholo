@@ -150,7 +150,6 @@ void ophDepthMap::initGPU()
 
 	if (k_temp_d_)	cudaFree(k_temp_d_);
 	HANDLE_ERROR(cudaMalloc((void**)&k_temp_d_, sizeof(cufftDoubleComplex)*N));
-
 }
 
 /**
