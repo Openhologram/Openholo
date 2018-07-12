@@ -33,11 +33,19 @@
     <ClInclude Include="src\ophGen.h">
       <Filter>__ophGen</Filter>
     </ClInclude>
-    <ClInclude Include="src\encoding.h" />
     <ClInclude Include="src\ophWRP.h">
       <Filter>_2_WRP</Filter>
     </ClInclude>
     <ClInclude Include="src\tinyxml2.h" />
+    <ClInclude Include="src\ophPointCloud.h">
+      <Filter>_1_Generation\_ophPointCloud</Filter>
+    </ClInclude>
+    <ClInclude Include="ophTriangle.h">
+      <Filter>_1_Generation\_ophTriangle</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ophLightField.h">
+      <Filter>_1_Generation\_ophLF</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\ophDepthMap.cpp">
@@ -59,6 +67,9 @@
       <Filter>_2_WRP</Filter>
     </ClCompile>
     <ClCompile Include="src\tinyxml2.cpp" />
+    <ClCompile Include="src\ophLightField.cpp">
+      <Filter>_1_Generation\_ophLF</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="src\ophDMKernel.cu">

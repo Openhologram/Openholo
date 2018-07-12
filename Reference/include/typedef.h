@@ -1,9 +1,9 @@
 #ifndef __typedef_h
 #define __typedef_h
 
-#define REAL_T_IS_FLOAT true
+#define REAL_IS_DOUBLE true
 
-#if REAL_T_IS_FLOAT & true
+#if REAL_IS_DOUBLE & true
 typedef double Real;
 typedef float  Real_t;
 #else

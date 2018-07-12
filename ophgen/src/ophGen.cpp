@@ -535,7 +535,7 @@ int ophGen::load(const char * fname, void * dst)
 	return 0;
 }
 
-#define for_i(itr, oper) for(int i=0; i<itr; i++){ oper }
+#define for_i(itr, oper) for(uint i=0; i<itr; i++){ oper }
 
 void ophGen::loadComplex(char* real_file, char* imag_file, int n_x, int n_y) {
 
