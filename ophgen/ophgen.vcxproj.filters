@@ -27,9 +27,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\ophDepthMap.h">
-      <Filter>_1_Generation\_ophDepthMap</Filter>
-    </ClInclude>
     <ClInclude Include="src\ophGen.h">
       <Filter>__ophGen</Filter>
     </ClInclude>
@@ -37,6 +34,14 @@
       <Filter>_2_WRP</Filter>
     </ClInclude>
     <ClInclude Include="src\tinyxml2.h" />
+    <ClInclude Include="ophLightField.h" />
+    <ClInclude Include="ophTriangle.h" />
+    <ClInclude Include="src\ophDepthMap.h">
+      <Filter>_1_Generation\_ophDepthMap</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ophPointCloud.h">
+      <Filter>_1_Generation\_ophPointCloud</Filter>
+    </ClInclude>
     <ClInclude Include="src\ophPointCloud.h">
       <Filter>_1_Generation\_ophPointCloud</Filter>
     </ClInclude>
@@ -48,12 +53,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\ophDepthMap.cpp">
-      <Filter>_1_Generation\_ophDepthMap</Filter>
-    </ClCompile>
-    <ClCompile Include="src\ophDepthMap_CPU.cpp">
-      <Filter>_1_Generation\_ophDepthMap</Filter>
-    </ClCompile>
     <ClCompile Include="src\ophDepthMap_GPU.cpp">
       <Filter>_1_Generation\_ophDepthMap</Filter>
     </ClCompile>
@@ -67,9 +66,6 @@
       <Filter>_2_WRP</Filter>
     </ClCompile>
     <ClCompile Include="src\tinyxml2.cpp" />
-    <ClCompile Include="src\ophLightField.cpp">
-      <Filter>_1_Generation\_ophLF</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="src\ophDMKernel.cu">

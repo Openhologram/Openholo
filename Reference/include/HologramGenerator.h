@@ -23,7 +23,7 @@ The library consists a main hologram generation module(Hologram folder) and its 
 @image latex doc_swfolders.png
 
 @section proc Main Procedure
-The main function of the library is a  \c \b GenerateHologram() of \c ophDepthMap class.
+The main function of the library is a  \c \b GenerateHologram() of \c ophDepthMap2 class.
 The following is the procedure of it and functions called form it..
 <br><br>
 @image html doc_proc.png "GenerateHologram Function Procedure"
@@ -76,23 +76,53 @@ Before building an execution file, you need to install MS Visual Studio 2015 C++
  * \defgroup recon_module Reconstruction
  */
 
-#ifndef __ophDepthMap_h
-#define __ophDepthMap_h
+#ifndef __Hologram_Generator_h
+#define __Hologram_Generator_h
 
 #include "ophGen.h"
 #include <cufft.h>
 
 #include "include.h"
 
+/** 
+* @brief Main class for generating a hologram using depth map data.
+* @details This is a main class for generating a digital hologram using depth map data. It is implemented on the CPU and GPU.
+*  1. Read Config file. - to set all parameters needed for generating a hologram.
+*  2. Initialize all variables. - memory allocation on the CPU and GPU.
+*  3. Generate a digital hologram using depth map data.
+*  4. For the testing purpose, reconstruct a image from the generated hologram.
+*/
+struct GEN_DLL HologramParams {
+
+double				field_lens;					///< FIELD_LENS at config file  
+double				lambda;						///< WAVELENGTH  at config file
+double				k;							///< 2 * PI / lambda
+ivec2				pn;							///< SLM_PIXEL_NUMBER_X & SLM_PIXEL_NUMBER_Y
+vec2				pp;							///< SLM_PIXEL_PITCH_X & SLM_PIXEL_PITCH_Y
+vec2				ss;							///< pn * pp
+
+double				near_depthmap;				///< NEAR_OF_DEPTH_MAP at config file
+double				far_depthmap;				///< FAR_OF_DEPTH_MAP at config file
+
+uint				num_of_depth;				///< the number of depth level.
+												/**< <pre>
+												if FLAG_CHANGE_DEPTH_QUANTIZATION == 0
+												num_of_depth = DEFAULT_DEPTH_QUANTIZATION
+												else
+												num_of_depth = NUMBER_OF_DEPTH_QUANTIZATION  </pre> */
+
+std::vector<int>	render_depth;				///< Used when only few specific depth levels are rendered, usually for test purpose
+};
+
 using namespace oph;
 
-class GEN_DLL ophDepthMap : public ophGen {
+class GEN_DLL ophDepthMap2 : public ophGen {
 
 public:
-	explicit ophDepthMap();
+	explicit ophDepthMap2();
 
 protected:
-	virtual ~ophDepthMap();
+	virtual ~ophDepthMap2();
 
 public:
 
@@ -131,27 +161,45 @@ public:
 	/** \ingroup getter/setter */
 	inline void getRenderDepth(std::vector<int>& renderdepth) { renderdepth = dm_config_.render_depth; }
 	
+public:
+	//void setMode(bool isCPU);
+
+	/** \ingroup init_module */
+	//bool readConfig(bool isXML);
+
+	/** \ingroup init_module */
+	void initialize();
+	
+	/** \ingroup gen_module */
+	void GenerateHologram();
+
+	/** \ingroup recon_module */
+	//void ReconstructImage();
+
+	//void writeMatFileComplex(const char* fileName, Complex<Real>* val);							
+	//void writeMatFileDouble(const char* fileName, double * val);
+	//bool readMatFileDouble(const char* fileName, double * val);
+
 private:
 
 	/** \ingroup init_module
 	* @{ */
-	void initialize();
 	void initCPU();   
-	void initGPU();
+	//void initGPU();
 	/** @} */
 
 	/** \ingroup load_module
 	* @{ */
 	bool readImageDepth(void);
 	bool prepareInputdataCPU(uchar* img, uchar* dimg);
-	bool prepareInputdataGPU(uchar* img, uchar* dimg);
+	//bool prepareInputdataGPU(uchar* img, uchar* dimg);
 	/** @} */
 
 	/** \ingroup depth_module
 	* @{ */
 	void getDepthValues();
 	void changeDepthQuanCPU();
-	void changeDepthQuanGPU();
+	//void changeDepthQuanGPU();
 	/** @} */
 
 	/** \ingroup trans_module
@@ -163,14 +211,11 @@ private:
 	* @{ */
 	void calcHoloByDepth(void);
 	void calcHoloCPU(void);
-	void calcHoloGPU(void);
-	void propagationAngularSpectrumCPU(Complex<Real>* input_u, double propagation_dist);
-	void propagationAngularSpectrumGPU(cufftDoubleComplex* input_u, double propagation_dist);
+	//void calcHoloGPU(int frame);
+	void PropagationAngularSpectrumCPU(Complex<Real>* input_u, double propagation_dist);
+	//void PropagationAngularSpectrumGPU(cufftDoubleComplex* input_u, double propagation_dist);
+	void exponent_complex(Complex<Real>* val);
 
-protected:
-	void free_gpu(void);
-
-	void ophFree(void);
 
 private:
 	bool					is_CPU;								///< if true, it is implemented on the CPU, otherwise on the GPU.
@@ -197,4 +242,4 @@ private:
 };
 
 
-#endif //>__ophDepthMap_h
+#endif
