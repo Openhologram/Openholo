@@ -91,7 +91,7 @@ Real ophPointCloud::generateHologram()
 
 	auto during_time = ((std::chrono::duration<Real>)(end_time - start_time)).count();
 
-	LOG("Implement time : %.5lf\n", during_time);
+	LOG("Implement time : %.5lf sec\n", during_time);
 
 	return during_time;
 }
@@ -125,14 +125,18 @@ void ophPointCloud::genCghPointCloudCPU(Real* dst)
 	ss[_X] = context_.ss[_X];
 	ss[_Y] = context_.ss[_Y];
 
+	Complex<Real> lambda(0, context_.lambda);
+
+	Complex<Real> gen[4096][2160];
+
 	int j; // private variable for Multi Threading
-#ifdef _OPENMP
+//#ifdef _OPENMP
 	int num_threads = 0;
-#pragma omp parallel
+//#pragma omp parallel
 	{
 	num_threads = omp_get_num_threads(); // get number of Multi Threading
-#pragma omp for private(j)
-#endif
+//#pragma omp for private(j)
+//#endif
 		for (j = 0; j < n_points; ++j) { //Create Fringe Pattern
 			uint idx = 3 * j;
 			uint color_idx = pc_data_.n_colors * j;
@@ -189,19 +193,23 @@ void ophPointCloud::genCghPointCloudCPU(Real* dst)
 						pcy + abs(ty / sqrt(1 - pow(ty, 2)) * sqrt(pow(xxx - pcx, 2) + pow(pcz, 2))), 
 						pcx - abs(ty / sqrt(1 - pow(ty, 2)) * sqrt(pow(xxx - pcx, 2) + pow(pcz, 2))) 
 					};
-
-					Complex<Real> lambda(0, context_.lambda);
 					Complex<Real> kr(0, k * r);
 
-					if ((xxx < range_x[0] && xxx > range_x[1]) && (yyy < range_y[0] && yyy > range_y[1]))
-						holo_gen[xxtr + yytr * pn[_X]] = amplitude * (-pcz) / lambda * exp(kr) / pow(r, 2);
+					if ((xxx < range_x[0] && xxx > range_x[1]) && (yyy < range_y[0] && yyy > range_y[1])) {
+						gen[xxtr][yytr] = amplitude * (-pcz) / lambda * exp(kr) / pow(r, 2);
+						//holo_gen[xxtr + yytr * pn[_X]] = amplitude * (-pcz) / lambda * exp(kr) / pow(r, 2);
+						//LOG("Point %d - (%3d, %3d) [%7d] : ", j, xxtr, yytr, xxtr + yytr * pn[_X]);
+						LOG("Point %d - (%3d, %3d) : ", j, xxtr, yytr);
+						LOG("lamda = (%3.5lf, %.9lfi) kr = (%3.5lf, %3.10lfi), ", lambda[_RE], lambda[_IM], kr[_RE], kr[_IM]);
+						LOG("holo_gen = (%15.5lf + %15.5lfi)\n", gen[xxtr][yytr][_RE], gen[xxtr][yytr][_IM]);
+					}
 				}
 			}
 		}
-#ifdef _OPENMP
+//#ifdef _OPENMP
 	}
-	std::cout << ">>> All " << num_threads << " threads" << std::endl;
-#endif
+//	std::cout << ">>> All " << num_threads << " threads" << std::endl;
+//#endif
 }
 
 void ophPointCloud::genCghPointCloudGPU(Real* dst)
