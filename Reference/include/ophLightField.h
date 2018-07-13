@@ -39,6 +39,8 @@ public:
 public:
 	int readConfig(const char* LF_config);
 	int loadLF(const char* LF_directory, const char* ext);
+	void readPNG(const char* filename);
+
 	void generateHologram();
 protected:
 	void initializeLF();

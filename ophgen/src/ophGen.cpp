@@ -722,7 +722,7 @@ void ophGen::singleSideBand(oph::Complex<Real>* holo, Real* encoded, const ivec2
 
 
 	oph::Complex<Real>* AS = new oph::Complex<Real>[size];
-	fft2(holosize, holo, OPH_BACKWARD, OPH_ESTIMATE);
+	fft2(holosize, holo, OPH_FORWARD, OPH_ESTIMATE);
 	fftExecute(AS);
 	
 	for_i(20,
