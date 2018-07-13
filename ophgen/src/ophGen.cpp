@@ -768,11 +768,20 @@ void ophGen::singleSideBand(oph::Complex<Real>* holo, Real* encoded, const ivec2
 {
 	int size = holosize[_X] * holosize[_Y];
 
+	for_i(20,
+		cout << *(holo + i) << endl;);
+	cin.get();
+
+
 	oph::Complex<Real>* AS = new oph::Complex<Real>[size];
-	fft2(holosize, holo, OPH_FORWARD, OPH_ESTIMATE);
+	fft2(holosize, holo, OPH_BACKWARD, OPH_ESTIMATE);
 	fftExecute(AS);
 	
-	fftwShift(holo, AS, holosize[_X], holosize[_Y], 1);
+	for_i(20,
+		cout << *(AS + i) << endl;);
+	cin.get();
+
+	//fftwShift(holo, AS, holosize[_X], holosize[_Y], 1);
 
 	switch (SSB_PASSBAND)
 	{
@@ -810,8 +819,9 @@ void ophGen::singleSideBand(oph::Complex<Real>* holo, Real* encoded, const ivec2
 	}
 
 	oph::Complex<Real>* filtered = new oph::Complex<Real>[size];
-	fft2(holosize, filtered, OPH_BACKWARD, OPH_ESTIMATE);
-	fftExecute(AS);
+	fft2(holosize, AS, OPH_BACKWARD, OPH_ESTIMATE);
+	
+	fftExecute(filtered);
 
 	Real* realFiltered = new Real[size];
 	oph::realPart<Real>(filtered, realFiltered, size);
@@ -901,7 +911,6 @@ void ophGen::encodeSideBand_CPU(int cropx1, int cropx2, int cropy1, int cropy2, 
 	oph::Complex<Real> *in = nullptr, *out = nullptr;
 
 	fft2(oph::ivec2(pnx, pny), in, OPH_BACKWARD);
-	fftwShift(h_crop, h_crop, pnx, pny, OPH_BACKWARD, true);
 
 	memset(holo_encoded, 0.0, sizeof(Real)*pnx*pny);
 	int i = 0;

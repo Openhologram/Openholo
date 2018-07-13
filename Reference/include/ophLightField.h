@@ -22,7 +22,7 @@ protected:
 	virtual ~ophLF(void) {}
 
 private:
-	Real** LF;
+	uchar** LF;
 	oph::Complex<Real>* RSplane_complex_field;
 public:
 	inline void setNumImage(int nx, int ny) { num_image[_X] = nx; num_image[_Y] = ny; }
@@ -34,14 +34,14 @@ public:
 	inline ivec2 getNumImage() { return num_image; }
 	inline ivec2 getResolImage() { return resolution_image; }
 	inline Real getDistRS2Holo() { return distanceRS2Holo; }
-	inline Real** getLF() { return LF; }
+	inline uchar** getLF() { return LF; }
 	inline oph::Complex<Real>* getRSPlane() { return RSplane_complex_field; }
 public:
-	void initializeLF();
 	int readConfig(const char* LF_config);
-	void generateHologram();
-public:
 	int loadLF(const char* LF_directory, const char* ext);
+	void generateHologram();
+protected:
+	void initializeLF();
 	void convertLF2ComplexField();
 	void fresnelPropagation(); 
 

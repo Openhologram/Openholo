@@ -3,6 +3,36 @@
 
 #define for_i(itr, oper) for(uint i=0; i<itr; i++){ oper }
 
+void ophLF::readPNG(const char* filename)
+{
+	ifstream file;
+	file.open(filename);
+
+	size_t size = 0;
+	
+	int pix = 0;
+	for (; pix < resolution_image[_X] * resolution_image[_Y]; pix++) {
+		if (*val == EOF)
+			break;
+		file >> *val;
+		cout << *val;
+		*(*(LF + num) + pix) = *val;
+	}
+	int out = _findnext(ff, &data);
+	if (out == -1)
+	{
+		cout << pix << endl;
+		cin.get();
+		break;
+	}
+
+	num++;
+	cin.get();
+}
+_findclose(ff);
+
+}
+
 int ophLF::loadLF(const char* LF_directory, const char* ext)
 {
 	initializeLF();
@@ -14,58 +44,55 @@ int ophLF::loadLF(const char* LF_directory, const char* ext)
 	if (ff != -1)
 	{
 		int num = 0;
-		Real* val = new Real;
+		uchar* rgbOut;
+		ivec2 sizeOut;
+		int bytesperpixel;
 
 		while (1)
 		{
 			string imgfullname = std::string("./").append(LF_directory).append("/").append(data.name);
-			ifstream file;
-			file.open(imgfullname);
 
-			int pix = 0;
-			for (; pix < resolution_image; pix++) {
-				if (*val == EOF)
-					break;
-				file >> *val;
-				*(*(LF + num) + pix) = *val;
-			}
 
+			getImgSize(sizeOut[_X], sizeOut[_Y], bytesperpixel, imgfullname.c_str());
+			convertToFormatGray8(rgbOut, *(LF + num), sizeOut[_X], sizeOut[_Y], bytesperpixel);
+			
 			int out = _findnext(ff, &data);
-			if (out == -1)
-				break;
+
 			num++;
+			cin.get();
 		}
 		_findclose(ff);
-
-		for (int i = 20000; i < 20020; i++) {
-			cout << *(*LF + i) << endl;
-		}
 			
-
 		if (num_image[_X]*num_image[_Y] != num + 1) {
 			cout << "num_image is not matched." << endl;
+			cin.get();
 		}
-		delete val;
 		return 1;
 	}
 	else
 	{
 		cout << "LF load was failed." << endl;
+		cin.get();
 		return -1;
 	}
 }
+
+
+
+
+
 
 void ophLF::initializeLF() {
 	//if (LF[0] != nullptr) {
 	//	for_i(num_image[_X] * num_image[_Y],
 	//		delete[] LF[i];);
 	//}
-	LF = new Real*[num_image[_X] * num_image[_Y]];
+	LF = new uchar*[num_image[_X] * num_image[_Y]];
 
 	for_i(num_image[_X] * num_image[_Y],
-		LF[i] = new Real[resolution_image[_X] * resolution_image[_Y]];);
+		LF[i] = new uchar[resolution_image[_X] * resolution_image[_Y]];);
 	for_i(num_image[_X] * num_image[_Y],
-		oph::memsetArr<Real>(*(LF + i), 0, 0, resolution_image[_X] * resolution_image[_Y]););
+		oph::memsetArr<uchar>(*(LF + i), 0, 0, resolution_image[_X] * resolution_image[_Y]););
 }
 
 
