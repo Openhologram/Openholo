@@ -285,9 +285,9 @@ void Openholo::fft3(oph::ivec3 n, Complex<Real>* in, int sign, uint flag)
 
 void Openholo::fftExecute(Complex<Real>* out)
 {
-	if (fft_sign = OPH_FORWARD)
+	if (fft_sign == OPH_FORWARD)
 		fftw_execute(plan_fwd);
-	else if (fft_sign = OPH_BACKWARD)
+	else if (fft_sign == OPH_BACKWARD)
 		fftw_execute(plan_bwd);
 	else {
 		LOG("failed fftw : wrong sign");
