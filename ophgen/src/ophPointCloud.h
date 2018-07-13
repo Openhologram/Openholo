@@ -168,7 +168,6 @@ public:
 	* @return implement time (sec)
 	*/
 	double generateHologram();
-	double diffract(void);
 	void encode(void);
 
 private:

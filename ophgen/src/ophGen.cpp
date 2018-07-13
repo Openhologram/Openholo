@@ -23,7 +23,7 @@ ophGen::~ophGen(void)
 
 int ophGen::loadPointCloud(const char* pc_file, OphPointCloudData *pc_data_)
 {
-	LOG("Reading....%s...", pc_file);
+	LOG("Reading....%s...\n", pc_file);
 
 	auto start = CUR_TIME;
 

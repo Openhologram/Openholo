@@ -214,6 +214,8 @@ void Openholo::fft1(int n, Complex<Real>* in, int sign, uint flag)
 		fft_in[i][_IM] = in[i].imag();
 	}
 
+	fft_sign = sign;
+
 	if (sign == OPH_FORWARD)
 		plan_fwd = fftw_plan_dft_1d(n, fft_in, fft_out, sign, flag);
 	else if (sign == OPH_BACKWARD)
@@ -240,6 +242,8 @@ void Openholo::fft2(oph::ivec2 n, Complex<Real>* in, int sign, uint flag)
 		fft_in[i][_IM] = in[i].imag();
 	}
 
+	fft_sign = sign;
+
 	if (sign == OPH_FORWARD)
 		plan_fwd = fftw_plan_dft_2d(pny, pnx, fft_in, fft_out, sign, flag);
 	else if (sign == OPH_BACKWARD)
@@ -265,6 +269,8 @@ void Openholo::fft3(oph::ivec3 n, Complex<Real>* in, int sign, uint flag)
 		fft_in[i][_RE] = in[i].real();
 		fft_in[i][_IM] = in[i].imag();
 	}
+
+	fft_sign = sign;
 
 	if (sign == OPH_FORWARD)
 		plan_fwd = fftw_plan_dft_3d(pnz, pny, pnx, fft_in, fft_out, sign, flag);
