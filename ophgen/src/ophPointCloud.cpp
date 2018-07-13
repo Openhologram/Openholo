@@ -26,7 +26,7 @@ ophPointCloud::~ophPointCloud(void)
 }
 
 void ophPointCloud::initialize(void)
-{	
+{
 	// Output Image Size
 	int n_x = context_.pixel_number[_X];
 	int n_y = context_.pixel_number[_Y];
@@ -50,9 +50,9 @@ void ophPointCloud::setMode(bool is_CPU)
 	this->is_CPU = is_CPU;
 }
 
-int ophPointCloud::loadPointCloud(const char* pc_file, uint flag)
+int ophPointCloud::loadPointCloud(const char* pc_file)
 {
-	n_points = ophGen::loadPointCloud(pc_file, &pc_data_, flag);
+	n_points = ophGen::loadPointCloud(pc_file, &pc_data_);
 
 	return n_points;
 }
@@ -81,36 +81,6 @@ Real ophPointCloud::generateHologram()
 		genCghPointCloudCPU(holo_encoded); /// 홀로그램 데이터 Complex data로 변경 시 holo_gen으로
 	}
 	else { //Run GPU
-		std::cout << "Generate Hologram with GPU" << std::endl;
-
-		genCghPointCloudGPU(holo_encoded);
-		std::cout << ">>> CUDA GPGPU" << std::endl;
-	}
-
-	auto end_time = CUR_TIME;
-
-	auto during_time = ((std::chrono::duration<Real>)(end_time - start_time)).count();
-
-	LOG("Implement time : %.5lf\n", during_time);
-
-	return during_time;
-}
-
-double ophPointCloud::diffract(void)
-{
-	auto start_time = CUR_TIME;
-
-	initialize();
-
-	if (is_CPU) {
-#ifdef _OPENMP
-		std::cout << "Generate Hologram with Multi Core CPU" << std::endl;
-#else
-		std::cout << "Generate Hologram with Single Core CPU" << std::endl;
-#endif
-		genCghPointCloudCPU(holo_encoded);
-	}
-	else {
 		std::cout << "Generate Hologram with GPU" << std::endl;
 
 		genCghPointCloudGPU(holo_encoded);
@@ -164,62 +134,69 @@ void ophPointCloud::genCghPointCloudCPU(Real* dst)
 #pragma omp for private(j)
 #endif
 		for (j = 0; j < n_points; ++j) { //Create Fringe Pattern
-			Real pcx = pc_data_.location[j][_X] * pc_config_.scale[_X];
-			Real pcy = pc_data_.location[j][_Y] * pc_config_.scale[_Y];
-			Real pcz = pc_data_.location[j][_Z] * pc_config_.scale[_Z] + pc_config_.offset_depth;
-			Real amplitude = pc_data_.amplitude[j];
+			uint idx = 3 * j;
+			uint color_idx = pc_data_.n_colors * j;
+			Real pcx = pc_data_.vertex[idx + _X] * pc_config_.scale[_X];
+			Real pcy = pc_data_.vertex[idx + _Y] * pc_config_.scale[_Y];
+			Real pcz = pc_data_.vertex[idx + _Z] * pc_config_.scale[_Z] + pc_config_.offset_depth;
+			Complex<Real> amplitude(pc_data_.color[color_idx], 0);
 
-			for (int row = 0; row < pn[_Y]; ++row) {
-				// Y coordinate of the current pixel : Note that pcy index is reversed order
-				Real SLM_y = (ss[_Y] / 2) - ((Real)row + 0.5f) * pp[_Y];
+			//for (int row = 0; row < pn[_Y]; ++row) {
+			//	// Y coordinate of the current pixel : Note that pcy index is reversed order
+			//	Real SLM_y = (ss[_Y] / 2) - ((Real)row + 0.5f) * pp[_Y];
 
-				for (int col = 0; col < pn[_X]; ++col) {
-					// X coordinate of the current pixel
-					Real SLM_x = ((Real)col + 0.5f) * pp[_X] - (ss[_X] / 2);
+			//	for (int col = 0; col < pn[_X]; ++col) {
+			//		// X coordinate of the current pixel
+			//		Real SLM_x = ((Real)col + 0.5) * pp[_X] - (ss[_X] / 2);
 
-					Real r = sqrtf((SLM_x - pcx)*(SLM_x - pcx) + (SLM_y - pcy)*(SLM_y - pcy) + pcz * pcz);
-					Real phi = k * r - k * SLM_x*sinf(thetaX) - k * SLM_y*sinf(thetaY); // Phase for printer
-					Real result = amplitude * cosf(phi);
+			//		Real r = sqrt((SLM_x - pcx)*(SLM_x - pcx) + (SLM_y - pcy)*(SLM_y - pcy) + pcz * pcz);
+			//		Real phi = k * r - k * SLM_x*sin(thetaX) - k * SLM_y*sin(thetaY); // Phase for printer
+			//		Real result = amplitude * cos(phi);
 
-					*(dst + col + row * pn[_X]) += result; //R-S Integral
-				}
-			}
-
-			/// <<
-			//Real tx = context_.lambda / (2 * pp[_X]);
-			//Real ty = context_.lambda / (2 * pp[_Y]);
-
-			//Real xbound[2] = { pcx + abs(tx / sqrt(1 - pow(tx, 2)) * pcz), pcx - abs(tx / sqrt(1 - pow(tx, 2)) * pcz) };
-			//Real ybound[2] = { pcy + abs(ty / sqrt(1 - pow(ty, 2)) * pcz), pcy - abs(ty / sqrt(1 - pow(ty, 2)) * pcz) };
-
-			//Real Xbound[2] = { floor((xbound[0] + ss[_X] / 2) / pp[_X]) + 1, floor((xbound[1] + ss[_X] / 2) / pp[_X]) + 1 };
-			//Real Ybound[2] = { pn[_Y] - floor((ybound[1] + ss[_Y] / 2) / pp[_Y]), pn[_Y] - floor((ybound[0] + ss[_Y] / 2) / pp[_Y]) };
-
-			//if (Xbound[0] > pn[_X])
-			//	Xbound[0] = pn[_X];
-			//if (Xbound[1] < 0)
-			//	Xbound[1] = 0;
-			//if (Ybound[0] > pn[_Y])
-			//	Ybound[0] = pn[_Y];
-			//if (Ybound[1] < 0)
-			//	Ybound[1] = 0;
-
-
-			//for (int xxtr = Xbound[1]; xxtr < Xbound[0]; xxtr++)
-			//{
-			//	for (int yytr = Ybound[1]; yytr < Ybound[0]; yytr++)
-			//	{
-			//		auto xxx = -ss[_X] / 2 + (xxtr - 1) * pp[_X];
-			//		auto yyy = -ss[_Y] / 2 + (pn[_Y] - yytr) * pp[_Y];
-			//		auto r = sqrt(pow(xxx - pcx, 2) + pow(yyy - pcy, 2) + pow(pcz, 2));
-
-			//		Real range_x[2] = { pcx + abs(tx / sqrt(1 - pow(tx, 2)) * sqrt(pow(yyy - pcy, 2) + pow(pcz, 2))), pcx - abs(tx / sqrt(1 - pow(tx, 2)) * sqrt(pow(yyy - pcy, 2) + pow(pcz, 2))) };
-			//		Real range_y[2] = { pcy + abs(ty / sqrt(1 - pow(ty, 2)) * sqrt(pow(xxx - pcx, 2) + pow(pcz, 2))), pcx - abs(ty / sqrt(1 - pow(ty, 2)) * sqrt(pow(xxx - pcx, 2) + pow(pcz, 2))) };
-
-			//		if ((xxx < range_x[0] && xxx > range_x[1]) && (yyy < range_y[0] && yyy > range_y[1]))
-			//			*(holo_gen + xxtr + yytr * pn[_X]) += amplitude * -pcz / (context_.lambda/* * j*/) * exp(/*-i **/ k * r) / pow(r, 2);
+			//		*(dst + col + row * pn[_X]) += result; //R-S Integral
 			//	}
 			//}
+
+			/// <<
+			Real tx = context_.lambda / (2 * pp[_X]);
+			Real ty = context_.lambda / (2 * pp[_Y]);
+
+			Real xbound[2] = { pcx + abs(tx / sqrt(1 - pow(tx, 2)) * pcz), pcx - abs(tx / sqrt(1 - pow(tx, 2)) * pcz) };
+			Real ybound[2] = { pcy + abs(ty / sqrt(1 - pow(ty, 2)) * pcz), pcy - abs(ty / sqrt(1 - pow(ty, 2)) * pcz) };
+
+			Real Xbound[2] = { floor((xbound[0] + ss[_X] / 2) / pp[_X]) + 1, floor((xbound[1] + ss[_X] / 2) / pp[_X]) + 1 };
+			Real Ybound[2] = { pn[_Y] - floor((ybound[1] + ss[_Y] / 2) / pp[_Y]), pn[_Y] - floor((ybound[0] + ss[_Y] / 2) / pp[_Y]) };
+
+			if (Xbound[0] > pn[_X])	Xbound[0] = pn[_X];
+			if (Xbound[1] < 0)		Xbound[1] = 0;
+			if (Ybound[0] > pn[_Y]) Ybound[0] = pn[_Y];
+			if (Ybound[1] < 0)		Ybound[1] = 0;
+
+			for (int xxtr = Xbound[1]; xxtr < Xbound[0]; xxtr++)
+			{
+				for (int yytr = Ybound[1]; yytr < Ybound[0]; yytr++)
+				{
+					Real xxx = (-ss[_X]) / 2 + (xxtr - 1) * pp[_X];
+					Real yyy = (-ss[_Y]) / 2 + (pn[_Y] - yytr) * pp[_Y];
+					Real r = sqrt(pow(xxx - pcx, 2) + pow(yyy - pcy, 2) + pow(pcz, 2));
+
+					Real range_x[2] = { 
+						pcx + abs(tx / sqrt(1 - pow(tx, 2)) * sqrt(pow(yyy - pcy, 2) + pow(pcz, 2))), 
+						pcx - abs(tx / sqrt(1 - pow(tx, 2)) * sqrt(pow(yyy - pcy, 2) + pow(pcz, 2))) 
+					};
+
+					Real range_y[2] = { 
+						pcy + abs(ty / sqrt(1 - pow(ty, 2)) * sqrt(pow(xxx - pcx, 2) + pow(pcz, 2))), 
+						pcx - abs(ty / sqrt(1 - pow(ty, 2)) * sqrt(pow(xxx - pcx, 2) + pow(pcz, 2))) 
+					};
+
+					Complex<Real> lambda(0, context_.lambda);
+					Complex<Real> kr(0, k * r);
+
+					if ((xxx < range_x[0] && xxx > range_x[1]) && (yyy < range_y[0] && yyy > range_y[1]))
+						holo_gen[xxtr + yytr * pn[_X]] = amplitude * (-pcz) / lambda * exp(kr) / pow(r, 2);
+				}
+			}
 		}
 #ifdef _OPENMP
 	}
@@ -245,8 +222,8 @@ void ophPointCloud::genCghPointCloudGPU(Real* dst)
 	const ulonglong bufferSize = context_.pixel_number[_X] * context_.pixel_number[_Y] * sizeof(Real);
 
 	//Host Memory Location
-	float3 *HostPointCloud = (float3*)pc_data_.location;
-	Real *hostAmplitude = (Real*)pc_data_.amplitude;
+	float3 *HostPointCloud = (float3*)pc_data_.vertex;
+	Real *hostAmplitude = (Real*)pc_data_.color;
 
 	//Initializa Config for CUDA Kernel
 	oph::GpuConst HostConfig; {
@@ -263,8 +240,8 @@ void ophPointCloud::genCghPointCloudGPU(Real* dst)
 		// Tilt Angle
 		Real thetaX = RADIAN(pc_config_.tilt_angle[0]);
 		Real thetaY = RADIAN(pc_config_.tilt_angle[1]);
-		HostConfig.sin_thetaX = sinf(thetaX);
-		HostConfig.sin_thetaY = sinf(thetaY);
+		HostConfig.sin_thetaX = sin(thetaX);
+		HostConfig.sin_thetaY = sin(thetaY);
 
 		// Wave Number
 		HostConfig.k = (2.f * CUDART_PI_F) / context_.lambda;
@@ -310,8 +287,7 @@ void ophPointCloud::genCghPointCloudGPU(Real* dst)
 
 void ophPointCloud::ophFree(void)
 {
-	delete[] pc_data_.location;
+	delete[] pc_data_.vertex;
 	delete[] pc_data_.color;
-	delete[] pc_data_.amplitude;
 	delete[] pc_data_.phase;
 }

@@ -23,7 +23,7 @@ namespace oph {
 
 	public:
 		Complex() : complex<T>() {}
-		Complex(T p) : complex<T>(p) {}
+		Complex(T p) : complex<T>(p) { _Val[_RE] = p; _Val[_IM] = 0.0; }
 		Complex(T tRe, T tIm) : complex<T>(tRe, tIm) {}
 		Complex(const Complex<T>& p) {
 			_Val[_RE] = p._Val[_RE];
@@ -90,7 +90,7 @@ namespace oph {
 
 		const Complex<T>& operator = (const T& p) {
 			_Val[_RE] = p;
-			_Val[_IM] = p;
+			_Val[_IM] = 0.0;
 
 			return *this;
 		}
@@ -132,6 +132,14 @@ namespace oph {
 
 		const Complex<T>& operator*= (const T k) {
 			_Val[_RE] *= k;
+			_Val[_IM] *= k;
+
+			return *this;
+		}
+
+		const Complex<T>& operator = (const std::complex<T> p) {
+			_Val[_RE] = p._Val[_RE];
+			_Val[_IM] = p._Val[_IM];
 
 			return *this;
 		}

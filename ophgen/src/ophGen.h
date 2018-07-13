@@ -53,13 +53,6 @@ public:
 		ENCODE_OFFSSB,
 	};
 
-	enum PC_FLAG {
-		PC_XYZ			= 1,
-		PC_RGB			= 2,
-		PC_PHASE		= 4,
-		PC_AMPLITUDE	= 8,
-	};
-
 public:
 	/**
 	* @brief Constructor
@@ -90,7 +83,7 @@ public:
 	* @param output parameter. point cloud data, phases container's pointer
 	* @return positive integer is points number of point cloud, return a negative integer if the load fails
 	*/
-	int loadPointCloud(const char* pc_file, OphPointCloudData *pc_data_, uint flag);
+	int loadPointCloud(const char* pc_file, OphPointCloudData *pc_data_);
 
 	/**
 	* @param input parameter. configuration data file name
@@ -224,12 +217,14 @@ struct GEN_DLL OphPointCloudConfig {
 	oph::vec2 tilt_angle;							///< Tilt angle for spatial filtering
 };
 struct GEN_DLL OphPointCloudData {
-	vec3* location;
-	vec3* color;
-	Real* amplitude;
-	Real* phase;
+	ulonglong n_points;
+	int n_colors;
+	Real *vertex;
+	Real *color;
+	Real *phase;
+	bool isPhaseParse;
 
-	OphPointCloudData() :location(nullptr), color(nullptr), amplitude(nullptr), phase(nullptr) {}
+	OphPointCloudData() :vertex(nullptr), color(nullptr), phase(nullptr) { n_points = 0; n_colors = 0; isPhaseParse = 0; }
 };
 struct GEN_DLL OphDepthMapConfig {
 	Real				field_lens;					///< FIELD_LENS at config file

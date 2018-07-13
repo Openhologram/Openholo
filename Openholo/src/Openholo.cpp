@@ -214,6 +214,8 @@ void Openholo::fft1(int n, Complex<Real>* in, int sign, uint flag)
 		fft_in[i][_IM] = in[i].imag();
 	}
 
+	fft_sign = sign;
+
 	if (sign == OPH_FORWARD)
 		plan_fwd = fftw_plan_dft_1d(n, fft_in, fft_out, sign, flag);
 	else if (sign == OPH_BACKWARD)
@@ -240,6 +242,8 @@ void Openholo::fft2(oph::ivec2 n, Complex<Real>* in, int sign, uint flag)
 		fft_in[i][_IM] = in[i].imag();
 	}
 
+	fft_sign = sign;
+
 	if (sign == OPH_FORWARD)
 		plan_fwd = fftw_plan_dft_2d(pny, pnx, fft_in, fft_out, sign, flag);
 	else if (sign == OPH_BACKWARD)
@@ -265,6 +269,8 @@ void Openholo::fft3(oph::ivec3 n, Complex<Real>* in, int sign, uint flag)
 		fft_in[i][_RE] = in[i].real();
 		fft_in[i][_IM] = in[i].imag();
 	}
+
+	fft_sign = sign;
 
 	if (sign == OPH_FORWARD)
 		plan_fwd = fftw_plan_dft_3d(pnz, pny, pnx, fft_in, fft_out, sign, flag);
@@ -332,12 +338,19 @@ void Openholo::fftwShift(Complex<Real>* src, Complex<Real>* dst, int nx, int ny,
 	for (int i = 0; i < nx*ny; i++) {
 		in[i][_RE] = tmp[i][_RE];
 		in[i][_IM] = tmp[i][_IM];
+	}	
+
+	fftw_plan plan = nullptr;
+	if (!plan_fwd && !plan_bwd) {
+		plan = fftw_plan_dft_2d(ny, nx, in, out, type, OPH_ESTIMATE);
+		fftw_execute(plan);
 	}
-	
-	if (type == OPH_FORWARD)
-		fftw_execute_dft(plan_fwd, in, out);
-	else if (type == OPH_BACKWARD)
-		fftw_execute_dft(plan_bwd, in, out);
+	else {
+		if (type == OPH_FORWARD)
+			fftw_execute_dft(plan_fwd, in, out);
+		else if (type == OPH_BACKWARD)
+			fftw_execute_dft(plan_bwd, in, out);
+	}
 
 	int normalF = 1;
 	if (bNormalized) normalF = nx * ny;
@@ -350,6 +363,8 @@ void Openholo::fftwShift(Complex<Real>* src, Complex<Real>* dst, int nx, int ny,
 
 	fftw_free(in);
 	fftw_free(out);
+	if (plan)
+		fftw_destroy_plan(plan);
 
 	memset(dst, 0, sizeof(Complex<Real>)*nx*ny);
 	fftShift(nx, ny, tmp, dst);

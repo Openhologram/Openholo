@@ -91,25 +91,21 @@ public:
 	/** \ingroup getter/setter */
 	inline void getTiltAngle(vec2& tiltangle) { tiltangle = pc_config_.tilt_angle; }
 	/** \ingroup getter/setter */
-	inline vec3* getLocationPC(void) { return pc_data_.location; }
+	inline Real** getVertex(void) { return &pc_data_.vertex; }
 	/** \ingroup getter/setter */
-	inline vec3* getColorPC(void) { return pc_data_.color; }
+	inline Real** getColorPC(void) { return &pc_data_.color; }
 	/** \ingroup getter/setter */
-	inline Real* getAmplitudePC(void) { return pc_data_.amplitude; }
+	inline Real** getPhasePC(void) { return &pc_data_.phase; }
 	/** \ingroup getter/setter */
-	inline Real* getPhasePC(void) { return pc_data_.phase; }
-	/** \ingroup getter/setter */
-	inline void setPointCloudModel(vec3* location, vec3 *color, Real *amplitude, Real *phase) {
-		pc_data_.location = location;
+	inline void setPointCloudModel(Real* vertex, Real* color, Real *phase) {
+		pc_data_.vertex = vertex;
 		pc_data_.color = color;
-		pc_data_.amplitude = amplitude;
 		pc_data_.phase = phase;
 	}
 	/** \ingroup getter/setter */
-	inline void getPointCloudModel(vec3 *location, vec3 *color, Real *amplitude, Real *phase) {
-		getModelLocation(location);
+	inline void getPointCloudModel(Real *vertex, Real *color, Real *phase) {
+		getModelLocation(vertex);
 		getModelColor(color);
-		getModelAmplitude(amplitude);
 		getModelPhase(phase);
 	}
 
@@ -124,9 +120,8 @@ public:
 	* @param Amplitude 3D Point Cloud Model Amplitude Data of Point-Based Light Wave
 	* @param Phase 3D Point Cloud Model Phase Data of Point-Based Light Wave
 	*/
-	inline void getModelLocation(vec3 *location) { location = pc_data_.location; }
-	inline void getModelColor(vec3 *color) { color = pc_data_.color; }
-	inline void getModelAmplitude(Real *amplitude) { amplitude = pc_data_.amplitude; }
+	inline void getModelLocation(Real *vertex) { vertex = pc_data_.vertex; }
+	inline void getModelColor(Real *color) { color = pc_data_.color; }
 	inline void getModelPhase(Real *phase) { phase = pc_data_.phase; }
 	inline int getNumberOfPoints() { return n_points; }
 
@@ -155,7 +150,7 @@ public:
 	* @param InputModelFile PointCloud(*.dat) input file path
 	* @return number of Pointcloud (if it failed loading, it returned -1)
 	*/
-	virtual int loadPointCloud(const char* pc_file, uint flag = PC_XYZ | PC_PHASE | PC_AMPLITUDE);
+	virtual int loadPointCloud(const char* pc_file);
 
 	/**
 	\defgroup Import_Configfile
@@ -173,7 +168,6 @@ public:
 	* @return implement time (sec)
 	*/
 	double generateHologram();
-	double diffract(void);
 	void encode(void);
 
 private:

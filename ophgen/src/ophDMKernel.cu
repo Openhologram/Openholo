@@ -1,5 +1,5 @@
-#ifndef OphPCKernel_cu__
-#define OphPCKernel_cu__
+#ifndef ophDMKernel_cu__
+#define ophDMKernel_cu__
 
 #include <cuda_runtime.h>
 #include <cuComplex.h>
@@ -269,4 +269,4 @@ void cudaChangeDepthQuanKernel(CUstream_st* stream, int pnx, int pny, double* de
 		dtr, d1, d2, params_num_of_depth, params_far_depthmap, params_near_depthmap);
 }
 
-#endif // !OphPCKernel_cu__
+#endif // !ophDMKernel_cu__

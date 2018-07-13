@@ -30,6 +30,7 @@
     <ClInclude Include="src\ivec.h" />
     <ClInclude Include="src\mat.h" />
     <ClInclude Include="src\Openholo.h" />
+    <ClInclude Include="src\PLYparser.h" />
     <ClInclude Include="src\struct.h" />
     <ClInclude Include="src\sys.h" />
     <ClInclude Include="src\typedef.h" />
@@ -38,6 +39,7 @@
   <ItemGroup>
     <ClCompile Include="src\epsilon.cpp" />
     <ClCompile Include="src\Openholo.cpp" />
+    <ClCompile Include="src\PLYparser.cpp" />
     <ClCompile Include="src\sys.cpp" />
     <ClCompile Include="src\vec.cpp" />
   </ItemGroup>
