@@ -298,14 +298,3 @@ void ophPointCloud::ophFree(void)
 	delete[] pc_data_.color;
 	delete[] pc_data_.phase;
 }
-
-void ophPointCloud::Test(void)
-{
-	Complex<Real> *holo = new Complex<Real>[4];
-	Complex<Real> *AS = new Complex<Real>[4];
-
-	ivec2 holosize(2, 2);
-	
-	fft2(holosize, holo, OPH_FORWARD, OPH_ESTIMATE);
-	fftwShift(holo, AS, holosize[_X], holosize[_Y], 1);
-}
