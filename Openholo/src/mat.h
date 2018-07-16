@@ -349,15 +349,15 @@ namespace oph
 		}
 
 		//print test
-		void Print(const char* _context) {
-			for (int x = 0; x < size[_X]; x++) {
-				for (int y = 0; y < size[_Y]; y++) {
-					printf(_context, mat[x][y]);
-				}
-				cout << endl;
-			}
-			cout << endl;
-		}
+		//void Print(const char* _context) {
+		//	for (int x = 0; x < size[_X]; x++) {
+		//		for (int y = 0; y < size[_Y]; y++) {
+		//			printf(_context, mat[x][y]);
+		//		}
+		//		cout << endl;
+		//	}
+		//	cout << endl;
+		//}
 	};
 
 	typedef oph::matrix<int> OphIntField;

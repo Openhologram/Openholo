@@ -14,24 +14,6 @@
 #include <omp.h>
 #endif
 
-/* CUDA Library Include */
-#include <cuda.h>
-#include <cuda_runtime.h>
-#include <cuda_runtime_api.h>
-#include <device_functions.h>
-#include <device_launch_parameters.h>
-
-#define __CUDA_INTERNAL_COMPILATION__ //for CUDA Math Module
-#include <math_constants.h>
-#include <math_functions.h> //Single Precision Floating
-//#include <math_functions_dbl_ptx3.h> //Double Precision Floating
-#include <vector_functions.h> //Vector Processing Function
-
-#undef __CUDA_INTERNAL_COMPILATION__
-
-#define THREAD_X 32
-#define THREAD_Y 16
-
 /* Bitmap File Definition*/
 #define OPH_Bitsperpixel 8 //24 // 3byte=24 
 #define OPH_Planes 1
@@ -209,10 +191,6 @@ private:
 	* @return implement time (sec)
 	*/
 	void genCghPointCloudGPU(uint diff_flag);
-	void diffractEncodedRS_GPU(void);
-	void diffractNotEncodedRS_GPU(void);
-	void diffractEncodedFrsn_GPU(void);
-	void diffractNotEncodedFrsn_GPU(void);
 
 	/** @}	*/
 
@@ -231,10 +209,5 @@ private:
 	OphPointCloudConfig pc_config_;
 	OphPointCloudData	pc_data_;
 };
-
-//extern "C"
-//{
-//	void cudaPointCloudKernel(const int block_x, const int block_y, const int thread_x, const int thread_y, float3 *PointCloud, Real *amplitude, const GpuConst *Config, Real *dst);
-//}
 
 #endif // !__ophPointCloud_h
