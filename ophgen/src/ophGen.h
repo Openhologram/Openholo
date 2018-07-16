@@ -34,13 +34,16 @@ struct OphDepthMapConfig;
 struct OphDepthMapParams;
 //struct OphDepthMapSimul;
 
+enum PC_DIFF_FLAG {
+	PC_DIFF_RS_ENCODED,
+	PC_DIFF_FRESNEL_ENCODED,
+	PC_DIFF_RS_NOT_ENCODED,
+	PC_DIFF_FRESNEL_NOT_ENCODED,
+};
+
 class GEN_DLL ophGen : public Openholo
 {
 public:
-	enum DIFF_FLAG {
-		DIFF_RS,
-		DIFF_FRESNEL,
-	};
 
 	enum ENCODE_FLAG {
 		ENCODE_PHASE,

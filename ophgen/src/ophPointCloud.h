@@ -167,7 +167,7 @@ public:
 	* @brief Generate a hologram, main funtion.
 	* @return implement time (sec)
 	*/
-	double generateHologram();
+	double generateHologram(uint diff_flag = PC_DIFF_RS_ENCODED);
 	void encode(void);
 
 private:
@@ -182,7 +182,11 @@ private:
 	* @param dst Output Fringe Pattern
 	* @return implement time (sec)
 	*/
-	void genCghPointCloudCPU(Real* dst);
+	void genCghPointCloudCPU(uint diff_flag);
+	void diffractEncodedRS_CPU(ivec2 pn, vec2 pp, vec2 ss, vec3 vertex, Real k, Real amplitude, vec2 theta);
+	void diffractNotEncodedRS_CPU(ivec2 pn, vec2 pp, vec2 ss, vec3 vertex, Real k, Real amplitude, Complex<Real> lambda);
+	void diffractEncodedFrsn_CPU(void);
+	void diffractNotEncodedFrsn_CPU(void);
 
 	/**
 	* @overload
@@ -204,7 +208,11 @@ private:
 	* @param dst Output Fringe Pattern
 	* @return implement time (sec)
 	*/
-	void genCghPointCloudGPU(Real* dst);
+	void genCghPointCloudGPU(uint diff_flag);
+	void diffractEncodedRS_GPU(void);
+	void diffractNotEncodedRS_GPU(void);
+	void diffractEncodedFrsn_GPU(void);
+	void diffractNotEncodedFrsn_GPU(void);
 
 	/** @}	*/
 
@@ -224,9 +232,9 @@ private:
 	OphPointCloudData	pc_data_;
 };
 
-extern "C"
-{
-	void cudaPointCloudKernel(const int block_x, const int block_y, const int thread_x, const int thread_y, float3 *PointCloud, Real *amplitude, const GpuConst *Config, Real *dst);
-}
+//extern "C"
+//{
+//	void cudaPointCloudKernel(const int block_x, const int block_y, const int thread_x, const int thread_y, float3 *PointCloud, Real *amplitude, const GpuConst *Config, Real *dst);
+//}
 
 #endif // !__ophPointCloud_h
