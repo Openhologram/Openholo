@@ -51,7 +51,7 @@ typedef struct KernelConst {
 	double pp_X; /// Pixel pitch of SLM in x direction
 	double pp_Y; /// Pixel pitch of SLM in y direction
 	double half_ss_X; /// (pixel_x * nx) / 2
-	double half_ss_Y; /// (pixel_y * ny) / 2
+	double half_ss_Y; /// (pixel_y * ny) / 2 
 
 	KernelConst(
 		const int &n_points,		/// number of point cloud
