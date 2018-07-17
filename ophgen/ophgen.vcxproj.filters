@@ -51,6 +51,9 @@
     <ClInclude Include="src\ophPointCloud.h">
       <Filter>_1_Generation\_ophPointCloud</Filter>
     </ClInclude>
+    <ClInclude Include="src\ophPointCloud_GPU.h">
+      <Filter>_1_Generation\_ophPointCloud</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\ophDepthMap_GPU.cpp">
@@ -72,6 +75,9 @@
     </ClCompile>
     <ClCompile Include="src\ophDepthMap_CPU.cpp">
       <Filter>_1_Generation\_ophDepthMap</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ophPointCloud_GPU.cpp">
+      <Filter>_1_Generation\_ophPointCloud</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
