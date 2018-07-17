@@ -6,20 +6,9 @@
 #ifndef __ophSig_h
 #define __ophSig_h
 
-
 #include "Openholo.h"
-
-/**
-* @brief openCV library link
-*/
-#pragma comment(lib,"opencv_world340.lib")
-#include "opencv\cv.hpp"
-
-/**
-* @brief cwo++ library link
-*/
-#pragma comment(lib,"cwo.lib")
-#include <cwo.h>
+#include "tinyxml2.h"
+#include "sys.h"
 
 #ifdef SIG_EXPORT
 #define SIG_DLL __declspec(dllexport)
@@ -30,11 +19,11 @@
 struct SIG_DLL ophSigConfig {
 	int rows;
 	int cols;
-	double width;
-	double height;
-	double lambda[3];
-	double NA;
-	double z;
+	float width;
+	float height;
+	double lambda;
+	float NA;
+	float z;
 };
 
 class SIG_DLL ophSig : public Openholo
@@ -51,41 +40,62 @@ protected:
 	*/
 	virtual ~ophSig(void) = default;
 
+	/**
+	* @brief Import and export complex hologram data
+	*/
+	bool load(const char *real, const char *imag, uint8_t bitpixel);
+	bool save(const char *real, const char *imag, uint8_t bitpixel);
+
 protected:
-	cv::Mat linspace(float first, float last, int len);
-	void add(cv::Mat &A, cv::Mat &B, cv::Mat &out);
-	void exp(cv::Mat &in, cv::Mat &out);
-	void mul(cv::Mat &A, cv::Mat &B, cv::Mat &out);
-	void min(cv::Mat &in, float &out);
-	void max(cv::Mat &in, float &out);
-	void fftshift(cv::Mat &in, cv::Mat &out);
-	void fftshift2d(cv::Mat &in, cv::Mat &out);
-	void fft1d(cv::Mat &in, cv::Mat &out);
-	void fft2d(cv::Mat &in, cv::Mat &out);
-	void ifft2d(cv::Mat &in, cv::Mat &out);
-	void mean(cv::Mat &in, float &out);
-	void conj(cv::Mat &in, cv::Mat &out);
-	void meshgrid(const cv::Mat&x, const cv::Mat &y, cv::Mat &a, cv::Mat &b);
-	void abs(cv::Mat &in, cv::Mat &out);
-	void div(cv::Mat &A, cv::Mat &B, cv::Mat &out);
-	void linInterp(cv::Mat &X, cv::Mat &in, cv::Mat &Xq, cv::Mat &out);
-	void nmz(cv::Mat &input, cv::Mat &output);
+	vector<Real> linspace(double first, double last, int len);
+	template<typename T>
+	void linInterp(vector<T> &X, matrix<Complex<T>> &in, vector<T> &Xq, matrix<Complex<T>> &out);
+
+	template<typename T>
+	inline void absMat(matrix<Complex<T>>& src, matrix<T>& dst);
+	template<typename T>
+	inline void absMat(matrix<T>& src, matrix<T>& dst);
+	template<typename T>
+	inline void angleMat(matrix<Complex<T>>& src, matrix<T>& dst);
+	template<typename T>
+	inline void conjMat(matrix<Complex<T>>& src, matrix<Complex<T>>& dst);
+	template<typename T>
+	inline void expMat(matrix<Complex<T>>& src, matrix<Complex<T>>& dst);
+	template<typename T>
+	inline void expMat(matrix<T>& src, matrix<T>& dst);
+	template<typename T>
+	inline void meanOfMat(matrix<T> &input, double &output);
+	template<typename T>
+	inline Real maxOfMat(matrix<T>& src);
+	template<typename T>
+	inline Real minOfMat(matrix<T>& src);
+
+	template<typename T>
+	void meshgrid(vector<T>& src1, vector<T>& src2, matrix<T>& dst1, matrix<T>& dst2);
+
+	template<typename T>
+	void fft1(matrix<Complex<T>> &src, matrix<Complex<T>> &dst, int sign = OPH_FORWARD, uint flag = OPH_ESTIMATE);
+	template<typename T>
+	void fft2(matrix<Complex<T>> &src, matrix<Complex<T>> &dst, int sign = OPH_FORWARD, uint flag = OPH_ESTIMATE);
+	template<typename T>
+	void fftShift(matrix<Complex<T>> &src, matrix<Complex<T>> &dst);
 
 public:
-	/**
-	* @brief Import complex hologram data
-	*/
-	virtual bool loadHolo(std::string cosh, std::string sinh, std::string type, float flag);
-	
-	virtual bool saveHolo(std::string cosh, std::string sinh, std::string type, float flag);
-	
-	virtual bool loadParam(std::string cfg);
+	bool readConfig(const char* fname);
 
-	virtual bool propagationHolo(float depth);
+	bool sigConvertOffaxis();
 
-	virtual bool propagationHolo(float depth, float lambda);
+	bool sigConvertHPO();
 
-	virtual cv::Mat propagationHolo(cv::Mat complexH, float depth);
+	bool sigConvertCAC(double red, double green, double blue);
+
+	bool propagationHolo(float depth);
+
+	Mat propagationHolo(Mat complexH, float depth);
+
+	double sigGetParamAT();
+
+	double sigGetParamSF(float zMax, float zMin, int sampN, float th);
 	
 protected:
 	/**
@@ -94,7 +104,12 @@ protected:
 	virtual void ophFree(void);
 
 	ophSigConfig _cfgSig;
-	cv::Mat complexH;
+	Mat ComplexH[3];
+	float _angleX;
+	float _angleY;
+	float _redRate;
+	float _radius;
+	float _foc[3];
 };
 
 #endif // !__ophSig_h
