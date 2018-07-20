@@ -125,16 +125,14 @@ void ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 	ss[_X] = context_.ss[_X];
 	ss[_Y] = context_.ss[_Y];
 
-	Complex<Real> lambda(1, context_.lambda);
-
 	int j; // private variable for Multi Threading
-#ifdef _OPENMP
+//#ifdef _OPENMP
 	int num_threads = 0;
-#pragma omp parallel
+//#pragma omp parallel
 {
 	num_threads = omp_get_num_threads(); // get number of Multi Threading
-#pragma omp for private(j)
-#endif
+//#pragma omp for private(j)
+//#endif
 	for (j = 0; j < n_points; ++j) { //Create Fringe Pattern
 		uint idx = 3 * j;
 		uint color_idx = pc_data_.n_colors * j;
@@ -146,16 +144,16 @@ void ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 		switch (diff_flag)
 		{
 		case PC_DIFF_RS_ENCODED:
-			diffractEncodedRS_CPU(pn, pp, ss, vec3(pcx, pcy, pcz), k, amplitude, vec2(thetaX, thetaY));
+			diffractEncodedRS(pn, pp, ss, vec3(pcx, pcy, pcz), k, amplitude, vec2(thetaX, thetaY));
 			break;
 		case PC_DIFF_RS_NOT_ENCODED:
-			diffractNotEncodedRS_CPU(pn, pp, ss, vec3(pcx, pcy, pcz), k, amplitude, lambda);
+			diffractNotEncodedRS(pn, pp, ss, vec3(pcx, pcy, pcz), k, amplitude, context_.lambda);
 			break;
 		case PC_DIFF_FRESNEL_ENCODED:
-			diffractEncodedFrsn_CPU();
+			diffractEncodedFrsn();
 			break;
 		case PC_DIFF_FRESNEL_NOT_ENCODED:
-			diffractNotEncodedFrsn_CPU();
+			diffractNotEncodedFrsn();
 			break;
 		}
 	}
@@ -165,7 +163,7 @@ void ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 #endif
 }
 
-void ophPointCloud::diffractEncodedRS_CPU(ivec2 pn, vec2 pp, vec2 ss, vec3 vertex, Real k, Real amplitude, vec2 theta)
+void ophPointCloud::diffractEncodedRS(ivec2 pn, vec2 pp, vec2 ss, vec3 vertex, Real k, Real amplitude, vec2 theta)
 {
 	for (int row = 0; row < pn[_Y]; ++row) {
 		// Y coordinate of the current pixel : Note that pcy index is reversed order
@@ -180,17 +178,20 @@ void ophPointCloud::diffractEncodedRS_CPU(ivec2 pn, vec2 pp, vec2 ss, vec3 verte
 			Real result = amplitude * cos(phi);
 
 			holo_encoded[col + row * pn[_X]] += result; //R-S Integral
+
+			//LOG("(%3d, %3d) [%7d] : ", col, row, col + row * pn[_X]);
+			//LOG("holo=(%15.5lf)\n", holo_encoded[col + row * pn[_X]]);
 		}
 	}
 }
 
-void ophPointCloud::diffractNotEncodedRS_CPU(ivec2 pn, vec2 pp, vec2 ss, vec3 vertex, Real k, Real amplitude, Complex<Real> lambda)
+void ophPointCloud::diffractNotEncodedRS(ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Real k, Real amplitude, Real lambda)
 {
 	Real tx = context_.lambda / (2 * pp[_X]);
 	Real ty = context_.lambda / (2 * pp[_Y]);
 
-	Real xbound[2] = { vertex[_X] + abs(tx / sqrt(1 - pow(tx, 2)) * vertex[_Z]), vertex[_X] - abs(tx / sqrt(1 - pow(tx, 2)) * vertex[_Z]) };
-	Real ybound[2] = { vertex[_Y] + abs(ty / sqrt(1 - pow(ty, 2)) * vertex[_Z]), vertex[_Y] - abs(ty / sqrt(1 - pow(ty, 2)) * vertex[_Z]) };
+	Real xbound[2] = { pc[_X] + abs(tx / sqrt(1 - (tx * tx)) * pc[_Z]), pc[_X] - abs(tx / sqrt(1 - (tx * tx)) * pc[_Z]) };
+	Real ybound[2] = { pc[_Y] + abs(ty / sqrt(1 - (ty * ty)) * pc[_Z]), pc[_Y] - abs(ty / sqrt(1 - (ty * ty)) * pc[_Z]) };
 
 	Real Xbound[2] = { floor((xbound[0] + ss[_X] / 2) / pp[_X]) + 1, floor((xbound[1] + ss[_X] / 2) / pp[_X]) + 1 };
 	Real Ybound[2] = { pn[_Y] - floor((ybound[1] + ss[_Y] / 2) / pp[_Y]), pn[_Y] - floor((ybound[0] + ss[_Y] / 2) / pp[_Y]) };
@@ -200,44 +201,47 @@ void ophPointCloud::diffractNotEncodedRS_CPU(ivec2 pn, vec2 pp, vec2 ss, vec3 ve
 	if (Ybound[0] > pn[_Y]) Ybound[0] = pn[_Y];
 	if (Ybound[1] < 0)		Ybound[1] = 0;
 
-	for (int xxtr = Xbound[1]; xxtr < Xbound[0]; xxtr++)
+	for (int yytr = Ybound[1]; yytr < Ybound[0]; yytr++)
 	{
-		for (int yytr = Ybound[1]; yytr < Ybound[0]; yytr++)
+		for (int xxtr = Xbound[1]; xxtr < Xbound[0]; xxtr++)
 		{
 			Real xxx = (-ss[_X]) / 2 + (xxtr - 1) * pp[_X];
 			Real yyy = (-ss[_Y]) / 2 + (pn[_Y] - yytr) * pp[_Y];
-			Real r = sqrt(pow(xxx - vertex[_X], 2) + pow(yyy - vertex[_Y], 2) + pow(vertex[_Z], 2));
+			Real r = sqrt((xxx - pc[_X]) * (xxx - pc[_X]) + (yyy - pc[_Y]) * (yyy - pc[_Y]) + (pc[_Z] * pc[_Z]));
 
 			Real range_x[2] = {
-				vertex[_X] + abs(tx / sqrt(1 - pow(tx, 2)) * sqrt(pow(yyy - vertex[_Y], 2) + pow(vertex[_Z], 2))),
-				vertex[_X] - abs(tx / sqrt(1 - pow(tx, 2)) * sqrt(pow(yyy - vertex[_Y], 2) + pow(vertex[_Z], 2)))
+				pc[_X] + abs(tx / sqrt(1 - (tx * tx)) * sqrt((yyy - pc[_Y]) * (yyy - pc[_Y]) + (pc[_Z] * pc[_Z]))),
+				pc[_X] - abs(tx / sqrt(1 - (tx * tx)) * sqrt((yyy - pc[_Y]) * (yyy - pc[_Y]) + (pc[_Z] * pc[_Z])))
 			};
 
 			Real range_y[2] = {
-				vertex[_Y] + abs(ty / sqrt(1 - pow(ty, 2)) * sqrt(pow(xxx - vertex[_X], 2) + pow(vertex[_Z], 2))),
-				vertex[_X] - abs(ty / sqrt(1 - pow(ty, 2)) * sqrt(pow(xxx - vertex[_X], 2) + pow(vertex[_Z], 2)))
+				pc[_Y] + abs(ty / sqrt(1 - (ty * ty)) * sqrt((xxx - pc[_X]) * (xxx - pc[_X]) + (pc[_Z] * pc[_Z]))),
+				pc[_X] - abs(ty / sqrt(1 - (ty * ty)) * sqrt((xxx - pc[_X]) * (xxx - pc[_X]) + (pc[_Z] * pc[_Z])))
 			};
 
-			Complex<Real> kr(1, k * r);
-
 			if ((xxx < range_x[0] && xxx > range_x[1]) && (yyy < range_y[0] && yyy > range_y[1])) {
-				auto res = (amplitude * (-vertex[_Z]) / lambda) * (kr.exp() / pow(r, 2));
+				Real kr = k * r;
 
-				holo_gen[xxtr + yytr * pn[_X]][_RE] = res[_RE];
-				holo_gen[xxtr + yytr * pn[_X]][_IM] = res[_IM];
+				auto res_real = amplitude * (pc[_Z]) * sin(kr) / (lambda * r * r);
+				auto res_imag = amplitude * (pc[_Z]) * cos(kr) / (lambda * r * r);
 
-				LOG("(%3d, %3d) [%7d] : ", xxtr, yytr, xxtr + yytr * pn[_X]);
-				LOG("holo=(%15.5lf + %20.10lf * i )\n", holo_gen[xxtr + yytr * pn[_X]][_RE], holo_gen[xxtr + yytr * pn[_X]][_IM]);
+				holo_gen[xxtr + yytr * pn[_X]][_RE] += res_real;
+				holo_gen[xxtr + yytr * pn[_X]][_IM] += res_imag;
+
+				//holo_encoded[xxtr + yytr * pn[_X]] += res_real;
+
+				//LOG("(%3d, %3d) [%7d] : ", xxtr, yytr, xxtr + yytr * pn[_X]);
+				//LOG("holo=(%15.5lf + %20.10lf * i )\n", holo_gen[xxtr + yytr * pn[_X]][_RE], holo_gen[xxtr + yytr * pn[_X]][_IM]);
 			}
 		}
 	}
 }
 
-void ophPointCloud::diffractEncodedFrsn_CPU(void)
+void ophPointCloud::diffractEncodedFrsn(void)
 {
 }
 
-void ophPointCloud::diffractNotEncodedFrsn_CPU(void)
+void ophPointCloud::diffractNotEncodedFrsn(void)
 {
 }
 

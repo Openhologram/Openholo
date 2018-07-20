@@ -97,10 +97,9 @@ public:
 
 	virtual void normalize(void);
 
-
 	/** \ingroup write_module */
 	virtual int save(const char* fname, uint8_t bitsperpixel = 8, uchar* src = nullptr, uint px = 0, uint py = 0);
-	virtual int load(const char* fname, void* dst = nullptr);
+	virtual void* load(const char* fname);
 
 	/**	*/
 
