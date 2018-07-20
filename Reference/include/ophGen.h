@@ -154,6 +154,9 @@ protected:
 	ivec2 encode_size;
 public:
 	ivec2& getEncodeSize(void) { return encode_size; }
+public:
+	void fresnelPropagation(OphContext context, Complex<Real>* in, Complex<Real>* out, Real distance);
+	void fresnelPropagation(Complex<Real>* in, Complex<Real>* out, Real distance);
 protected:
 	/** \ingroup encode_module
 	/**

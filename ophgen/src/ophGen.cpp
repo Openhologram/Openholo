@@ -716,20 +716,10 @@ void ophGen::singleSideBand(oph::Complex<Real>* holo, Real* encoded, const ivec2
 {
 	int size = holosize[_X] * holosize[_Y];
 
-	for_i(20,
-		cout << *(holo + i) << endl;);
-	cin.get();
-
-
 	oph::Complex<Real>* AS = new oph::Complex<Real>[size];
 	fft2(holosize, holo, OPH_FORWARD, OPH_ESTIMATE);
-	fftExecute(AS);
-	
-	for_i(20,
-		cout << *(AS + i) << endl;);
-	cin.get();
-
-	//fftwShift(holo, AS, holosize[_X], holosize[_Y], 1);
+	fftwShift(holo, AS, holosize[_X], holosize[_Y], OPH_FORWARD, false);
+	//fftExecute(temp);
 
 	switch (SSB_PASSBAND)
 	{
@@ -768,8 +758,10 @@ void ophGen::singleSideBand(oph::Complex<Real>* holo, Real* encoded, const ivec2
 
 	oph::Complex<Real>* filtered = new oph::Complex<Real>[size];
 	fft2(holosize, AS, OPH_BACKWARD, OPH_ESTIMATE);
-	
-	fftExecute(filtered);
+	fftwShift(AS, filtered, holosize[_X], holosize[_Y], OPH_BACKWARD, false);
+
+	//fftExecute(filtered);
+
 
 	Real* realFiltered = new Real[size];
 	oph::realPart<Real>(filtered, realFiltered, size);
@@ -793,6 +785,135 @@ void ophGen::freqShift(oph::Complex<Real>* src, Complex<Real>* dst, const ivec2 
 
 	fft2(holosize, shifted, OPH_BACKWARD, OPH_ESTIMATE);
 	fftExecute(dst);
+}
+
+
+void ophGen::fresnelPropagation(OphContext context, Complex<Real>* in, Complex<Real>* out, Real distance) {
+
+	int Nx = context.pixel_number[_X];
+	int Ny = context.pixel_number[_Y];
+
+	Complex<Real>* in2x = new Complex<Real>[Nx*Ny * 4];
+	Complex<Real> zero(0, 0);
+	oph::memsetArr<Complex<Real>>(in2x, zero, 0, Nx*Ny * 4 - 1);
+
+	uint idxIn = 0;
+
+	for (uint idxNy = Ny / 2; idxNy < Ny + (Ny / 2); idxNy++) {
+		for (uint idxNx = Nx / 2; idxNx < Nx + (Nx / 2); idxNx++) {
+
+			in2x[idxNy*Nx * 2 + idxNx] = in[idxIn];
+			idxIn++;
+		}
+	}
+
+	Complex<Real>* temp1 = new Complex<Real>[Nx*Ny * 4];
+
+	fft2((Nx * 2, Ny * 2), in2x, OPH_FORWARD, OPH_ESTIMATE);
+	fftExecute(temp1);
+
+	Real* fx = new Real[Nx*Ny * 4];
+	Real* fy = new Real[Nx*Ny * 4];
+
+	uint i = 0;
+	for (uint idxFy = (1 - Ny); idxFy < (1 + Ny); idxFy++) {
+		for (uint idxFx = (1 - Nx); idxFx < (1 + Nx); idxFx++) {
+			fx[i] = idxFx;
+			fy[i] = idxFy;
+			i++;
+		}
+	}
+
+	Complex<Real>* prop = new Complex<Real>[Nx*Ny * 4];
+	Complex<Real> sqrtPart;
+
+	Complex<Real>* temp2 = new Complex<Real>[Nx*Ny * 4];
+
+	for (uint i = 0; i < Nx*Ny * 4; i++) {
+		sqrtPart._Val[_RE] = sqrt(1 / (context.lambda*context.lambda) - fx[i] * fx[i] - fy[i] * fy[i]);
+		prop[i] = 2 * M_PI*distance*sqrtPart;
+		temp2[i] = temp1[i] * exp(prop[i]);
+	}
+
+	Complex<Real>* temp3 = new Complex<Real>[Nx*Ny * 4];
+	fft2((Nx * 2, Ny * 2), temp2, OPH_BACKWARD, OPH_ESTIMATE);
+	fftExecute(temp3);
+
+	uint idxOut = 0;
+
+	for (uint idxNy = Ny / 2; idxNy < Ny + (Ny / 2); idxNy++) {
+		for (uint idxNx = Nx / 2; idxNx < Nx + (Nx / 2); idxNx++) {
+
+			out[idxOut] = temp3[idxNy*Nx * 2 + idxNx];
+			idxOut++;
+		}
+	}
+
+	delete[] in2x, temp1, fx, fy, prop, temp2, temp3;
+}
+
+void ophGen::fresnelPropagation(Complex<Real>* in, Complex<Real>* out, Real distance) {
+
+	int Nx = context_.pixel_number[_X];
+	int Ny = context_.pixel_number[_Y];
+
+	Complex<Real>* in2x = new Complex<Real>[Nx*Ny * 4];
+	Complex<Real> zero(0, 0);
+	oph::memsetArr<Complex<Real>>(in2x, zero, 0, Nx*Ny * 4 - 1);
+
+	uint idxIn = 0;
+
+	for (uint idxNy = Ny / 2; idxNy < Ny + (Ny / 2); idxNy++) {
+		for (uint idxNx = Nx / 2; idxNx < Nx + (Nx / 2); idxNx++) {
+
+			in2x[idxNy*Nx * 2 + idxNx] = in[idxIn];
+			idxIn++;
+		}
+	}
+
+	Complex<Real>* temp1 = new Complex<Real>[Nx*Ny * 4];
+
+	fft2((Nx * 2, Ny * 2), in2x, OPH_FORWARD, OPH_ESTIMATE);
+	fftExecute(temp1);
+
+	Real* fx = new Real[Nx*Ny * 4];
+	Real* fy = new Real[Nx*Ny * 4];
+
+	uint i = 0;
+	for (uint idxFy = (1 - Ny); idxFy < (1 + Ny); idxFy++) {
+		for (uint idxFx = (1 - Nx); idxFx < (1 + Nx); idxFx++) {
+			fx[i] = idxFx;
+			fy[i] = idxFy;
+			i++;
+		}
+	}
+
+	Complex<Real>* prop = new Complex<Real>[Nx*Ny * 4];
+	Complex<Real> sqrtPart;
+
+	Complex<Real>* temp2 = new Complex<Real>[Nx*Ny * 4];
+
+	for (uint i = 0; i < Nx*Ny * 4; i++) {
+		sqrtPart._Val[_RE] = sqrt(1 / (context_.lambda*context_.lambda) - fx[i] * fx[i] - fy[i] * fy[i]);
+		prop[i] = 2 * M_PI*distance*sqrtPart;
+		temp2[i] = temp1[i] * exp(prop[i]);
+	}
+
+	Complex<Real>* temp3 = new Complex<Real>[Nx*Ny * 4];
+	fft2((Nx * 2, Ny * 2), temp2, OPH_BACKWARD, OPH_ESTIMATE);
+	fftExecute(temp3);
+
+	uint idxOut = 0;
+
+	for (uint idxNy = Ny / 2; idxNy < Ny + (Ny / 2); idxNy++) {
+		for (uint idxNx = Nx / 2; idxNx < Nx + (Nx / 2); idxNx++) {
+
+			out[idxOut] = temp3[idxNy*Nx * 2 + idxNx];
+			idxOut++;
+		}
+	}
+
+	delete[] in2x, temp1, fx, fy, prop, temp2, temp3;
 }
 
 

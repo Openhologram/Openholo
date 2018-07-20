@@ -30,7 +30,7 @@ namespace oph
 		for (auto item : arr) { if (item < min) min = item; }
 		return min;
 	}
-	
+
 	inline const Real minOfArr(const Real* src, const int& size) {
 		Real min = MAX_DOUBLE;
 		for (int i = 0; i < size; i++) {
@@ -51,6 +51,17 @@ namespace oph
 			if (*(src + i) > max) max = *(src + i);
 		}
 		return max;
+	}
+
+	inline const Real average(const Real* src, const int& size) {
+		Real ave;
+		Real sum = 0;
+		for (int i = 0; i < size; i++) {
+			sum += *(src + i);
+		}
+		ave = sum / size;
+
+		return ave;
 	}
 
 	template<typename T>

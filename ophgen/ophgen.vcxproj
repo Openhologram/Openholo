@@ -106,11 +106,11 @@ xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)Reference\include\"
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="ophTriangle.h" />
     <ClInclude Include="src\ophDepthMap.h" />
     <ClInclude Include="src\ophGen.h" />
     <ClInclude Include="src\ophLightField.h" />
     <ClInclude Include="src\ophPointCloud.h" />
+    <ClInclude Include="src\ophTriMesh.h" />
     <ClInclude Include="src\ophWRP.h" />
     <ClInclude Include="src\tinyxml2.h" />
   </ItemGroup>
@@ -121,6 +121,9 @@ xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)Reference\include\"
     <ClCompile Include="src\ophGen.cpp" />
     <ClCompile Include="src\ophLightField.cpp" />
     <ClCompile Include="src\ophPointCloud.cpp" />
+    <ClCompile Include="src\ophTriMesh.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="src\ophWRP.cpp" />
     <ClCompile Include="src\tinyxml2.cpp" />
   </ItemGroup>
