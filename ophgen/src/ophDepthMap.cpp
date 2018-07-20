@@ -68,7 +68,7 @@ bool ophDepthMap::readConfig(const char * fname)
 
 double ophDepthMap::generateHologram(void)
 {
-	auto time_start = CUR_TIME;
+	auto start_time = CUR_TIME;
 
 	initialize();
 
@@ -76,15 +76,16 @@ double ophDepthMap::generateHologram(void)
 		LOG("Error: Reading image.\n");
 
 	getDepthValues();
-
-	//if (dm_params_.Transform_Method_ == 0)
-		transformViewingWindow();
-
+	transformViewingWindow();
 	calcHoloByDepth();
 
-	auto time_end = CUR_TIME;
+	auto end_time = CUR_TIME;
 
-	return ((std::chrono::duration<Real>)(time_end - time_start)).count();
+	auto during_time = ((std::chrono::duration<Real>)(end_time - start_time)).count();
+
+	LOG("Implement time : %.5lf sec\n", during_time);
+
+	return during_time;
 }
 
 void ophDepthMap::encodeHologram(void)
@@ -167,7 +168,7 @@ bool ophDepthMap::readImageDepth()
 	int ret = getImgSize(w, h, bytesperpixel, imgfullname.c_str());
 
 	oph::uchar* imgload = new uchar[w*h*bytesperpixel];
-	ret = loadAsImg(imgfullname.c_str(), (void*)imgload);
+	ret = loadAsImgUpSideDown(imgfullname.c_str(), imgload);
 	if (!ret) {
 		LOG("Failed::Image Load: %s\n", imgfullname.c_str());
 		return false;
@@ -195,7 +196,7 @@ bool ophDepthMap::readImageDepth()
 	ret = getImgSize(dw, dh, dbytesperpixel, dimgfullname.c_str());
 
 	uchar* dimgload = new uchar[dw*dh*dbytesperpixel];
-	ret = loadAsImg(dimgfullname.c_str(), (void*)dimgload);
+	ret = loadAsImgUpSideDown(dimgfullname.c_str(), dimgload);
 	if (!ret) {
 		LOG("Failed::Depth Image Load: %s\n", dimgfullname.c_str());
 		return false;

@@ -111,6 +111,7 @@ xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)Reference\include\"
     <ClInclude Include="src\ophLightField.h" />
     <ClInclude Include="src\ophPointCloud.h" />
     <ClInclude Include="src\ophTriMesh.h" />
+    <ClInclude Include="src\ophPointCloud_GPU.h" />
     <ClInclude Include="src\ophWRP.h" />
     <ClInclude Include="src\tinyxml2.h" />
   </ItemGroup>
@@ -121,6 +122,7 @@ xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)Reference\include\"
     <ClCompile Include="src\ophGen.cpp" />
     <ClCompile Include="src\ophLightField.cpp" />
     <ClCompile Include="src\ophPointCloud.cpp" />
+    <ClCompile Include="src\ophPointCloud_GPU.cpp" />
     <ClCompile Include="src\ophTriMesh.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClCompile>

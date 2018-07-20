@@ -16,14 +16,23 @@
     <Filter Include="_1_Generation\_ophTriangle">
       <UniqueIdentifier>{f7251fc7-2938-44bb-80cf-9066fa9a62b9}</UniqueIdentifier>
     </Filter>
-    <Filter Include="_2_WRP">
-      <UniqueIdentifier>{3d94c96f-3c96-4534-9f8d-0933ac2f84a5}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="_3_Display I/O Interface">
-      <UniqueIdentifier>{b4902fcf-3bd6-4a0c-920a-ece98a6b66a3}</UniqueIdentifier>
-    </Filter>
     <Filter Include="__ophGen">
       <UniqueIdentifier>{921179b7-6b62-4fc6-83ab-ff62fa80d57f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="__Display I/O Interface">
+      <UniqueIdentifier>{b4902fcf-3bd6-4a0c-920a-ece98a6b66a3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="_1_Generation\_ophWRP">
+      <UniqueIdentifier>{3d94c96f-3c96-4534-9f8d-0933ac2f84a5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="_1_Generation\_ophACPAS">
+      <UniqueIdentifier>{222b8b48-da8f-4c4a-be26-0c12c43784f3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="_1_Generation\_ophPAS">
+      <UniqueIdentifier>{e0beee0b-affd-43cb-8369-f48760dc5000}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="_1_Generation\_ophLUT">
+      <UniqueIdentifier>{312a3ecb-f0ce-411f-aec4-782229318ebd}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -31,7 +40,7 @@
       <Filter>__ophGen</Filter>
     </ClInclude>
     <ClInclude Include="src\ophWRP.h">
-      <Filter>_2_WRP</Filter>
+      <Filter>_1_Generation\_ophWRP</Filter>
     </ClInclude>
     <ClInclude Include="src\tinyxml2.h" />
     <ClInclude Include="src\ophDepthMap.h">
@@ -49,6 +58,9 @@
     <ClInclude Include="src\ophTriMesh.h">
       <Filter>_1_Generation\_ophTriangle</Filter>
     </ClInclude>
+    <ClInclude Include="src\ophPointCloud_GPU.h">
+      <Filter>_1_Generation\_ophPointCloud</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\ophDepthMap_GPU.cpp">
@@ -61,7 +73,7 @@
       <Filter>_1_Generation\_ophPointCloud</Filter>
     </ClCompile>
     <ClCompile Include="src\ophWRP.cpp">
-      <Filter>_2_WRP</Filter>
+      <Filter>_1_Generation\_ophWRP</Filter>
     </ClCompile>
     <ClCompile Include="src\tinyxml2.cpp" />
     <ClCompile Include="src\ophLightField.cpp">
@@ -75,6 +87,9 @@
     </ClCompile>
     <ClCompile Include="src\ophTriMesh.cpp">
       <Filter>_1_Generation\_ophTriangle</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ophPointCloud_GPU.cpp">
+      <Filter>_1_Generation\_ophPointCloud</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

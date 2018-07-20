@@ -216,7 +216,7 @@ namespace oph {
 			return Complex<T>(p) += q;
 		}
 
-		friend const Complex<T> operator+ (const Complex<T>&p, const double q) {
+		friend const Complex<T> operator+ (const Complex<T>&p, const T q) {
 			return Complex<T>(p._Val[_RE] + q, p._Val[_IM]);
 		}
 
@@ -224,7 +224,7 @@ namespace oph {
 			return Complex<T>(p) -= q;
 		}
 
-		friend const Complex<T> operator- (const Complex<T>&p, const double q) {
+		friend const Complex<T> operator- (const Complex<T>&p, const T q) {
 			return Complex<T>(p._Val[_RE] - q, p._Val[_IM]);
 		}
 
@@ -232,7 +232,7 @@ namespace oph {
 			return Complex<T>(p) *= k;
 		}
 
-		friend const Complex<T> operator* (const Complex<T>& p, const double k){
+		friend const Complex<T> operator* (const Complex<T>& p, const T k){
 			return Complex<T>(p) *= k;
 		}
 
@@ -246,6 +246,10 @@ namespace oph {
 
 		friend const Complex<T> operator/ (const Complex<T>& p, const T& q) {
 			return Complex<T>(p._Val[_RE] / q, p._Val[_IM]);
+		}
+
+		friend const Complex<T> operator/ (const T& p, const Complex<T>& q) {
+			return Complex<T>(p / q._Val[_RE], p / q._Val[_IM]);
 		}
 
 		friend bool operator< (const Complex<T>& p, const Complex<T>& q) {

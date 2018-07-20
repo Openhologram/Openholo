@@ -462,25 +462,19 @@ int ophGen::save(const char * fname, uint8_t bitsperpixel, uint px, uint py, uin
 	return 0;
 }
 
-int ophGen::load(const char * fname, void * dst)
+void* ophGen::load(const char * fname)
 {
-	if (holo_normalized != nullptr) {
-		delete[] holo_normalized;
+	if (checkExtension(fname, ".bmp")) {
+		return Openholo::loadAsImg(fname);
+	}
+	else if (checkExtension(fname, ".ohf")) {
+		return nullptr;
+	}
+	else {			// when extension is not .ohf, .bmp
+		return nullptr;
 	}
 
-	if (checkExtension(fname, ".bmp"))
-	{
-		if (dst != nullptr)
-			return Openholo::loadAsImg(fname, dst);
-		else
-			return Openholo::loadAsImg(fname, holo_normalized);
-	}
-	else			// when extension is not .ohf, .bmp
-	{
-		// how to load another image file format?
-	}
-
-	return 0;
+	return nullptr;
 }
 
 #define for_i(itr, oper) for(uint i=0; i<itr; i++){ oper }
@@ -534,26 +528,26 @@ void ophGen::encoding(unsigned int ENCODE_FLAG) {
 	const int size = context_.pixel_number.v[_X] * context_.pixel_number.v[_Y];
 
 	if (ENCODE_FLAG == ENCODE_BURCKHARDT)	{
-		encode_size.v[_X] = context_.pixel_number.v[_X] * 3;
-		encode_size.v[_Y] = context_.pixel_number.v[_Y];
+		encode_size[_X] = context_.pixel_number[_X] * 3;
+		encode_size[_Y] = context_.pixel_number[_Y];
 	}
 	else if (ENCODE_FLAG == ENCODE_TWOPHASE)	{
-		encode_size.v[_X] = context_.pixel_number.v[_X] * 2;
-		encode_size.v[_Y] = context_.pixel_number.v[_Y];
+		encode_size[_X] = context_.pixel_number[_X] * 2;
+		encode_size[_Y] = context_.pixel_number[_Y];
 	}
 	else	{
-		encode_size.v[_X] = context_.pixel_number.v[_X];
-		encode_size.v[_Y] = context_.pixel_number.v[_Y];
+		encode_size[_X] = context_.pixel_number[_X];
+		encode_size[_Y] = context_.pixel_number[_Y];
 	}
 
 	/*	initialize	*/
 	if (holo_encoded != nullptr) delete[] holo_encoded;
-	holo_encoded = new Real[encode_size.v[_X] * encode_size.v[_Y]];
-	memset(holo_encoded, 0, sizeof(Real) * encode_size.v[_X] * encode_size.v[_Y]);
+	holo_encoded = new Real[encode_size[_X] * encode_size[_Y]];
+	memset(holo_encoded, 0, sizeof(Real) * encode_size[_X] * encode_size[_Y]);
 	
 	if (holo_normalized != nullptr) delete[] holo_normalized;
-	holo_normalized = new uchar[encode_size.v[_X] * encode_size.v[_Y]];
-	memset(holo_normalized, 0, sizeof(uchar) * encode_size.v[_X] * encode_size.v[_Y]);
+	holo_normalized = new uchar[encode_size[_X] * encode_size[_Y]];
+	memset(holo_normalized, 0, sizeof(uchar) * encode_size[_X] * encode_size[_Y]);
 
 
 	switch (ENCODE_FLAG)
@@ -977,8 +971,9 @@ void ophGen::encodeSideBand_CPU(int cropx1, int cropx2, int cropy1, int cropy2, 
 			h_crop[p] = holo_gen[p];
 	}
 
-	oph::Complex<Real> *in = nullptr, *out = nullptr;
+	oph::Complex<Real> *in = nullptr;
 
+	fft2(oph::ivec2(pnx, pny), in, OPH_BACKWARD);
 	fftwShift(h_crop, h_crop, pnx, pny, OPH_BACKWARD, true);
 
 	memset(holo_encoded, 0.0, sizeof(Real)*pnx*pny);

@@ -66,7 +66,7 @@ namespace oph
 
 	template<typename T>
 	inline void abs(const oph::Complex<T>& src, oph::Complex<T>& dst) {
-		dst = std::abs(force_cast<complex<Real>>(src));
+		dst = std::abs(force_cast<std::complex<Real>>(src));
 	}
 
 	template<typename T>
