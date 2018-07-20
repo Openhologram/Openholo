@@ -78,7 +78,7 @@ Real ophPointCloud::generateHologram(uint diff_flag)
 
 void ophPointCloud::encode(void)
 {
-	encodeSideBand(is_CPU, ivec2(0, 1));
+	encodeSideBand(true, ivec2(0, 1));
 }
 
 void ophPointCloud::genCghPointCloudCPU(uint diff_flag)
@@ -106,13 +106,13 @@ void ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 	ss[_Y] = context_.ss[_Y];
 
 	int j; // private variable for Multi Threading
-//#ifdef _OPENMP
+#ifdef _OPENMP
 	int num_threads = 0;
-//#pragma omp parallel
+#pragma omp parallel
 {
 	num_threads = omp_get_num_threads(); // get number of Multi Threading
-//#pragma omp for private(j)
-//#endif
+#pragma omp for private(j)
+#endif
 	for (j = 0; j < n_points; ++j) { //Create Fringe Pattern
 		uint idx = 3 * j;
 		uint color_idx = pc_data_.n_colors * j;
