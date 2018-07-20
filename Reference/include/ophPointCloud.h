@@ -14,24 +14,6 @@
 #include <omp.h>
 #endif
 
-/* CUDA Library Include */
-#include <cuda.h>
-#include <cuda_runtime.h>
-#include <cuda_runtime_api.h>
-#include <device_functions.h>
-#include <device_launch_parameters.h>
-
-#define __CUDA_INTERNAL_COMPILATION__ //for CUDA Math Module
-#include <math_constants.h>
-#include <math_functions.h> //Single Precision Floating
-//#include <math_functions_dbl_ptx3.h> //Double Precision Floating
-#include <vector_functions.h> //Vector Processing Function
-
-#undef __CUDA_INTERNAL_COMPILATION__
-
-#define THREAD_X 32
-#define THREAD_Y 16
-
 /* Bitmap File Definition*/
 #define OPH_Bitsperpixel 8 //24 // 3byte=24 
 #define OPH_Planes 1
@@ -126,7 +108,6 @@ public:
 	inline int getNumberOfPoints() { return n_points; }
 
 public:
-	void initialize(void);
 	/**
 	* @brief Set the value of a variable is_CPU(true or false)
 	* @details <pre>
@@ -167,7 +148,7 @@ public:
 	* @brief Generate a hologram, main funtion.
 	* @return implement time (sec)
 	*/
-	double generateHologram();
+	double generateHologram(uint diff_flag = PC_DIFF_RS_ENCODED);
 	void encode(void);
 
 private:
@@ -182,7 +163,11 @@ private:
 	* @param dst Output Fringe Pattern
 	* @return implement time (sec)
 	*/
-	void genCghPointCloudCPU(Real* dst);
+	void genCghPointCloudCPU(uint diff_flag);
+	void diffractEncodedRS(ivec2 pn, vec2 pp, vec2 ss, vec3 vertex, Real k, Real amplitude, vec2 theta);
+	void diffractNotEncodedRS(ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Real k, Real amplitude, Real lambda);
+	void diffractEncodedFrsn(void);
+	void diffractNotEncodedFrsn(void);
 
 	/**
 	* @overload
@@ -204,7 +189,7 @@ private:
 	* @param dst Output Fringe Pattern
 	* @return implement time (sec)
 	*/
-	void genCghPointCloudGPU(Real* dst);
+	void genCghPointCloudGPU(uint diff_flag);
 
 	/** @}	*/
 
@@ -223,10 +208,5 @@ private:
 	OphPointCloudConfig pc_config_;
 	OphPointCloudData	pc_data_;
 };
-
-extern "C"
-{
-	void cudaPointCloudKernel(const int block_x, const int block_y, const int thread_x, const int thread_y, float3 *PointCloud, Real *amplitude, const GpuConst *Config, Real *dst);
-}
 
 #endif // !__ophPointCloud_h

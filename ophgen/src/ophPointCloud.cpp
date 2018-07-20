@@ -25,26 +25,6 @@ ophPointCloud::~ophPointCloud(void)
 {
 }
 
-void ophPointCloud::initialize(void)
-{
-	// Output Image Size
-	int n_x = context_.pixel_number[_X];
-	int n_y = context_.pixel_number[_Y];
-
-	// Memory Location for Result Image
-	if (holo_gen != nullptr) delete[] holo_gen;
-	holo_gen = new oph::Complex<Real>[n_x * n_y];
-	memset(holo_gen, 0, sizeof(Complex<Real>) * n_x * n_y);
-
-	if (holo_encoded != nullptr) delete[] holo_encoded;
-	holo_encoded = new Real[n_x * n_y];
-	memset(holo_encoded, 0, sizeof(Real) * n_x * n_y);
-
-	if (holo_normalized != nullptr) delete[] holo_normalized;
-	holo_normalized = new uchar[n_x * n_y];
-	memset(holo_normalized, 0, sizeof(uchar) * n_x * n_y);
-}
-
 void ophPointCloud::setMode(bool is_CPU)
 {
 	this->is_CPU = is_CPU;

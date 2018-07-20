@@ -108,7 +108,6 @@ public:
 	inline int getNumberOfPoints() { return n_points; }
 
 public:
-	void initialize(void);
 	/**
 	* @brief Set the value of a variable is_CPU(true or false)
 	* @details <pre>

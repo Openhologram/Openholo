@@ -249,6 +249,12 @@ uint ophTri::findGeometricalRelations(Real* mesh, vec3 no) {
 		mesh_local[3 * i + 2] = geom.glRot[6] * mesh[3 * i] + geom.glRot[7] * mesh[3 * i + 1] + geom.glRot[8] * mesh[3 * i + 2];
 	);
 
+	cout << "mesh local" << endl;
+	for_i(9,
+		cout << mesh_local[i] << ", ";
+	);
+	cout << endl << endl;
+
 	geom.glShift[_X] = mesh_local[_X1];
 	geom.glShift[_Y] = mesh_local[_Y1];
 	geom.glShift[_Z] = mesh_local[_Z1];
@@ -314,6 +320,7 @@ void ophTri::calGlobalFrequency() {
 			i++;
 		}
 	}
+
 }
 
 uint ophTri::calFrequencyTerm() {
@@ -334,8 +341,6 @@ uint ophTri::calFrequencyTerm() {
 		cout << flx[i] << ", " << fly[i] << ", " << flz[i] << endl;
 		);
 	cout << endl;
-
-	
 
 	freqTermX = new Real[Nx*Ny];
 	freqTermY = new Real[Nx*Ny];

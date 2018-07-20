@@ -44,11 +44,12 @@ protected:
 	int checkExtension(const char* fname, const char* ext);
 
 protected:
-	int saveAsImg(const char* fname, uint8_t bitsperpixel, void* src, int pic_width, int pic_height);
+	int saveAsImg(const char* fname, uint8_t bitsperpixel, uchar* src, int pic_width, int pic_height);
+	uchar* loadAsImg(const char* fname);
 
 	/**
 	*/
-	int loadAsImg(const char* fname, void* dst);
+	int loadAsImgUpSideDown(const char* fname, uchar* dst);
 
 	/**
 	* @param output parameter. image size, width

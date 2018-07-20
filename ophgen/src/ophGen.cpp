@@ -21,6 +21,26 @@ ophGen::~ophGen(void)
 {
 }
 
+void ophGen::initialize(void)
+{
+	// Output Image Size
+	int n_x = context_.pixel_number[_X];
+	int n_y = context_.pixel_number[_Y];
+
+	// Memory Location for Result Image
+	if (holo_gen != nullptr) delete[] holo_gen;
+	holo_gen = new oph::Complex<Real>[n_x * n_y];
+	memset(holo_gen, 0, sizeof(Complex<Real>) * n_x * n_y);
+
+	if (holo_encoded != nullptr) delete[] holo_encoded;
+	holo_encoded = new Real[n_x * n_y];
+	memset(holo_encoded, 0, sizeof(Real) * n_x * n_y);
+
+	if (holo_normalized != nullptr) delete[] holo_normalized;
+	holo_normalized = new uchar[n_x * n_y];
+	memset(holo_normalized, 0, sizeof(uchar) * n_x * n_y);
+}
+
 int ophGen::loadPointCloud(const char* pc_file, OphPointCloudData *pc_data_)
 {
 	LOG("Reading....%s...\n", pc_file);
@@ -789,7 +809,7 @@ void ophGen::fresnelPropagation(OphContext context, Complex<Real>* in, Complex<R
 
 	Complex<Real>* in2x = new Complex<Real>[Nx*Ny * 4];
 	Complex<Real> zero(0, 0);
-	oph::memsetArr<Complex<Real>>(in2x, zero, 0, Nx*Ny * 4 - 1);
+	//oph::memsetArr<Complex<Real>>(in2x, zero, 0, Nx*Ny*4-2);
 
 	uint idxIn = 0;
 
@@ -803,8 +823,10 @@ void ophGen::fresnelPropagation(OphContext context, Complex<Real>* in, Complex<R
 
 	Complex<Real>* temp1 = new Complex<Real>[Nx*Ny * 4];
 
-	fft2((Nx * 2, Ny * 2), in2x, OPH_FORWARD, OPH_ESTIMATE);
-	fftExecute(temp1);
+	ivec2 n(context.pixel_number[_X] * 2, context.pixel_number[_Y] * 2);
+
+	fft2(n, in2x, OPH_FORWARD, OPH_ESTIMATE);
+	fftwShift(in2x, temp1, n[_X], n[_Y], OPH_FORWARD, false);
 
 	Real* fx = new Real[Nx*Ny * 4];
 	Real* fy = new Real[Nx*Ny * 4];
@@ -831,7 +853,7 @@ void ophGen::fresnelPropagation(OphContext context, Complex<Real>* in, Complex<R
 
 	Complex<Real>* temp3 = new Complex<Real>[Nx*Ny * 4];
 	fft2((Nx * 2, Ny * 2), temp2, OPH_BACKWARD, OPH_ESTIMATE);
-	fftExecute(temp3);
+	fftwShift(temp2, temp3, Nx * 2, Ny * 2, OPH_BACKWARD, false);
 
 	uint idxOut = 0;
 
@@ -867,8 +889,8 @@ void ophGen::fresnelPropagation(Complex<Real>* in, Complex<Real>* out, Real dist
 
 	Complex<Real>* temp1 = new Complex<Real>[Nx*Ny * 4];
 
-	fft2((Nx * 2, Ny * 2), in2x, OPH_FORWARD, OPH_ESTIMATE);
-	fftExecute(temp1);
+	fft2({ Nx * 2, Ny * 2 }, in2x, OPH_FORWARD, OPH_ESTIMATE);
+	fftwShift(in2x, temp1, Nx*2, Ny*2, OPH_FORWARD, false);
 
 	Real* fx = new Real[Nx*Ny * 4];
 	Real* fy = new Real[Nx*Ny * 4];
@@ -894,8 +916,8 @@ void ophGen::fresnelPropagation(Complex<Real>* in, Complex<Real>* out, Real dist
 	}
 
 	Complex<Real>* temp3 = new Complex<Real>[Nx*Ny * 4];
-	fft2((Nx * 2, Ny * 2), temp2, OPH_BACKWARD, OPH_ESTIMATE);
-	fftExecute(temp3);
+	fft2({ Nx * 2, Ny * 2 }, temp2, OPH_BACKWARD, OPH_ESTIMATE);
+	fftwShift(temp2, temp3, Nx * 2, Ny * 2, OPH_BACKWARD, false);
 
 	uint idxOut = 0;
 

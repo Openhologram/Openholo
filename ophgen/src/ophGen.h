@@ -79,6 +79,7 @@ public:
 
 	OphContext& getContext(void) { return context_; }
 
+	void initialize(void);
 	/**
 	* @param input parameter. point cloud data file name
 	* @param output parameter. point cloud data, vertices(x0, y0, z0, x1, y1, z1, ...) container's pointer
