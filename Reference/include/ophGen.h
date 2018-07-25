@@ -138,7 +138,17 @@ public:
 	* ENCODE_OFFSSB		:	Off-axis + Single Side Band Encoding
 	*/
 	void encoding(unsigned int ENCODE_FLAG, unsigned int SSB_PASSBAND);
+	void encoding();
 	enum SSB_PASSBAND { SSB_LEFT, SSB_RIGHT, SSB_TOP, SSB_BOTTOM };
+
+protected:
+	ivec2 encode_size;
+	int ENCODE_METHOD;
+	int SSB_PASSBAND;
+public:
+	void setEncodeMethod(int in) { ENCODE_METHOD = in; }
+	void setSSBPassBand(int in){ SSB_PASSBAND = in; }
+	ivec2& getEncodeSize(void) { return encode_size; }
 
 public:
 	void loadComplex(char* real_file, char* imag_file, int n_x, int n_y);
@@ -152,11 +162,6 @@ protected:
 
 	/** @brief Frequency Shift */
 	void freqShift(oph::Complex<Real>* src, Complex<Real>* dst, const ivec2 holosize, int shift_x, int shift_y);
-
-protected:
-	ivec2 encode_size;
-public:
-	ivec2& getEncodeSize(void) { return encode_size; }
 public:
 	void fresnelPropagation(OphContext context, Complex<Real>* in, Complex<Real>* out, Real distance);
 	void fresnelPropagation(Complex<Real>* in, Complex<Real>* out, Real distance);

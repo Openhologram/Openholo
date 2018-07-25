@@ -28,6 +28,8 @@ int ophLF::readLFConfig(const char* LF_config) {
 
 	xml_node = xml_doc.FirstChild();
 
+	LF_directory = (xml_node->FirstChildElement("LightFieldImageDirectory"))->GetText();
+	ext = (xml_node->FirstChildElement("LightFieldImageExtention"))->GetText();
 #if REAL_IS_DOUBLE & true
 	(xml_node->FirstChildElement("DistanceRS2Holo"))->QueryDoubleText(&distanceRS2Holo);
 	(xml_node->FirstChildElement("SLMPixelPitchX"))->QueryDoubleText(&context_.pixel_pitch[_X]);
@@ -43,6 +45,8 @@ int ophLF::readLFConfig(const char* LF_config) {
 	(xml_node->FirstChildElement("NumberofImagesYofLF"))->QueryIntText(&num_image[_Y]);
 	(xml_node->FirstChildElement("NumberofPixelXofLF"))->QueryIntText(&resolution_image[_X]);
 	(xml_node->FirstChildElement("NumberofPixelYofLF"))->QueryIntText(&resolution_image[_Y]);
+	(xml_node->FirstChildElement("EncodingMethod"))->QueryIntText(&ENCODE_METHOD);
+	(xml_node->FirstChildElement("SingleSideBandPassBand"))->QueryIntText(&SSB_PASSBAND);
 
 	context_.pixel_number[_X] = num_image[_X] * resolution_image[_X];
 	context_.pixel_number[_Y] = num_image[_Y] * resolution_image[_Y];
@@ -59,10 +63,11 @@ int ophLF::readLFConfig(const char* LF_config) {
 	return true;
 }
 
-
-
-int ophLF::loadLF(const char* LF_directory, const char* ext)
+int ophLF::loadLF(const char* directory, const char* exten)
 {
+	LF_directory = directory;
+	ext = exten;
+
 	initializeLF();
 
 	_finddata_t data;
@@ -113,6 +118,79 @@ int ophLF::loadLF(const char* LF_directory, const char* ext)
 		cout << "LF load was successed." << endl;
 
 		if (num_image[_X]*num_image[_Y] != num) {
+			cout << "num_image is not matched." << endl;
+			cin.get();
+		}
+		return 1;
+	}
+	else
+	{
+		cout << "LF load was failed." << endl;
+		cin.get();
+		return -1;
+	}
+	Complex<Real> one(1, 1);
+
+	for (uint i = 0; i < 4000 * 4000; i++)
+	{
+		if (RSplane_complex_field[i] > one)
+			cout << i << ": " << RSplane_complex_field[i] << endl;
+
+	}
+}
+
+int ophLF::loadLF()
+{
+	initializeLF();
+
+	_finddata_t data;
+
+	string sdir = std::string("./").append(LF_directory).append("/").append("*.").append(ext);
+	intptr_t ff = _findfirst(sdir.c_str(), &data);
+	if (ff != -1)
+	{
+		int num = 0;
+		uchar* rgbOut;
+		ivec2 sizeOut;
+		int bytesperpixel;
+
+		while (1)
+		{
+			//for_i(5, cout << "before: " << *(*LF + num) << endl;);
+			//cin.get();
+
+			string imgfullname = std::string(LF_directory).append("/").append(data.name);
+
+			getImgSize(sizeOut[_X], sizeOut[_Y], bytesperpixel, imgfullname.c_str());
+			rgbOut = new uchar[sizeOut[_X] * sizeOut[_Y] * 3];
+
+			rgbOut = loadAsImg(imgfullname.c_str());
+
+			if (rgbOut == 0) {
+				cout << "LF load was failed." << endl;
+				cin.get();
+				return -1;
+			}
+
+
+			//for_i(sizeOut[_X] * sizeOut[_Y] * 3,
+			//	if (rgbOut[i] > 0)
+			//		cout << i << ": " << rgbOut[i] << endl;
+			//)
+			//cin.get();
+
+			convertToFormatGray8(rgbOut, *(LF + num), sizeOut[_X], sizeOut[_Y], bytesperpixel);
+
+			num++;
+
+			int out = _findnext(ff, &data);
+			if (out == -1)
+				break;
+		}
+		_findclose(ff);
+		cout << "LF load was successed." << endl;
+
+		if (num_image[_X] * num_image[_Y] != num) {
 			cout << "num_image is not matched." << endl;
 			cin.get();
 		}

@@ -146,7 +146,7 @@ namespace oph
 		*max = oph::maxOfArr(src, size);
 
 		for (int i = 0; i < size; i++) {
-			*(dst + i) = (*(src + i)-*min) / *max;
+			*(dst + i) = (*(src + i) - *min) / (*max - *min);
 		}
 		delete min, max;
 	}

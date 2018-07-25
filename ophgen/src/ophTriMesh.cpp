@@ -1,5 +1,8 @@
 #include "ophTriMesh.h"
 
+#include "sys.h"
+#include "tinyxml2.h"
+
 #define for_i(iter, oper)	for(uint i=0;i<iter;i++){oper}
 
 #define _X1 0
@@ -14,8 +17,10 @@
 
 void ophTri::loadMeshData(const char* fileName) {
 
+	meshDataFileName = fileName;
+
 	ifstream file;
-	file.open(fileName);
+	file.open(meshDataFileName);
 
 	if (!file) {
 		cout << "open failed - mesh data file" << endl;
@@ -41,39 +46,154 @@ void ophTri::loadMeshData(const char* fileName) {
 	cout << "Mesh Data Load Finished.." << endl;
 }
 
+void ophTri::loadMeshData() {
+
+	ifstream file;
+	file.open(meshDataFileName);
+
+	if (!file) {
+		cout << "open failed - mesh data file" << endl;
+		cin.get();
+		return;
+	}
+
+	triMeshData = new Real[9 * 10000];
+
+	Real data;
+	uint num_data;
+
+	num_data = 0;
+	do {
+		file >> data;
+		triMeshData[num_data] = data;
+		num_data++;
+	} while (file.get() != EOF);
+
+	num_mesh = num_data / 9;
+	triMeshData[num_mesh * 9] = EOF;
+
+	cout << "Mesh Data Load Finished.." << endl;
+}
+
+int ophTri::readMeshConfig(const char* mesh_config) {
+	LOG("Reading....%s...", mesh_config);
+
+	auto start = CUR_TIME;
+
+	/*XML parsing*/
+	tinyxml2::XMLDocument xml_doc;
+	tinyxml2::XMLNode *xml_node;
+
+	if (checkExtension(mesh_config, ".xml") == 0)
+	{
+		LOG("file's extension is not 'xml'\n");
+		return false;
+	}
+	auto ret = xml_doc.LoadFile(mesh_config);
+	if (ret != tinyxml2::XML_SUCCESS)
+	{
+		LOG("Failed to load file \"%s\"\n", mesh_config);
+		return false;
+	}
+
+	xml_node = xml_doc.FirstChild();
+
+	meshDataFileName = (xml_node->FirstChildElement("MeshDataFileName"))->GetText();
+#if REAL_IS_DOUBLE & true
+	(xml_node->FirstChildElement("ObjectSize"))->QueryDoubleText(&objSize);
+	(xml_node->FirstChildElement("ObjectShiftX"))->QueryDoubleText(&objShift[_X]);
+	(xml_node->FirstChildElement("ObjectShiftY"))->QueryDoubleText(&objShift[_Y]);
+	(xml_node->FirstChildElement("ObjectShiftZ"))->QueryDoubleText(&objShift[_Z]);
+	(xml_node->FirstChildElement("CarrierWaveVectorX"))->QueryDoubleText(&carrierWave[_X]);
+	(xml_node->FirstChildElement("CarrierWaveVectorY"))->QueryDoubleText(&carrierWave[_Y]);
+	(xml_node->FirstChildElement("CarrierWaveVectorZ"))->QueryDoubleText(&carrierWave[_Z]);
+	(xml_node->FirstChildElement("LampDirectionX"))->QueryDoubleText(&illumination[_X]);
+	(xml_node->FirstChildElement("LampDirectionY"))->QueryDoubleText(&illumination[_Y]);
+	(xml_node->FirstChildElement("LampDirectionZ"))->QueryDoubleText(&illumination[_Z]);
+	(xml_node->FirstChildElement("SLMPixelPitchX"))->QueryDoubleText(&context_.pixel_pitch[_X]);
+	(xml_node->FirstChildElement("SLMPixelPitchY"))->QueryDoubleText(&context_.pixel_pitch[_Y]);
+	(xml_node->FirstChildElement("WavelengthofLaser"))->QueryDoubleText(&context_.lambda);
+#else
+	(xml_node->FirstChildElement("ObjectSize"))->QueryFloatText(&objSize);
+	(xml_node->FirstChildElement("ObjectShiftX"))->QueryFloatText(&objShift[_X]);
+	(xml_node->FirstChildElement("ObjectShiftY"))->QueryFloatText(&objShift[_Y]);
+	(xml_node->FirstChildElement("ObjectShiftZ"))->QueryFloatText(&objShift[_Z]);
+	(xml_node->FirstChildElement("CarrierWaveVectorX"))->QueryFloatText(&carrierWave[_X]);
+	(xml_node->FirstChildElement("CarrierWaveVectorY"))->QueryFloatText(&carrierWave[_Y]);
+	(xml_node->FirstChildElement("CarrierWaveVectorZ"))->QueryFloatText(&carrierWave[_Z]);
+	(xml_node->FirstChildElement("LampDirectionX"))->QueryFloatText(&illumination[_X]);
+	(xml_node->FirstChildElement("LampDirectionY"))->QueryFloatText(&illumination[_Y]);
+	(xml_node->FirstChildElement("LampDirectionZ"))->QueryFloatText(&illumination[_Z]);
+	(xml_node->FirstChildElement("SLMPixelPitchX"))->QueryFloatText(&context_.pixel_pitch[_X]);
+	(xml_node->FirstChildElement("SLMPixelPitchY"))->QueryFloatText(&context_.pixel_pitch[_Y]);
+	(xml_node->FirstChildElement("WavelengthofLaser"))->QueryFloatText(&context_.lambda);
+#endif
+	(xml_node->FirstChildElement("SLMpixelNumX"))->QueryIntText(&context_.pixel_number[_X]);
+	(xml_node->FirstChildElement("SLMpixelNumY"))->QueryIntText(&context_.pixel_number[_Y]);
+	(xml_node->FirstChildElement("MeshShadingType"))->QueryIntText(&SHADING_TYPE);
+	(xml_node->FirstChildElement("EncodingMethod"))->QueryIntText(&ENCODE_METHOD);
+	(xml_node->FirstChildElement("SingleSideBandPassBand"))->QueryIntText(&SSB_PASSBAND);
+
+	context_.k = (2 * M_PI) / context_.lambda;
+	context_.ss[_X] = context_.pixel_number[_X] * context_.pixel_pitch[_X];
+	context_.ss[_Y] = context_.pixel_number[_Y] * context_.pixel_pitch[_Y];
+
+	auto end = CUR_TIME;
+
+	auto during = ((std::chrono::duration<Real>)(end - start)).count();
+
+	LOG("%.5lfsec...done\n", during);
+	return true;
+}
+
+void ophTri::initializeAS() {
+	angularSpectrum = new Complex<Real>[context_.pixel_number[_X] * context_.pixel_number[_Y]];
+	memset(angularSpectrum, 0, context_.pixel_number[_X] * context_.pixel_number[_Y]);
+}
+
 void ophTri::objNormCenter() {
+
 	normalizedMeshData = new Real[num_mesh * 9];
 
-	Real* normalized = new Real[num_mesh * 9];
-	oph::normalize<Real>(triMeshData, normalized, num_mesh * 9);
-	
 	Real* x_point = new Real[num_mesh * 3];
 	Real* y_point = new Real[num_mesh * 3];
 	Real* z_point = new Real[num_mesh * 3];
-	
-	for_i(num_mesh * 3,
-		*(x_point + i) = *(normalized + 3 * i);
-		*(y_point + i) = *(normalized + 3 * i + 1);
-		*(z_point + i) = *(normalized + 3 * i + 2);
-		);
-
-	Real x_ave = average(x_point, num_mesh * 3);
-	Real y_ave = average(y_point, num_mesh * 3);
-	Real z_ave = average(z_point, num_mesh * 3);
 
 	for_i(num_mesh * 3,
-		*(normalizedMeshData + 3 * i) = *(normalized + 3 * i) - x_ave;
-		*(normalizedMeshData + 3 * i + 1) = *(normalized + 3 * i + 1) - y_ave;
-		*(normalizedMeshData + 3 * i + 2) = *(normalized + 3 * i + 2) - z_ave;
-		);
-	delete[] normalized, x_point, y_point, z_point;
+		*(x_point + i) = *(triMeshData + 3 * i);
+	*(y_point + i) = *(triMeshData + 3 * i + 1);
+	*(z_point + i) = *(triMeshData + 3 * i + 2);
+	);
+	Real x_cen = (maxOfArr(x_point, num_mesh * 3) + minOfArr(x_point, num_mesh * 3)) / 2;
+	Real y_cen = (maxOfArr(y_point, num_mesh * 3) + minOfArr(y_point, num_mesh * 3)) / 2;
+	Real z_cen = (maxOfArr(z_point, num_mesh * 3) + minOfArr(z_point, num_mesh * 3)) / 2;
+
+	Real* centered = new Real[num_mesh * 9];
+
+	for_i(num_mesh * 3,
+		*(centered + 3 * i) = *(x_point + i) - x_cen;
+	*(centered + 3 * i + 1) = *(y_point + i) - y_cen;
+	*(centered + 3 * i + 2) = *(z_point + i) - z_cen;
+	);
+
+	Real x_del = (maxOfArr(x_point, num_mesh * 3) - minOfArr(x_point, num_mesh * 3));
+	Real y_del = (maxOfArr(y_point, num_mesh * 3) - minOfArr(y_point, num_mesh * 3));
+	Real z_del = (maxOfArr(z_point, num_mesh * 3) - minOfArr(z_point, num_mesh * 3));
+
+	Real del = maxOfArr({ x_del, y_del, z_del });
+
+	for_i(num_mesh * 9,
+		*(normalizedMeshData + i) = *(centered + i) / del;
+	);
+
+	delete[] centered, x_point, y_point, z_point;
 
 	cout << "Normalization Finished.." << endl;
 }
 
 void ophTri::objScaleShift() {
 	scaledMeshData = new Real[num_mesh * 9];
-
+	
 	objNormCenter();
 
 	Real* x_point = new Real[num_mesh * 3];
@@ -92,7 +212,7 @@ void ophTri::objScaleShift() {
 		*(scaledMeshData + 3 * i + 2) = *(z_point + i)*objSize + objShift[_Z];
 		);
 
-	delete[] x_point, y_point, z_point;
+	delete[] x_point, y_point, z_point, normalizedMeshData;
 
 	cout << "Object Scaling and Shifting Finishied.." << endl;
 }
@@ -170,23 +290,29 @@ vec3 vecCross(const vec3& a, const vec3& b)
 }
 
 void ophTri::generateAS(uint SHADING_FLAG) {
+
 	Real* mesh = new Real[9];
 	calGlobalFrequency();
+
+	mesh_local = new Real[9];
+	flx = new Real[context_.pixel_number[_X] * context_.pixel_number[_Y]];
+	fly = new Real[context_.pixel_number[_X] * context_.pixel_number[_Y]];
+	flz = new Real[context_.pixel_number[_X] * context_.pixel_number[_Y]];
+
+	freqTermX = new Real[context_.pixel_number[_X] * context_.pixel_number[_Y]];
+	freqTermY = new Real[context_.pixel_number[_X] * context_.pixel_number[_Y]];
+
+	refAS = new Complex<Real>[context_.pixel_number[_X] * context_.pixel_number[_Y]];
 
 	for (uint n = 0; n < num_mesh; n++) {
 		for_i(9,
 			mesh[i] = scaledMeshData[9 * n + i];
-			cout << mesh[i] << ", ";
 			);
-		cout << endl;
 		
-		vec3 no = vecCross({ mesh[_X2] - mesh[_X3], mesh[_Y2] - mesh[_Y3], mesh[_Z2] - mesh[_Z3] }, { mesh[_X3] - mesh[_X1], mesh[_Y3] - mesh[_Y1], mesh[_Z3] - mesh[_Z1] });
+		vec3 no = vecCross({ mesh[_X2] - mesh[_X3], mesh[_Y2] - mesh[_Y3], mesh[_Z2] - mesh[_Z3] }, { mesh[_X1] - mesh[_X3], mesh[_Y1] - mesh[_Y3], mesh[_Z1] - mesh[_Z3] });
 		// 'vec.h'의 cross함수가 전역으로 되어있어서 오류뜸.
 		// 'vec.h'에 extern을 하라해서 했는데 그래도 안 됨.
 		// 그래서그냥함수우선 가져옴.
-
-		cout << "no: " << no[0] << ", " << no[1] << ", " << no[2] << endl;
-
 
 		if (checkValidity(mesh, no) != 1)
 			continue;
@@ -200,23 +326,24 @@ void ophTri::generateAS(uint SHADING_FLAG) {
 		switch (SHADING_FLAG)
 		{
 		case SHADING_FLAT:
-			refAS_Flat(n);
+			refAS_Flat(no);
 			break;
 		case SHADING_CONTINUOUS:
 			refAS_Continuous();
 			break;
 		}
 		refToGlobal();
+		cout << n+1 << " / " << num_mesh << endl;
 	}
 
-	cout << "Angular Spectrum Generation..." << endl;
+	cout << "Angular Spectrum Generated..." << endl;
 
-	delete[] mesh;
+	delete[] mesh, scaledMeshData, fx, fy, fz, mesh_local, flx, fly, flz, freqTermX, freqTermY, refAS;
 }
 
 uint ophTri::checkValidity(Real* mesh, vec3 no) {
 	
-	if (no[_Z] > 0 || (no[_X] == 0 && no[_Y] == 0 && no[_Z] == 0)) {
+	if (no[_Z] < 0 || (no[_X] == 0 && no[_Y] == 0 && no[_Z] == 0)) {
 		return -1;
 	}
 	return 1;
@@ -225,44 +352,31 @@ uint ophTri::checkValidity(Real* mesh, vec3 no) {
 uint ophTri::findGeometricalRelations(Real* mesh, vec3 no) {
 	vec3 n = no / norm(no);
 
-	//cout << "no: " << no[0] << ", " << no[1] << ", " << no[2] << endl;
-	//cout << "n: " << n[0] << ", " << n[1] << ", " << n[2] << endl;
-
 	Real th, ph;
 	if (n[_X] == 0 && n[_Z] == 0)
 		th = 0;
 	else
 		th = atan(n[_X] / n[_Z]);
 	Real temp = n[_Y] / sqrt(n[_X] * n[_X] + n[_Z] * n[_Z]);
-	cout << "temp: " << temp << endl;
 	ph = atan(temp);
-	cout << th << ", " << ph << endl;
 	geom.glRot[0] = cos(th);			geom.glRot[1] = 0;			geom.glRot[2] = -sin(th);
 	geom.glRot[3] = -sin(ph)*sin(th);	geom.glRot[4] = cos(ph);	geom.glRot[5] = -sin(ph)*cos(th);
 	geom.glRot[6] = cos(ph)*sin(th);	geom.glRot[7] = sin(ph);	geom.glRot[8] = cos(ph)*cos(th);
 
-	mesh_local = new Real[9];
-
 	for_i(3,
 		mesh_local[3 * i] = geom.glRot[0] * mesh[3 * i] + geom.glRot[1] * mesh[3 * i + 1] + geom.glRot[2] * mesh[3 * i + 2];
-		mesh_local[3 * i + 1] = geom.glRot[3] * mesh[3 * i] + geom.glRot[4] * mesh[3 * i + 1] + geom.glRot[5] * mesh[3 * i + 2];
-		mesh_local[3 * i + 2] = geom.glRot[6] * mesh[3 * i] + geom.glRot[7] * mesh[3 * i + 1] + geom.glRot[8] * mesh[3 * i + 2];
-	);
+	mesh_local[3 * i + 1] = geom.glRot[3] * mesh[3 * i] + geom.glRot[4] * mesh[3 * i + 1] + geom.glRot[5] * mesh[3 * i + 2];
+	mesh_local[3 * i + 2] = geom.glRot[6] * mesh[3 * i] + geom.glRot[7] * mesh[3 * i + 1] + geom.glRot[8] * mesh[3 * i + 2];
+		)
 
-	cout << "mesh local" << endl;
-	for_i(9,
-		cout << mesh_local[i] << ", ";
-	);
-	cout << endl << endl;
-
-	geom.glShift[_X] = mesh_local[_X1];
-	geom.glShift[_Y] = mesh_local[_Y1];
-	geom.glShift[_Z] = mesh_local[_Z1];
+	geom.glShift[_X] = -mesh_local[_X1];
+	geom.glShift[_Y] = -mesh_local[_Y1];
+	geom.glShift[_Z] = -mesh_local[_Z1];
 
 	for_i(3,
-		mesh_local[3 * i] -= geom.glShift[_X];
-		mesh_local[3 * i + 1] -= geom.glShift[_Y];
-		mesh_local[3 * i + 2] -= geom.glShift[_Z];
+		mesh_local[3 * i] += geom.glShift[_X];
+		mesh_local[3 * i + 1] += geom.glShift[_Y];
+		mesh_local[3 * i + 2] += geom.glShift[_Z];
 	);
 
 	if (mesh_local[_X2] * mesh_local[_Y3] == mesh_local[_X3] * mesh_local[_Y2])
@@ -273,7 +387,7 @@ uint ophTri::findGeometricalRelations(Real* mesh, vec3 no) {
 	geom.loRot[2] = (refTri[_Y3] * mesh_local[_Y2] - refTri[_Y2] * mesh_local[_Y3]) / (mesh_local[_X3] * mesh_local[_Y2] - mesh_local[_Y3] * mesh_local[_X2]);
 	geom.loRot[3] = (refTri[_Y3] * mesh_local[_X2] - refTri[_Y2] * mesh_local[_X3]) / (-mesh_local[_X3] * mesh_local[_Y2] + mesh_local[_Y3] * mesh_local[_X2]);
 
-
+	/*
 	cout << "global rotation" << endl;
 	for_i(9,
 		cout << geom.glRot[i] << ", ";
@@ -298,7 +412,8 @@ uint ophTri::findGeometricalRelations(Real* mesh, vec3 no) {
 	);
 	cout << endl << "." << endl << "." << endl << "." << endl << endl;
 
-
+	cin.get();
+	*/
 	return 1;
 }
 
@@ -313,14 +428,13 @@ void ophTri::calGlobalFrequency() {
 	fz = new Real[Nx*Ny];
 	uint i = 0;
 	for (int idxFy = -Ny / 2; idxFy < Ny / 2; idxFy++) {
-		for (int idxFx = -Nx / 2; idxFx < Nx / 2; idxFx++) {
+		for (int idxFx = Nx / 2; idxFx > -Nx / 2; idxFx--) {
 			fx[i] = idxFx*dfx;
 			fy[i] = idxFy*dfy;
 			fz[i] = sqrt((1 / context_.lambda)*(1 / context_.lambda) - fx[i] * fx[i] - fy[i] * fy[i]);
 			i++;
 		}
 	}
-
 }
 
 uint ophTri::calFrequencyTerm() {
@@ -328,145 +442,160 @@ uint ophTri::calFrequencyTerm() {
 	int Nx = context_.pixel_number[_X];
 	int Ny = context_.pixel_number[_Y];
 
-	flx = new Real[Nx*Ny];
-	fly = new Real[Nx*Ny];
-	flz = new Real[Nx*Ny];
+	Real* flxShifted = new Real[Nx*Ny];
+	Real* flyShifted = new Real[Nx*Ny];
 
 	for_i(Nx*Ny,
-		flx[i] = geom.glRot[0] * fx[i] + geom.glRot[1] * fy[i] + geom.glRot[2] * fz[i]
-			- (1 / context_.lambda)*(geom.glRot[0] * carrierWave[_X] + geom.glRot[1] * carrierWave[_Y] + geom.glRot[2] * carrierWave[_Z]);
-		fly[i] = geom.glRot[3] * fx[i] + geom.glRot[4] * fy[i] + geom.glRot[5] * fz[i]
-			- (1 / context_.lambda)*(geom.glRot[3] * carrierWave[_X] + geom.glRot[4] * carrierWave[_Y] + geom.glRot[5] * carrierWave[_Z]);
+		flx[i] = geom.glRot[0] * fx[i] + geom.glRot[1] * fy[i] + geom.glRot[2] * fz[i];
+		fly[i] = geom.glRot[3] * fx[i] + geom.glRot[4] * fy[i] + geom.glRot[5] * fz[i];
 		flz[i] = sqrt((1 / context_.lambda)*(1 / context_.lambda) - flx[i] * flx[i] - fly[i] * fly[i]);
-		cout << flx[i] << ", " << fly[i] << ", " << flz[i] << endl;
+		
+		flxShifted[i] = flx[i] - (1 / context_.lambda)*(geom.glRot[0] * carrierWave[_X] + geom.glRot[1] * carrierWave[_Y] + geom.glRot[2] * carrierWave[_Z]);
+		flyShifted[i] = fly[i] - (1 / context_.lambda)*(geom.glRot[3] * carrierWave[_X] + geom.glRot[4] * carrierWave[_Y] + geom.glRot[5] * carrierWave[_Z]);
 		);
-	cout << endl;
-
-	freqTermX = new Real[Nx*Ny];
-	freqTermY = new Real[Nx*Ny];
 
 	Real* invLoRot = new Real[4];
 	invLoRot[0] = (1 / (geom.loRot[0] * geom.loRot[3] - geom.loRot[1] * geom.loRot[2]))*geom.loRot[3];
 	invLoRot[1] = -(1 / (geom.loRot[0] * geom.loRot[3] - geom.loRot[1] * geom.loRot[2]))*geom.loRot[2];
 	invLoRot[2] = -(1 / (geom.loRot[0] * geom.loRot[3] - geom.loRot[1] * geom.loRot[2]))*geom.loRot[1];
 	invLoRot[3] = (1 / (geom.loRot[0] * geom.loRot[3] - geom.loRot[1] * geom.loRot[2]))*geom.loRot[0];
-
+	//cout << invLoRot[0] << ", " << invLoRot[1] << ", " << invLoRot[2] << ", " << invLoRot[3] << endl;
 	for_i(Nx*Ny,
-		freqTermX[i] = invLoRot[0] * flx[i] + invLoRot[1] * fly[i];
-		freqTermY[i] = invLoRot[2] * flx[i] + invLoRot[3] * fly[i];
-
-		cout << freqTermX[i] << ", " << freqTermY[i] << endl;
+		freqTermX[i] = invLoRot[0] * flxShifted[i] + invLoRot[1] * flyShifted[i];
+		freqTermY[i] = invLoRot[2] * flxShifted[i] + invLoRot[3] * flyShifted[i];
+		//cout << freqTermX[i] << ", " << freqTermY[i] << endl;
+		//cin.get();
 		);
-	cin.get();
-
+	
+	delete[] flxShifted, flyShifted, invLoRot;
 	return 1;
 }
 
-void ophTri::refAS_Flat(vec3 no) {
+uint ophTri::refAS_Flat(vec3 no) {
 	int Nx = context_.pixel_number[_X];
 	int Ny = context_.pixel_number[_Y];
 
 	vec3 n = no / norm(no);
 	Real shadingFactor;
+	
+	Complex<Real> temp1(0,0);
+	Complex<Real> temp2(0,0);
 
-	refAS = new Complex<Real>[Nx*Ny];
-	
-	Complex<Real> *temp1 = new Complex<Real>;
-	Complex<Real> *temp2 = new Complex<Real>;
-	
+	if (illumination[_X] == 0 && illumination[_Y] == 0 && illumination[_Z] == 0) {
+		shadingFactor = 1;
+	}
+	else {
+		vec3 normIllu = illumination / norm(illumination);
+		shadingFactor = 2 * (n[_X] * normIllu[_X] + n[_Y] * normIllu[_Y] + n[_Z] * normIllu[_Z]) + 0.3;
+		if (shadingFactor < 0)
+			shadingFactor = 0;		
+	}
+	//cout << shadingFactor << endl;
 	for (uint i = 0; i < Nx*Ny; i++) {
-		if (illumination[_X] == 0 && illumination[_Y] == 0 && illumination[_Z]) {
-			shadingFactor = 1;
-		}
-		else {
-			vec3 normIllu = illumination / norm(illumination);
-			shadingFactor = 2 * (n[_X] * normIllu[_X] + n[_Y] * normIllu[_Y] + n[_Z] * normIllu[_Z]) + 0.3;
-			if (shadingFactor < 0)
-				shadingFactor = 0;
-		}
-
+		//cout << freqTermX[i] << ", " << freqTermY[i] << endl;
 		if (freqTermX[i] == -freqTermY[i] && freqTermY[i] != 0) {
-			temp1->operator()(0, 2 * M_PI*freqTermY[i]);
-			refAS[i] = shadingFactor*((Complex<Real>)1 - temp1->exp()) / (2 * M_PI*freqTermY[i] * freqTermY[i]) - (Complex<Real>)1 / *temp1;
-			cout << "1st" << endl;
+			temp1[_IM] = 2 * M_PI*freqTermY[i];
+			temp2[_IM] = 1;
+			refAS[i] = shadingFactor*(((Complex<Real>)1 - exp(temp1)) / (4 * M_PI*M_PI*freqTermY[i] * freqTermY[i]) + temp2 / (2 * M_PI*freqTermY[i]));
+			//cout << 1 << endl;
+			//cout << i << ": " << refAS[i] << endl;
+			//cin.get();
 		}
 		else if (freqTermX[i] == freqTermY[i] && freqTermX[i] == 0) {
 			refAS[i] = shadingFactor * 1 / 2;
-			cout << "2nd" << endl;
+			//cout << 2 << endl;
+			//cout << i << ": " << refAS[i] << endl;
+			//cin.get();
 		}
 		else if (freqTermX[i] != 0 && freqTermY[i] == 0) {
-			temp1->operator()(0, -2 * M_PI*freqTermX[i]);
-			temp2->operator()(0, 1);
-			refAS[i] = shadingFactor*(temp1->exp() - (Complex<Real>)1) / (2 * M_PI*freqTermX[i] * 2 * M_PI*freqTermX[i]) - (*temp2 * temp1->exp()) / *temp1;
-			cout << "3rd" << endl;
+			temp1[_IM] = -2 * M_PI*freqTermX[i];
+			temp2[_IM] = 1;
+			refAS[i] = shadingFactor*((exp(temp1) - (Complex<Real>)1) / (2 * M_PI*freqTermX[i] * 2 * M_PI*freqTermX[i]) + (temp2 * exp(temp1)) / (2 * M_PI*freqTermX[i]));
+			cout << 3 << endl;
+			cout << i << ": " << refAS[i] << endl;
+			cin.get();
 		}
 		else if (freqTermX[i] == 0 && freqTermY[i] != 0) {
-			temp1->operator()(0, -2 * M_PI*freqTermY[i]);
-			temp2->operator()(0, 1);
-			refAS[i] = shadingFactor*((Complex<Real>)1 - temp1->exp()) / (2 * M_PI*freqTermY[i] * freqTermY[i]) + *temp2 / *temp1;
-			cout << "4th" << endl;
+			temp1[_IM] = 2 * M_PI*freqTermY[i];
+			temp2[_IM] = 1;
+			refAS[i] = shadingFactor*(((Complex<Real>)1 - exp(temp1)) / (4 * M_PI*M_PI*freqTermY[i] * freqTermY[i]) - temp2 / (2 * M_PI*freqTermY[i]));
+			cout << 4 << endl;
+			cout << i << ": " << refAS[i] << endl;
+			cin.get();
 		}
 		else {
-			temp1->operator()(0, -2 * M_PI*freqTermX[i]);
-			temp2->operator()(0, -2 * M_PI*(freqTermX[i] + freqTermY[i]));
-			refAS[i] = shadingFactor*(temp1->exp() - (Complex<Real>)1) / (4 * M_PI*M_PI*freqTermX[i] * freqTermY[i]) + ((Complex<Real>)1 - temp2->exp()) / (4 * M_PI*M_PI*freqTermY[i] * (freqTermX[i] + freqTermY[i]));
-			cout << "5th" << endl;
+			temp1[_IM] = -2 * M_PI*freqTermX[i];
+			temp2[_IM] = -2 * M_PI*(freqTermX[i] + freqTermY[i]);
+			refAS[i] = shadingFactor*((exp(temp1) - (Complex<Real>)1) / (4 * M_PI*M_PI*freqTermX[i] * freqTermY[i]) + ((Complex<Real>)1 - exp(temp2)) / (4 * M_PI*M_PI*freqTermY[i] * (freqTermX[i] + freqTermY[i])));
+			//cout << 5 << endl;
+			//cout << temp1 << ", " << temp2 << endl;
+			//cout << i << ": " << refAS[i] << endl;
+			//cin.get();
 		}
-	
+		//cout << i << ": " << refAS[i] << endl;
 	}
-
-	delete temp1, temp2;
-
-	for_i(20, cout << refAS[i] << endl;);
 	
+	return 1;
 }
 
-void ophTri::refAS_Continuous() {
+// 아직
+uint ophTri::refAS_Continuous() {
 	int Nx = context_.pixel_number[_X];
 	int Ny = context_.pixel_number[_Y];
-
-	refAS = new Complex<Real>[Nx*Ny];
 
 	Complex<Real> *temp1 = new Complex<Real>;
 	Complex<Real> *temp2 = new Complex<Real>;
 
-}
-
-uint ophTri::findNormalForContinuous() {
 	return 1;
 }
 
-//void ophTri::refToGlobal() {
-//	Complex<Real>* term1;
-//	Complex<Real>* term2;
-//
-//	for_i(context_.pixel_number[_X] * context_.pixel_number[_Y],
-//		term1->operator()(0, -2 * M_PI / context_.lambda*(
-//			carrierWave[_X] * (geom.glRot[0] * geom.glShift[_X] + geom.glRot[1] * geom.glShift[_Y] + geom.glRot[2] * geom.glShift[_Z])
-//			+ carrierWave[_Y] * (geom.glRot[3] * geom.glShift[_X] + geom.glRot[4] * geom.glShift[_Y] + geom.glRot[5] * geom.glShift[_Z])
-//			+ carrierWave[_Z] * (geom.glRot[6] * geom.glShift[_X] + geom.glRot[7] * geom.glShift[_Y] + geom.glRot[8] * geom.glShift[_Z])));
-//		term2->operator()(0, 2 * M_PI*(flx[i] * geom.glShift[_X] + fly[i] * geom.glShift[_Y] + flz[i] * geom.glShift[_Z]));
-//
-//		angularSpectrum[i] = refAS[i] / (geom.loRot[0] * geom.loRot[3] - geom.loRot[1] * geom.loRot[2])*flz[i] / fz[i] * term1->exp()*term2->exp();
-//		)
-//}
+// 아직
+uint ophTri::findNormalForContinuous() {
+	return 1;
+}
 
 void ophTri::refToGlobal() {
 	int Nx = context_.pixel_number[_X];
 	int Ny = context_.pixel_number[_Y];
 
-	angularSpectrum = new Complex<Real>[Nx*Ny];
-	Complex<Real> term1;
-	Complex<Real> term2;
+	Complex<Real> term1(0,0);
+	Complex<Real> term2(0,0);
 
+	term1[_IM] = -2 * M_PI / context_.lambda*(
+		carrierWave[_X] * (geom.glRot[0] * geom.glShift[_X] + geom.glRot[3] * geom.glShift[_Y] + geom.glRot[6] * geom.glShift[_Z])
+		+ carrierWave[_Y] * (geom.glRot[1] * geom.glShift[_X] + geom.glRot[4] * geom.glShift[_Y] + geom.glRot[7] * geom.glShift[_Z])
+		+ carrierWave[_Z] * (geom.glRot[2] * geom.glShift[_X] + geom.glRot[5] * geom.glShift[_Y] + geom.glRot[8] * geom.glShift[_Z]));
+	Complex<Real> temp;
 	for (uint i = 0; i < Nx*Ny; i++) {
-		term1(0, -2 * M_PI / context_.lambda*(
-			carrierWave[_X] * (geom.glRot[0] * geom.glShift[_X] + geom.glRot[1] * geom.glShift[_Y] + geom.glRot[2] * geom.glShift[_Z])
-			+ carrierWave[_Y] * (geom.glRot[3] * geom.glShift[_X] + geom.glRot[4] * geom.glShift[_Y] + geom.glRot[5] * geom.glShift[_Z])
-			+ carrierWave[_Z] * (geom.glRot[6] * geom.glShift[_X] + geom.glRot[7] * geom.glShift[_Y] + geom.glRot[8] * geom.glShift[_Z])));
-		term2(0, 2 * M_PI*(flx[i] * geom.glShift[_X] + fly[i] * geom.glShift[_Y] + flz[i] * geom.glShift[_Z]));
-
-		angularSpectrum[i] = refAS[i] / (geom.loRot[0] * geom.loRot[3] - geom.loRot[1] * geom.loRot[2])*flz[i] / fz[i] * term1.exp()*term2.exp();
+		term2[_IM] = 2 * M_PI*(flx[i] * geom.glShift[_X] + fly[i] * geom.glShift[_Y] + flz[i] * geom.glShift[_Z]);
+		temp = refAS[i] / (geom.loRot[0] * geom.loRot[3] - geom.loRot[1] * geom.loRot[2])* exp(term1)* flz[i] / fz[i] * exp(term2);
+		angularSpectrum[i] + temp;	
 	}
+}
 
+void ophTri::generateMeshHologram(uint SHADING_FLAG) {
+	cout << "Hologram Generation ..." << endl;
+	initialize();
+	initializeAS();
+	generateAS(SHADING_FLAG);
+	holo_gen = angularSpectrum;
+	//fft2(context_.pixel_number, angularSpectrum, OPH_BACKWARD, OPH_ESTIMATE);
+	//fftwShift(angularSpectrum, holo_gen, context_.pixel_number[_X], context_.pixel_number[_Y], OPH_BACKWARD, false);
+	//delete[] angularSpectrum;	
+	cout << "Hologram Generated ..." << endl;	
+}
+
+void ophTri::generateMeshHologram() {
+	cout << "Hologram Generation ..." << endl;
+	initialize();
+	initializeAS();
+	generateAS(SHADING_TYPE);
+	//holo_gen = angularSpectrum;
+
+	// AngularSpectrum 까지는 매트랩과 결과값이 같음. ==> fft후에 틀려짐..
+	// 그런데 AS를 그림으로 그리면 이상하게 다르게 나옴.. ==> encoding 까지는 확인결과 맞음.
+
+	fft2(context_.pixel_number, angularSpectrum, OPH_BACKWARD, OPH_ESTIMATE);
+	fftwShift(angularSpectrum, holo_gen, context_.pixel_number[_X], context_.pixel_number[_Y], OPH_BACKWARD, false);
+	cout << "Hologram Generated ..." << endl;
 }
