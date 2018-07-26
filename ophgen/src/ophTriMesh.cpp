@@ -128,16 +128,24 @@ int ophTri::readMeshConfig(const char* mesh_config) {
 	(xml_node->FirstChildElement("SLMPixelPitchY"))->QueryFloatText(&context_.pixel_pitch[_Y]);
 	(xml_node->FirstChildElement("WavelengthofLaser"))->QueryFloatText(&context_.lambda);
 #endif
-	(xml_node->FirstChildElement("SLMpixelNumX"))->QueryIntText(&context_.pixel_number[_X]);
-	(xml_node->FirstChildElement("SLMpixelNumY"))->QueryIntText(&context_.pixel_number[_Y]);
-	(xml_node->FirstChildElement("MeshShadingType"))->QueryIntText(&SHADING_TYPE);
-	(xml_node->FirstChildElement("EncodingMethod"))->QueryIntText(&ENCODE_METHOD);
-	if (ENCODE_METHOD == ENCODE_SSB || ENCODE_METHOD == ENCODE_OFFSSB)
-		(xml_node->FirstChildElement("SingleSideBandPassBand"))->QueryIntText(&SSB_PASSBAND);
+	(xml_node->FirstChildElement("SLMPixelNumX"))->QueryIntText(&context_.pixel_number[_X]);
+	(xml_node->FirstChildElement("SLMPixelNumY"))->QueryIntText(&context_.pixel_number[_Y]);
+	//(xml_node->FirstChildElement("MeshShadingType"))->QueryIntText(&SHADING_TYPE);
+	//(xml_node->FirstChildElement("EncodingMethod"))->QueryIntText(&ENCODE_METHOD);
+	//if (ENCODE_METHOD == ENCODE_SSB || ENCODE_METHOD == ENCODE_OFFSSB)
+	//	(xml_node->FirstChildElement("SingleSideBandPassBand"))->QueryIntText(&SSB_PASSBAND);
 
 	context_.k = (2 * M_PI) / context_.lambda;
 	context_.ss[_X] = context_.pixel_number[_X] * context_.pixel_pitch[_X];
 	context_.ss[_Y] = context_.pixel_number[_Y] * context_.pixel_pitch[_Y];
+
+	loadMeshData(meshDataFileName);
+	cout << "pixel num: " << context_.pixel_number[_X] << ", " << context_.pixel_number[_Y] << endl;
+	cout << "pixel pit: " << context_.pixel_pitch[_X] << ", " << context_.pixel_pitch[_Y] << endl;
+	cout << "lambda: " << context_.lambda << endl;
+	cout << "illu: " << illumination[_X] << ", " << illumination[_Y] << ", " << illumination[_Z] << endl;
+	cout << "size: " << objSize << endl;
+	cout << "shift: " << objShift[_X] << ", " << objShift[_Y] << ", " << objShift[_Z] << endl;
 
 	auto end = CUR_TIME;
 
@@ -147,10 +155,12 @@ int ophTri::readMeshConfig(const char* mesh_config) {
 	return true;
 }
 
+
 void ophTri::initializeAS() {
 	angularSpectrum = new Complex<Real>[context_.pixel_number[_X] * context_.pixel_number[_Y]];
 	memset(angularSpectrum, 0, context_.pixel_number[_X] * context_.pixel_number[_Y]);
 }
+
 
 void ophTri::objNormCenter() {
 
@@ -191,6 +201,7 @@ void ophTri::objNormCenter() {
 
 	cout << "Normalization Finished.." << endl;
 }
+
 
 void ophTri::objScaleShift() {
 	scaledMeshData = new Real[num_mesh * 9];
@@ -276,6 +287,7 @@ void ophTri::objScaleShift(Real objSize_, Real objShift_[]) {
 	cout << "Object Scaling and Shifting Finishied.." << endl;
 }
 
+
 vec3 vecCross(const vec3& a, const vec3& b)
 {
 	vec3 c;
@@ -289,6 +301,7 @@ vec3 vecCross(const vec3& a, const vec3& b)
 
 	return c;
 }
+
 
 void ophTri::generateAS(uint SHADING_FLAG) {
 
@@ -332,6 +345,9 @@ void ophTri::generateAS(uint SHADING_FLAG) {
 		case SHADING_CONTINUOUS:
 			refAS_Continuous();
 			break;
+		default:
+			cout << "error: WRONG SHADING_FLAG" << endl;
+			cin.get();
 		}
 		refToGlobal();
 		cout << n+1 << " / " << num_mesh << endl;
@@ -553,6 +569,8 @@ void ophTri::refToGlobal() {
 
 void ophTri::generateMeshHologram(uint SHADING_FLAG) {
 	cout << "Hologram Generation ..." << endl;
+	auto start = CUR_TIME;
+
 	initialize();
 	initializeAS();
 	generateAS(SHADING_FLAG);
@@ -561,11 +579,17 @@ void ophTri::generateMeshHologram(uint SHADING_FLAG) {
 
 	fft2(context_.pixel_number, angularSpectrum, OPH_BACKWARD, OPH_ESTIMATE);
 	fftwShift(angularSpectrum, holo_gen, context_.pixel_number[_X], context_.pixel_number[_Y], OPH_BACKWARD, false);
-	cout << "Hologram Generated ..." << endl;	
+
+	auto end = CUR_TIME;
+	auto during = ((std::chrono::duration<Real>)(end - start)).count();
+
+	LOG("%.5lfsec...hologram generated..\n", during);
 }
 
 void ophTri::generateMeshHologram() {
 	cout << "Hologram Generation ..." << endl;
+	auto start = CUR_TIME;
+
 	initialize();
 	initializeAS();
 	generateAS(SHADING_TYPE);
@@ -574,5 +598,9 @@ void ophTri::generateMeshHologram() {
 
 	fft2(context_.pixel_number, angularSpectrum, OPH_BACKWARD, OPH_ESTIMATE);
 	fftwShift(angularSpectrum, holo_gen, context_.pixel_number[_X], context_.pixel_number[_Y], OPH_BACKWARD, false);
-	cout << "Hologram Generated ..." << endl;
+
+	auto end = CUR_TIME;
+	auto during = ((std::chrono::duration<Real>)(end - start)).count();
+
+	LOG("%.5lfsec...hologram generated..\n", during);
 }
