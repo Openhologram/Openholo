@@ -1,4 +1,4 @@
 # Openholo
 2차 년도
-test : webhook test1
+test : webhook test
 
