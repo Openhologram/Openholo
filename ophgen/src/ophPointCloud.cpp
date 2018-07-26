@@ -133,7 +133,7 @@ void ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 			diffractEncodedFrsn();
 			break;
 		case PC_DIFF_FRESNEL_NOT_ENCODED:
-			diffractNotEncodedFrsn();
+			diffractNotEncodedFrsn(pn, pp, vec3(pcx, pcy, pcz), amplitude, context_.lambda);
 			break;
 		}
 	}
@@ -202,13 +202,11 @@ void ophPointCloud::diffractNotEncodedRS(ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Re
 			if ((xxx < range_x[0] && xxx > range_x[1]) && (yyy < range_y[0] && yyy > range_y[1])) {
 				Real kr = k * r;
 
-				auto res_real = amplitude * (pc[_Z]) * sin(kr) / (lambda * r * r);
-				auto res_imag = amplitude * (pc[_Z]) * cos(kr) / (lambda * r * r);
+				Real res_real = amplitude * (pc[_Z]) * sin(kr) / (lambda * r * r);
+				Real res_imag = amplitude * (pc[_Z]) * cos(kr) / (lambda * r * r);
 
 				holo_gen[xxtr + yytr * pn[_X]][_RE] += res_real;
 				holo_gen[xxtr + yytr * pn[_X]][_IM] += res_imag;
-
-				//holo_encoded[xxtr + yytr * pn[_X]] += res_real;
 
 				//LOG("(%3d, %3d) [%7d] : ", xxtr, yytr, xxtr + yytr * pn[_X]);
 				//LOG("holo=(%15.5lf + %20.10lf * i )\n", holo_gen[xxtr + yytr * pn[_X]][_RE], holo_gen[xxtr + yytr * pn[_X]][_IM]);
@@ -221,8 +219,40 @@ void ophPointCloud::diffractEncodedFrsn(void)
 {
 }
 
-void ophPointCloud::diffractNotEncodedFrsn(void)
+void ophPointCloud::diffractNotEncodedFrsn(ivec2 pn, vec2 pp, vec3 pc, Real amplitude, Real lambda)
 {
+	Real k = context_.k;
+	vec2 ss = context_.ss;
+
+	Real xbound[2] = { pc[_X] + abs(lambda * pc[_Z] / (2 * pp[_X])), pc[_X] - abs(lambda * pc[_Z] / (2 * pp[_X])) };
+	Real ybound[2] = { pc[_Y] + abs(lambda * pc[_Z] / (2 * pp[_Y])), pc[_Y] - abs(lambda * pc[_Z] / (2 * pp[_Y])) };
+
+	Real Xbound[2] = { floor((xbound[0] + ss[_X] / 2) / pp[_X]) + 1, floor((xbound[1] + ss[_X] / 2) / pp[_X]) + 1 };
+	Real Ybound[2] = { pn[_Y] - floor((ybound[1] + ss[_Y] / 2) / pp[_Y]), pn[_Y] - floor((ybound[0] + ss[_Y] / 2) / pp[_Y]) };
+
+	if (Xbound[0] > pn[_X])	Xbound[0] = pn[_X];
+	if (Xbound[1] < 0)		Xbound[1] = 0;
+	if (Ybound[0] > pn[_Y]) Ybound[0] = pn[_Y];
+	if (Ybound[1] < 0)		Ybound[1] = 0;
+
+	for (int yytr = Ybound[1]; yytr < Ybound[0]; yytr++)
+	{
+		for (int xxtr = Xbound[1]; xxtr < Xbound[0]; xxtr++)
+		{
+			Real xxx = ((-ss[_X]) / 2 + (xxtr - 1) * pp[_X]) - pc[_X];
+			Real yyy = ((-ss[_Y]) / 2 + (pn[_Y] - yytr) * pp[_Y]) - pc[_Y];
+			Real p = k * (xxx * xxx + yyy * yyy + 2 * pc[_Z] * pc[_Z]) / (2 * pc[_Z]);
+
+			Real res_real = amplitude * sin(p) / (lambda * pc[_Z]);
+			Real res_imag = amplitude * (-cos(p)) / (lambda * pc[_Z]);
+
+			holo_gen[xxtr + yytr * pn[_X]][_RE] += res_real;
+			holo_gen[xxtr + yytr * pn[_X]][_IM] += res_imag;
+
+			//LOG("(%3d, %3d) [%7d] : ", xxtr, yytr, xxtr + yytr * pn[_X]);
+			//LOG("holo=(%15.5lf + %20.10lf * i )\n", holo_gen[xxtr + yytr * pn[_X]][_RE], holo_gen[xxtr + yytr * pn[_X]][_IM]);
+		}
+	}
 }
 
 void ophPointCloud::ophFree(void)
