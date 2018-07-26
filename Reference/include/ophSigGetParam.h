@@ -25,8 +25,9 @@ protected:
 public:
 	virtual bool loadParam(std::string cfg);
 
-	float sigGetParamSF(float zMax, float zMin, int sampN);
+	float sigGetParamSF(float zMax, float zMin, int sampN, float th = 1);
 	float sigGetParamAT();
+	float sigGetParamAT(float lambda);
 
 private:
 	virtual void ophFree(void);

@@ -104,9 +104,9 @@ int ophTri::readMeshConfig(const char* mesh_config) {
 	(xml_node->FirstChildElement("ObjectShiftX"))->QueryDoubleText(&objShift[_X]);
 	(xml_node->FirstChildElement("ObjectShiftY"))->QueryDoubleText(&objShift[_Y]);
 	(xml_node->FirstChildElement("ObjectShiftZ"))->QueryDoubleText(&objShift[_Z]);
-	(xml_node->FirstChildElement("CarrierWaveVectorX"))->QueryDoubleText(&carrierWave[_X]);
-	(xml_node->FirstChildElement("CarrierWaveVectorY"))->QueryDoubleText(&carrierWave[_Y]);
-	(xml_node->FirstChildElement("CarrierWaveVectorZ"))->QueryDoubleText(&carrierWave[_Z]);
+	//(xml_node->FirstChildElement("CarrierWaveVectorX"))->QueryDoubleText(&carrierWave[_X]);
+	//(xml_node->FirstChildElement("CarrierWaveVectorY"))->QueryDoubleText(&carrierWave[_Y]);
+	//(xml_node->FirstChildElement("CarrierWaveVectorZ"))->QueryDoubleText(&carrierWave[_Z]);
 	(xml_node->FirstChildElement("LampDirectionX"))->QueryDoubleText(&illumination[_X]);
 	(xml_node->FirstChildElement("LampDirectionY"))->QueryDoubleText(&illumination[_Y]);
 	(xml_node->FirstChildElement("LampDirectionZ"))->QueryDoubleText(&illumination[_Z]);
@@ -118,9 +118,9 @@ int ophTri::readMeshConfig(const char* mesh_config) {
 	(xml_node->FirstChildElement("ObjectShiftX"))->QueryFloatText(&objShift[_X]);
 	(xml_node->FirstChildElement("ObjectShiftY"))->QueryFloatText(&objShift[_Y]);
 	(xml_node->FirstChildElement("ObjectShiftZ"))->QueryFloatText(&objShift[_Z]);
-	(xml_node->FirstChildElement("CarrierWaveVectorX"))->QueryFloatText(&carrierWave[_X]);
-	(xml_node->FirstChildElement("CarrierWaveVectorY"))->QueryFloatText(&carrierWave[_Y]);
-	(xml_node->FirstChildElement("CarrierWaveVectorZ"))->QueryFloatText(&carrierWave[_Z]);
+	//(xml_node->FirstChildElement("CarrierWaveVectorX"))->QueryFloatText(&carrierWave[_X]);
+	//(xml_node->FirstChildElement("CarrierWaveVectorY"))->QueryFloatText(&carrierWave[_Y]);
+	//(xml_node->FirstChildElement("CarrierWaveVectorZ"))->QueryFloatText(&carrierWave[_Z]);
 	(xml_node->FirstChildElement("LampDirectionX"))->QueryFloatText(&illumination[_X]);
 	(xml_node->FirstChildElement("LampDirectionY"))->QueryFloatText(&illumination[_Y]);
 	(xml_node->FirstChildElement("LampDirectionZ"))->QueryFloatText(&illumination[_Z]);
@@ -132,7 +132,8 @@ int ophTri::readMeshConfig(const char* mesh_config) {
 	(xml_node->FirstChildElement("SLMpixelNumY"))->QueryIntText(&context_.pixel_number[_Y]);
 	(xml_node->FirstChildElement("MeshShadingType"))->QueryIntText(&SHADING_TYPE);
 	(xml_node->FirstChildElement("EncodingMethod"))->QueryIntText(&ENCODE_METHOD);
-	(xml_node->FirstChildElement("SingleSideBandPassBand"))->QueryIntText(&SSB_PASSBAND);
+	if (ENCODE_METHOD == ENCODE_SSB || ENCODE_METHOD == ENCODE_OFFSSB)
+		(xml_node->FirstChildElement("SingleSideBandPassBand"))->QueryIntText(&SSB_PASSBAND);
 
 	context_.k = (2 * M_PI) / context_.lambda;
 	context_.ss[_X] = context_.pixel_number[_X] * context_.pixel_pitch[_X];
@@ -427,8 +428,8 @@ void ophTri::calGlobalFrequency() {
 	fy = new Real[Ny*Ny];
 	fz = new Real[Nx*Ny];
 	uint i = 0;
-	for (int idxFy = -Ny / 2; idxFy < Ny / 2; idxFy++) {
-		for (int idxFx = Nx / 2; idxFx > -Nx / 2; idxFx--) {
+	for (int idxFy = Ny / 2; idxFy > -Ny / 2; idxFy--) {
+		for (int idxFx = -Nx / 2; idxFx < Nx / 2; idxFx++) {
 			fx[i] = idxFx*dfx;
 			fy[i] = idxFy*dfy;
 			fz[i] = sqrt((1 / context_.lambda)*(1 / context_.lambda) - fx[i] * fx[i] - fy[i] * fy[i]);
@@ -459,12 +460,9 @@ uint ophTri::calFrequencyTerm() {
 	invLoRot[1] = -(1 / (geom.loRot[0] * geom.loRot[3] - geom.loRot[1] * geom.loRot[2]))*geom.loRot[2];
 	invLoRot[2] = -(1 / (geom.loRot[0] * geom.loRot[3] - geom.loRot[1] * geom.loRot[2]))*geom.loRot[1];
 	invLoRot[3] = (1 / (geom.loRot[0] * geom.loRot[3] - geom.loRot[1] * geom.loRot[2]))*geom.loRot[0];
-	//cout << invLoRot[0] << ", " << invLoRot[1] << ", " << invLoRot[2] << ", " << invLoRot[3] << endl;
 	for_i(Nx*Ny,
 		freqTermX[i] = invLoRot[0] * flxShifted[i] + invLoRot[1] * flyShifted[i];
 		freqTermY[i] = invLoRot[2] * flxShifted[i] + invLoRot[3] * flyShifted[i];
-		//cout << freqTermX[i] << ", " << freqTermY[i] << endl;
-		//cin.get();
 		);
 	
 	delete[] flxShifted, flyShifted, invLoRot;
@@ -490,51 +488,31 @@ uint ophTri::refAS_Flat(vec3 no) {
 		if (shadingFactor < 0)
 			shadingFactor = 0;		
 	}
-	//cout << shadingFactor << endl;
 	for (uint i = 0; i < Nx*Ny; i++) {
-		//cout << freqTermX[i] << ", " << freqTermY[i] << endl;
 		if (freqTermX[i] == -freqTermY[i] && freqTermY[i] != 0) {
 			temp1[_IM] = 2 * M_PI*freqTermY[i];
 			temp2[_IM] = 1;
 			refAS[i] = shadingFactor*(((Complex<Real>)1 - exp(temp1)) / (4 * M_PI*M_PI*freqTermY[i] * freqTermY[i]) + temp2 / (2 * M_PI*freqTermY[i]));
-			//cout << 1 << endl;
-			//cout << i << ": " << refAS[i] << endl;
-			//cin.get();
 		}
 		else if (freqTermX[i] == freqTermY[i] && freqTermX[i] == 0) {
 			refAS[i] = shadingFactor * 1 / 2;
-			//cout << 2 << endl;
-			//cout << i << ": " << refAS[i] << endl;
-			//cin.get();
 		}
 		else if (freqTermX[i] != 0 && freqTermY[i] == 0) {
 			temp1[_IM] = -2 * M_PI*freqTermX[i];
 			temp2[_IM] = 1;
 			refAS[i] = shadingFactor*((exp(temp1) - (Complex<Real>)1) / (2 * M_PI*freqTermX[i] * 2 * M_PI*freqTermX[i]) + (temp2 * exp(temp1)) / (2 * M_PI*freqTermX[i]));
-			cout << 3 << endl;
-			cout << i << ": " << refAS[i] << endl;
-			cin.get();
 		}
 		else if (freqTermX[i] == 0 && freqTermY[i] != 0) {
 			temp1[_IM] = 2 * M_PI*freqTermY[i];
 			temp2[_IM] = 1;
 			refAS[i] = shadingFactor*(((Complex<Real>)1 - exp(temp1)) / (4 * M_PI*M_PI*freqTermY[i] * freqTermY[i]) - temp2 / (2 * M_PI*freqTermY[i]));
-			cout << 4 << endl;
-			cout << i << ": " << refAS[i] << endl;
-			cin.get();
 		}
 		else {
 			temp1[_IM] = -2 * M_PI*freqTermX[i];
 			temp2[_IM] = -2 * M_PI*(freqTermX[i] + freqTermY[i]);
 			refAS[i] = shadingFactor*((exp(temp1) - (Complex<Real>)1) / (4 * M_PI*M_PI*freqTermX[i] * freqTermY[i]) + ((Complex<Real>)1 - exp(temp2)) / (4 * M_PI*M_PI*freqTermY[i] * (freqTermX[i] + freqTermY[i])));
-			//cout << 5 << endl;
-			//cout << temp1 << ", " << temp2 << endl;
-			//cout << i << ": " << refAS[i] << endl;
-			//cin.get();
 		}
-		//cout << i << ": " << refAS[i] << endl;
 	}
-	
 	return 1;
 }
 
@@ -578,10 +556,11 @@ void ophTri::generateMeshHologram(uint SHADING_FLAG) {
 	initialize();
 	initializeAS();
 	generateAS(SHADING_FLAG);
-	holo_gen = angularSpectrum;
-	//fft2(context_.pixel_number, angularSpectrum, OPH_BACKWARD, OPH_ESTIMATE);
-	//fftwShift(angularSpectrum, holo_gen, context_.pixel_number[_X], context_.pixel_number[_Y], OPH_BACKWARD, false);
-	//delete[] angularSpectrum;	
+
+	//holo_gen = angularSpectrum;
+
+	fft2(context_.pixel_number, angularSpectrum, OPH_BACKWARD, OPH_ESTIMATE);
+	fftwShift(angularSpectrum, holo_gen, context_.pixel_number[_X], context_.pixel_number[_Y], OPH_BACKWARD, false);
 	cout << "Hologram Generated ..." << endl;	
 }
 
@@ -590,10 +569,8 @@ void ophTri::generateMeshHologram() {
 	initialize();
 	initializeAS();
 	generateAS(SHADING_TYPE);
-	//holo_gen = angularSpectrum;
 
-	// AngularSpectrum 까지는 매트랩과 결과값이 같음. ==> fft후에 틀려짐..
-	// 그런데 AS를 그림으로 그리면 이상하게 다르게 나옴.. ==> encoding 까지는 확인결과 맞음.
+	//holo_gen = angularSpectrum;
 
 	fft2(context_.pixel_number, angularSpectrum, OPH_BACKWARD, OPH_ESTIMATE);
 	fftwShift(angularSpectrum, holo_gen, context_.pixel_number[_X], context_.pixel_number[_Y], OPH_BACKWARD, false);
