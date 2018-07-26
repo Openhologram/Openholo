@@ -24,6 +24,10 @@ protected:
 private:
 	uchar** LF;
 	oph::Complex<Real>* RSplane_complex_field;
+
+private:
+	const char* LF_directory;
+	const char* ext;
 public:
 	inline void setNumImage(int nx, int ny) { num_image[_X] = nx; num_image[_Y] = ny; }
 	inline void setNumImage(ivec2 num) { num_image = num; }
@@ -38,14 +42,14 @@ public:
 	inline oph::Complex<Real>* getRSPlane() { return RSplane_complex_field; }
 public:
 	int readLFConfig(const char* LF_config);
-	int loadLF(const char* LF_directory, const char* ext);
+	int loadLF(const char* directory, const char* exten);
+	int loadLF();
 	//void readPNG(const string filename, uchar* data);
 
 	void generateHologram();
 protected:
 	void initializeLF();
 	void convertLF2ComplexField();
-	//void fresnelPropagation(OphContext context, Complex<Real>* in, Complex<Real>* out, Real distance);
 
 private:
 	ivec2 num_image;

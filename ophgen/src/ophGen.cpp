@@ -113,8 +113,7 @@ bool ophGen::readConfig(const char* fname, OphPointCloudConfig& configdata)
 	(xml_node->FirstChildElement("TiltAngleX"))->QueryFloatText(&configdata.tilt_angle[_X]);
 	(xml_node->FirstChildElement("TiltAngleY"))->QueryFloatText(&configdata.tilt_angle[_Y]);
 #endif
-	(xml_node->FirstChildElement("SLMpixelNumX"))->QueryIntText(&context_.pixel_number[_X]);
-	(xml_node->FirstChildElement("SLMpixelNumY"))->QueryIntText(&context_.pixel_number[_Y]);
+
 	configdata.filter_shape_flag = (int8_t*)(xml_node->FirstChildElement("BandpassFilterShape"))->GetText();
 
 	context_.k = (2 * M_PI) / context_.lambda;
@@ -573,21 +572,27 @@ void ophGen::encoding(unsigned int ENCODE_FLAG) {
 	switch (ENCODE_FLAG)
 	{
 	case ENCODE_SIMPLENI:
+		cout << "Simple Numerical Interference Encoding.." << endl;
 		numericalInterference(holo_gen, holo_encoded, size);
 		break;
 	case ENCODE_REAL:
+		cout << "Real Part Encoding.." << endl;
 		realPart<Real>(holo_gen, holo_encoded, size);
 		break;
 	case ENCODE_BURCKHARDT:
+		cout << "Burckhardt Encoding.." << endl;
 		burckhardt(holo_gen, holo_encoded, size);
 		break;
 	case ENCODE_TWOPHASE:
+		cout << "Two Phase Encoding.." << endl;
 		twoPhaseEncoding(holo_gen, holo_encoded, size);
 		break;
 	case ENCODE_PHASE:
+		cout << "Phase Encoding.." << endl;
 		getPhase(holo_gen, holo_encoded, size);
 		break;
 	case ENCODE_AMPLITUDE:
+		cout << "Amplitude Encoding.." << endl;
 		getAmplitude(holo_gen, holo_encoded, size);
 		break;
 	case ENCODE_SSB:
@@ -601,6 +606,7 @@ void ophGen::encoding(unsigned int ENCODE_FLAG) {
 		return;
 	}
 }
+
 void ophGen::encoding(unsigned int ENCODE_FLAG, unsigned int passband) {
 	
 	const int size = context_.pixel_number.v[_X] * context_.pixel_number.v[_Y];
@@ -621,9 +627,11 @@ void ophGen::encoding(unsigned int ENCODE_FLAG, unsigned int passband) {
 	switch (ENCODE_FLAG)
 	{
 	case ENCODE_SSB:
+		cout << "Single Side Band Encoding.." << endl;
 		singleSideBand(holo_gen, holo_encoded, context_.pixel_number, passband);
 		break;
 	case ENCODE_OFFSSB:
+		cout << "Off-axis Single Side Band Encoding.." << endl;
 		freqShift(holo_gen, holo_gen, context_.pixel_number, 0, 100);
 		singleSideBand(holo_gen, holo_encoded, context_.pixel_number, passband);
 		break;
@@ -633,6 +641,76 @@ void ophGen::encoding(unsigned int ENCODE_FLAG, unsigned int passband) {
 		return;
 	}
 }
+
+void ophGen::encoding() {
+
+	const int size = context_.pixel_number.v[_X] * context_.pixel_number.v[_Y];
+
+	if (ENCODE_METHOD == ENCODE_BURCKHARDT) {
+		encode_size[_X] = context_.pixel_number[_X] * 3;
+		encode_size[_Y] = context_.pixel_number[_Y];
+	}
+	else if (ENCODE_METHOD == ENCODE_TWOPHASE) {
+		encode_size[_X] = context_.pixel_number[_X] * 2;
+		encode_size[_Y] = context_.pixel_number[_Y];
+	}
+	else {
+		encode_size[_X] = context_.pixel_number[_X];
+		encode_size[_Y] = context_.pixel_number[_Y];
+	}
+
+	/*	initialize	*/
+	if (holo_encoded != nullptr) delete[] holo_encoded;
+	holo_encoded = new Real[encode_size[_X] * encode_size[_Y]];
+	memset(holo_encoded, 0, sizeof(Real) * encode_size[_X] * encode_size[_Y]);
+
+	if (holo_normalized != nullptr) delete[] holo_normalized;
+	holo_normalized = new uchar[encode_size[_X] * encode_size[_Y]];
+	memset(holo_normalized, 0, sizeof(uchar) * encode_size[_X] * encode_size[_Y]);
+
+
+	switch (ENCODE_METHOD)
+	{
+	case ENCODE_SIMPLENI:
+		cout << "Simple Numerical Interference Encoding.." << endl;
+		numericalInterference(holo_gen, holo_encoded, size);
+		break;
+	case ENCODE_REAL:
+		cout << "Real Part Encoding.." << endl;
+		realPart<Real>(holo_gen, holo_encoded, size);
+		break;
+	case ENCODE_BURCKHARDT:
+		cout << "Burckhardt Encoding.." << endl;
+		burckhardt(holo_gen, holo_encoded, size);
+		break;
+	case ENCODE_TWOPHASE:
+		cout << "Two Phase Encoding.." << endl;
+		twoPhaseEncoding(holo_gen, holo_encoded, size);
+		break;
+	case ENCODE_PHASE:
+		cout << "Phase Encoding.." << endl;
+		getPhase(holo_gen, holo_encoded, size);
+		break;
+	case ENCODE_AMPLITUDE:
+		cout << "Amplitude Encoding.." << endl;
+		getAmplitude(holo_gen, holo_encoded, size);
+		break;
+	case ENCODE_SSB:
+		cout << "Single Side Band Encoding.." << endl;
+		singleSideBand(holo_gen, holo_encoded, context_.pixel_number, SSB_PASSBAND);
+		break;
+	case ENCODE_OFFSSB:
+		cout << "Off-axis Single Side Band Encoding.." << endl;
+		freqShift(holo_gen, holo_gen, context_.pixel_number, 0, 100);
+		singleSideBand(holo_gen, holo_encoded, context_.pixel_number, SSB_PASSBAND);
+		break;
+	default:
+		cout << "error: WRONG ENCODE_FLAG" << endl;
+		cin.get();
+		return;
+	}
+}
+
 void ophGen::numericalInterference(oph::Complex<Real>* holo, Real* encoded, const int size)
 {
 	Real* temp1 = new Real[size];
