@@ -424,6 +424,72 @@ bool ophGen::readConfig(const char* fname, OphDepthMapConfig & config, OphDepthM
 	return true;
 }
 
+bool ophGen::readConfig(const char* fname, OphWRPConfig& configdata)
+{
+	/*	if (!ophGen::readConfig(cfg_file, pc_config_))
+	return false;
+
+	return true;*/
+	LOG("Reading....%s...", fname);
+
+	auto start = CUR_TIME;
+
+	/*XML parsing*/
+	tinyxml2::XMLDocument xml_doc;
+	tinyxml2::XMLNode *xml_node;
+
+	if (checkExtension(fname, ".xml") == 0)
+	{
+		LOG("file's extension is not 'xml'\n");
+		return false;
+	}
+	auto ret = xml_doc.LoadFile(fname);
+	if (ret != tinyxml2::XML_SUCCESS)
+	{
+		LOG("Failed to load file \"%s\"\n", fname);
+		return false;
+	}
+
+	xml_node = xml_doc.FirstChild();
+
+#if REAL_IS_DOUBLE & true
+	(xml_node->FirstChildElement("ScalingXofPointCloud"))->QueryDoubleText(&configdata.scale[_X]);
+	(xml_node->FirstChildElement("ScalingYofPointCloud"))->QueryDoubleText(&configdata.scale[_Y]);
+	(xml_node->FirstChildElement("ScalingZofPointCloud"))->QueryDoubleText(&configdata.scale[_Z]);
+	(xml_node->FirstChildElement("SLMpixelPitchX"))->QueryDoubleText(&context_.pixel_pitch[_X]);
+	(xml_node->FirstChildElement("SLMpixelPitchY"))->QueryDoubleText(&context_.pixel_pitch[_Y]);
+	(xml_node->FirstChildElement("Wavelength"))->QueryDoubleText(&context_.lambda);
+	(xml_node->FirstChildElement("LocationOfWRP"))->QueryDoubleText(&configdata.wrp_location);
+	(xml_node->FirstChildElement("PropagationDistance"))->QueryDoubleText(&configdata.propagation_distance);
+
+#else
+	(xml_node->FirstChildElement("ScalingXofPointCloud"))->QueryFloatText(&configdata.scale[_X]);
+	(xml_node->FirstChildElement("ScalingYofPointCloud"))->QueryFloatText(&configdata.scale[_Y]);
+	(xml_node->FirstChildElement("ScalingZofPointCloud"))->QueryFloatText(&configdata.scale[_Z]);
+	(xml_node->FirstChildElement("SLMpixelPitchX"))->QueryFloatText(&context_.pixel_pitch[_X]);
+	(xml_node->FirstChildElement("SLMpixelPitchY"))->QueryFloatText(&context_.pixel_pitch[_Y]);
+	(xml_node->FirstChildElement("Wavelength"))->QueryFloatText(&context_.lambda);
+	(xml_node->FirstChildElement("LocationOfWRP"))->QueryFloatText(&configdata.wrp_location);
+	(xml_node->FirstChildElement("PropagationDistance"))->QueryFloatText(&configdata.propagation_distance);
+#endif
+	(xml_node->FirstChildElement("SLMpixelNumX"))->QueryIntText(&context_.pixel_number[_X]);
+	(xml_node->FirstChildElement("SLMpixelNumY"))->QueryIntText(&context_.pixel_number[_Y]);
+	(xml_node->FirstChildElement("NumberOfWRP"))->QueryIntText(&configdata.num_wrp);
+
+
+	context_.k = (2 * M_PI) / context_.lambda;
+	context_.ss[_X] = context_.pixel_number[_X] * context_.pixel_pitch[_X];
+	context_.ss[_Y] = context_.pixel_number[_Y] * context_.pixel_pitch[_Y];
+	/*XML parsing*/
+
+	auto end = CUR_TIME;
+
+	auto during = ((std::chrono::duration<Real>)(end - start)).count();
+
+	LOG("%.5lfsec...done\n", during);
+	return true;
+}
+
 void ophGen::normalize(void)
 {
 	oph::normalize((Real*)holo_encoded, holo_normalized, context_.pixel_number[_X], context_.pixel_number[_Y]);
