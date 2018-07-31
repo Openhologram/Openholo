@@ -210,7 +210,6 @@ protected:
 	virtual void ophFree(void);
 };
 
-#endif // !__ophGen_h
 
 struct GEN_DLL OphPointCloudConfig {
 	oph::vec3 scale;								///< Scaling factor of coordinate of point cloud
@@ -294,3 +293,5 @@ struct GEN_DLL OphDepthMapParams
 //	Real*					sim_final_;							///< reconstruction variable for testing
 //	oph::Complex<Real>*		hh_complex_;						///< reconstruction variable for testing
 //};
+
+#endif // !__ophGen_h

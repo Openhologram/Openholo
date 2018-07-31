@@ -1,19 +1,19 @@
 #include "ophwrp.h"
 
-ophWRP::ophWRP(void) :ophGen()
+ophWRP::ophWRP(void) 
+	: ophGen()
 {
 	n_points = -1;
 	p_wrp_ = nullptr;
 }
 
-/*ophWRP::~ophWRP(void)
+ophWRP::~ophWRP(void)
 {
-}*/
+}
 
 
 int ophWRP::loadPointCloud(const char* pc_file)
 {
-
 	n_points = ophGen::loadPointCloud(pc_file, &obj_);
 
 	return n_points;
@@ -201,7 +201,7 @@ double ophWRP::calculateWRP(double wrp_d)
 	memset(p_wrp_, 0.0, sizeof(oph::Complex<Real>) * context_.pixel_number[_X] * context_.pixel_number[_Y]);
 
 	int num = n_points;
-	std::chrono::system_clock::time_point time_start = std::chrono::system_clock::now();
+	auto time_start = CUR_TIME;
 
 #ifdef _OPENMP
 	omp_set_num_threads(omp_get_num_threads());
@@ -247,7 +247,7 @@ double ophWRP::calculateWRP(double wrp_d)
 		}
 	}
 
-	std::chrono::system_clock::time_point time_finish = std::chrono::system_clock::now();
+	auto time_finish = CUR_TIME;
 	return ((std::chrono::duration<Real>)(time_finish - time_start)).count();
 
 }

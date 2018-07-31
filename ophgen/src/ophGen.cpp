@@ -48,7 +48,8 @@ int ophGen::loadPointCloud(const char* pc_file, OphPointCloudData *pc_data_)
 	auto start = CUR_TIME;
 
 	PLYparser plyIO;
-	plyIO.loadPLY(pc_file, pc_data_->n_points, pc_data_->n_colors, &pc_data_->vertex, &pc_data_->color, &pc_data_->phase, pc_data_->isPhaseParse);
+	if (!plyIO.loadPLY(pc_file, pc_data_->n_points, pc_data_->n_colors, &pc_data_->vertex, &pc_data_->color, &pc_data_->phase, pc_data_->isPhaseParse))
+		return -1;
 
 	auto end = CUR_TIME;
 
