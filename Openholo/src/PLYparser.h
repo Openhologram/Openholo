@@ -8,9 +8,6 @@
 
 #include "include.h"
 
-#define _OPH_LIB_VERSION_MAJOR_ 1
-#define _OPH_LIB_VERSION_MINOR_ 0
-
 
 /* PLY File Header for Openholo Point Cloud Format
 ply

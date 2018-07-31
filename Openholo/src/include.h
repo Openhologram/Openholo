@@ -1,6 +1,9 @@
 #ifndef __include_h
 #define __include_h
 
+#define _OPH_LIB_VERSION_MAJOR_ 1
+#define _OPH_LIB_VERSION_MINOR_ 0
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -16,11 +19,11 @@
 #include <map>
 #include <chrono>
 
-#include "struct.h"
 #include "define.h"
 #include "enumerator.h"
 #include "function.h"
 #include "typedef.h"
+#include "struct.h"
 
 using namespace std;
 

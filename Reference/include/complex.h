@@ -23,7 +23,7 @@ namespace oph {
 
 	public:
 		Complex() : complex<T>() {}
-		Complex(T p) : complex<T>(p) {}
+		Complex(T p) : complex<T>(p) { _Val[_RE] = p; _Val[_IM] = 0.0; }
 		Complex(T tRe, T tIm) : complex<T>(tRe, tIm) {}
 		Complex(const Complex<T>& p) {
 			_Val[_RE] = p._Val[_RE];
@@ -51,7 +51,7 @@ namespace oph {
 		}
 
 		T angle(void)
-		{matrix identity
+		{
 			if (std::is_same<double, T>::value)
 				return atan2(_Val[_IM], _Val[_RE]);
 			else if (std::is_same<float, T>::value)
@@ -59,13 +59,14 @@ namespace oph {
 		}
 
 		Complex<T>& exp() {
+			Complex<T> p(_Val[_RE], _Val[_IM]);
 			if (std::is_same<double, T>::value){
-				_Val[_RE] = std::exp(_Val[_RE]) * cos(_Val[_IM]);
-				_Val[_IM] = std::exp(_Val[_RE]) * sin(_Val[_IM]);
+				_Val[_RE] = std::exp((float)p._Val[_RE]) * cos((float)p._Val[_IM]);
+				_Val[_IM] = std::exp((float)p._Val[_RE]) * sin((float)p._Val[_IM]);
 			}
 			else {
-				_Val[_RE] = std::expf(_Val[_RE]) * cos(_Val[_IM]);
-				_Val[_IM] = std::expf(_Val[_RE]) * sin(_Val[_IM]);
+				_Val[_RE] = std::expf(p._Val[_RE]) * cos(p._Val[_IM]);
+				_Val[_IM] = std::expf(p._Val[_RE]) * sin(p._Val[_IM]);
 			}
 			return *this;
 		}
@@ -89,7 +90,7 @@ namespace oph {
 
 		const Complex<T>& operator = (const T& p) {
 			_Val[_RE] = p;
-			_Val[_IM] = p;
+			_Val[_IM] = 0.0;
 
 			return *this;
 		}
@@ -131,6 +132,14 @@ namespace oph {
 
 		const Complex<T>& operator*= (const T k) {
 			_Val[_RE] *= k;
+			_Val[_IM] *= k;
+
+			return *this;
+		}
+
+		const Complex<T>& operator = (const std::complex<T> p) {
+			_Val[_RE] = p._Val[_RE];
+			_Val[_IM] = p._Val[_IM];
 
 			return *this;
 		}
@@ -169,9 +178,18 @@ namespace oph {
 			return *this;
 		}
 
+		//const Complex<T>& operator / (const Complex<T>& p) {
+		//	_Val[_RE] /= p._Val[_RE];
+		//	_Val[_IM] /= p._Val[_IM];
+
+		//	return *this;
+		//}
+
 		const Complex<T>& operator / (const Complex<T>& p) {
-			_Val[_RE] /= p._Val[_RE];
-			_Val[_IM] /= p._Val[_IM];
+			const T tRe = _Val[_RE];
+			const T tIm = _Val[_IM];
+			_Val[_RE] = (tRe*p._Val[_RE] + tIm*p._Val[_IM]) / (p._Val[_RE] * p._Val[_RE] + p._Val[_IM] * p._Val[_IM]);
+			_Val[_IM] = (tIm*p._Val[_RE] - tRe*p._Val[_IM]) / (p._Val[_RE] * p._Val[_RE] + p._Val[_IM] * p._Val[_IM]);
 
 			return *this;
 		}
@@ -207,7 +225,7 @@ namespace oph {
 			return Complex<T>(p) += q;
 		}
 
-		friend const Complex<T> operator+ (const Complex<T>&p, const double q) {
+		friend const Complex<T> operator+ (const Complex<T>&p, const T q) {
 			return Complex<T>(p._Val[_RE] + q, p._Val[_IM]);
 		}
 
@@ -215,7 +233,7 @@ namespace oph {
 			return Complex<T>(p) -= q;
 		}
 
-		friend const Complex<T> operator- (const Complex<T>&p, const double q) {
+		friend const Complex<T> operator- (const Complex<T>&p, const T q) {
 			return Complex<T>(p._Val[_RE] - q, p._Val[_IM]);
 		}
 
@@ -223,7 +241,7 @@ namespace oph {
 			return Complex<T>(p) *= k;
 		}
 
-		friend const Complex<T> operator* (const Complex<T>& p, const double k){
+		friend const Complex<T> operator* (const Complex<T>& p, const T k){
 			return Complex<T>(p) *= k;
 		}
 
@@ -237,6 +255,10 @@ namespace oph {
 
 		friend const Complex<T> operator/ (const Complex<T>& p, const T& q) {
 			return Complex<T>(p._Val[_RE] / q, p._Val[_IM]);
+		}
+
+		friend const Complex<T> operator/ (const T& p, const Complex<T>& q) {
+			return Complex<T>(p / q._Val[_RE], p / q._Val[_IM]);
 		}
 
 		friend bool operator< (const Complex<T>& p, const Complex<T>& q) {

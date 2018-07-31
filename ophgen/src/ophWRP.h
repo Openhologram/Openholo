@@ -22,7 +22,7 @@
 
 using namespace oph;
 
-class ophWRP : public ophGen
+class GEN_DLL ophWRP : public ophGen
 {
 
 public:
@@ -36,12 +36,12 @@ protected:
 	/**
 	* @brief Destructor
 	*/
-	//	virtual ~ophWRP(void);
+	virtual ~ophWRP(void);
 
 public:
 
 	/**
-	\defgroup PointCloud_Load
+	\defgroup loadPointCloud
 	* @brief override
 	* @{
 	* @brief Import Point Cloud Data Base File : *.PYL file.

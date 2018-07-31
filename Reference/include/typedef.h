@@ -1,9 +1,9 @@
 #ifndef __typedef_h
 #define __typedef_h
 
-#define REAL_T_IS_FLOAT true
+#define REAL_IS_DOUBLE true
 
-#if REAL_T_IS_FLOAT & true
+#if REAL_IS_DOUBLE & true
 typedef double Real;
 typedef float  Real_t;
 #else
@@ -16,6 +16,7 @@ namespace oph
 	typedef unsigned int uint;
 	typedef unsigned char uchar;
 	typedef unsigned long ulong;
+	typedef long long longlong;
 	typedef unsigned long long ulonglong;
 
 

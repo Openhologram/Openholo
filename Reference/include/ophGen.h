@@ -14,6 +14,8 @@
 #define GEN_DLL __declspec(dllimport)
 #endif
 
+#pragma comment(lib, "libfftw3-3.lib")
+
 struct GEN_DLL OphContext {
 	oph::ivec2		pixel_number;				///< SLM_PIXEL_NUMBER_X & SLM_PIXEL_NUMBER_Y
 	oph::vec2		pixel_pitch;				///< SLM_PIXEL_PITCH_X & SLM_PIXEL_PITCH_Y
@@ -30,13 +32,16 @@ struct OphDepthMapConfig;
 struct OphDepthMapParams;
 //struct OphDepthMapSimul;
 
+enum PC_DIFF_FLAG {
+	PC_DIFF_RS_ENCODED,
+	PC_DIFF_FRESNEL_ENCODED,
+	PC_DIFF_RS_NOT_ENCODED,
+	PC_DIFF_FRESNEL_NOT_ENCODED,
+};
+
 class GEN_DLL ophGen : public Openholo
 {
 public:
-	enum DIFF_FLAG {
-		DIFF_RS,
-		DIFF_FRESNEL,
-	};
 
 	enum ENCODE_FLAG {
 		ENCODE_PHASE,
@@ -47,13 +52,6 @@ public:
 		ENCODE_TWOPHASE,
 		ENCODE_SSB,
 		ENCODE_OFFSSB,
-	};
-
-	enum PC_FLAG {
-		PC_XYZ			= 1,
-		PC_RGB			= 2,
-		PC_PHASE		= 4,
-		PC_AMPLITUDE	= 8,
 	};
 
 public:
@@ -79,6 +77,7 @@ public:
 
 	OphContext& getContext(void) { return context_; }
 
+	void initialize(void);
 	/**
 	* @param input parameter. point cloud data file name
 	* @param output parameter. point cloud data, vertices(x0, y0, z0, x1, y1, z1, ...) container's pointer
@@ -86,7 +85,7 @@ public:
 	* @param output parameter. point cloud data, phases container's pointer
 	* @return positive integer is points number of point cloud, return a negative integer if the load fails
 	*/
-	int loadPointCloud(const char* pc_file, OphPointCloudData *pc_data_, uint flag);
+	int loadPointCloud(const char* pc_file, OphPointCloudData *pc_data_);
 
 	/**
 	* @param input parameter. configuration data file name
@@ -97,10 +96,9 @@ public:
 
 	virtual void normalize(void);
 
-
 	/** \ingroup write_module */
 	virtual int save(const char* fname, uint8_t bitsperpixel = 8, uchar* src = nullptr, uint px = 0, uint py = 0);
-	virtual int load(const char* fname, void* dst = nullptr);
+	virtual void* load(const char* fname);
 
 	/**	*/
 
@@ -138,7 +136,17 @@ public:
 	* ENCODE_OFFSSB		:	Off-axis + Single Side Band Encoding
 	*/
 	void encoding(unsigned int ENCODE_FLAG, unsigned int SSB_PASSBAND);
+	void encoding();
 	enum SSB_PASSBAND { SSB_LEFT, SSB_RIGHT, SSB_TOP, SSB_BOTTOM };
+
+protected:
+	ivec2 encode_size;
+	int ENCODE_METHOD;
+	int SSB_PASSBAND;
+public:
+	void setEncodeMethod(int in) { ENCODE_METHOD = in; }
+	void setSSBPassBand(int in){ SSB_PASSBAND = in; }
+	ivec2& getEncodeSize(void) { return encode_size; }
 
 public:
 	void loadComplex(char* real_file, char* imag_file, int n_x, int n_y);
@@ -152,11 +160,9 @@ protected:
 
 	/** @brief Frequency Shift */
 	void freqShift(oph::Complex<Real>* src, Complex<Real>* dst, const ivec2 holosize, int shift_x, int shift_y);
-
-protected:
-	ivec2 encode_size;
 public:
-	ivec2& getEncodeSize(void) { return encode_size; }
+	void fresnelPropagation(OphContext context, Complex<Real>* in, Complex<Real>* out, Real distance);
+	void fresnelPropagation(Complex<Real>* in, Complex<Real>* out, Real distance);
 protected:
 	/** \ingroup encode_module
 	/**
@@ -220,12 +226,14 @@ struct GEN_DLL OphPointCloudConfig {
 	oph::vec2 tilt_angle;							///< Tilt angle for spatial filtering
 };
 struct GEN_DLL OphPointCloudData {
-	vec3* location;
-	vec3* color;
-	Real* amplitude;
-	Real* phase;
+	ulonglong n_points;
+	int n_colors;
+	Real *vertex;
+	Real *color;
+	Real *phase;
+	bool isPhaseParse;
 
-	OphPointCloudData() :location(nullptr), color(nullptr), amplitude(nullptr), phase(nullptr) {}
+	OphPointCloudData() :vertex(nullptr), color(nullptr), phase(nullptr) { n_points = 0; n_colors = 0; isPhaseParse = 0; }
 };
 struct GEN_DLL OphDepthMapConfig {
 	Real				field_lens;					///< FIELD_LENS at config file

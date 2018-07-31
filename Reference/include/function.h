@@ -30,7 +30,7 @@ namespace oph
 		for (auto item : arr) { if (item < min) min = item; }
 		return min;
 	}
-	
+
 	inline const Real minOfArr(const Real* src, const int& size) {
 		Real min = MAX_DOUBLE;
 		for (int i = 0; i < size; i++) {
@@ -53,9 +53,20 @@ namespace oph
 		return max;
 	}
 
+	inline const Real average(const Real* src, const int& size) {
+		Real ave;
+		Real sum = 0;
+		for (int i = 0; i < size; i++) {
+			sum += *(src + i);
+		}
+		ave = sum / size;
+
+		return ave;
+	}
+
 	template<typename T>
 	inline void abs(const oph::Complex<T>& src, oph::Complex<T>& dst) {
-		dst = oph::Complex<T>(::abs(src._Val[_RE]), ::abs(src._Val[_IM]));
+		dst = std::abs(force_cast<std::complex<Real>>(src));
 	}
 
 	template<typename T>
@@ -135,7 +146,7 @@ namespace oph
 		*max = oph::maxOfArr(src, size);
 
 		for (int i = 0; i < size; i++) {
-			*(dst + i) = (*(src + i)-*min) / *max;
+			*(dst + i) = (*(src + i) - *min) / (*max - *min);
 		}
 		delete min, max;
 	}
@@ -204,7 +215,7 @@ namespace oph
 	}
 
 	template<typename T>
-	inline void memsetArr(T* pArr, const T& _Value, const oph::uint& beginIndex, const oph::uint& endIndex) {
+	void memsetArr(T* pArr, const T& _Value, const oph::uint& beginIndex, const oph::uint& endIndex) {
 		for (uint i = beginIndex; i <= endIndex; i++) {
 			*(pArr + i) = _Value;
 		}

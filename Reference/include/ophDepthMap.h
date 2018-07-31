@@ -23,11 +23,11 @@ The library consists a main hologram generation module(Hologram folder) and its 
 @image latex doc_swfolders.png
 
 @section proc Main Procedure
-The main function of the library is a  \c \b generateHologram() of \c ophDepthMap class.
+The main function of the library is a  \c \b GenerateHologram() of \c ophDepthMap class.
 The following is the procedure of it and functions called form it..
 <br><br>
-@image html doc_proc.png "generateHologram Function Procedure"
-@image latex doc_proc.png "generateHologram Function Procedure"
+@image html doc_proc.png "GenerateHologram Function Procedure"
+@image latex doc_proc.png "GenerateHologram Function Procedure"
 
 @section env Environment
  - Microsoft Visual Studio 2015 C++
@@ -73,37 +73,18 @@ Before building an execution file, you need to install MS Visual Studio 2015 C++
  * \defgroup gen_module Generation Hologram
  * \defgroup encode_modulel Encoding
  * \defgroup write_module Writing Image
- * \defgroup recon_module reconstruction
+ * \defgroup recon_module Reconstruction
  */
 
 #ifndef __ophDepthMap_h
 #define __ophDepthMap_h
 
 #include "ophGen.h"
-#include "vec.h"
-#include "fftw3.h"
-
 #include <cufft.h>
 
 #include "include.h"
 
-
 using namespace oph;
-
-/**
-* @brief Structure variable for hologram paramemters
-* @details This structure has all necessary parameters for generating a hologram. 
-      It is read from the configuration file, 'config_openholo.txt'(Input data).
-*/
-
-/** 
-* @brief Main class for generating a hologram using depth map data.
-* @details This is a main class for generating a digital hologram using depth map data. It is implemented on the CPU and GPU.
-*  1. Read Config file. - to set all parameters needed for generating a hologram.
-*  2. Initialize all variables. - memory allocation on the CPU and GPU.
-*  3. Generate a digital hologram using depth map data.
-*  4. For the testing purpose, reconstruct a image from the generated hologram.
-*/
 
 class GEN_DLL ophDepthMap : public ophGen {
 
@@ -114,11 +95,12 @@ protected:
 	virtual ~ophDepthMap();
 
 public:
+
 	void setMode(bool is_CPU);
 
 	/** \ingroup init_module */
 	bool readConfig(const char* fname);
-	
+
 	/** \ingroup gen_module */
 	double generateHologram(void);
 
@@ -130,38 +112,37 @@ public:
 
 public:
 	/** \ingroup getter/setter */
-	inline void setFieldLens(Real fieldlens)		{ dm_config_.field_lens		= fieldlens;	}
+	inline void setFieldLens(Real fieldlens) { dm_config_.field_lens = fieldlens; }
 	/** \ingroup getter/setter */
-	inline void setNearDepth(Real neardepth)		{ dm_config_.near_depthmap	= neardepth;	}
+	inline void setNearDepth(Real neardepth) { dm_config_.near_depthmap = neardepth; }
 	/** \ingroup getter/setter */
-	inline void setFarDepth(Real fardetph)			{ dm_config_.far_depthmap	= fardetph;		}
+	inline void setFarDepth(Real fardetph) { dm_config_.far_depthmap = fardetph; }
 	/** \ingroup getter/setter */
-	inline void setNumOfDepth(uint numofdepth)		{ dm_config_.num_of_depth	= numofdepth;	}
+	inline void setNumOfDepth(uint numofdepth) { dm_config_.num_of_depth = numofdepth; }
 
 	/** \ingroup getter/setter */
-	inline Real getFieldLens(void)	{ return dm_config_.field_lens;		}
+	inline Real getFieldLens(void) { return dm_config_.field_lens; }
 	/** \ingroup getter/setter */
-	inline Real getNearDepth(void)	{ return dm_config_.near_depthmap;	}
+	inline Real getNearDepth(void) { return dm_config_.near_depthmap; }
 	/** \ingroup getter/setter */
-	inline Real getFarDepth(void)	{ return dm_config_.far_depthmap;	}
+	inline Real getFarDepth(void) { return dm_config_.far_depthmap; }
 	/** \ingroup getter/setter */
-	inline uint getNumOfDepth(void) { return dm_config_.num_of_depth;	}
+	inline uint getNumOfDepth(void) { return dm_config_.num_of_depth; }
 	/** \ingroup getter/setter */
 	inline void getRenderDepth(std::vector<int>& renderdepth) { renderdepth = dm_config_.render_depth; }
-
+	
 private:
-	/** \ingroup init_module */
-	void initialize(void);
 
 	/** \ingroup init_module
 	* @{ */
-	void initCPU(void);
-	void initGPU(void);
+	void initialize();
+	void initCPU();   
+	void initGPU();
 	/** @} */
 
 	/** \ingroup load_module
 	* @{ */
-	int readImageDepth(void);
+	bool readImageDepth(void);
 	bool prepareInputdataCPU(uchar* img, uchar* dimg);
 	bool prepareInputdataGPU(uchar* img, uchar* dimg);
 	/** @} */
@@ -183,23 +164,13 @@ private:
 	void calcHoloByDepth(void);
 	void calcHoloCPU(void);
 	void calcHoloGPU(void);
-	void propagationAngularSpectrumCPU(oph::Complex<Real>* input_u, Real propagation_dist);
-	void propagationAngularSpectrumGPU(cufftDoubleComplex* input_u, Real propagation_dist);
+	void propagationAngularSpectrumCPU(Complex<Real>* input_u, double propagation_dist);
+	void propagationAngularSpectrumGPU(cufftDoubleComplex* input_u, double propagation_dist);
 
-
-	/** \ingroup recon_module
-	* @{ */
-	//void reconstruction(fftw_complex* in, fftw_complex* out);
-	//void testPropagation2EyePupil(fftw_complex* in, fftw_complex* out);
-	//void writeSimulationImage(int num, Real val);
-	//void circShift(oph::Complex<Real>* in, oph::Complex<Real>* out, int shift_x, int shift_y, int nx, int ny);
-	/** @} */
-
-	/**
-
-	*/
+protected:
 	void free_gpu(void);
-	virtual void ophFree(void);
+
+	void ophFree(void);
 
 private:
 	bool					is_CPU;								///< if true, it is implemented on the CPU, otherwise on the GPU.
@@ -207,21 +178,23 @@ private:
 	unsigned char*			img_src_gpu;						///< GPU variable - image source data, values are from 0 to 255.
 	unsigned char*			dimg_src_gpu;						///< GPU variable - depth map data, values are from 0 to 255.
 	Real*					depth_index_gpu;					///< GPU variable - quantized depth map data.
-	
+
 	Real*					img_src;							///< CPU variable - image source data, values are from 0 to 1.
 	Real*					dmap_src;							///< CPU variable - depth map data, values are from 0 to 1.
 	Real*					depth_index;						///< CPU variable - quantized depth map data.
 	int*					alpha_map;							///< CPU variable - calculated alpha map data, values are 0 or 1.
 
 	Real*					dmap;								///< CPU variable - physical distances of depth map.
-	
+
 	Real					dstep;								///< the physical increment of each depth map layer.
 	std::vector<Real>		dlevel;							///< the physical value of all depth map layer.
 	std::vector<Real>		dlevel_transform;					///< transfomed dlevel variable
-	
+
 	OphDepthMapConfig		dm_config_;							///< structure variable for depthmap hologram configuration.
 	OphDepthMapParams		dm_params_;							///< structure variable for depthmap hologram parameters.
-	//OphDepthMapSimul		dm_simuls_;							///< structure variable for depthmap simulation parameters.
+																//OphDepthMapSimul		dm_simuls_;							///< structure variable for depthmap simulation parameters.
+
 };
 
-#endif // !__ophDepthMap_h
+
+#endif //>__ophDepthMap_h

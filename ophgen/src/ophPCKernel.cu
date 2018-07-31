@@ -2,71 +2,47 @@
 #define OphPCKernel_cu__
 
 #include <cuda_runtime.h>
-#include <cuComplex.h>
 #include <cuda.h>
 #include <device_launch_parameters.h>
 #include <device_functions.h>
-#include <cufft.h>
 
 #include "typedef.h"
+#include "ophPointCloud_GPU.h"
 
 
-// for PointCloud
-typedef struct KernelConst {
-	int n_points;	///number of point cloud
+__global__ void kernelCghPointCloud_cuda(Real* cuda_pc_data, Real* cuda_amp_data, const GpuConst* cuda_config, const int n_points_stream, Real* dst) {
+	ulonglong tid = blockIdx.x * blockDim.x + threadIdx.x;
+	ulonglong tid_offset = blockDim.x * gridDim.x;
+	ulonglong n_pixels = cuda_config->pn_X * cuda_config->pn_Y;
 
-	double scaleX;		/// Scaling factor of x coordinate of point cloud
-	double scaleY;		/// Scaling factor of y coordinate of point cloud
-	double scaleZ;		/// Scaling factor of z coordinate of point cloud
+	for (tid; tid < n_pixels; tid += tid_offset) {
+		int col = tid % cuda_config->pn_X;
+		int row = tid / cuda_config->pn_X;
 
-	double offsetDepth;	/// Offset value of point cloud in z direction
+		for (int j = 0; j < n_points_stream; ++j) { //Create Fringe Pattern
+			Real pcx = cuda_pc_data[3 * j + _X] * cuda_config->scale_X;
+			Real pcy = cuda_pc_data[3 * j + _Y] * cuda_config->scale_Y;
+			Real pcz = cuda_pc_data[3 * j + _Z] * cuda_config->scale_Z + cuda_config->offset_depth;
 
-	int Nx;		/// Number of pixel of SLM in x direction
-	int Ny;		/// Number of pixel of SLM in y direction
+			Real SLM_y = cuda_config->half_ss_Y - ((Real)row + 0.5) * cuda_config->pp_Y;
+			Real SLM_x = ((Real)col + 0.5) * cuda_config->pp_X - cuda_config->half_ss_X;
 
-	double sin_thetaX; ///sin(tiltAngleX)
-	double sin_thetaY; ///sin(tiltAngleY)
-	double k;		  ///Wave Number = (2 * PI) / lambda;
+			Real r = sqrt((SLM_x - pcx)*(SLM_x - pcx) + (SLM_y - pcy)*(SLM_y - pcy) + pcz * pcz);
+			Real phi = cuda_config->k*r - cuda_config->k*SLM_x*cuda_config->sin_thetaX - cuda_config->k*SLM_y*cuda_config->sin_thetaY;
+			Real result = cuda_amp_data[j] * cos(phi);
 
-	double pixel_x; /// Pixel pitch of SLM in x direction
-	double pixel_y; /// Pixel pitch of SLM in y direction
-	double halfLength_x; /// (pixel_x * nx) / 2
-	double halfLength_y; /// (pixel_y * ny) / 2
-} GpuConst;
-
-__global__ void kernelCghPointCloud_cuda(float3 *PointCloud, double *amplitude, const GpuConst *Config, double *dst) {
-	int idxX = blockIdx.x * blockDim.x + threadIdx.x;
-	int idxY = blockIdx.y * blockDim.y + threadIdx.y;
-
-	if ((idxX < Config->Nx) && (idxY < Config->Ny)) {
-		for (int j = 0; j < Config->n_points; ++j) {
-			//Convert to CUDA API Vector Data Type
-			float3 ScalePoint3D;
-			ScalePoint3D.x = PointCloud[j].x * Config->scaleX;
-			ScalePoint3D.y = PointCloud[j].y * Config->scaleY;
-			ScalePoint3D.z = PointCloud[j].z * Config->scaleZ + Config->offsetDepth;
-
-			float3 PlanePoint = make_float3(0.f, 0.f, 0.f);
-			PlanePoint.x = ((double)idxX + 0.5f) * Config->pixel_x - Config->halfLength_x;
-			PlanePoint.y = Config->halfLength_y - ((double)idxY + 0.5f) * Config->pixel_y;
-
-			float r = sqrtf((PlanePoint.x - ScalePoint3D.x)*(PlanePoint.x - ScalePoint3D.x) + (PlanePoint.y - ScalePoint3D.y)*(PlanePoint.y - ScalePoint3D.y) + ScalePoint3D.z*ScalePoint3D.z);
-			float referenceWave = Config->k*Config->sin_thetaX*PlanePoint.x + Config->k*Config->sin_thetaY*PlanePoint.y;
-			float result = amplitude[j] * cosf(Config->k*r - referenceWave);
-
-			*(dst + idxX + idxY * Config->Nx) += result; //R-S Integral
+			*(dst + col + row * cuda_config->pn_X) += result; //R-S Integral
 		}
 	}
 	__syncthreads();
 }
 
+
 extern "C"
 {
-	void cudaPointCloudKernel(const int block_x, const int block_y, const int thread_x, const int thread_y, float3 *PointCloud, Real *amplitude, const GpuConst *Config, Real *dst) {
-		dim3 Dg(block_x, block_y, 1);  //grid : designed 2D blocks
-		dim3 Db(thread_x, thread_y, 1);  //block : designed 2D threads
-
-		kernelCghPointCloud_cuda << < Dg, Db >> > (PointCloud, amplitude, Config, dst);
+	void cudaGenCghPointCloud(const int &nBlocks, const int &nThreads, const int &n_pts_per_stream, Real* cuda_pc_data, Real* cuda_amp_data, Real* cuda_dst, const GpuConst* cuda_config)
+	{
+		kernelCghPointCloud_cuda << < nBlocks, nThreads >> > (cuda_pc_data, cuda_amp_data, cuda_config, n_pts_per_stream, cuda_dst);
 	}
 }
 
