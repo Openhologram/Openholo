@@ -114,77 +114,14 @@ bool ophGen::readConfig(const char* fname, OphPointCloudConfig& configdata)
 	(xml_node->FirstChildElement("TiltAngleX"))->QueryFloatText(&configdata.tilt_angle[_X]);
 	(xml_node->FirstChildElement("TiltAngleY"))->QueryFloatText(&configdata.tilt_angle[_Y]);
 #endif
-
+	(xml_node->FirstChildElement("SLMpixelNumX"))->QueryIntText(&context_.pixel_number[_X]);
+	(xml_node->FirstChildElement("SLMpixelNumY"))->QueryIntText(&context_.pixel_number[_Y]);
 	configdata.filter_shape_flag = (int8_t*)(xml_node->FirstChildElement("BandpassFilterShape"))->GetText();
 
 	context_.k = (2 * M_PI) / context_.lambda;
 	context_.ss[_X] = context_.pixel_number[_X] * context_.pixel_pitch[_X];
 	context_.ss[_Y] = context_.pixel_number[_Y] * context_.pixel_pitch[_Y];
 	/*XML parsing*/
-
-	//std::ifstream inFile(fname, std::ios::in);
-	//if (!inFile.is_open()) {
-	//	LOG("file not found.\n");
-	//	inFile.close();
-	//	return false;
-	//}
-
-	//std::vector<std::string> Title, Value;
-	//std::string Line;
-	//std::stringstream LineStream;
-
-	//int i = 0;
-	//while (std::getline(inFile, Line)) {
-	//	std::string _Title;
-	//	std::string _Value;
-	//	std::string _Equal; // " = "
-	//	LineStream << Line;
-	//	LineStream >> _Title >> _Equal >> _Value;
-	//	LineStream.clear();
-
-	//	Title.push_back(_Title);
-	//	Value.push_back(_Value);
-	//	++i;
-	//}
-
-	//if (i != 17) {
-	//	inFile.close();
-	//	return false;
-	//}
-
-	//configdata.scale.v[0] = stod(Value[0]);
-	//configdata.scale.v[1] = stod(Value[1]);
-	//configdata.scale.v[2] = stod(Value[2]);
-
-	//configdata.offset_depth = stod(Value[3]);
-
-	//context_.pixel_pitch.v[0] = stod(Value[4]);
-	//context_.pixel_pitch.v[1] = stod(Value[5]);
-
-	//context_.pixel_number.v[0] = stod(Value[6]);
-	//context_.pixel_number.v[1] = stod(Value[7]);
-
-	//context_.ss[0] = context_.pixel_number.v[0] * context_.pixel_pitch.v[0];
-	//context_.ss[1] = context_.pixel_number.v[1] * context_.pixel_pitch.v[1];
-
-	//configdata.filter_shape_flag = (int8_t*)Value[8].c_str();
-
-	//configdata.filter_width.v[0] = stod(Value[9]);
-	//configdata.filter_width.v[1] = stod(Value[10]);
-
-	//configdata.focal_length_lens_in = stod(Value[11]);
-	//configdata.focal_length_lens_out = stod(Value[12]);
-	//configdata.focal_length_lens_eye_piece = stod(Value[13]);
-
-	//context_.lambda = stod(Value[14]);
-	//context_.k = (2 * M_PI) / context_.lambda;
-	//context_.ss[_X] = context_.pixel_number[_X] * context_.pixel_pitch[_X];
-	//context_.ss[_Y] = context_.pixel_number[_Y] * context_.pixel_pitch[_Y];
-
-	//configdata.tilt_angle.v[0] = stod(Value[15]);
-	//configdata.tilt_angle.v[1] = stod(Value[16]);
-
-	//inFile.close();
 
 	auto end = CUR_TIME;
 
@@ -293,127 +230,6 @@ bool ophGen::readConfig(const char* fname, OphDepthMapConfig & config, OphDepthM
 	context_.ss[_X] = context_.pixel_number[_X] * context_.pixel_pitch[_X];
 	context_.ss[_Y] = context_.pixel_number[_Y] * context_.pixel_pitch[_Y];
 	/*XML parsing*/
-
-	//std::ifstream inFile(fname);
-
-	//if (!inFile.is_open()) {
-	//	LOG("file not found.\n");
-	//	inFile.close();
-	//	return false;
-	//}
-
-	//// skip 7 lines
-	//std::string temp;
-	//getline(inFile, temp, '\n');	getline(inFile, temp, '\n');	getline(inFile, temp, '\n');
-	//getline(inFile, temp, '\n');	getline(inFile, temp, '\n');	getline(inFile, temp, '\n');
-	//getline(inFile, temp, '\n');
-
-	//inFile >> params.SOURCE_FOLDER;									getline(inFile, temp, '\n');
-	//inFile >> params.IMAGE_PREFIX;									getline(inFile, temp, '\n');
-	//inFile >> params.DEPTH_PREFIX;									getline(inFile, temp, '\n');
-	//inFile >> params.RESULT_FOLDER;									getline(inFile, temp, '\n');
-	//inFile >> params.RESULT_PREFIX;									getline(inFile, temp, '\n');
-	//inFile >> params.FLAG_STATIC_IMAGE;								getline(inFile, temp, '\n');
-	//inFile >> params.START_OF_FRAME_NUMBERING;						getline(inFile, temp, '\n');
-	//inFile >> params.NUMBER_OF_FRAME;									getline(inFile, temp, '\n');
-	//inFile >> params.NUMBER_OF_DIGIT_OF_FRAME_NUMBERING;				getline(inFile, temp, '\n');
-
-	//// skip 3 lines
-	//getline(inFile, temp, '\n');	getline(inFile, temp, '\n');		getline(inFile, temp, '\n');
-
-	//inFile >> params.Transform_Method_;								getline(inFile, temp, '\n');
-	//inFile >> params.Propagation_Method_;								getline(inFile, temp, '\n');
-	//inFile >> params.Encoding_Method_;								getline(inFile, temp, '\n');
-
-	//// skip 3 lines
-	//getline(inFile, temp, '\n');	getline(inFile, temp, '\n');	getline(inFile, temp, '\n');
-
-	//inFile >> config.field_lens;									getline(inFile, temp, '\n');
-	//inFile >> context_.lambda;										getline(inFile, temp, '\n');
-	//context_.k = 2 * M_PI / context_.lambda;
-
-	//inFile >> context_.pixel_number[0];								getline(inFile, temp, '\n');
-	//inFile >> context_.pixel_number[1];								getline(inFile, temp, '\n');
-
-	//inFile >> context_.pixel_pitch[0];								getline(inFile, temp, '\n');
-	//inFile >> context_.pixel_pitch[1];								getline(inFile, temp, '\n');
-
-	//context_.ss[0] = context_.pixel_pitch[0] * context_.pixel_number[0];
-	//context_.ss[1] = context_.pixel_pitch[1] * context_.pixel_number[1];
-
-	//// skip 3 lines
-	//getline(inFile, temp, '\n');	getline(inFile, temp, '\n');	getline(inFile, temp, '\n');
-
-	//Real NEAR_OF_DEPTH_MAP, FAR_OF_DEPTH_MAP;
-	//inFile >> NEAR_OF_DEPTH_MAP;									getline(inFile, temp, '\n');
-	//inFile >> FAR_OF_DEPTH_MAP;										getline(inFile, temp, '\n');
-
-	//config.near_depthmap = min(NEAR_OF_DEPTH_MAP, FAR_OF_DEPTH_MAP);
-	//config.far_depthmap = max(NEAR_OF_DEPTH_MAP, FAR_OF_DEPTH_MAP);
-
-	//inFile >> params.FLAG_CHANGE_DEPTH_QUANTIZATION;				getline(inFile, temp, '\n');
-	//inFile >> params.DEFAULT_DEPTH_QUANTIZATION;					getline(inFile, temp, '\n');
-	//inFile >> params.NUMBER_OF_DEPTH_QUANTIZATION;					getline(inFile, temp, '\n');
-
-	//if (params.FLAG_CHANGE_DEPTH_QUANTIZATION == 0)
-	//	config.num_of_depth = params.DEFAULT_DEPTH_QUANTIZATION;
-	//else
-	//	config.num_of_depth = params.NUMBER_OF_DEPTH_QUANTIZATION;
-
-	//inFile >> temp;
-	//std::size_t found = temp.find(':');
-	//if (found != std::string::npos)
-	//{
-	//	std::string s = temp.substr(0, found);
-	//	std::string e = temp.substr(found + 1);
-	//	int start = std::stoi(s);
-	//	int end = std::stoi(e);
-	//	config.render_depth.clear();
-	//	for (int k = start; k <= end; k++)
-	//		config.render_depth.push_back(k);
-
-	//}
-	//else {
-
-	//	config.render_depth.clear();
-	//	config.render_depth.push_back(std::stoi(temp));
-	//	inFile >> temp;
-
-	//	while (temp.find('/') == std::string::npos)
-	//	{
-	//		config.render_depth.push_back(std::stoi(temp));
-	//		inFile >> temp;
-	//	}
-	//}
-	//if (config.render_depth.empty()) {
-	//	LOG("Error: RENDER_DEPTH \n");
-	//	return false;
-	//}
-
-	//getline(inFile, temp, '\n');
-	//inFile >> params.RANDOM_PHASE;									getline(inFile, temp, '\n');
-
-	////==Simulation parameters ======================================================================
-	//getline(inFile, temp, '\n');	getline(inFile, temp, '\n');	getline(inFile, temp, '\n');
-
-	////inFile >> simuls.Simulation_Result_File_Prefix_;				getline(inFile, temp, '\n');
-	////inFile >> simuls.test_pixel_number_scale_;						getline(inFile, temp, '\n');
-	////inFile >> simuls.eye_length_;									getline(inFile, temp, '\n');
-	////inFile >> simuls.eye_pupil_diameter_;							getline(inFile, temp, '\n');
-	////inFile >> simuls.eye_center_xy_[0];								getline(inFile, temp, '\n');
-	////inFile >> simuls.eye_center_xy_[1];								getline(inFile, temp, '\n');
-	////inFile >> simuls.focus_distance_;								getline(inFile, temp, '\n');
-
-	//getline(inFile, temp, '\n');	getline(inFile, temp, '\n');	getline(inFile, temp, '\n');
-	//getline(inFile, temp, '\n');	getline(inFile, temp, '\n');
-
-	////inFile >> simuls.sim_type_;										getline(inFile, temp, '\n');
-	////inFile >> simuls.sim_from_;										getline(inFile, temp, '\n');
-	////inFile >> simuls.sim_to_;										getline(inFile, temp, '\n');
-	////inFile >> simuls.sim_step_num_;									getline(inFile, temp, '\n');
-
-	////=====================================================================================
-	//inFile.close();
 
 	auto end = CUR_TIME;
 
