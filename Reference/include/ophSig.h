@@ -6,9 +6,11 @@
 #ifndef __ophSig_h
 #define __ophSig_h
 
-#include "Openholo.h"
 #include "tinyxml2.h"
+#include "Openholo.h"
 #include "sys.h"
+
+
 
 #ifdef SIG_EXPORT
 #define SIG_DLL __declspec(dllexport)
@@ -33,6 +35,8 @@ public:
 	* @brief Constructor
 	*/
 	explicit ophSig(void);
+	bool load(const char *real, const char *imag, uint8_t bitpixel);
+	bool save(const char *real, const char *imag, uint8_t bitpixel);
 
 protected:
 	/**
@@ -40,16 +44,12 @@ protected:
 	*/
 	virtual ~ophSig(void) = default;
 
-	/**
-	* @brief Import and export complex hologram data
-	*/
-	bool load(const char *real, const char *imag, uint8_t bitpixel);
-	bool save(const char *real, const char *imag, uint8_t bitpixel);
-
 protected:
 	vector<Real> linspace(double first, double last, int len);
 	template<typename T>
 	void linInterp(vector<T> &X, matrix<Complex<T>> &in, vector<T> &Xq, matrix<Complex<T>> &out);
+
+	//virtual ~ophSig(void) = default;
 
 	template<typename T>
 	inline void absMat(matrix<Complex<T>>& src, matrix<T>& dst);
@@ -66,7 +66,7 @@ protected:
 	template<typename T>
 	inline void meanOfMat(matrix<T> &input, double &output);
 	template<typename T>
-	inline Real maxOfMat(matrix<T>& src);
+	inline  Real maxOfMat(matrix<T>& src);
 	template<typename T>
 	inline Real minOfMat(matrix<T>& src);
 
@@ -80,21 +80,18 @@ protected:
 	template<typename T>
 	void fftShift(matrix<Complex<T>> &src, matrix<Complex<T>> &dst);
 
+
+
+
 public:
-	bool readConfig(const char* fname);
-
+	virtual bool readConfig(const char* fname);
+	//virtual bool loadParam(string cfg);
 	bool sigConvertOffaxis();
-
 	bool sigConvertHPO();
-
-	bool sigConvertCAC(double red, double green, double blue);
-
+	bool sigConvertCAC(double red , double green, double blue);
 	bool propagationHolo(float depth);
-
 	Mat propagationHolo(Mat complexH, float depth);
-
 	double sigGetParamAT();
-
 	double sigGetParamSF(float zMax, float zMin, int sampN, float th);
 	
 protected:
@@ -104,7 +101,7 @@ protected:
 	virtual void ophFree(void);
 
 	ophSigConfig _cfgSig;
-	Mat ComplexH[3];
+	matrix<Complex<Real>> ComplexH[3];
 	float _angleX;
 	float _angleY;
 	float _redRate;
