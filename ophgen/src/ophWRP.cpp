@@ -35,7 +35,7 @@ void ophWRP::encodefield(void)
 	/*	initialize	*/
 	int encode_size = size;
 	if (holo_encoded != nullptr) delete[] holo_encoded;
-	holo_encoded = new double[size];
+	holo_encoded = new Real[size];
 	memset(holo_encoded, 0, sizeof(double) * size);
 
 	if (holo_normalized != nullptr) delete[] holo_normalized;
@@ -63,8 +63,8 @@ void ophWRP::initialize()
 {
 
 	if (holo_gen) delete[] holo_gen;
-	holo_gen = new oph::Complex<double>[context_.pixel_number[_X] * context_.pixel_number[_Y]];
-	memset(holo_gen, 0.0, sizeof(oph::Complex<double>) * context_.pixel_number[_X] * context_.pixel_number[_Y]);
+	holo_gen = new oph::Complex<Real>[context_.pixel_number[_X] * context_.pixel_number[_Y]];
+	memset(holo_gen, 0.0, sizeof(oph::Complex<Real>) * context_.pixel_number[_X] * context_.pixel_number[_Y]);
 
 	if (holo_encoded) delete[] holo_encoded;
 	holo_encoded = new Real[context_.pixel_number[_X] * context_.pixel_number[_Y]];

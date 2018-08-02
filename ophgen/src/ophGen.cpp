@@ -808,7 +808,8 @@ void ophGen::fresnelPropagation(OphContext context, Complex<Real>* in, Complex<R
 
 	for (uint i = 0; i < Nx*Ny * 4; i++) {
 		sqrtPart._Val[_RE] = sqrt(1 / (context.lambda*context.lambda) - fx[i] * fx[i] - fy[i] * fy[i]);
-		prop[i] = 2 * M_PI*distance*sqrtPart;
+		prop[i] = 2 * M_PI*distance;
+		prop[i] *= sqrtPart;
 		temp2[i] = temp1[i] * exp(prop[i]);
 	}
 
@@ -872,7 +873,8 @@ void ophGen::fresnelPropagation(Complex<Real>* in, Complex<Real>* out, Real dist
 
 	for (uint i = 0; i < Nx*Ny * 4; i++) {
 		sqrtPart._Val[_RE] = sqrt(1 / (context_.lambda*context_.lambda) - fx[i] * fx[i] - fy[i] * fy[i]);
-		prop[i] = 2 * M_PI*distance*sqrtPart;
+		prop[i] = 2 * M_PI * distance;
+		prop[i] *= sqrtPart;
 		temp2[i] = temp1[i] * exp(prop[i]);
 	}
 
@@ -1115,7 +1117,15 @@ void ophGen::getRandPhaseValue(oph::Complex<Real>& rand_phase_val, bool rand_pha
 	if (rand_phase)
 	{
 		rand_phase_val[_RE] = 0.0;
-		rand_phase_val[_IM] = 2 * M_PI * oph::rand(0.0, 1.0);
+		Real min, max;
+#if REAL_IS_DOUBLE & true
+		min = 0.0;
+		max = 1.0;
+#else
+		min = 0.f;
+		max = 1.f;
+#endif
+		rand_phase_val[_IM] = 2 * M_PI * oph::rand(min, max);
 		rand_phase_val.exp();
 
 	}

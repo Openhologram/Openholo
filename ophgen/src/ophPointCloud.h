@@ -148,7 +148,7 @@ public:
 	* @brief Generate a hologram, main funtion.
 	* @return implement time (sec)
 	*/
-	double generateHologram(uint diff_flag = PC_DIFF_RS_ENCODED);
+	Real generateHologram(uint diff_flag = PC_DIFF_RS_ENCODED);
 	void encode(void);
 
 private:

@@ -102,7 +102,7 @@ public:
 	bool readConfig(const char* fname);
 
 	/** \ingroup gen_module */
-	double generateHologram(void);
+	Real generateHologram(void);
 
 	/** \ingroup encode_module */
 	void encodeHologram(void);
@@ -164,8 +164,8 @@ private:
 	void calcHoloByDepth(void);
 	void calcHoloCPU(void);
 	void calcHoloGPU(void);
-	void propagationAngularSpectrumCPU(Complex<Real>* input_u, double propagation_dist);
-	void propagationAngularSpectrumGPU(cufftDoubleComplex* input_u, double propagation_dist);
+	void propagationAngularSpectrumCPU(Complex<Real>* input_u, Real propagation_dist);
+	void propagationAngularSpectrumGPU(cufftDoubleComplex* input_u, Real propagation_dist);
 
 protected:
 	void free_gpu(void);

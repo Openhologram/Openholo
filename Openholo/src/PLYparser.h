@@ -26,8 +26,28 @@ property Real phase
 end_header
 */
 
+/* PLY File Header for Openholo Triangle Mesh Format
+ply
+format ascii 1.0
+comment Openholo Triangle Mesh Format
+element color 1
+property int channel
+element vertex n_vertices
+property uint face_idx
+property Real x
+property Real y
+property Real z
+property uchar red		#diffuse_red
+property uchar green	#diffuse_green
+property uchar blue		#diffuse_blue
+end_header
+*/
+
 
 class __declspec(dllexport) PLYparser {
+public:
+	PLYparser();
+	~PLYparser();
 
 private:
 	enum class Type {
@@ -43,17 +63,7 @@ private:
 	};
 
 	//pair<int : stride, string : str>
-	std::map<Type, std::pair<int, std::string> > PropertyTable {
-		{ Type::INT8,		{ 1, "char"		} },
-		{ Type::UINT8,		{ 1, "uchar"	} },
-		{ Type::INT16,		{ 2, "short"	} },
-		{ Type::UINT16,		{ 2, "ushort"	} },
-		{ Type::INT32,		{ 4, "int"		} },
-		{ Type::UINT32,		{ 4, "uint"		} },
-		{ Type::FLOAT32,	{ 4, "float"	} },
-		{ Type::FLOAT64,	{ 8, "double"	} },
-		{ Type::INVALID,	{ 0, "INVALID"	} }
-	};
+	std::map<Type, std::pair<int, std::string> > PropertyTable;
 
 	struct PlyProperty {
 		std::string name;
@@ -83,10 +93,10 @@ private:
 		const std::string &elementKey,
 		const std::string &propertyKeys,
 		longlong &elementIdx,
-		int &propertyIdx);	
+		int &propertyIdx);
 	
 public:
-	bool loadPLY(
+	bool loadPLY(					// for Point Cloud Data
 		const std::string fileName,
 		ulonglong &n_points,
 		int &color_channels, //1 or 3 (If it is 4, Alpha channel is not loaded.)
@@ -95,14 +105,29 @@ public:
 		Real** phaseArray, //If isPhaseParse is false, PhaseArray is nullptr
 		bool &isPhaseParse);
 
-	bool savePLY(
+	bool savePLY(					
 		const std::string fileName,
 		const ulonglong n_points,
 		const int color_channels,
-		Real* vertexArray, 
-		Real* colorArray, 
+		Real* vertexArray,
+		Real* colorArray,
 		Real* phaseArray);
 
+	bool loadPLY(					// for Triangle Mesh Data
+		const char* fileName,
+		ulonglong &n_verticies,
+		int &color_channels,
+		uint** face_idx,
+		Real** vertexArray,
+		Real** colorArray);
+
+	bool savePLY(
+		const char* fileName,
+		const ulonglong n_verticies,
+		const int color_channels,
+		uint* face_idx,
+		Real* vertexArray,
+		Real* colorArray);
 };
 
 
