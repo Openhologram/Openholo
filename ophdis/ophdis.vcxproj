@@ -96,8 +96,7 @@
     <PostBuildEvent>
       <Command>xcopy /y "$(TargetDir)$(ProjectName).lib" "$(SolutionDir)Reference\lib\"
 xcopy /y "$(TargetDir)$(ProjectName).dll" "$(SolutionDir)Reference\dll\"
-xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)Reference\include\"
-xcopy /y "$(ProjectDir)lib\*.lib" "$(SolutionDir)Reference\lib\"</Command>
+xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)Reference\include\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -143,8 +142,7 @@ xcopy /y "$(ProjectDir)lib\*.lib" "$(SolutionDir)Reference\lib\"</Command>
     <PostBuildEvent>
       <Command>xcopy /y "$(TargetDir)$(ProjectName).lib" "$(SolutionDir)Reference\lib\"
 xcopy /y "$(TargetDir)$(ProjectName).dll" "$(SolutionDir)Reference\dll\"
-xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)Reference\include\"
-xcopy /y "$(ProjectDir)lib\*.lib" "$(SolutionDir)Reference\lib\"</Command>
+xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)Reference\include\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

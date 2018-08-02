@@ -21,6 +21,10 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ophgen", "ophgen\ophgen.vcx
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ophdis", "ophdis\ophdis.vcxproj", "{88B825B9-B2AC-4DC2-AAD0-4800AAB420E4}"
+	ProjectSection(ProjectDependencies) = postProject
+		{F87DA845-513D-4F3B-9F72-16BB2C18A782} = {F87DA845-513D-4F3B-9F72-16BB2C18A782}
+		{D0F04385-3806-46B2-93C2-26ECED076074} = {D0F04385-3806-46B2-93C2-26ECED076074}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
