@@ -66,7 +66,7 @@ bool ophDepthMap::readConfig(const char * fname)
 	return true;
 }
 
-double ophDepthMap::generateHologram(void)
+Real ophDepthMap::generateHologram(void)
 {
 	auto start_time = CUR_TIME;
 
@@ -252,7 +252,7 @@ void ophDepthMap::getDepthValues()
 	if (dm_config_.num_of_depth > 1)
 	{
 		dstep = (dm_config_.far_depthmap - dm_config_.near_depthmap) / (dm_config_.num_of_depth - 1);
-		double val = dm_config_.near_depthmap;
+		Real val = dm_config_.near_depthmap;
 		while (val <= dm_config_.far_depthmap)
 		{
 			dlevel.push_back(val);
@@ -284,7 +284,7 @@ void ophDepthMap::transformViewingWindow()
 	int pnx = context_.pixel_number[0];
 	int pny = context_.pixel_number[1];
 
-	double val;
+	Real val;
 	dlevel_transform.clear();
 	for (int p = 0; p < dlevel.size(); p++)
 	{

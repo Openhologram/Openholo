@@ -1,19 +1,19 @@
 #include "ophwrp.h"
 
-ophWRP::ophWRP(void) :ophGen()
+ophWRP::ophWRP(void) 
+	: ophGen()
 {
 	n_points = -1;
 	p_wrp_ = nullptr;
 }
 
-/*ophWRP::~ophWRP(void)
+ophWRP::~ophWRP(void)
 {
-}*/
+}
 
 
 int ophWRP::loadPointCloud(const char* pc_file)
 {
-
 	n_points = ophGen::loadPointCloud(pc_file, &obj_);
 
 	return n_points;
@@ -30,19 +30,17 @@ bool ophWRP::readConfig(const char* cfg_file)
 
 void ophWRP::encodefield(void)
 {
-
 	const int size = context_.pixel_number.v[_X] * context_.pixel_number.v[_Y];
 
 	/*	initialize	*/
 	int encode_size = size;
 	if (holo_encoded != nullptr) delete[] holo_encoded;
-	holo_encoded = new double[size];
+	holo_encoded = new Real[size];
 	memset(holo_encoded, 0, sizeof(double) * size);
 
 	if (holo_normalized != nullptr) delete[] holo_normalized;
 	holo_normalized = new uchar[size];
 	memset(holo_normalized, 0, sizeof(uchar) * size);
-
 
 	int pnx = context_.pixel_number[_X];
 	int pny = context_.pixel_number[_Y];
@@ -65,8 +63,8 @@ void ophWRP::initialize()
 {
 
 	if (holo_gen) delete[] holo_gen;
-	holo_gen = new oph::Complex<double>[context_.pixel_number[_X] * context_.pixel_number[_Y]];
-	memset(holo_gen, 0.0, sizeof(oph::Complex<double>) * context_.pixel_number[_X] * context_.pixel_number[_Y]);
+	holo_gen = new oph::Complex<Real>[context_.pixel_number[_X] * context_.pixel_number[_Y]];
+	memset(holo_gen, 0.0, sizeof(oph::Complex<Real>) * context_.pixel_number[_X] * context_.pixel_number[_Y]);
 
 	if (holo_encoded) delete[] holo_encoded;
 	holo_encoded = new Real[context_.pixel_number[_X] * context_.pixel_number[_Y]];
@@ -78,22 +76,22 @@ void ophWRP::initialize()
 
 }
 
-void ophWRP::AddPixel2WRP(int x, int y, Complex<Real> temp)
+void ophWRP::addPixel2WRP(int x, int y, Complex<Real> temp)
 {
 	long long int Nx = context_.pixel_number.v[0];
 	long long int Ny = context_.pixel_number.v[1];
-	oph::Complex<double> *p = holo_gen;
+//	oph::Complex<double> *p = holo_gen;
 
 	if (x >= 0 && x<Nx && y >= 0 && y< Ny) {
 		long long int adr = x + y*Nx;
 		if (adr == 0) std::cout << ".0";
-		p[adr] = p[adr] + temp;
+//		p[adr] = p[adr] + temp;
 		p_wrp_[adr] = p_wrp_[adr] + temp;
 	}
 
 }
 
-void ophWRP::AddPixel2WRP(int x, int y, oph::Complex<Real> temp, oph::Complex<Real>* wrp)
+void ophWRP::addPixel2WRP(int x, int y, oph::Complex<Real> temp, oph::Complex<Real>* wrp)
 {
 	long long int Nx = context_.pixel_number.v[0];
 	long long int Ny = context_.pixel_number.v[1];
@@ -101,9 +99,7 @@ void ophWRP::AddPixel2WRP(int x, int y, oph::Complex<Real> temp, oph::Complex<Re
 	if (x >= 0 && x<Nx && y >= 0 && y< Ny) {
 		long long int adr = x + y*Nx;
 		wrp[adr] += temp[adr];
-
 	}
-
 }
 
 oph::Complex<Real>* ophWRP::calSubWRP(double wrp_d, Complex<Real>* wrp, OphPointCloudData* pc)
@@ -166,7 +162,7 @@ oph::Complex<Real>* ophWRP::calSubWRP(double wrp_d, Complex<Real>* wrp, OphPoint
 
 				if (tx + wx >= 0 && tx + wx < Nx && ty + wy >= 0 && ty + wy < Ny)
 				{
-					AddPixel2WRP(wx + tx, wy + ty, tmp, wrp);
+					addPixel2WRP(wx + tx, wy + ty, tmp, wrp);
 				}
 			}
 		}
@@ -175,7 +171,7 @@ oph::Complex<Real>* ophWRP::calSubWRP(double wrp_d, Complex<Real>* wrp, OphPoint
 	return wrp;
 }
 
-double ophWRP::calculateWRP(double wrp_d)
+double ophWRP::calculateWRP(void)
 {
 	initialize();
 
@@ -193,6 +189,7 @@ double ophWRP::calculateWRP(double wrp_d)
 	int Ny_h = Ny >> 1;
 
 	OphPointCloudData pc = obj_;
+	Real wrp_d = pc_config_.wrp_location;
 
 	// Memory Location for Result Image
 
@@ -201,7 +198,7 @@ double ophWRP::calculateWRP(double wrp_d)
 	memset(p_wrp_, 0.0, sizeof(oph::Complex<Real>) * context_.pixel_number[_X] * context_.pixel_number[_Y]);
 
 	int num = n_points;
-	std::chrono::system_clock::time_point time_start = std::chrono::system_clock::now();
+	auto time_start = CUR_TIME;
 
 #ifdef _OPENMP
 	omp_set_num_threads(omp_get_num_threads());
@@ -241,19 +238,86 @@ double ophWRP::calculateWRP(double wrp_d)
 				tmp._Val[_IM] = sinf(wave_num*r) / (r + 0.05);
 
 				if (tx + wx >= 0 && tx + wx < Nx && ty + wy >= 0 && ty + wy < Ny)
-					AddPixel2WRP(wx + tx, wy + ty, tmp);
+					addPixel2WRP(wx + tx, wy + ty, tmp);
 
 			}
 		}
 	}
 
-	std::chrono::system_clock::time_point time_finish = std::chrono::system_clock::now();
+	auto time_finish = CUR_TIME;
 	return ((std::chrono::duration<Real>)(time_finish - time_start)).count();
 
 }
 
-oph::Complex<Real>** ophWRP::calculateMWRP(int wrp_num)
+void ophWRP::fresnelPropagation(Complex<Real>* in, Complex<Real>* out, Real distance) {
+
+	int Nx = context_.pixel_number[_X];
+	int Ny = context_.pixel_number[_Y];
+
+	Real dx = context_.pixel_pitch[_X];
+	Real dy = context_.pixel_pitch[_Y];
+
+	Real k = context_.k;
+
+	Real fx = 1 / (Nx*dx);
+	Real fy = 1 / (Ny*dy);
+
+	Complex<Real>* in2x = new Complex<Real>[Nx*Ny];
+	Complex<Real> zero(0, 0);
+	oph::memsetArr<Complex<Real>>(in2x, zero, 0, Nx*Ny);
+
+	uint idxIn = 0;
+
+	for (idxIn = 0; idxIn<Nx*Ny; idxIn++)
+		in2x[idxIn] = in[idxIn];
+
+	Real* x = new Real[Nx*Ny];
+	Real* y = new Real[Nx*Ny];
+
+	uint i = 0;
+	for (uint idy = (1 - Ny / 2); idy < (1 + Ny / 2); idy++) {
+		for (uint idx = (1 - Nx / 2); idx < (1 + Nx / 2); idx++) {
+			x[i] = idx;
+			y[i] = idy;
+			i++;
+		}
+	}
+
+	Complex<Real>* prop = new Complex<Real>[Nx*Ny];
+	fft2({ Nx, Ny }, in2x, OPH_FORWARD, OPH_ESTIMATE);
+	fftExecute(prop);
+
+	Complex<Real> part;
+
+	Complex<Real>* temp2 = new Complex<Real>[Nx*Ny];
+
+	for (uint i = 0; i < Nx*Ny; i++) {
+
+		Real kk = M_PI*context_.lambda *distance *(x[i] * x[i] + y[i] * y[i]);
+		part._Val[_RE] = cos(k*distance)*cos(kk);
+		part._Val[_IM] = sin(k*distance)*sin(M_PI*context_.lambda*distance*(x[i] * x[i] + y[i] * y[i]));
+
+		temp2[i]._Val[_RE] = prop[i]._Val[_RE] * part._Val[_RE];
+		temp2[i]._Val[_IM] = prop[i]._Val[_IM] * part._Val[_IM];
+	}
+
+	fft2({ Nx, Ny }, temp2, OPH_BACKWARD, OPH_ESTIMATE);
+	fftExecute(holo_gen);
+
+}
+
+void ophWRP::generateHologram(void)
 {
+	printf("Generating Hologram\n");
+	Real distance = pc_config_.propagation_distance;
+	fresnelPropagation(p_wrp_, holo_gen, distance);
+	printf("Hologram Generated!\n");
+
+}
+
+oph::Complex<Real>** ophWRP::calculateMWRP(void)
+{
+	int wrp_num = pc_config_.num_wrp;
 
 	if (wrp_num < 1)
 		return nullptr;
@@ -279,13 +343,13 @@ oph::Complex<Real>** ophWRP::calculateMWRP(int wrp_num)
 	if (wrp != nullptr) free(wrp);
 	wrp = (oph::Complex<Real>*)calloc(1, sizeof(oph::Complex<Real>) * Nx * Ny);
 
-	double wrp_d = pc_config_.offset_depth / wrp_num;
+//	double wrp_d = pc_config_.offset_depth / wrp_num;
 
 	OphPointCloudData pc = obj_;
 
 	for (int i = 0; i<wrp_num; i++)
 	{
-		wrp = calSubWRP(wrp_d, wrp, &pc);
+//		wrp = calSubWRP(wrp_d, wrp, &pc);
 		wrp_list[i] = wrp;
 	}
 

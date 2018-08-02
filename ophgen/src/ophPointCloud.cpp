@@ -78,7 +78,7 @@ Real ophPointCloud::generateHologram(uint diff_flag)
 
 void ophPointCloud::encode(void)
 {
-	encodeSideBand(true, ivec2(0, 1));
+	encodeSideBand(is_CPU, ivec2(0, 1));
 }
 
 void ophPointCloud::genCghPointCloudCPU(uint diff_flag)

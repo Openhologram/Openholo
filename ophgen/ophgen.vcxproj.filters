@@ -13,9 +13,6 @@
     <Filter Include="_1_Generation\_ophPointCloud">
       <UniqueIdentifier>{196d0bdf-ebd2-499d-bf46-71f8abd602d9}</UniqueIdentifier>
     </Filter>
-    <Filter Include="_1_Generation\_ophTriangle">
-      <UniqueIdentifier>{f7251fc7-2938-44bb-80cf-9066fa9a62b9}</UniqueIdentifier>
-    </Filter>
     <Filter Include="__ophGen">
       <UniqueIdentifier>{921179b7-6b62-4fc6-83ab-ff62fa80d57f}</UniqueIdentifier>
     </Filter>
@@ -33,6 +30,9 @@
     </Filter>
     <Filter Include="_1_Generation\_ophLUT">
       <UniqueIdentifier>{312a3ecb-f0ce-411f-aec4-782229318ebd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="_1_Generation\_ophTriangleMesh">
+      <UniqueIdentifier>{f7251fc7-2938-44bb-80cf-9066fa9a62b9}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -56,7 +56,7 @@
       <Filter>_1_Generation\_ophLF</Filter>
     </ClInclude>
     <ClInclude Include="src\ophTriMesh.h">
-      <Filter>_1_Generation\_ophTriangle</Filter>
+      <Filter>_1_Generation\_ophTriangleMesh</Filter>
     </ClInclude>
     <ClInclude Include="src\ophPointCloud_GPU.h">
       <Filter>_1_Generation\_ophPointCloud</Filter>
@@ -86,7 +86,7 @@
       <Filter>_1_Generation\_ophDepthMap</Filter>
     </ClCompile>
     <ClCompile Include="src\ophTriMesh.cpp">
-      <Filter>_1_Generation\_ophTriangle</Filter>
+      <Filter>_1_Generation\_ophTriangleMesh</Filter>
     </ClCompile>
     <ClCompile Include="src\ophPointCloud_GPU.cpp">
       <Filter>_1_Generation\_ophPointCloud</Filter>
