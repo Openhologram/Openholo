@@ -55,8 +55,8 @@ bool ophDepthMap::prepareInputdataCPU(uchar* imgptr, uchar* dimgptr)
 		alpha_map[k] = (imgptr[k] > 0 ? 1 : 0);
 		dmap[k] = (1 - dmap_src[k])*(dm_config_.far_depthmap - dm_config_.near_depthmap) + dm_config_.near_depthmap;
 
-		if (dm_params_.FLAG_CHANGE_DEPTH_QUANTIZATION == 0)
-			depth_index[k] = dm_params_.DEFAULT_DEPTH_QUANTIZATION - Real(dimgptr[k]);
+		if (dm_config_.FLAG_CHANGE_DEPTH_QUANTIZATION == 0)
+			depth_index[k] = dm_config_.DEFAULT_DEPTH_QUANTIZATION - Real(dimgptr[k]);
 	}
 }
 
@@ -140,7 +140,7 @@ void ophDepthMap::calcHoloCPU()
 			LOG("Depth: %d of %d, z = %f mm\n", dtr, dm_config_.num_of_depth, -temp_depth * 1000);
 
 			Complex<Real> rand_phase_val;
-			getRandPhaseValue(rand_phase_val, dm_params_.RANDOM_PHASE);
+			getRandPhaseValue(rand_phase_val, dm_config_.RANDOM_PHASE);
 
 			Complex<Real> carrier_phase_delay(0, context_.k* temp_depth);
 			carrier_phase_delay.exp();
@@ -148,10 +148,10 @@ void ophDepthMap::calcHoloCPU()
 			for (int i = 0; i < pnx * pny; i++)
 				u_o[i] = u_o[i] * rand_phase_val * carrier_phase_delay;
 
-			if (dm_params_.Propagation_Method_ == 0) {
-				Openholo::fftwShift(u_o, u_o, pnx, pny, OPH_FORWARD, false);
-				propagationAngularSpectrumCPU(u_o, -temp_depth);
-			}
+			//if (dm_params_.Propagation_Method_ == 0) {
+			Openholo::fftwShift(u_o, u_o, pnx, pny, OPH_FORWARD, false);
+			propagationAngularSpectrumCPU(u_o, -temp_depth);
+			//}
 		}
 		else
 			LOG("Depth: %d of %d : Nothing here\n", dtr, dm_config_.num_of_depth);

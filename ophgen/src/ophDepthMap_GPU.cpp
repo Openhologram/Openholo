@@ -139,7 +139,7 @@ void ophDepthMap::initGPU()
 	HANDLE_ERROR(cudaMalloc((void**)&dimg_src_gpu, sizeof(uchar1)*N));
 
 	if (depth_index_gpu) cudaFree(depth_index_gpu);
-	if (dm_params_.FLAG_CHANGE_DEPTH_QUANTIZATION == 1)
+	if (dm_config_.FLAG_CHANGE_DEPTH_QUANTIZATION == 1)
 		HANDLE_ERROR(cudaMalloc((void**)&depth_index_gpu, sizeof(Real)*N));
 	
 	if (u_o_gpu_)	cudaFree(u_o_gpu_);
@@ -225,7 +225,7 @@ void ophDepthMap::calcHoloGPU(void)
 	for (int p = 0; p < depth_sz; ++p)
 	{
 		oph::Complex<Real> rand_phase_val;
-		getRandPhaseValue(rand_phase_val, dm_params_.RANDOM_PHASE);
+		getRandPhaseValue(rand_phase_val, dm_config_.RANDOM_PHASE);
 
 		int dtr = dm_config_.render_depth[p];
 		Real temp_depth = dlevel_transform[dtr - 1];
@@ -235,15 +235,15 @@ void ophDepthMap::calcHoloGPU(void)
 		HANDLE_ERROR(cudaMemsetAsync(u_o_gpu_, 0, sizeof(cufftDoubleComplex)*N, stream_));
 
 		cudaDepthHoloKernel(stream_, pnx, pny, u_o_gpu_, img_src_gpu, dimg_src_gpu, depth_index_gpu, 
-			dtr, rand_phase_val[_RE], rand_phase_val[_IM], carrier_phase_delay[_RE], carrier_phase_delay[_IM], dm_params_.FLAG_CHANGE_DEPTH_QUANTIZATION, dm_params_.DEFAULT_DEPTH_QUANTIZATION);
+			dtr, rand_phase_val[_RE], rand_phase_val[_IM], carrier_phase_delay[_RE], carrier_phase_delay[_IM], dm_config_.FLAG_CHANGE_DEPTH_QUANTIZATION, dm_config_.DEFAULT_DEPTH_QUANTIZATION);
 
-		if (dm_params_.Propagation_Method_ == 0)
-		{
-			HANDLE_ERROR(cudaMemsetAsync(k_temp_d_, 0, sizeof(cufftDoubleComplex)*N, stream_));
-			cudaFFT(stream_, pnx, pny, u_o_gpu_, k_temp_d_, -1);
+		//if (dm_params_.Propagation_Method_ == 0)
+		//{
+		HANDLE_ERROR(cudaMemsetAsync(k_temp_d_, 0, sizeof(cufftDoubleComplex)*N, stream_));
+		cudaFFT(stream_, pnx, pny, u_o_gpu_, k_temp_d_, -1);
 
-			propagationAngularSpectrumGPU(u_o_gpu_, -temp_depth);
-		}
+		propagationAngularSpectrumGPU(u_o_gpu_, -temp_depth);
+		//}
 		LOG("Depth: %3d of %d, z = %6.5lf mm\n", dtr, dm_config_.num_of_depth, -temp_depth * 1000);
 	}
 

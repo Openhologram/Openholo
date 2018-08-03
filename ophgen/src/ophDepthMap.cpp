@@ -60,87 +60,14 @@ void ophDepthMap::setMode(bool isCPU)
 */
 bool ophDepthMap::readConfig(const char * fname)
 {
-	bool b_ok = ophGen::readConfig(fname, dm_config_, dm_params_);
+	if (!ophGen::readConfig(fname, dm_config_))
+		return false;
 
+	initialize();
 
 	return true;
 }
 
-Real ophDepthMap::generateHologram(void)
-{
-	auto start_time = CUR_TIME;
-
-	initialize();
-
-	if (!readImageDepth())
-		LOG("Error: Reading image.\n");
-
-	getDepthValues();
-	transformViewingWindow();
-	calcHoloByDepth();
-
-	auto end_time = CUR_TIME;
-
-	auto during_time = ((std::chrono::duration<Real>)(end_time - start_time)).count();
-
-	LOG("Implement time : %.5lf sec\n", during_time);
-
-	return during_time;
-}
-
-void ophDepthMap::encodeHologram(void)
-{
-	encodeSideBand(is_CPU, ivec2(0, 1));
-}
-
-int ophDepthMap::save(const char * fname, uint8_t bitsperpixel)
-{
-	std::string outdir = std::string("./").append(dm_params_.RESULT_FOLDER);
-
-	if (!CreateDirectory(outdir.c_str(), NULL) && ERROR_ALREADY_EXISTS != GetLastError())
-	{
-		LOG("Fail to make output directory\n");
-		return 0;
-	}
-
-	std::string resName = std::string("./").append(dm_params_.RESULT_FOLDER).append("/").append(dm_params_.RESULT_PREFIX).append(".bmp");
-
-	int pnx = context_.pixel_number[_X];
-	int pny = context_.pixel_number[_Y];
-	int px = static_cast<int>(pnx / 3);
-	int py = pny;
-
-	ophGen::save(resName.c_str(), bitsperpixel, holo_normalized, px, py);
-
-	return 1;
-}
-
-/**
-* @brief Initialize variables for CPU and GPU implementation.
-* @see init_CPU, init_GPU
-*/
-void ophDepthMap::initialize()
-{
-	dstep = 0;
-	dlevel.clear();
-
-	if (holo_gen) delete[] holo_gen;
-	holo_gen = new oph::Complex<Real>[context_.pixel_number[_X] * context_.pixel_number[_Y]];
-	memset(holo_gen, 0.0, sizeof(oph::Complex<Real>) * context_.pixel_number[_X] * context_.pixel_number[_Y]);
-
-	if (holo_encoded) delete[] holo_encoded;
-	holo_encoded = new Real[context_.pixel_number[_X] * context_.pixel_number[_Y]];
-	memset(holo_encoded, 0.0, sizeof(Real) * context_.pixel_number[_X] * context_.pixel_number[_Y]);
-
-	if (holo_normalized) delete[] holo_normalized;
-	holo_normalized = new uchar[context_.pixel_number[_X] * context_.pixel_number[_Y]];
-	memset(holo_normalized, 0.0, sizeof(uchar) * context_.pixel_number[_X] * context_.pixel_number[_Y]);
-
-	if (is_CPU)
-		initCPU();
-	else
-		initGPU();
-}
 /**
 * @brief Read image and depth map.
 * @details Read input files and load image & depth map data.
@@ -149,9 +76,9 @@ void ophDepthMap::initialize()
 * @return true if image data are sucessfully read, flase otherwise.
 * @see prepare_inputdata_CPU, prepare_inputdata_GPU
 */
-bool ophDepthMap::readImageDepth()
-{	
-	std::string sdir = std::string("./").append(dm_params_.SOURCE_FOLDER).append("/").append(dm_params_.IMAGE_PREFIX).append("*.bmp");
+bool ophDepthMap::readImageDepth(const char* source_folder, const char* img_prefix, const char* depth_img_prefix)
+{
+	std::string sdir = std::string("./").append(source_folder).append("/").append(img_prefix).append("*.bmp");
 
 	_finddatai64_t fd;
 	intptr_t handle;
@@ -162,7 +89,7 @@ bool ophDepthMap::readImageDepth()
 		return false;
 	}
 
-	std::string imgfullname = std::string("./").append(dm_params_.SOURCE_FOLDER).append("/").append(fd.name);
+	std::string imgfullname = std::string("./").append(source_folder).append("/").append(fd.name);
 
 	int w, h, bytesperpixel;
 	int ret = getImgSize(w, h, bytesperpixel, imgfullname.c_str());
@@ -182,7 +109,7 @@ bool ophDepthMap::readImageDepth()
 
 
 	//=================================================================================
-	std::string sddir = std::string("./").append(dm_params_.SOURCE_FOLDER).append("/").append(dm_params_.DEPTH_PREFIX).append("*.bmp");
+	std::string sddir = std::string("./").append(source_folder).append("/").append(depth_img_prefix).append("*.bmp");
 	handle = _findfirst64(sddir.c_str(), &fd);
 	if (handle == -1)
 	{
@@ -190,7 +117,7 @@ bool ophDepthMap::readImageDepth()
 		return false;
 	}
 
-	std::string dimgfullname = std::string("./").append(dm_params_.SOURCE_FOLDER).append("/").append(fd.name);
+	std::string dimgfullname = std::string("./").append(source_folder).append("/").append(fd.name);
 
 	int dw, dh, dbytesperpixel;
 	ret = getImgSize(dw, dh, dbytesperpixel, dimgfullname.c_str());
@@ -241,6 +168,70 @@ bool ophDepthMap::readImageDepth()
 	return true;
 }
 
+Real ophDepthMap::generateHologram(void)
+{
+	auto start_time = CUR_TIME;
+
+	getDepthValues();
+	transformViewingWindow();
+	calcHoloByDepth();
+
+	auto end_time = CUR_TIME;
+
+	auto during_time = ((std::chrono::duration<Real>)(end_time - start_time)).count();
+
+	LOG("Implement time : %.5lf sec\n", during_time);
+
+	return during_time;
+}
+
+void ophDepthMap::encodeHologram(void)
+{
+	encodeSideBand(is_CPU, ivec2(0, 1));
+}
+
+int ophDepthMap::save(const char * fname, uint8_t bitsperpixel)
+{
+	std::string resName = std::string(fname);
+	if (resName.find(".bmp") == std::string::npos && resName.find(".BMP") == std::string::npos) resName.append(".bmp");
+
+	int pnx = context_.pixel_number[_X];
+	int pny = context_.pixel_number[_Y];
+	int px = static_cast<int>(pnx / 3);
+	int py = pny;
+
+	ophGen::save(resName.c_str(), bitsperpixel, holo_normalized, px, py);
+
+	return 1;
+}
+
+/**
+* @brief Initialize variables for CPU and GPU implementation.
+* @see init_CPU, init_GPU
+*/
+void ophDepthMap::initialize()
+{
+	dstep = 0;
+	dlevel.clear();
+
+	if (holo_gen) delete[] holo_gen;
+	holo_gen = new oph::Complex<Real>[context_.pixel_number[_X] * context_.pixel_number[_Y]];
+	memset(holo_gen, 0.0, sizeof(oph::Complex<Real>) * context_.pixel_number[_X] * context_.pixel_number[_Y]);
+
+	if (holo_encoded) delete[] holo_encoded;
+	holo_encoded = new Real[context_.pixel_number[_X] * context_.pixel_number[_Y]];
+	memset(holo_encoded, 0.0, sizeof(Real) * context_.pixel_number[_X] * context_.pixel_number[_Y]);
+
+	if (holo_normalized) delete[] holo_normalized;
+	holo_normalized = new uchar[context_.pixel_number[_X] * context_.pixel_number[_Y]];
+	memset(holo_normalized, 0.0, sizeof(uchar) * context_.pixel_number[_X] * context_.pixel_number[_Y]);
+
+	if (is_CPU)
+		initCPU();
+	else
+		initGPU();
+}
+
 /**
 * @brief Calculate the physical distances of depth map layers
 * @details Initialize 'dstep_' & 'dlevel_' variables.
@@ -266,7 +257,7 @@ void ophDepthMap::getDepthValues()
 
 	}
 	
-	if (dm_params_.FLAG_CHANGE_DEPTH_QUANTIZATION == 1)
+	if (dm_config_.FLAG_CHANGE_DEPTH_QUANTIZATION == 1)
 	{
 		if (is_CPU)
 			changeDepthQuanCPU();

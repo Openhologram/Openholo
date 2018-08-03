@@ -131,7 +131,7 @@ bool ophGen::readConfig(const char* fname, OphPointCloudConfig& configdata)
 	return true;
 }
 
-bool ophGen::readConfig(const char* fname, OphDepthMapConfig & config, OphDepthMapParams& params)
+bool ophGen::readConfig(const char* fname, OphDepthMapConfig & config)
 {
 	LOG("Reading....%s...", fname);
 
@@ -155,31 +155,17 @@ bool ophGen::readConfig(const char* fname, OphDepthMapConfig & config, OphDepthM
 
 	xml_node = xml_doc.FirstChild();
 
-	params.SOURCE_FOLDER = (xml_node->FirstChildElement("SourceFolder"))->GetText();
-	params.IMAGE_PREFIX = (xml_node->FirstChildElement("ImagePrefix"))->GetText();
-	params.DEPTH_PREFIX = (xml_node->FirstChildElement("DepthPrefix"))->GetText();
-	params.RESULT_FOLDER = (xml_node->FirstChildElement("ResultFolder"))->GetText();
-	params.RESULT_PREFIX = (xml_node->FirstChildElement("ResultPrefix"))->GetText();
-	(xml_node->FirstChildElement("FlagStaticImage"))->QueryBoolText(&params.FLAG_STATIC_IMAGE);
-	(xml_node->FirstChildElement("StartFrameNumber"))->QueryUnsignedText(&params.START_OF_FRAME_NUMBERING);
-	(xml_node->FirstChildElement("NumberFrame"))->QueryUnsignedText(&params.NUMBER_OF_FRAME);
-	(xml_node->FirstChildElement("NumberOfDigitOfFrameNumbering"))->QueryUnsignedText(&params.NUMBER_OF_DIGIT_OF_FRAME_NUMBERING);
-
-	(xml_node->FirstChildElement("TransformMethod"))->QueryIntText(&params.Transform_Method_);
-	(xml_node->FirstChildElement("PropagationMethod"))->QueryIntText(&params.Propagation_Method_);
-	(xml_node->FirstChildElement("EncodingMethod"))->QueryIntText(&params.Encoding_Method_);
-
 	(xml_node->FirstChildElement("SLMpixelNumX"))->QueryIntText(&context_.pixel_number[_X]);
 	(xml_node->FirstChildElement("SLMpixelNumY"))->QueryIntText(&context_.pixel_number[_Y]);
 
-	(xml_node->FirstChildElement("FlagChangeDepthQuantization"))->QueryBoolText(&params.FLAG_CHANGE_DEPTH_QUANTIZATION);
-	(xml_node->FirstChildElement("DefaultDepthQuantization"))->QueryUnsignedText(&params.DEFAULT_DEPTH_QUANTIZATION);
-	(xml_node->FirstChildElement("NumberOfDepthQuantization"))->QueryUnsignedText(&params.NUMBER_OF_DEPTH_QUANTIZATION);
+	(xml_node->FirstChildElement("FlagChangeDepthQuantization"))->QueryBoolText(&config.FLAG_CHANGE_DEPTH_QUANTIZATION);
+	(xml_node->FirstChildElement("DefaultDepthQuantization"))->QueryUnsignedText(&config.DEFAULT_DEPTH_QUANTIZATION);
+	(xml_node->FirstChildElement("NumberOfDepthQuantization"))->QueryUnsignedText(&config.NUMBER_OF_DEPTH_QUANTIZATION);
 
-	if (params.FLAG_CHANGE_DEPTH_QUANTIZATION == 0)
-		config.num_of_depth = params.DEFAULT_DEPTH_QUANTIZATION;
+	if (config.FLAG_CHANGE_DEPTH_QUANTIZATION == 0)
+		config.num_of_depth = config.DEFAULT_DEPTH_QUANTIZATION;
 	else
-		config.num_of_depth = params.NUMBER_OF_DEPTH_QUANTIZATION;
+		config.num_of_depth = config.NUMBER_OF_DEPTH_QUANTIZATION;
 
 	std::string render_depth = (xml_node->FirstChildElement("RenderDepth"))->GetText();
 
@@ -208,7 +194,7 @@ bool ophGen::readConfig(const char* fname, OphDepthMapConfig & config, OphDepthM
 		return false;
 	}
 
-	(xml_node->FirstChildElement("RandomPahse"))->QueryBoolText(&params.RANDOM_PHASE);
+	(xml_node->FirstChildElement("RandomPahse"))->QueryBoolText(&config.RANDOM_PHASE);
 	
 #if REAL_IS_DOUBLE & true
 	(xml_node->FirstChildElement("FieldLens"))->QueryDoubleText(&config.field_lens);

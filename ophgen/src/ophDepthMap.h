@@ -96,10 +96,10 @@ protected:
 
 public:
 
-	void setMode(bool is_CPU);
-
 	/** \ingroup init_module */
+	void setMode(bool is_CPU);
 	bool readConfig(const char* fname);
+	bool readImageDepth(const char* source_folder, const char* img_prefix, const char* depth_img_prefix);
 
 	/** \ingroup gen_module */
 	Real generateHologram(void);
@@ -108,7 +108,7 @@ public:
 	void encodeHologram(void);
 
 	/** \ingroup write_module */
-	virtual int save(const char* fname = nullptr, uint8_t bitsperpixel = 24);
+	virtual int save(const char* fname, uint8_t bitsperpixel = 24);
 
 public:
 	/** \ingroup getter/setter */
@@ -142,7 +142,6 @@ private:
 
 	/** \ingroup load_module
 	* @{ */
-	bool readImageDepth(void);
 	bool prepareInputdataCPU(uchar* img, uchar* dimg);
 	bool prepareInputdataGPU(uchar* img, uchar* dimg);
 	/** @} */
@@ -187,13 +186,10 @@ private:
 	Real*					dmap;								///< CPU variable - physical distances of depth map.
 
 	Real					dstep;								///< the physical increment of each depth map layer.
-	std::vector<Real>		dlevel;							///< the physical value of all depth map layer.
+	std::vector<Real>		dlevel;								///< the physical value of all depth map layer.
 	std::vector<Real>		dlevel_transform;					///< transfomed dlevel variable
 
 	OphDepthMapConfig		dm_config_;							///< structure variable for depthmap hologram configuration.
-	OphDepthMapParams		dm_params_;							///< structure variable for depthmap hologram parameters.
-																//OphDepthMapSimul		dm_simuls_;							///< structure variable for depthmap simulation parameters.
-
 };
 
 
