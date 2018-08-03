@@ -56,7 +56,7 @@ bool ophCascadedPropagation::saveIntensityAsImg(const wchar_t* pathname, uint8_t
 	wstring bufw(pathname);
 	string bufs;
 	bufs.assign(bufw.begin(), bufw.end());
-	oph::uchar* src = getIntensityfield(getRetinaWavefieldAll());
+	oph::uchar* src = getIntensityfields(getRetinaWavefieldAll());
 	return (1 == saveAsImg(bufs.c_str(), bitsperpixel, src, getResX(), getResY()));
 }
 
@@ -139,7 +139,7 @@ bool ophCascadedPropagation::loadInput()
 	return true;
 }
 
-oph::uchar* ophCascadedPropagation::getIntensityfield(vector<oph::Complex<Real>*> waveFields)
+oph::uchar* ophCascadedPropagation::getIntensityfields(vector<oph::Complex<Real>*> waveFields)
 {
 	oph::uint numColors = getNumColors();
 	if (numColors != 1 && numColors != 3)
@@ -317,7 +317,7 @@ bool ophCascadedPropagation::propagateSlmToPupil()
 				buf[row * nx + col] = t1 / t2 * buf[row * nx + col];
 
 				// applying aperture: need some optimization later
-				if ((sqrt(X1 * X1 + Y1 * Y1) >= getPupilRadius() / 2) || (row >= ny / 2 - 1))
+				if ((sqrt(X1 * X1 + Y1 * Y1) >= getPupilDiameter() / 2) || (row >= ny / 2 - 1))
 					buf[row * nx + col] = 0;
 
 				Real f_eye = (getFieldLensFocalLength() - getDistObjectToPupil()) * getDistPupilToRetina() / (getFieldLensFocalLength() - getDistObjectToPupil() + getDistPupilToRetina());
