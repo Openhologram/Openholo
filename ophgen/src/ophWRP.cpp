@@ -28,7 +28,7 @@ bool ophWRP::readConfig(const char* cfg_file)
 	return true;
 }
 
-void ophWRP::encodefield(void)
+void ophWRP::encodeHologram(void)
 {
 	const int size = context_.pixel_number.v[_X] * context_.pixel_number.v[_Y];
 
@@ -57,23 +57,6 @@ void ophWRP::encodefield(void)
 void ophWRP::normalize(void)
 {
 	oph::normalize((Real*)holo_encoded, holo_normalized, context_.pixel_number[_X], context_.pixel_number[_Y]);
-}
-
-void ophWRP::initialize()
-{
-
-	if (holo_gen) delete[] holo_gen;
-	holo_gen = new oph::Complex<Real>[context_.pixel_number[_X] * context_.pixel_number[_Y]];
-	memset(holo_gen, 0.0, sizeof(oph::Complex<Real>) * context_.pixel_number[_X] * context_.pixel_number[_Y]);
-
-	if (holo_encoded) delete[] holo_encoded;
-	holo_encoded = new Real[context_.pixel_number[_X] * context_.pixel_number[_Y]];
-	memset(holo_encoded, 0.0, sizeof(Real) * context_.pixel_number[_X] * context_.pixel_number[_Y]);
-
-	if (holo_normalized) delete[] holo_normalized;
-	holo_normalized = new uchar[context_.pixel_number[_X] * context_.pixel_number[_Y]];
-	memset(holo_normalized, 0.0, sizeof(uchar) * context_.pixel_number[_X] * context_.pixel_number[_Y]);
-
 }
 
 void ophWRP::addPixel2WRP(int x, int y, Complex<Real> temp)
@@ -266,7 +249,7 @@ void ophWRP::fresnelPropagation(Complex<Real>* in, Complex<Real>* out, Real dist
 	Complex<Real> zero(0, 0);
 	oph::memsetArr<Complex<Real>>(in2x, zero, 0, Nx*Ny);
 
-	uint idxIn = 0;
+	int idxIn = 0;
 
 	for (idxIn = 0; idxIn<Nx*Ny; idxIn++)
 		in2x[idxIn] = in[idxIn];
@@ -274,9 +257,9 @@ void ophWRP::fresnelPropagation(Complex<Real>* in, Complex<Real>* out, Real dist
 	Real* x = new Real[Nx*Ny];
 	Real* y = new Real[Nx*Ny];
 
-	uint i = 0;
-	for (uint idy = (1 - Ny / 2); idy < (1 + Ny / 2); idy++) {
-		for (uint idx = (1 - Nx / 2); idx < (1 + Nx / 2); idx++) {
+	int i = 0;
+	for (int idy = (1 - Ny / 2); idy < (1 + Ny / 2); idy++) {
+		for (int idx = (1 - Nx / 2); idx < (1 + Nx / 2); idx++) {
 			x[i] = idx;
 			y[i] = idy;
 			i++;
@@ -291,7 +274,7 @@ void ophWRP::fresnelPropagation(Complex<Real>* in, Complex<Real>* out, Real dist
 
 	Complex<Real>* temp2 = new Complex<Real>[Nx*Ny];
 
-	for (uint i = 0; i < Nx*Ny; i++) {
+	for (int i = 0; i < Nx*Ny; i++) {
 
 		Real kk = M_PI*context_.lambda *distance *(x[i] * x[i] + y[i] * y[i]);
 		part._Val[_RE] = cos(k*distance)*cos(kk);

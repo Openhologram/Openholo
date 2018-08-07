@@ -76,7 +76,7 @@ Real ophPointCloud::generateHologram(uint diff_flag)
 	return during_time;
 }
 
-void ophPointCloud::encode(void)
+void ophPointCloud::encodeHologram(void)
 {
 	encodeSideBand(is_CPU, ivec2(0, 1));
 }

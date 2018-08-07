@@ -3,8 +3,6 @@
 #include "tinyxml2.h"
 #include <string>
 
-
-
 OphCascadedPropagation::OphCascadedPropagation()
 	: m_ReadyToPropagate(false),
 	m_HologramPath(L"")

@@ -221,17 +221,17 @@ namespace oph {
 			return int(_Val[_RE]);
 		}
 
-		friend const Complex<T> operator+ (const Complex<T>& p, const Complex<T>& q){
-			return Complex<T>(p) += q;
-		}
+		//friend const Complex<T> operator+ (const Complex<T>& p, const Complex<T>& q){
+		//	return Complex<T>(p) += q;
+		//}
 
 		friend const Complex<T> operator+ (const Complex<T>&p, const T q) {
 			return Complex<T>(p._Val[_RE] + q, p._Val[_IM]);
 		}
 
-		friend const Complex<T> operator- (const Complex<T>& p, const Complex<T>& q){
-			return Complex<T>(p) -= q;
-		}
+		//friend const Complex<T> operator- (const Complex<T>& p, const Complex<T>& q){
+		//	return Complex<T>(p) -= q;
+		//}
 
 		friend const Complex<T> operator- (const Complex<T>&p, const T q) {
 			return Complex<T>(p._Val[_RE] - q, p._Val[_IM]);

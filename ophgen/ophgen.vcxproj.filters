@@ -16,9 +16,6 @@
     <Filter Include="__ophGen">
       <UniqueIdentifier>{921179b7-6b62-4fc6-83ab-ff62fa80d57f}</UniqueIdentifier>
     </Filter>
-    <Filter Include="__Display I/O Interface">
-      <UniqueIdentifier>{b4902fcf-3bd6-4a0c-920a-ece98a6b66a3}</UniqueIdentifier>
-    </Filter>
     <Filter Include="_1_Generation\_ophWRP">
       <UniqueIdentifier>{3d94c96f-3c96-4534-9f8d-0933ac2f84a5}</UniqueIdentifier>
     </Filter>

@@ -3,7 +3,7 @@
 #include "sys.h"
 #include "tinyxml2.h"
 
-#define for_i(itr, oper) for(uint i=0; i<itr; i++){ oper }
+#define for_i(itr, oper) for(int i=0; i<itr; i++){ oper }
 
 int ophLF::readLFConfig(const char* LF_config) {
 	LOG("Reading....%s...", LF_config);
@@ -257,11 +257,11 @@ void ophLF::convertLF2ComplexField() {
 	Real randVal;
 	Complex<Real> phase;
 
-	for (uint idxRx = 0; idxRx < rx; idxRx++) {
-		for (uint idxRy = 0; idxRy < ry; idxRy++) {
+	for (int idxRx = 0; idxRx < rx; idxRx++) {
+		for (int idxRy = 0; idxRy < ry; idxRy++) {
 
-			for (uint idxNx = 0; idxNx < nx; idxNx++) {
-				for (uint idxNy = 0; idxNy < ny; idxNy++) {
+			for (int idxNx = 0; idxNx < nx; idxNx++) {
+				for (int idxNy = 0; idxNy < ny; idxNy++) {
 
 					(*(complexLF + (idxNx + nx*idxNy)))._Val[_RE] = (Real)*(*(LF + (idxNx + nx*idxNy)) + (idxNx + nx*idxNy));
 				}
@@ -270,8 +270,8 @@ void ophLF::convertLF2ComplexField() {
 			fft2({ nx,ny }, complexLF, OPH_FORWARD, OPH_ESTIMATE);
 			fftwShift(complexLF, FFTLF, nx, ny, OPH_FORWARD, false);
 			
-			for (uint idxNx = 0; idxNx < nx; idxNx++) {
-				for (uint idxNy = 0; idxNy < ny; idxNy++) {
+			for (int idxNx = 0; idxNx < nx; idxNx++) {
+				for (int idxNy = 0; idxNy < ny; idxNy++) {
 
 					randVal = rand((Real)0, (Real)1, idxRx*idxRy);
 					phase._Val[_IM] = randVal * 2 * M_PI;

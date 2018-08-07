@@ -61,14 +61,10 @@ public:
 	* @return number of Pointcloud (if it failed loading, it returned -1)
 	*/
 	virtual int loadPointCloud(const char* pc_file);
-
 	virtual bool readConfig(const char* cfg_file);
-
 	virtual void normalize(void);
 
-	void initialize();
-
-	void encodefield(void);
+	void encodeHologram(void);
 
 	double calculateWRP(void);
 
@@ -86,7 +82,6 @@ private:
 	Complex<Real>* ophWRP::calSubWRP(double d, oph::Complex<Real>* wrp, OphPointCloudData* sobj);
 
 	void addPixel2WRP(int x, int y, oph::Complex<Real> temp);
-
 	void addPixel2WRP(int x, int y, oph::Complex<Real> temp, oph::Complex<Real>* wrp);
 
 	virtual void ophFree(void);
