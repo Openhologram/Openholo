@@ -4,33 +4,32 @@
 
 #include "ophDis.h"
 
-class OphCascadedPropagationConfig {
-	public:
-		uint m_NumColors; // number of colors
-		oph::vec3 m_Wavelengths; // wavelength list. if m_NumColors == 1, only m_Wavelengths[0] is used
-		Real m_dx; // horizontal pixel pitch
-		Real m_dy; // vertical pixel pitch
-		uint m_nx; // horizontal resolution
-		uint m_ny; // vertical resolution
-		Real m_FieldLensFocalLength; // distance from SLM plane to pupil plane
-		Real m_DistReconstructionPlaneToPupil; // distance from object plane to pupil plane
-		Real m_DistPupilToRetina; // distance from pupil plane to retina plane
-		Real m_PupilDiameter; // diameter of pupil
-		Real m_Nor; // scaling term in Chang Eun Young's implementation
+struct OphCascadedPropagationConfig {
+	OphCascadedPropagationConfig()
+		: num_colors(0),
+		wavelengths{ 0.0, 0.0, 0.0 },
+		dx(0.0),
+		dy(0.0),
+		nx(0),
+		ny(0),
+		field_lens_focal_length(0.0),
+		dist_reconstruction_plane_to_pupil(0.0),
+		dist_pupil_to_retina(0.0),
+		pupil_diameter(0.0),
+		nor(0.0)
+		{}
 
-		OphCascadedPropagationConfig()
-			: m_NumColors(0),
-			m_Wavelengths{ 0.0, 0.0, 0.0 },
-			m_dx(0.0),
-			m_dy(0.0),
-			m_nx(0),
-			m_ny(0),
-			m_FieldLensFocalLength(0.0),
-			m_DistReconstructionPlaneToPupil(0.0),
-			m_DistPupilToRetina(0.0),
-			m_PupilDiameter(0.0),
-			m_Nor(0.0)
-			{}
+	oph::uint num_colors; // number of colors
+	oph::vec3 wavelengths; // wavelength list. if m_NumColors == 1, only m_Wavelengths[0] is used
+	Real dx; // horizontal pixel pitch
+	Real dy; // vertical pixel pitch
+	oph::uint nx; // horizontal resolution
+	oph::uint ny; // vertical resolution
+	Real field_lens_focal_length; // distance from SLM plane to pupil plane
+	Real dist_reconstruction_plane_to_pupil; // distance from object plane to pupil plane
+	Real dist_pupil_to_retina; // distance from pupil plane to retina plane
+	Real pupil_diameter; // diameter of pupil
+	Real nor; // scaling term in Chang Eun Young's implementation
 };
 
 
@@ -40,23 +39,23 @@ class OphCascadedPropagationConfig {
 #define DISP_DLL __declspec(dllimport)
 #endif
 
-class DISP_DLL OphCascadedPropagation : public ophDis {
+class DISP_DLL ophCascadedPropagation : public ophDis {
 	public:
-		OphCascadedPropagation();
-		OphCascadedPropagation(const wchar_t* configfilepath);
-		~OphCascadedPropagation();
+		ophCascadedPropagation();
+		ophCascadedPropagation(const wchar_t* configfilepath);
+		~ophCascadedPropagation();
 
 		bool propagate();
 		bool saveIntensityAsImg(const wchar_t* pathname, uint8_t bitsperpixel);
 
 
 	private:
-		OphCascadedPropagationConfig m_config;
-		vector<oph::Complex<Real>*> m_WFSlm; // wavefield at SLM plane
-		vector<oph::Complex<Real>*> m_WFPupil; // wavefield at pupil plane
-		vector<oph::Complex<Real>*> m_WFRetina; // wavefield at retina plane
-		bool m_ReadyToPropagate;
-		wstring m_HologramPath;
+		OphCascadedPropagationConfig config_;
+		vector<oph::Complex<Real>*> wavefield_SLM; // wavefield at SLM plane
+		vector<oph::Complex<Real>*> wavefield_pupil; // wavefield at pupil plane
+		vector<oph::Complex<Real>*> wavefield_retina; // wavefield at retina plane
+		bool ready_to_propagate;
+		wstring hologram_path;
 
 	private:
 		bool readConfig(const wchar_t* fname);
@@ -70,21 +69,21 @@ class DISP_DLL OphCascadedPropagation : public ophDis {
 
 	public:
 		// getters
-		uint GetNumColors() { return m_config.m_NumColors; }
-		oph::vec3 GetWavelengths() { return m_config.m_Wavelengths; }
-		Real GetPixelPitchX() { return m_config.m_dx; }
-		Real GetPixelPitchY() { return m_config.m_dy; }
-		uint GetResX() { return m_config.m_nx; }
-		uint GetResY() { return m_config.m_ny; }
-		Real GetFieldLensFocalLength() { return m_config.m_FieldLensFocalLength; }
-		Real GetDistObjectToPupil() { return m_config.m_DistReconstructionPlaneToPupil; }
-		Real GetDistPupilToRetina() { return m_config.m_DistPupilToRetina; }
-		Real GetPupilRadius() { return m_config.m_PupilDiameter; }
-		Real GetNor() { return m_config.m_Nor; }
+		oph::uint getNumColors() { return config_.num_colors; }
+		oph::vec3 getWavelengths() { return config_.wavelengths; }
+		Real getPixelPitchX() { return config_.dx; }
+		Real getPixelPitchY() { return config_.dy; }
+		oph::uint getResX() { return config_.nx; }
+		oph::uint getResY() { return config_.ny; }
+		Real getFieldLensFocalLength() { return config_.field_lens_focal_length; }
+		Real getDistObjectToPupil() { return config_.dist_reconstruction_plane_to_pupil; }
+		Real getDistPupilToRetina() { return config_.dist_pupil_to_retina; }
+		Real getPupilRadius() { return config_.pupil_diameter; }
+		Real getNor() { return config_.nor; }
 
-		oph::Complex<Real>* getSlmWavefield(uint id);
-		oph::Complex<Real>* getPupilWavefield(uint id);
-		oph::Complex<Real>* getRetinaWavefield(uint id);
+		oph::Complex<Real>* getSlmWavefield(oph::uint id);
+		oph::Complex<Real>* getPupilWavefield(oph::uint id);
+		oph::Complex<Real>* getRetinaWavefield(oph::uint id);
 		vector<oph::Complex<Real>*> getRetinaWavefieldAll();
 
 
