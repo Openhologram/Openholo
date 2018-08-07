@@ -131,7 +131,7 @@ public:
 	* @param InputModelFile PointCloud(*.dat) input file path
 	* @return number of Pointcloud (if it failed loading, it returned -1)
 	*/
-	virtual int loadPointCloud(const char* pc_file);
+	int loadPointCloud(const char* pc_file);
 
 	/**
 	\defgroup Import_Configfile
@@ -142,14 +142,14 @@ public:
 	/**
 	* @param InputConfigFile Specification Config(*.config) file path
 	*/
-	virtual bool readConfig(const char* cfg_file);
+	bool readConfig(const char* cfg_file);
 
 	/**
 	* @brief Generate a hologram, main funtion.
 	* @return implement time (sec)
 	*/
-	double generateHologram(uint diff_flag = PC_DIFF_RS_ENCODED);
-	void encode(void);
+	Real generateHologram(uint diff_flag = PC_DIFF_RS_ENCODED);
+	void encodeHologram(void);
 
 private:
 	/**

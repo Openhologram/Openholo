@@ -29,7 +29,7 @@ struct GEN_DLL OphContext {
 struct OphPointCloudConfig;
 struct OphPointCloudData;
 struct OphDepthMapConfig;
-struct OphDepthMapParams;
+struct OphWRPConfig;
 //struct OphDepthMapSimul;
 
 enum PC_DIFF_FLAG {
@@ -78,6 +78,7 @@ public:
 	OphContext& getContext(void) { return context_; }
 
 	void initialize(void);
+
 	/**
 	* @param input parameter. point cloud data file name
 	* @param output parameter. point cloud data, vertices(x0, y0, z0, x1, y1, z1, ...) container's pointer
@@ -92,7 +93,8 @@ public:
 	* @param output parameter. OphConfigParams struct variable can get configuration data
 	*/
 	virtual bool readConfig(const char* fname, OphPointCloudConfig& config);
-	virtual bool readConfig(const char* fname, OphDepthMapConfig& config, OphDepthMapParams& params);
+	virtual bool readConfig(const char* fname, OphDepthMapConfig& config);
+	virtual bool readConfig(const char* fname, OphWRPConfig& config);
 
 	virtual void normalize(void);
 
@@ -210,7 +212,6 @@ protected:
 	virtual void ophFree(void);
 };
 
-#endif // !__ophGen_h
 
 struct GEN_DLL OphPointCloudConfig {
 	oph::vec3 scale;								///< Scaling factor of coordinate of point cloud
@@ -250,29 +251,21 @@ struct GEN_DLL OphDepthMapConfig {
 
 	std::vector<int>	render_depth;				///< Used when only few specific depth levels are rendered, usually for test purpose
 
+	bool				FLAG_CHANGE_DEPTH_QUANTIZATION;		///< if true, change the depth quantization from the default value.
+	oph::uint			DEFAULT_DEPTH_QUANTIZATION;			///< default value of the depth quantization - 256
+	oph::uint			NUMBER_OF_DEPTH_QUANTIZATION;		///< depth level of input depthmap.
+	bool				RANDOM_PHASE;						///< If true, random phase is imposed on each depth layer.
+
 	OphDepthMapConfig() :field_lens(0), near_depthmap(0), far_depthmap(0), num_of_depth(0) {}
 	//test commit
 };
-struct GEN_DLL OphDepthMapParams
-{
-	std::string				SOURCE_FOLDER;						///< input source folder - config file.
-	std::string				IMAGE_PREFIX;						///< the prefix of the input image file - config file.
-	std::string				DEPTH_PREFIX;						///< the prefix of the deptmap file - config file	
-	std::string				RESULT_FOLDER;						///< the name of the result folder - config file
-	std::string				RESULT_PREFIX;						///< the prefix of the result file - config file
-	bool					FLAG_STATIC_IMAGE;					///< if true, the input image is static.
-	oph::uint				START_OF_FRAME_NUMBERING;			///< the start frame number.
-	oph::uint				NUMBER_OF_FRAME;					///< the total number of the frame.	
-	oph::uint				NUMBER_OF_DIGIT_OF_FRAME_NUMBERING; ///< the number of digit of frame number.
+struct GEN_DLL OphWRPConfig {
+	oph::vec3 scale;								///< Scaling factor of coordinate of point cloud
 
-	int						Transform_Method_;					///< transform method 
-	int						Propagation_Method_;				///< propagation method - currently AngularSpectrum
-	int						Encoding_Method_;					///< encoding method - currently Symmetrization
+	int num_wrp;                                    ///< Number of wavefront recording plane(WRP)  
+	Real wrp_location;                              ///< location distance of WRP
+	Real propagation_distance;                      ///< distance of Hologram plane
 
-	bool					FLAG_CHANGE_DEPTH_QUANTIZATION;		///< if true, change the depth quantization from the default value.
-	oph::uint				DEFAULT_DEPTH_QUANTIZATION;			///< default value of the depth quantization - 256
-	oph::uint				NUMBER_OF_DEPTH_QUANTIZATION;		///< depth level of input depthmap.
-	bool					RANDOM_PHASE;						///< If true, random phase is imposed on each depth layer.
 };
 //struct GEN_DLL OphDepthMapSimul
 //{
@@ -294,3 +287,5 @@ struct GEN_DLL OphDepthMapParams
 //	Real*					sim_final_;							///< reconstruction variable for testing
 //	oph::Complex<Real>*		hh_complex_;						///< reconstruction variable for testing
 //};
+
+#endif // !__ophGen_h
