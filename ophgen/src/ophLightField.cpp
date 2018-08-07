@@ -83,12 +83,10 @@ int ophLF::loadLF(const char* directory, const char* exten)
 
 		while (1)
 		{
-			//for_i(5, cout << "before: " << *(*LF + num) << endl;);
-			//cin.get();
-
 			string imgfullname = std::string(LF_directory).append("/").append(data.name);
 
 			getImgSize(sizeOut[_X], sizeOut[_Y], bytesperpixel, imgfullname.c_str());
+
 			rgbOut = new uchar[sizeOut[_X] * sizeOut[_Y] * 3];
 
 			rgbOut = loadAsImg(imgfullname.c_str());
@@ -98,13 +96,6 @@ int ophLF::loadLF(const char* directory, const char* exten)
 				cin.get();
 				return -1;
 			}
-				
-
-			//for_i(sizeOut[_X] * sizeOut[_Y] * 3,
-			//	if (rgbOut[i] > 0)
-			//		cout << i << ": " << rgbOut[i] << endl;
-			//)
-			//cin.get();
 
 			convertToFormatGray8(rgbOut, *(LF + num), sizeOut[_X], sizeOut[_Y], bytesperpixel);
 
@@ -128,14 +119,6 @@ int ophLF::loadLF(const char* directory, const char* exten)
 		cout << "LF load was failed." << endl;
 		cin.get();
 		return -1;
-	}
-	Complex<Real> one(1, 1);
-
-	for (uint i = 0; i < 4000 * 4000; i++)
-	{
-		if (RSplane_complex_field[i] > one)
-			cout << i << ": " << RSplane_complex_field[i] << endl;
-
 	}
 }
 
@@ -213,10 +196,24 @@ int ophLF::loadLF()
 }
 
 void ophLF::generateHologram() {
+	//for (int i = 0; i < 400; i++)
+	//{
+	//	for (int j = 0; j < 40000; j++)
+	//	{
+	//		if (*(*(LF + i) + j)>0) {
+	//			cout << i << "," << j << ": ";
+	//			cout << *(*(LF + i) + j) << endl;
+	//		}
+	//	}
+	//}
+	//cout << "got it?" << endl;
+	//cin.get();
+
 	cout << "Generating Hologram..." << endl;
 	convertLF2ComplexField();
 	cout << "convert finished" << endl;
-	fresnelPropagation(RSplane_complex_field, holo_gen, distanceRS2Holo);
+	holo_gen = RSplane_complex_field;
+	//fresnelPropagation(RSplane_complex_field, holo_gen, distanceRS2Holo);
 	cout << "Hologram Generated.." << endl;
 }
 
@@ -255,33 +252,58 @@ void ophLF::convertLF2ComplexField() {
 	Complex<Real>* FFTLF = new Complex<Real>[rx*ry];
 
 	Real randVal;
-	Complex<Real> phase;
-
+	Complex<Real> phase(0,0);
+	cout << "phase: " << phase << endl;
 	for (uint idxRx = 0; idxRx < rx; idxRx++) {
 		for (uint idxRy = 0; idxRy < ry; idxRy++) {
 
-			for (uint idxNx = 0; idxNx < nx; idxNx++) {
-				for (uint idxNy = 0; idxNy < ny; idxNy++) {
+			for (uint idxNy = 0; idxNy < ny; idxNy++) {
+				for (uint idxNx = 0; idxNx < nx; idxNx++) {
 
-					(*(complexLF + (idxNx + nx*idxNy)))._Val[_RE] = (Real)*(*(LF + (idxNx + nx*idxNy)) + (idxNx + nx*idxNy));
+					(*(complexLF + (idxNx + nx*idxNy))) = (Real)*(*(LF + (idxNx + nx*idxNy)) + (idxRx + rx*idxRy));
+
+					if (idxRx + rx*idxRy == 23846)
+					{
+						cout << idxNx + 1 << ", " << idxNy + 1 << ": ";
+						cout << *(complexLF + (idxNx + nx*idxNy)) << endl;
+					}
+					//if ((Real)*(*(LF + (idxNx + nx*idxNy)) + (idxRx + rx*idxRy))>0) {
+					//	cout << idxRx + rx*idxRy <<", "<< idxNx + nx*idxNy << ": ";
+					//	//cout << (Real)*(*(LF + (idxNx + nx*idxNy)) + (idxRx + rx*idxRy)) << endl;
+					//	cout << (*(complexLF + (idxNx + nx*idxNy))) << endl;
+					//}
+
 				}
 			}
+			fft2(num_image, complexLF, OPH_FORWARD, OPH_ESTIMATE);
+			fftExecute(FFTLF);
+			//(complexLF, FFTLF, nx, ny, OPH_FORWARD, false);
 			
-			fft2({ nx,ny }, complexLF, OPH_FORWARD, OPH_ESTIMATE);
-			fftwShift(complexLF, FFTLF, nx, ny, OPH_FORWARD, false);
-			
+			if (idxRx + rx*idxRy == 23846)
+			{
+				for (int i = 0; i < 4000; i++)
+				{
+					cout <<i<<": "<< *(complexLF + i) << endl;
+				}
+			}
+
 			for (uint idxNx = 0; idxNx < nx; idxNx++) {
 				for (uint idxNy = 0; idxNy < ny; idxNy++) {
 
 					randVal = rand((Real)0, (Real)1, idxRx*idxRy);
-					phase._Val[_IM] = randVal * 2 * M_PI;
+					phase(0, randVal * 2 * M_PI);
+					/*if ((Real)*(*(LF + (idxNx + nx*idxNy)) + (idxRx + rx*idxRy)) > 0) {
+						cout << "fft: " << *(FFTLF + (idxNx + nx*idxNy)) << endl;
+						cout << "exp: " << exp(phase) << endl;
+					}*/
+					*(RSplane_complex_field + nx*rx*ny*idxRy + nx*rx*idxNy + nx*idxRx + idxNx) = *(FFTLF+ (idxNx + nx*idxNy)) * exp(phase);
+					//cout << nx*rx*ny*idxRy + nx*rx*idxNy + nx*idxRx + idxNx << ": " << *(RSplane_complex_field + nx*rx*ny*idxRy + nx*rx*idxNy + nx*idxRx + idxNx) << endl;
 
-					*(RSplane_complex_field + nx*rx*ny*idxRy + nx*rx*idxNy + nx*idxRx + idxNx) = *(FFTLF+ (idxNx + nx*idxNy)) * phase.exp();
 				}
 			}		
-
 		}
 	}
-
+	//cout << "end" << endl;
+	//cin.get();
 	delete[] complexLF, FFTLF;
 }

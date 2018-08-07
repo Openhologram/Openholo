@@ -86,9 +86,9 @@ private:
 	uint findGeometricalRelations(Real* mesh, vec3 no);
 	void calGlobalFrequency();
 	uint calFrequencyTerm();
-	uint refAS_Flat(vec3 no);
-	uint refAS_Continuous();
-	uint findNormalForContinuous();
+	uint refAS_Flat(vec3 na);
+	uint refAS_Continuous(uint n);
+	uint findNormals(uint SHADING_FLAG);
 	void refToGlobal();
 
 
@@ -101,6 +101,9 @@ private:
 	Real* fx;
 	Real* fy;
 	Real* fz;
+	vec3* no;
+	vec3* na;
+	vec3* nv;
 
 private:
 	geometric geom;
