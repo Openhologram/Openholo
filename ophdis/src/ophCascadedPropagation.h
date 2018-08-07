@@ -1,36 +1,85 @@
+/**
+* @file ophCascadedPropagation.h
+* @brief Cascaded propagation module
+* @author Seunghyup Shin
+* @date 2018/07/30
+*/
+
 #pragma once
 #ifndef _OphCascadedPropagation_h
 #define _OphCascadedPropagation_h
 
 #include "ophDis.h"
 
-class OphCascadedPropagationConfig {
-	public:
-		uint m_NumColors; // number of colors
-		oph::vec3 m_Wavelengths; // wavelength list. if m_NumColors == 1, only m_Wavelengths[0] is used
-		Real m_dx; // horizontal pixel pitch
-		Real m_dy; // vertical pixel pitch
-		uint m_nx; // horizontal resolution
-		uint m_ny; // vertical resolution
-		Real m_FieldLensFocalLength; // distance from SLM plane to pupil plane
-		Real m_DistReconstructionPlaneToPupil; // distance from object plane to pupil plane
-		Real m_DistPupilToRetina; // distance from pupil plane to retina plane
-		Real m_PupilDiameter; // diameter of pupil
-		Real m_Nor; // scaling term in Chang Eun Young's implementation
+struct OphCascadedPropagationConfig {
+	OphCascadedPropagationConfig()
+		: num_colors(0),
+		wavelengths{ 0.0, 0.0, 0.0 },
+		dx(0.0),
+		dy(0.0),
+		nx(0),
+		ny(0),
+		field_lens_focal_length(0.0),
+		dist_reconstruction_plane_to_pupil(0.0),
+		dist_pupil_to_retina(0.0),
+		pupil_diameter(0.0),
+		nor(0.0)
+		{}
 
-		OphCascadedPropagationConfig()
-			: m_NumColors(0),
-			m_Wavelengths{ 0.0, 0.0, 0.0 },
-			m_dx(0.0),
-			m_dy(0.0),
-			m_nx(0),
-			m_ny(0),
-			m_FieldLensFocalLength(0.0),
-			m_DistReconstructionPlaneToPupil(0.0),
-			m_DistPupilToRetina(0.0),
-			m_PupilDiameter(0.0),
-			m_Nor(0.0)
-			{}
+	/**
+	* @param number of colors
+	*/
+	oph::uint num_colors;
+
+	/**
+	* @param wavelengths in meter
+	*/
+	oph::vec3 wavelengths;
+
+	/**
+	* @param horizontal pixel pitch in meter
+	*/
+	Real dx;
+
+	/**
+	* @param vertical pixel pitch in meter
+	*/
+	Real dy;
+
+	/**
+	* @param horizontal resolution in meter
+	*/
+	oph::uint nx;
+
+	/**
+	* @param vertical resolution in meter
+	*/
+	oph::uint ny;
+
+	/**
+	* @param focal length of field lens in meter
+	*/
+	Real field_lens_focal_length;
+
+	/**
+	* @param distance from reconstruction plane to pupil plane in meter
+	*/
+	Real dist_reconstruction_plane_to_pupil;
+
+	/**
+	* @param distance from pupil plane to retina plane
+	*/
+	Real dist_pupil_to_retina;
+
+	/**
+	* @param pupil diameter
+	*/
+	Real pupil_diameter;
+
+	/**
+	* @param scaling term for output intensity
+	*/
+	Real nor;
 };
 
 
@@ -40,51 +89,199 @@ class OphCascadedPropagationConfig {
 #define DISP_DLL __declspec(dllimport)
 #endif
 
-class DISP_DLL OphCascadedPropagation : public ophDis {
-	public:
-		OphCascadedPropagation();
-		OphCascadedPropagation(const wchar_t* configfilepath);
-		~OphCascadedPropagation();
+class DISP_DLL ophCascadedPropagation : public ophDis {
+	private:
+		/**
+		* @brief Constructor (later use)
+		*/
+		ophCascadedPropagation();
 
+	public:
+		/**
+		* @brief Constructor
+		* @param configfilepath: absolute or relative path of configuration file
+		*/
+		ophCascadedPropagation(const wchar_t* configfilepath);
+
+		/**
+		* @brief Destructor
+		*/
+		~ophCascadedPropagation();
+
+		/**
+		* @brief Do cascaded propagation
+		* @return true if successful
+		* @return false when failed
+		*/
 		bool propagate();
+
+		/**
+		* @brief Save wavefield at retina plane as Windows Bitmap file
+		* @param pathname: absolute or relative path of output file
+		* @param bitsperpixel: number of bits per pixel
+		* @return true if successfully saved
+		* @return false when failed
+		*/
 		bool saveIntensityAsImg(const wchar_t* pathname, uint8_t bitsperpixel);
 
 
 	private:
-		OphCascadedPropagationConfig m_config;
-		vector<oph::Complex<Real>*> m_WFSlm; // wavefield at SLM plane
-		vector<oph::Complex<Real>*> m_WFPupil; // wavefield at pupil plane
-		vector<oph::Complex<Real>*> m_WFRetina; // wavefield at retina plane
-		bool m_ReadyToPropagate;
-		wstring m_HologramPath;
+		/**
+		* @param config_: configuration parameters for cascaded propagation
+		*/
+		OphCascadedPropagationConfig config_;
+
+		/**
+		* @param wavefield_SLM: wavefield data at SLM plane
+		*/
+		vector<oph::Complex<Real>*> wavefield_SLM;
+
+		/**
+		* @param wavefield_SLM: wavefield data at pupil plane
+		*/
+		vector<oph::Complex<Real>*> wavefield_pupil;
+
+		/**
+		* @param wavefield_SLM: wavefield data at retina plane
+		*/
+		vector<oph::Complex<Real>*> wavefield_retina;
+
+		/**
+		* @param ready_to_propagate: indicates if configurations and input wavefield are all loaded succesfully
+		*/
+		bool ready_to_propagate;
+
+		/**
+		* @param hologram_path: absolute or relative path of input wavefield file
+		*/
+		wstring hologram_path;
 
 	private:
+		/**
+		* @brief Reads configurations from XML file
+		* @return true if successful
+		* @return false when failed
+		*/
 		bool readConfig(const wchar_t* fname);
-		bool propagateSlmToPupil(); // 1st propagation: SLM to pupil
-		bool propagatePupilToRetina(); // 2nd propagation: pupil to retina
+
+		/**
+		* @brief Calculates 1st propagation (from SLM plane to pupil plane)
+		* @return true if successful
+		* @return false when failed
+		*/
+		bool propagateSlmToPupil();
+
+		/**
+		* @brief Calculates 2nd propagation (from pupil plane to retina plane)
+		* @return true if successful
+		* @return false when failed
+		*/
+		bool propagatePupilToRetina();
+
+		/**
+		* @brief Allocates memory according to configuration setup
+		* @return true if successful
+		* @return false when failed
+		*/
 		bool allocateMem();
+
+		/**
+		* @brief Deallocates memory
+		*/
 		void deallocateMem();
+
+		/**
+		* @brief Loads wavefield data from input file
+		* @return true if successful
+		* @return false when failed
+		*/
 		bool loadInput();
-		oph::uchar* getIntensityfield(vector<oph::Complex<Real>*> waveFields);
+
+		/**
+		* @brief Generates intensity fields from complex wavefields
+		* @details each output color channel is in 8-bits
+		* @param wavefields: vector of monochromatic complex wavefields
+		* @return pointer to color-interleaved intensity sequence
+		* @return nullptr if failed
+		*/
+		oph::uchar* getIntensityfields(vector<oph::Complex<Real>*> wavefields);
 
 
 	public:
-		// getters
-		uint GetNumColors() { return m_config.m_NumColors; }
-		oph::vec3 GetWavelengths() { return m_config.m_Wavelengths; }
-		Real GetPixelPitchX() { return m_config.m_dx; }
-		Real GetPixelPitchY() { return m_config.m_dy; }
-		uint GetResX() { return m_config.m_nx; }
-		uint GetResY() { return m_config.m_ny; }
-		Real GetFieldLensFocalLength() { return m_config.m_FieldLensFocalLength; }
-		Real GetDistObjectToPupil() { return m_config.m_DistReconstructionPlaneToPupil; }
-		Real GetDistPupilToRetina() { return m_config.m_DistPupilToRetina; }
-		Real GetPupilRadius() { return m_config.m_PupilDiameter; }
-		Real GetNor() { return m_config.m_Nor; }
+		/**
+		* @brief Returns number of colors
+		*/
+		oph::uint getNumColors() { return config_.num_colors; }
 
-		oph::Complex<Real>* getSlmWavefield(uint id);
-		oph::Complex<Real>* getPupilWavefield(uint id);
-		oph::Complex<Real>* getRetinaWavefield(uint id);
+		/**
+		* @brief Returns wavelengths in meter
+		*/
+		oph::vec3 getWavelengths() { return config_.wavelengths; }
+
+		/**
+		* @brief Returns horizontal pixel pitch in meter
+		*/
+		Real getPixelPitchX() { return config_.dx; }
+
+		/**
+		* @brief Returns vertical pixel pitch in meter
+		*/
+		Real getPixelPitchY() { return config_.dy; }
+
+		/**
+		* @brief Returns horizontal resolution
+		*/
+		oph::uint getResX() { return config_.nx; }
+
+		/**
+		* @brief Returns vertical resolution
+		*/
+		oph::uint getResY() { return config_.ny; }
+
+		/**
+		* @brief Returns focal length of field lens in meter
+		*/
+		Real getFieldLensFocalLength() { return config_.field_lens_focal_length; }
+
+		/**
+		* @brief Returns distance from reconstruction plane to pupil plane in meter
+		*/
+		Real getDistObjectToPupil() { return config_.dist_reconstruction_plane_to_pupil; }
+
+		/**
+		* @brief Returns distance from pupil plane to retina plane in meter
+		*/
+		Real getDistPupilToRetina() { return config_.dist_pupil_to_retina; }
+
+		/**
+		* @brief Returns diameter of pupil in meter
+		*/
+		Real getPupilDiameter() { return config_.pupil_diameter; }
+
+		/**
+		* @brief Returns \a Nor, which affects the range of output intensity
+		* @details \a Nor is NOT intuitive at all and should be changed sometime
+		*/
+		Real getNor() { return config_.nor; }
+
+		/**
+		* @brief Return monochromatic wavefield at SLM plane
+		*/
+		oph::Complex<Real>* getSlmWavefield(oph::uint id);
+
+		/**
+		* @brief Return monochromatic wavefield at pupil plane
+		*/
+		oph::Complex<Real>* getPupilWavefield(oph::uint id);
+
+		/**
+		* @brief Return monochromatic wavefield at retina plane
+		*/
+		oph::Complex<Real>* getRetinaWavefield(oph::uint id);
+
+		/**
+		* @brief Return all wavefields at retina plane
+		*/
 		vector<oph::Complex<Real>*> getRetinaWavefieldAll();
 
 
