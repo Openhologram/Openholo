@@ -48,7 +48,8 @@ int ophGen::loadPointCloud(const char* pc_file, OphPointCloudData *pc_data_)
 	auto start = CUR_TIME;
 
 	PLYparser plyIO;
-	plyIO.loadPLY(pc_file, pc_data_->n_points, pc_data_->n_colors, &pc_data_->vertex, &pc_data_->color, &pc_data_->phase, pc_data_->isPhaseParse);
+	if (!plyIO.loadPLY(pc_file, pc_data_->n_points, pc_data_->n_colors, &pc_data_->vertex, &pc_data_->color, &pc_data_->phase, pc_data_->isPhaseParse))
+		return -1;
 
 	auto end = CUR_TIME;
 
@@ -113,77 +114,14 @@ bool ophGen::readConfig(const char* fname, OphPointCloudConfig& configdata)
 	(xml_node->FirstChildElement("TiltAngleX"))->QueryFloatText(&configdata.tilt_angle[_X]);
 	(xml_node->FirstChildElement("TiltAngleY"))->QueryFloatText(&configdata.tilt_angle[_Y]);
 #endif
-
+	(xml_node->FirstChildElement("SLMpixelNumX"))->QueryIntText(&context_.pixel_number[_X]);
+	(xml_node->FirstChildElement("SLMpixelNumY"))->QueryIntText(&context_.pixel_number[_Y]);
 	configdata.filter_shape_flag = (int8_t*)(xml_node->FirstChildElement("BandpassFilterShape"))->GetText();
 
 	context_.k = (2 * M_PI) / context_.lambda;
 	context_.ss[_X] = context_.pixel_number[_X] * context_.pixel_pitch[_X];
 	context_.ss[_Y] = context_.pixel_number[_Y] * context_.pixel_pitch[_Y];
 	/*XML parsing*/
-
-	//std::ifstream inFile(fname, std::ios::in);
-	//if (!inFile.is_open()) {
-	//	LOG("file not found.\n");
-	//	inFile.close();
-	//	return false;
-	//}
-
-	//std::vector<std::string> Title, Value;
-	//std::string Line;
-	//std::stringstream LineStream;
-
-	//int i = 0;
-	//while (std::getline(inFile, Line)) {
-	//	std::string _Title;
-	//	std::string _Value;
-	//	std::string _Equal; // " = "
-	//	LineStream << Line;
-	//	LineStream >> _Title >> _Equal >> _Value;
-	//	LineStream.clear();
-
-	//	Title.push_back(_Title);
-	//	Value.push_back(_Value);
-	//	++i;
-	//}
-
-	//if (i != 17) {
-	//	inFile.close();
-	//	return false;
-	//}
-
-	//configdata.scale.v[0] = stod(Value[0]);
-	//configdata.scale.v[1] = stod(Value[1]);
-	//configdata.scale.v[2] = stod(Value[2]);
-
-	//configdata.offset_depth = stod(Value[3]);
-
-	//context_.pixel_pitch.v[0] = stod(Value[4]);
-	//context_.pixel_pitch.v[1] = stod(Value[5]);
-
-	//context_.pixel_number.v[0] = stod(Value[6]);
-	//context_.pixel_number.v[1] = stod(Value[7]);
-
-	//context_.ss[0] = context_.pixel_number.v[0] * context_.pixel_pitch.v[0];
-	//context_.ss[1] = context_.pixel_number.v[1] * context_.pixel_pitch.v[1];
-
-	//configdata.filter_shape_flag = (int8_t*)Value[8].c_str();
-
-	//configdata.filter_width.v[0] = stod(Value[9]);
-	//configdata.filter_width.v[1] = stod(Value[10]);
-
-	//configdata.focal_length_lens_in = stod(Value[11]);
-	//configdata.focal_length_lens_out = stod(Value[12]);
-	//configdata.focal_length_lens_eye_piece = stod(Value[13]);
-
-	//context_.lambda = stod(Value[14]);
-	//context_.k = (2 * M_PI) / context_.lambda;
-	//context_.ss[_X] = context_.pixel_number[_X] * context_.pixel_pitch[_X];
-	//context_.ss[_Y] = context_.pixel_number[_Y] * context_.pixel_pitch[_Y];
-
-	//configdata.tilt_angle.v[0] = stod(Value[15]);
-	//configdata.tilt_angle.v[1] = stod(Value[16]);
-
-	//inFile.close();
 
 	auto end = CUR_TIME;
 
@@ -193,7 +131,7 @@ bool ophGen::readConfig(const char* fname, OphPointCloudConfig& configdata)
 	return true;
 }
 
-bool ophGen::readConfig(const char* fname, OphDepthMapConfig & config, OphDepthMapParams& params)
+bool ophGen::readConfig(const char* fname, OphDepthMapConfig & config)
 {
 	LOG("Reading....%s...", fname);
 
@@ -217,31 +155,17 @@ bool ophGen::readConfig(const char* fname, OphDepthMapConfig & config, OphDepthM
 
 	xml_node = xml_doc.FirstChild();
 
-	params.SOURCE_FOLDER = (xml_node->FirstChildElement("SourceFolder"))->GetText();
-	params.IMAGE_PREFIX = (xml_node->FirstChildElement("ImagePrefix"))->GetText();
-	params.DEPTH_PREFIX = (xml_node->FirstChildElement("DepthPrefix"))->GetText();
-	params.RESULT_FOLDER = (xml_node->FirstChildElement("ResultFolder"))->GetText();
-	params.RESULT_PREFIX = (xml_node->FirstChildElement("ResultPrefix"))->GetText();
-	(xml_node->FirstChildElement("FlagStaticImage"))->QueryBoolText(&params.FLAG_STATIC_IMAGE);
-	(xml_node->FirstChildElement("StartFrameNumber"))->QueryUnsignedText(&params.START_OF_FRAME_NUMBERING);
-	(xml_node->FirstChildElement("NumberFrame"))->QueryUnsignedText(&params.NUMBER_OF_FRAME);
-	(xml_node->FirstChildElement("NumberOfDigitOfFrameNumbering"))->QueryUnsignedText(&params.NUMBER_OF_DIGIT_OF_FRAME_NUMBERING);
-
-	(xml_node->FirstChildElement("TransformMethod"))->QueryIntText(&params.Transform_Method_);
-	(xml_node->FirstChildElement("PropagationMethod"))->QueryIntText(&params.Propagation_Method_);
-	(xml_node->FirstChildElement("EncodingMethod"))->QueryIntText(&params.Encoding_Method_);
-
 	(xml_node->FirstChildElement("SLMpixelNumX"))->QueryIntText(&context_.pixel_number[_X]);
 	(xml_node->FirstChildElement("SLMpixelNumY"))->QueryIntText(&context_.pixel_number[_Y]);
 
-	(xml_node->FirstChildElement("FlagChangeDepthQuantization"))->QueryBoolText(&params.FLAG_CHANGE_DEPTH_QUANTIZATION);
-	(xml_node->FirstChildElement("DefaultDepthQuantization"))->QueryUnsignedText(&params.DEFAULT_DEPTH_QUANTIZATION);
-	(xml_node->FirstChildElement("NumberOfDepthQuantization"))->QueryUnsignedText(&params.NUMBER_OF_DEPTH_QUANTIZATION);
+	(xml_node->FirstChildElement("FlagChangeDepthQuantization"))->QueryBoolText(&config.FLAG_CHANGE_DEPTH_QUANTIZATION);
+	(xml_node->FirstChildElement("DefaultDepthQuantization"))->QueryUnsignedText(&config.DEFAULT_DEPTH_QUANTIZATION);
+	(xml_node->FirstChildElement("NumberOfDepthQuantization"))->QueryUnsignedText(&config.NUMBER_OF_DEPTH_QUANTIZATION);
 
-	if (params.FLAG_CHANGE_DEPTH_QUANTIZATION == 0)
-		config.num_of_depth = params.DEFAULT_DEPTH_QUANTIZATION;
+	if (config.FLAG_CHANGE_DEPTH_QUANTIZATION == 0)
+		config.num_of_depth = config.DEFAULT_DEPTH_QUANTIZATION;
 	else
-		config.num_of_depth = params.NUMBER_OF_DEPTH_QUANTIZATION;
+		config.num_of_depth = config.NUMBER_OF_DEPTH_QUANTIZATION;
 
 	std::string render_depth = (xml_node->FirstChildElement("RenderDepth"))->GetText();
 
@@ -270,7 +194,7 @@ bool ophGen::readConfig(const char* fname, OphDepthMapConfig & config, OphDepthM
 		return false;
 	}
 
-	(xml_node->FirstChildElement("RandomPahse"))->QueryBoolText(&params.RANDOM_PHASE);
+	(xml_node->FirstChildElement("RandomPahse"))->QueryBoolText(&config.RANDOM_PHASE);
 	
 #if REAL_IS_DOUBLE & true
 	(xml_node->FirstChildElement("FieldLens"))->QueryDoubleText(&config.field_lens);
@@ -293,133 +217,78 @@ bool ophGen::readConfig(const char* fname, OphDepthMapConfig & config, OphDepthM
 	context_.ss[_Y] = context_.pixel_number[_Y] * context_.pixel_pitch[_Y];
 	/*XML parsing*/
 
-	//std::ifstream inFile(fname);
-
-	//if (!inFile.is_open()) {
-	//	LOG("file not found.\n");
-	//	inFile.close();
-	//	return false;
-	//}
-
-	//// skip 7 lines
-	//std::string temp;
-	//getline(inFile, temp, '\n');	getline(inFile, temp, '\n');	getline(inFile, temp, '\n');
-	//getline(inFile, temp, '\n');	getline(inFile, temp, '\n');	getline(inFile, temp, '\n');
-	//getline(inFile, temp, '\n');
-
-	//inFile >> params.SOURCE_FOLDER;									getline(inFile, temp, '\n');
-	//inFile >> params.IMAGE_PREFIX;									getline(inFile, temp, '\n');
-	//inFile >> params.DEPTH_PREFIX;									getline(inFile, temp, '\n');
-	//inFile >> params.RESULT_FOLDER;									getline(inFile, temp, '\n');
-	//inFile >> params.RESULT_PREFIX;									getline(inFile, temp, '\n');
-	//inFile >> params.FLAG_STATIC_IMAGE;								getline(inFile, temp, '\n');
-	//inFile >> params.START_OF_FRAME_NUMBERING;						getline(inFile, temp, '\n');
-	//inFile >> params.NUMBER_OF_FRAME;									getline(inFile, temp, '\n');
-	//inFile >> params.NUMBER_OF_DIGIT_OF_FRAME_NUMBERING;				getline(inFile, temp, '\n');
-
-	//// skip 3 lines
-	//getline(inFile, temp, '\n');	getline(inFile, temp, '\n');		getline(inFile, temp, '\n');
-
-	//inFile >> params.Transform_Method_;								getline(inFile, temp, '\n');
-	//inFile >> params.Propagation_Method_;								getline(inFile, temp, '\n');
-	//inFile >> params.Encoding_Method_;								getline(inFile, temp, '\n');
-
-	//// skip 3 lines
-	//getline(inFile, temp, '\n');	getline(inFile, temp, '\n');	getline(inFile, temp, '\n');
-
-	//inFile >> config.field_lens;									getline(inFile, temp, '\n');
-	//inFile >> context_.lambda;										getline(inFile, temp, '\n');
-	//context_.k = 2 * M_PI / context_.lambda;
-
-	//inFile >> context_.pixel_number[0];								getline(inFile, temp, '\n');
-	//inFile >> context_.pixel_number[1];								getline(inFile, temp, '\n');
-
-	//inFile >> context_.pixel_pitch[0];								getline(inFile, temp, '\n');
-	//inFile >> context_.pixel_pitch[1];								getline(inFile, temp, '\n');
-
-	//context_.ss[0] = context_.pixel_pitch[0] * context_.pixel_number[0];
-	//context_.ss[1] = context_.pixel_pitch[1] * context_.pixel_number[1];
-
-	//// skip 3 lines
-	//getline(inFile, temp, '\n');	getline(inFile, temp, '\n');	getline(inFile, temp, '\n');
-
-	//Real NEAR_OF_DEPTH_MAP, FAR_OF_DEPTH_MAP;
-	//inFile >> NEAR_OF_DEPTH_MAP;									getline(inFile, temp, '\n');
-	//inFile >> FAR_OF_DEPTH_MAP;										getline(inFile, temp, '\n');
-
-	//config.near_depthmap = min(NEAR_OF_DEPTH_MAP, FAR_OF_DEPTH_MAP);
-	//config.far_depthmap = max(NEAR_OF_DEPTH_MAP, FAR_OF_DEPTH_MAP);
-
-	//inFile >> params.FLAG_CHANGE_DEPTH_QUANTIZATION;				getline(inFile, temp, '\n');
-	//inFile >> params.DEFAULT_DEPTH_QUANTIZATION;					getline(inFile, temp, '\n');
-	//inFile >> params.NUMBER_OF_DEPTH_QUANTIZATION;					getline(inFile, temp, '\n');
-
-	//if (params.FLAG_CHANGE_DEPTH_QUANTIZATION == 0)
-	//	config.num_of_depth = params.DEFAULT_DEPTH_QUANTIZATION;
-	//else
-	//	config.num_of_depth = params.NUMBER_OF_DEPTH_QUANTIZATION;
-
-	//inFile >> temp;
-	//std::size_t found = temp.find(':');
-	//if (found != std::string::npos)
-	//{
-	//	std::string s = temp.substr(0, found);
-	//	std::string e = temp.substr(found + 1);
-	//	int start = std::stoi(s);
-	//	int end = std::stoi(e);
-	//	config.render_depth.clear();
-	//	for (int k = start; k <= end; k++)
-	//		config.render_depth.push_back(k);
-
-	//}
-	//else {
-
-	//	config.render_depth.clear();
-	//	config.render_depth.push_back(std::stoi(temp));
-	//	inFile >> temp;
-
-	//	while (temp.find('/') == std::string::npos)
-	//	{
-	//		config.render_depth.push_back(std::stoi(temp));
-	//		inFile >> temp;
-	//	}
-	//}
-	//if (config.render_depth.empty()) {
-	//	LOG("Error: RENDER_DEPTH \n");
-	//	return false;
-	//}
-
-	//getline(inFile, temp, '\n');
-	//inFile >> params.RANDOM_PHASE;									getline(inFile, temp, '\n');
-
-	////==Simulation parameters ======================================================================
-	//getline(inFile, temp, '\n');	getline(inFile, temp, '\n');	getline(inFile, temp, '\n');
-
-	////inFile >> simuls.Simulation_Result_File_Prefix_;				getline(inFile, temp, '\n');
-	////inFile >> simuls.test_pixel_number_scale_;						getline(inFile, temp, '\n');
-	////inFile >> simuls.eye_length_;									getline(inFile, temp, '\n');
-	////inFile >> simuls.eye_pupil_diameter_;							getline(inFile, temp, '\n');
-	////inFile >> simuls.eye_center_xy_[0];								getline(inFile, temp, '\n');
-	////inFile >> simuls.eye_center_xy_[1];								getline(inFile, temp, '\n');
-	////inFile >> simuls.focus_distance_;								getline(inFile, temp, '\n');
-
-	//getline(inFile, temp, '\n');	getline(inFile, temp, '\n');	getline(inFile, temp, '\n');
-	//getline(inFile, temp, '\n');	getline(inFile, temp, '\n');
-
-	////inFile >> simuls.sim_type_;										getline(inFile, temp, '\n');
-	////inFile >> simuls.sim_from_;										getline(inFile, temp, '\n');
-	////inFile >> simuls.sim_to_;										getline(inFile, temp, '\n');
-	////inFile >> simuls.sim_step_num_;									getline(inFile, temp, '\n');
-
-	////=====================================================================================
-	//inFile.close();
-
 	auto end = CUR_TIME;
 
 	auto during = ((std::chrono::duration<Real>)(end - start)).count();
 
 	LOG("%.5lfsec...done\n", during);
 
+	return true;
+}
+
+bool ophGen::readConfig(const char* fname, OphWRPConfig& configdata)
+{
+	/*	if (!ophGen::readConfig(cfg_file, pc_config_))
+	return false;
+
+	return true;*/
+	LOG("Reading....%s...", fname);
+
+	auto start = CUR_TIME;
+
+	/*XML parsing*/
+	tinyxml2::XMLDocument xml_doc;
+	tinyxml2::XMLNode *xml_node;
+
+	if (checkExtension(fname, ".xml") == 0)
+	{
+		LOG("file's extension is not 'xml'\n");
+		return false;
+	}
+	auto ret = xml_doc.LoadFile(fname);
+	if (ret != tinyxml2::XML_SUCCESS)
+	{
+		LOG("Failed to load file \"%s\"\n", fname);
+		return false;
+	}
+
+	xml_node = xml_doc.FirstChild();
+
+#if REAL_IS_DOUBLE & true
+	(xml_node->FirstChildElement("ScalingXofPointCloud"))->QueryDoubleText(&configdata.scale[_X]);
+	(xml_node->FirstChildElement("ScalingYofPointCloud"))->QueryDoubleText(&configdata.scale[_Y]);
+	(xml_node->FirstChildElement("ScalingZofPointCloud"))->QueryDoubleText(&configdata.scale[_Z]);
+	(xml_node->FirstChildElement("SLMpixelPitchX"))->QueryDoubleText(&context_.pixel_pitch[_X]);
+	(xml_node->FirstChildElement("SLMpixelPitchY"))->QueryDoubleText(&context_.pixel_pitch[_Y]);
+	(xml_node->FirstChildElement("Wavelength"))->QueryDoubleText(&context_.lambda);
+	(xml_node->FirstChildElement("LocationOfWRP"))->QueryDoubleText(&configdata.wrp_location);
+	(xml_node->FirstChildElement("PropagationDistance"))->QueryDoubleText(&configdata.propagation_distance);
+
+#else
+	(xml_node->FirstChildElement("ScalingXofPointCloud"))->QueryFloatText(&configdata.scale[_X]);
+	(xml_node->FirstChildElement("ScalingYofPointCloud"))->QueryFloatText(&configdata.scale[_Y]);
+	(xml_node->FirstChildElement("ScalingZofPointCloud"))->QueryFloatText(&configdata.scale[_Z]);
+	(xml_node->FirstChildElement("SLMpixelPitchX"))->QueryFloatText(&context_.pixel_pitch[_X]);
+	(xml_node->FirstChildElement("SLMpixelPitchY"))->QueryFloatText(&context_.pixel_pitch[_Y]);
+	(xml_node->FirstChildElement("Wavelength"))->QueryFloatText(&context_.lambda);
+	(xml_node->FirstChildElement("LocationOfWRP"))->QueryFloatText(&configdata.wrp_location);
+	(xml_node->FirstChildElement("PropagationDistance"))->QueryFloatText(&configdata.propagation_distance);
+#endif
+	(xml_node->FirstChildElement("SLMpixelNumX"))->QueryIntText(&context_.pixel_number[_X]);
+	(xml_node->FirstChildElement("SLMpixelNumY"))->QueryIntText(&context_.pixel_number[_Y]);
+	(xml_node->FirstChildElement("NumberOfWRP"))->QueryIntText(&configdata.num_wrp);
+
+
+	context_.k = (2 * M_PI) / context_.lambda;
+	context_.ss[_X] = context_.pixel_number[_X] * context_.pixel_pitch[_X];
+	context_.ss[_Y] = context_.pixel_number[_Y] * context_.pixel_pitch[_Y];
+	/*XML parsing*/
+
+	auto end = CUR_TIME;
+
+	auto during = ((std::chrono::duration<Real>)(end - start)).count();
+
+	LOG("%.5lfsec...done\n", during);
 	return true;
 }
 
@@ -496,7 +365,7 @@ void* ophGen::load(const char * fname)
 	return nullptr;
 }
 
-#define for_i(itr, oper) for(uint i=0; i<itr; i++){ oper }
+#define for_i(itr, oper) for(int i=0; i<itr; i++){ oper }
 
 void ophGen::loadComplex(char* real_file, char* imag_file, int n_x, int n_y) {
 
@@ -891,8 +760,8 @@ void ophGen::fresnelPropagation(OphContext context, Complex<Real>* in, Complex<R
 
 	uint idxIn = 0;
 
-	for (uint idxNy = Ny / 2; idxNy < Ny + (Ny / 2); idxNy++) {
-		for (uint idxNx = Nx / 2; idxNx < Nx + (Nx / 2); idxNx++) {
+	for (int idxNy = Ny / 2; idxNy < Ny + (Ny / 2); idxNy++) {
+		for (int idxNx = Nx / 2; idxNx < Nx + (Nx / 2); idxNx++) {
 
 			in2x[idxNy*Nx * 2 + idxNx] = in[idxIn];
 			idxIn++;
@@ -910,8 +779,8 @@ void ophGen::fresnelPropagation(OphContext context, Complex<Real>* in, Complex<R
 	Real* fy = new Real[Nx*Ny * 4];
 
 	uint i = 0;
-	for (uint idxFy = (1 - Ny); idxFy < (1 + Ny); idxFy++) {
-		for (uint idxFx = (1 - Nx); idxFx < (1 + Nx); idxFx++) {
+	for (int idxFy = (1 - Ny); idxFy < (1 + Ny); idxFy++) {
+		for (int idxFx = (1 - Nx); idxFx < (1 + Nx); idxFx++) {
 			fx[i] = idxFx;
 			fy[i] = idxFy;
 			i++;
@@ -923,9 +792,10 @@ void ophGen::fresnelPropagation(OphContext context, Complex<Real>* in, Complex<R
 
 	Complex<Real>* temp2 = new Complex<Real>[Nx*Ny * 4];
 
-	for (uint i = 0; i < Nx*Ny * 4; i++) {
+	for (int i = 0; i < Nx*Ny * 4; i++) {
 		sqrtPart._Val[_RE] = sqrt(1 / (context.lambda*context.lambda) - fx[i] * fx[i] - fy[i] * fy[i]);
-		prop[i] = 2 * M_PI*distance*sqrtPart;
+		prop[i] = 2 * M_PI*distance;
+		prop[i] *= sqrtPart;
 		temp2[i] = temp1[i] * exp(prop[i]);
 	}
 
@@ -935,8 +805,8 @@ void ophGen::fresnelPropagation(OphContext context, Complex<Real>* in, Complex<R
 
 	uint idxOut = 0;
 
-	for (uint idxNy = Ny / 2; idxNy < Ny + (Ny / 2); idxNy++) {
-		for (uint idxNx = Nx / 2; idxNx < Nx + (Nx / 2); idxNx++) {
+	for (int idxNy = Ny / 2; idxNy < Ny + (Ny / 2); idxNy++) {
+		for (int idxNx = Nx / 2; idxNx < Nx + (Nx / 2); idxNx++) {
 
 			out[idxOut] = temp3[idxNy*Nx * 2 + idxNx];
 			idxOut++;
@@ -957,8 +827,8 @@ void ophGen::fresnelPropagation(Complex<Real>* in, Complex<Real>* out, Real dist
 
 	uint idxIn = 0;
 
-	for (uint idxNy = Ny / 2; idxNy < Ny + (Ny / 2); idxNy++) {
-		for (uint idxNx = Nx / 2; idxNx < Nx + (Nx / 2); idxNx++) {
+	for (int idxNy = Ny / 2; idxNy < Ny + (Ny / 2); idxNy++) {
+		for (int idxNx = Nx / 2; idxNx < Nx + (Nx / 2); idxNx++) {
 
 			in2x[idxNy*Nx * 2 + idxNx] = in[idxIn];
 			idxIn++;
@@ -974,8 +844,8 @@ void ophGen::fresnelPropagation(Complex<Real>* in, Complex<Real>* out, Real dist
 	Real* fy = new Real[Nx*Ny * 4];
 
 	uint i = 0;
-	for (uint idxFy = (1 - Ny); idxFy < (1 + Ny); idxFy++) {
-		for (uint idxFx = (1 - Nx); idxFx < (1 + Nx); idxFx++) {
+	for (int idxFy = (1 - Ny); idxFy < (1 + Ny); idxFy++) {
+		for (int idxFx = (1 - Nx); idxFx < (1 + Nx); idxFx++) {
 			fx[i] = idxFx;
 			fy[i] = idxFy;
 			i++;
@@ -987,9 +857,10 @@ void ophGen::fresnelPropagation(Complex<Real>* in, Complex<Real>* out, Real dist
 
 	Complex<Real>* temp2 = new Complex<Real>[Nx*Ny * 4];
 
-	for (uint i = 0; i < Nx*Ny * 4; i++) {
+	for (int i = 0; i < Nx*Ny * 4; i++) {
 		sqrtPart._Val[_RE] = sqrt(1 / (context_.lambda*context_.lambda) - fx[i] * fx[i] - fy[i] * fy[i]);
-		prop[i] = 2 * M_PI*distance*sqrtPart;
+		prop[i] = 2 * M_PI * distance;
+		prop[i] *= sqrtPart;
 		temp2[i] = temp1[i] * exp(prop[i]);
 	}
 
@@ -999,8 +870,8 @@ void ophGen::fresnelPropagation(Complex<Real>* in, Complex<Real>* out, Real dist
 
 	uint idxOut = 0;
 
-	for (uint idxNy = Ny / 2; idxNy < Ny + (Ny / 2); idxNy++) {
-		for (uint idxNx = Nx / 2; idxNx < Nx + (Nx / 2); idxNx++) {
+	for (int idxNy = Ny / 2; idxNy < Ny + (Ny / 2); idxNy++) {
+		for (int idxNx = Nx / 2; idxNx < Nx + (Nx / 2); idxNx++) {
 
 			out[idxOut] = temp3[idxNy*Nx * 2 + idxNx];
 			idxOut++;
@@ -1232,7 +1103,15 @@ void ophGen::getRandPhaseValue(oph::Complex<Real>& rand_phase_val, bool rand_pha
 	if (rand_phase)
 	{
 		rand_phase_val[_RE] = 0.0;
-		rand_phase_val[_IM] = 2 * M_PI * oph::rand(0.0, 1.0);
+		Real min, max;
+#if REAL_IS_DOUBLE & true
+		min = 0.0;
+		max = 1.0;
+#else
+		min = 0.f;
+		max = 1.f;
+#endif
+		rand_phase_val[_IM] = 2 * M_PI * oph::rand(min, max);
 		rand_phase_val.exp();
 
 	}

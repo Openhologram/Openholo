@@ -40,23 +40,23 @@ bool ophDepthMap::prepareInputdataCPU(uchar* imgptr, uchar* dimgptr)
 	int pnx = context_.pixel_number[0];
 	int pny = context_.pixel_number[1];
 
-	memset(img_src, 0, sizeof(double)*pnx * pny);
-	memset(dmap_src, 0, sizeof(double)*pnx * pny);
+	memset(img_src, 0, sizeof(Real)*pnx * pny);
+	memset(dmap_src, 0, sizeof(Real)*pnx * pny);
 	memset(alpha_map, 0, sizeof(int)*pnx * pny);
-	memset(depth_index, 0, sizeof(double)*pnx * pny);
-	memset(dmap, 0, sizeof(double)*pnx * pny);
+	memset(depth_index, 0, sizeof(Real)*pnx * pny);
+	memset(dmap, 0, sizeof(Real)*pnx * pny);
 
 	int k = 0;
 #pragma omp parallel for private(k)
 	for (k = 0; k < pnx*pny; k++)
 	{
-		img_src[k] = double(imgptr[k]) / 255.0;
-		dmap_src[k] = double(dimgptr[k]) / 255.0;
+		img_src[k] = Real(imgptr[k]) / 255.0;
+		dmap_src[k] = Real(dimgptr[k]) / 255.0;
 		alpha_map[k] = (imgptr[k] > 0 ? 1 : 0);
 		dmap[k] = (1 - dmap_src[k])*(dm_config_.far_depthmap - dm_config_.near_depthmap) + dm_config_.near_depthmap;
 
-		if (dm_params_.FLAG_CHANGE_DEPTH_QUANTIZATION == 0)
-			depth_index[k] = dm_params_.DEFAULT_DEPTH_QUANTIZATION - double(dimgptr[k]);
+		if (dm_config_.FLAG_CHANGE_DEPTH_QUANTIZATION == 0)
+			depth_index[k] = dm_config_.DEFAULT_DEPTH_QUANTIZATION - Real(dimgptr[k]);
 	}
 }
 
@@ -70,7 +70,7 @@ void ophDepthMap::changeDepthQuanCPU()
 	int pnx = context_.pixel_number[0];
 	int pny = context_.pixel_number[1];
 
-	double temp_depth, d1, d2;
+	Real temp_depth, d1, d2;
 	int tdepth;
 
 	for (uint dtr = 0; dtr < dm_config_.num_of_depth; dtr++)
@@ -123,12 +123,12 @@ void ophDepthMap::calcHoloCPU()
 	for (p = 0; p < depth_sz; ++p)
 	{
 		int dtr = dm_config_.render_depth[p];
-		double temp_depth = dlevel_transform[dtr - 1];
+		Real temp_depth = dlevel_transform[dtr - 1];
 
 		Complex<Real>* u_o = (Complex<Real>*)malloc(sizeof(Complex<Real>)*pnx*pny);
 		memset(u_o, 0.0, sizeof(Complex<Real>)*pnx*pny);
 
-		double sum = 0.0;
+		Real sum = 0.0;
 		for (int i = 0; i < pnx * pny; i++)
 		{
 			u_o[i]._Val[_RE] = img_src[i] * alpha_map[i] * (depth_index[i] == dtr ? 1.0 : 0.0);
@@ -140,7 +140,7 @@ void ophDepthMap::calcHoloCPU()
 			LOG("Depth: %d of %d, z = %f mm\n", dtr, dm_config_.num_of_depth, -temp_depth * 1000);
 
 			Complex<Real> rand_phase_val;
-			getRandPhaseValue(rand_phase_val, dm_params_.RANDOM_PHASE);
+			getRandPhaseValue(rand_phase_val, dm_config_.RANDOM_PHASE);
 
 			Complex<Real> carrier_phase_delay(0, context_.k* temp_depth);
 			carrier_phase_delay.exp();
@@ -148,10 +148,10 @@ void ophDepthMap::calcHoloCPU()
 			for (int i = 0; i < pnx * pny; i++)
 				u_o[i] = u_o[i] * rand_phase_val * carrier_phase_delay;
 
-			if (dm_params_.Propagation_Method_ == 0) {
-				Openholo::fftwShift(u_o, u_o, pnx, pny, OPH_FORWARD, false);
-				propagationAngularSpectrumCPU(u_o, -temp_depth);
-			}
+			//if (dm_params_.Propagation_Method_ == 0) {
+			Openholo::fftwShift(u_o, u_o, pnx, pny, OPH_FORWARD, false);
+			propagationAngularSpectrumCPU(u_o, -temp_depth);
+			//}
 		}
 		else
 			LOG("Depth: %d of %d : Nothing here\n", dtr, dm_config_.num_of_depth);
@@ -167,25 +167,25 @@ void ophDepthMap::calcHoloCPU()
 * @param propagation_dist : the distance from the object to the hologram plane.
 * @see Calc_Holo_by_Depth, Calc_Holo_CPU, fftwShift
 */
-void ophDepthMap::propagationAngularSpectrumCPU(Complex<Real>* input_u, double propagation_dist)
+void ophDepthMap::propagationAngularSpectrumCPU(Complex<Real>* input_u, Real propagation_dist)
 {
 	int pnx = context_.pixel_number[0];
 	int pny = context_.pixel_number[1];
-	double ppx = context_.pixel_pitch[0];
-	double ppy = context_.pixel_pitch[1];
-	double ssx = context_.ss[0];
-	double ssy = context_.ss[1];
-	double lambda = context_.lambda;
+	Real ppx = context_.pixel_pitch[0];
+	Real ppy = context_.pixel_pitch[1];
+	Real ssx = context_.ss[0];
+	Real ssy = context_.ss[1];
+	Real lambda = context_.lambda;
 
 	for (int i = 0; i < pnx * pny; i++)
 	{
-		double x = i % pnx;
-		double y = i / pnx;
+		Real x = i % pnx;
+		Real y = i / pnx;
 
-		double fxx = (-1.0 / (2.0*ppx)) + (1.0 / ssx) * x;
-		double fyy = (1.0 / (2.0*ppy)) - (1.0 / ssy) - (1.0 / ssy) * y;
+		Real fxx = (-1.0 / (2.0*ppx)) + (1.0 / ssx) * x;
+		Real fyy = (1.0 / (2.0*ppy)) - (1.0 / ssy) - (1.0 / ssy) * y;
 
-		double sval = sqrt(1 - (lambda*fxx)*(lambda*fxx) - (lambda*fyy)*(lambda*fyy));
+		Real sval = sqrt(1 - (lambda*fxx)*(lambda*fxx) - (lambda*fyy)*(lambda*fyy));
 		sval *= context_.k * propagation_dist;
 		Complex<Real> kernel(0, sval);
 		kernel.exp();

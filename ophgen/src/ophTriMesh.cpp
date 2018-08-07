@@ -3,7 +3,7 @@
 #include "sys.h"
 #include "tinyxml2.h"
 
-#define for_i(iter, oper)	for(uint i=0;i<iter;i++){oper}
+#define for_i(iter, oper)	for(int i=0;i<iter;i++){oper}
 
 #define _X1 0
 #define _Y1 1

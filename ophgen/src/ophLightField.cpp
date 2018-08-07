@@ -3,7 +3,7 @@
 #include "sys.h"
 #include "tinyxml2.h"
 
-#define for_i(itr, oper) for(uint i=0; i<itr; i++){ oper }
+#define for_i(itr, oper) for(int i=0; i<itr; i++){ oper }
 
 int ophLF::readLFConfig(const char* LF_config) {
 	LOG("Reading....%s...", LF_config);
