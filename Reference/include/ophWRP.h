@@ -1,7 +1,15 @@
+#ifndef __ophWRP_h
+#define __ophWRP_h
 
 #define _USE_MATH_DEFINES
 
 #include "ophGen.h"
+
+#ifdef RECON_EXPORT
+#define RECON_DLL __declspec(dllexport)
+#else
+#define RECON_DLL __declspec(dllimport)
+#endif
 
 //Build Option : Multi Core Processing (OpenMP)
 #ifdef _OPENMP
@@ -22,7 +30,7 @@
 
 using namespace oph;
 
-class ophWRP : public ophGen
+class GEN_DLL ophWRP : public ophGen
 {
 
 public:
@@ -36,12 +44,12 @@ protected:
 	/**
 	* @brief Destructor
 	*/
-	//	virtual ~ophWRP(void);
+	virtual ~ophWRP(void);
 
 public:
 
 	/**
-	\defgroup PointCloud_Load
+	\defgroup loadPointCloud
 	* @brief override
 	* @{
 	* @brief Import Point Cloud Data Base File : *.PYL file.
@@ -53,18 +61,18 @@ public:
 	* @return number of Pointcloud (if it failed loading, it returned -1)
 	*/
 	virtual int loadPointCloud(const char* pc_file);
-
 	virtual bool readConfig(const char* cfg_file);
-
 	virtual void normalize(void);
 
-	void initialize();
+	void encodeHologram(void);
 
-	void encodefield(void);
+	double calculateWRP(void);
 
-	double calculateWRP(double wrp_d);
+	virtual void fresnelPropagation(Complex<Real>* in, Complex<Real>* out, Real distance);
 
-	oph::Complex<Real>** calculateMWRP(int n);
+	void generateHologram(void);
+
+	oph::Complex<Real>** calculateMWRP(void);
 
 	inline oph::Complex<Real>* getWRPBuff(void) { return p_wrp_; };
 
@@ -73,9 +81,8 @@ private:
 
 	Complex<Real>* ophWRP::calSubWRP(double d, oph::Complex<Real>* wrp, OphPointCloudData* sobj);
 
-	void AddPixel2WRP(int x, int y, oph::Complex<Real> temp);
-
-	void AddPixel2WRP(int x, int y, oph::Complex<Real> temp, oph::Complex<Real>* wrp);
+	void addPixel2WRP(int x, int y, oph::Complex<Real> temp);
+	void addPixel2WRP(int x, int y, oph::Complex<Real> temp, oph::Complex<Real>* wrp);
 
 	virtual void ophFree(void);
 
@@ -88,7 +95,7 @@ protected:
 
 	OphPointCloudData obj_;
 
-	OphPointCloudConfig pc_config_;
+	OphWRPConfig pc_config_;
 
 };
-
+#endif

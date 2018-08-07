@@ -28,8 +28,8 @@ int ophLF::readLFConfig(const char* LF_config) {
 
 	xml_node = xml_doc.FirstChild();
 
-	LF_directory = (xml_node->FirstChildElement("LightFieldImageDirectory"))->GetText();
-	ext = (xml_node->FirstChildElement("LightFieldImageExtention"))->GetText();
+	//LF_directory = (xml_node->FirstChildElement("LightFieldImageDirectory"))->GetText();
+	//ext = (xml_node->FirstChildElement("LightFieldImageExtention"))->GetText();
 #if REAL_IS_DOUBLE & true
 	(xml_node->FirstChildElement("DistanceRS2Holo"))->QueryDoubleText(&distanceRS2Holo);
 	(xml_node->FirstChildElement("SLMPixelPitchX"))->QueryDoubleText(&context_.pixel_pitch[_X]);
@@ -45,8 +45,8 @@ int ophLF::readLFConfig(const char* LF_config) {
 	(xml_node->FirstChildElement("NumberofImagesYofLF"))->QueryIntText(&num_image[_Y]);
 	(xml_node->FirstChildElement("NumberofPixelXofLF"))->QueryIntText(&resolution_image[_X]);
 	(xml_node->FirstChildElement("NumberofPixelYofLF"))->QueryIntText(&resolution_image[_Y]);
-	(xml_node->FirstChildElement("EncodingMethod"))->QueryIntText(&ENCODE_METHOD);
-	(xml_node->FirstChildElement("SingleSideBandPassBand"))->QueryIntText(&SSB_PASSBAND);
+	//(xml_node->FirstChildElement("EncodingMethod"))->QueryIntText(&ENCODE_METHOD);
+	//(xml_node->FirstChildElement("SingleSideBandPassBand"))->QueryIntText(&SSB_PASSBAND);
 
 	context_.pixel_number[_X] = num_image[_X] * resolution_image[_X];
 	context_.pixel_number[_Y] = num_image[_Y] * resolution_image[_Y];

@@ -139,7 +139,6 @@ int ophTri::readMeshConfig(const char* mesh_config) {
 	context_.ss[_X] = context_.pixel_number[_X] * context_.pixel_pitch[_X];
 	context_.ss[_Y] = context_.pixel_number[_Y] * context_.pixel_pitch[_Y];
 
-	loadMeshData(meshDataFileName);
 	cout << "pixel num: " << context_.pixel_number[_X] << ", " << context_.pixel_number[_Y] << endl;
 	cout << "pixel pit: " << context_.pixel_pitch[_X] << ", " << context_.pixel_pitch[_Y] << endl;
 	cout << "lambda: " << context_.lambda << endl;
