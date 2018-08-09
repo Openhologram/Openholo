@@ -756,7 +756,7 @@ void ophGen::fresnelPropagation(OphContext context, Complex<Real>* in, Complex<R
 
 	Complex<Real>* in2x = new Complex<Real>[Nx*Ny * 4];
 	Complex<Real> zero(0, 0);
-	//oph::memsetArr<Complex<Real>>(in2x, zero, 0, Nx*Ny*4-2);
+	oph::memsetArr<Complex<Real>>(in2x, zero, 0, Nx*Ny * 4 - 1);
 
 	uint idxIn = 0;
 
@@ -770,37 +770,37 @@ void ophGen::fresnelPropagation(OphContext context, Complex<Real>* in, Complex<R
 
 	Complex<Real>* temp1 = new Complex<Real>[Nx*Ny * 4];
 
-	ivec2 n(context.pixel_number[_X] * 2, context.pixel_number[_Y] * 2);
-
-	fft2(n, in2x, OPH_FORWARD, OPH_ESTIMATE);
-	fftwShift(in2x, temp1, n[_X], n[_Y], OPH_FORWARD, false);
+	fft2({ Nx * 2, Ny * 2 }, in2x, OPH_FORWARD, OPH_ESTIMATE);
+	fftwShift(in2x, temp1, Nx * 2, Ny * 2, OPH_FORWARD, false);
 
 	Real* fx = new Real[Nx*Ny * 4];
 	Real* fy = new Real[Nx*Ny * 4];
 
 	uint i = 0;
-	for (int idxFy = (1 - Ny); idxFy < (1 + Ny); idxFy++) {
-		for (int idxFx = (1 - Nx); idxFx < (1 + Nx); idxFx++) {
-			fx[i] = idxFx;
-			fy[i] = idxFy;
+	for (int idxFy = (1 - Ny); idxFy < Ny; idxFy++) {
+		for (int idxFx = (1 - Nx); idxFx < Nx; idxFx++) {
+			fx[i] = idxFx / (2 * Nx*context.pixel_pitch[_X]);
+			fy[i] = idxFy / (2 * Ny*context.pixel_pitch[_Y]);
 			i++;
 		}
 	}
 
 	Complex<Real>* prop = new Complex<Real>[Nx*Ny * 4];
-	Complex<Real> sqrtPart;
+	oph::memsetArr<Complex<Real>>(prop, zero, 0, Nx*Ny * 4 - 1);
+
+	Real sqrtPart;
 
 	Complex<Real>* temp2 = new Complex<Real>[Nx*Ny * 4];
 
 	for (int i = 0; i < Nx*Ny * 4; i++) {
-		sqrtPart._Val[_RE] = sqrt(1 / (context.lambda*context.lambda) - fx[i] * fx[i] - fy[i] * fy[i]);
-		prop[i] = 2 * M_PI*distance;
-		prop[i] *= sqrtPart;
+		sqrtPart = sqrt(1 / (context.lambda*context.lambda) - fx[i] * fx[i] - fy[i] * fy[i]);
+		prop[i][_IM] = 2 * M_PI * distance;
+		prop[i][_IM] *= sqrtPart;
 		temp2[i] = temp1[i] * exp(prop[i]);
 	}
 
 	Complex<Real>* temp3 = new Complex<Real>[Nx*Ny * 4];
-	fft2((Nx * 2, Ny * 2), temp2, OPH_BACKWARD, OPH_ESTIMATE);
+	fft2({ Nx * 2, Ny * 2 }, temp2, OPH_BACKWARD, OPH_ESTIMATE);
 	fftwShift(temp2, temp3, Nx * 2, Ny * 2, OPH_BACKWARD, false);
 
 	uint idxOut = 0;
@@ -844,23 +844,25 @@ void ophGen::fresnelPropagation(Complex<Real>* in, Complex<Real>* out, Real dist
 	Real* fy = new Real[Nx*Ny * 4];
 
 	uint i = 0;
-	for (int idxFy = (1 - Ny); idxFy < (1 + Ny); idxFy++) {
-		for (int idxFx = (1 - Nx); idxFx < (1 + Nx); idxFx++) {
-			fx[i] = idxFx;
-			fy[i] = idxFy;
+	for (int idxFy = (1 - Ny); idxFy < Ny; idxFy++) {
+		for (int idxFx = (1 - Nx); idxFx < Nx; idxFx++) {
+			fx[i] = idxFx / (2 * Nx*context_.pixel_pitch[_X]);
+			fy[i] = idxFy / (2 * Ny*context_.pixel_pitch[_Y]);
 			i++;
 		}
 	}
 
 	Complex<Real>* prop = new Complex<Real>[Nx*Ny * 4];
-	Complex<Real> sqrtPart;
+	oph::memsetArr<Complex<Real>>(prop, zero, 0, Nx*Ny * 4 - 1);
+
+	Real sqrtPart;
 
 	Complex<Real>* temp2 = new Complex<Real>[Nx*Ny * 4];
 
 	for (int i = 0; i < Nx*Ny * 4; i++) {
-		sqrtPart._Val[_RE] = sqrt(1 / (context_.lambda*context_.lambda) - fx[i] * fx[i] - fy[i] * fy[i]);
-		prop[i] = 2 * M_PI * distance;
-		prop[i] *= sqrtPart;
+		sqrtPart = sqrt(1 / (context_.lambda*context_.lambda) - fx[i] * fx[i] - fy[i] * fy[i]);
+		prop[i][_IM] = 2 * M_PI * distance;
+		prop[i][_IM] *= sqrtPart;
 		temp2[i] = temp1[i] * exp(prop[i]);
 	}
 

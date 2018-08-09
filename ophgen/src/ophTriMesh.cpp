@@ -98,7 +98,6 @@ int ophTri::readMeshConfig(const char* mesh_config) {
 
 	xml_node = xml_doc.FirstChild();
 
-	meshDataFileName = (xml_node->FirstChildElement("MeshDataFileName"))->GetText();
 #if REAL_IS_DOUBLE & true
 	(xml_node->FirstChildElement("ObjectSize"))->QueryDoubleText(&objSize);
 	(xml_node->FirstChildElement("ObjectShiftX"))->QueryDoubleText(&objShift[_X]);
@@ -300,6 +299,52 @@ vec3 vecCross(const vec3& a, const vec3& b)
 	return c;
 }
 
+
+void ophTri::generateMeshHologram(uint SHADING_FLAG) {
+	cout << "Hologram Generation ..." << endl;
+	auto start = CUR_TIME;
+
+	initialize();
+	initializeAS();
+	generateAS(SHADING_FLAG);
+
+	//holo_gen = angularSpectrum;
+
+	fft2(context_.pixel_number, angularSpectrum, OPH_BACKWARD, OPH_ESTIMATE);
+	fftwShift(angularSpectrum, holo_gen, context_.pixel_number[_X], context_.pixel_number[_Y], OPH_BACKWARD, false);
+	//fftExecute(holo_gen);
+	
+	// fft 안됨!!!ㅜㅜ 아래 cout해보니 nan으로 나옴.
+	
+	for_i(context_.pixel_number[_X] * context_.pixel_number[_Y],
+		cout << holo_gen[i] << endl;);
+
+	auto end = CUR_TIME;
+	auto during = ((std::chrono::duration<Real>)(end - start)).count();
+
+	LOG("%.5lfsec...hologram generated..\n", during);
+}
+
+void ophTri::generateMeshHologram() {
+	cout << "Hologram Generation ..." << endl;
+	auto start = CUR_TIME;
+
+	initialize();
+	initializeAS();
+	generateAS(SHADING_TYPE);
+
+	//holo_gen = angularSpectrum;
+
+	fft2(context_.pixel_number, angularSpectrum, OPH_BACKWARD, OPH_ESTIMATE);
+	fftExecute(holo_gen);
+
+	auto end = CUR_TIME;
+	auto during = ((std::chrono::duration<Real>)(end - start)).count();
+
+	LOG("%.5lfsec...hologram generated..\n", during);
+}
+
+
 void ophTri::generateAS(uint SHADING_FLAG) {
 
 	Real* mesh = new Real[9];
@@ -315,7 +360,6 @@ void ophTri::generateAS(uint SHADING_FLAG) {
 
 	refAS = new Complex<Real>[context_.pixel_number[_X] * context_.pixel_number[_Y]];
 
-	
 	findNormals(SHADING_FLAG);
 
 	for (uint n = 0; n < num_mesh; n++) {
@@ -335,7 +379,7 @@ void ophTri::generateAS(uint SHADING_FLAG) {
 		switch (SHADING_FLAG)
 		{
 		case SHADING_FLAT:
-			refAS_Flat(*(na + n));
+			refAS_Flat(*(no + n));
 			break;
 		case SHADING_CONTINUOUS:
 			refAS_Continuous(n);
@@ -351,6 +395,72 @@ void ophTri::generateAS(uint SHADING_FLAG) {
 	cout << "Angular Spectrum Generated..." << endl;
 
 	delete[] mesh, scaledMeshData, fx, fy, fz, mesh_local, flx, fly, flz, freqTermX, freqTermY, refAS;
+}
+
+
+uint ophTri::findNormals(uint SHADING_FLAG) {
+
+	no = new vec3[num_mesh];
+	na = new vec3[num_mesh];
+	nv = new vec3[num_mesh * 3];
+
+	for (uint num = 0; num < num_mesh; num++)
+	{
+		*(no + num) = vecCross({ scaledMeshData[num * 9 + _X1] - scaledMeshData[num * 9 + _X2],
+			scaledMeshData[num * 9 + _Y1] - scaledMeshData[num * 9 + _Y2],
+			scaledMeshData[num * 9 + _Z1] - scaledMeshData[num * 9 + _Z2] },
+			{ scaledMeshData[num * 9 + _X3] - scaledMeshData[num * 9 + _X2],
+			scaledMeshData[num * 9 + _Y3] - scaledMeshData[num * 9 + _Y2],
+			scaledMeshData[num * 9 + _Z3] - scaledMeshData[num * 9 + _Z2] });
+		// 'vec.h'의 cross함수가 전역으로 되어있어서 오류뜸.
+		// 'vec.h'에 extern을 하라해서 했는데 그래도 안 됨.
+		// 그래서그냥함수우선 가져옴.
+	}
+	Real normNo = 0;
+	for (uint num = 0; num < num_mesh; num++) {
+		normNo = normNo + norm(no[num])*norm(no[num]);
+	}
+	normNo = sqrt(normNo);
+
+	for (uint num = 0; num < num_mesh; num++) {
+		*(na + num) = no[num] / normNo;
+	}
+
+	if (SHADING_FLAG == SHADING_CONTINUOUS) {
+		vec3* vertices = new vec3[num_mesh * 3];
+		vec3 zeros(0, 0, 0);
+
+		for (uint idx = 0; idx < num_mesh * 3; idx++) {
+			*(vertices + idx) = { scaledMeshData[idx * 3 + 0], scaledMeshData[idx * 3 + 1], scaledMeshData[idx * 3 + 2] };
+		}
+		for (uint idx1 = 0; idx1 < num_mesh * 3; idx1++) {
+			if (*(vertices + idx1) == zeros)
+				continue;
+			vec3 sum = *(na + idx1 / 3);
+			uint count = 1;
+			uint* idxes = new uint[num_mesh * 3];
+			*(idxes) = idx1;
+			for (uint idx2 = idx1 + 1; idx2 < num_mesh * 3; idx2++) {
+				if (*(vertices + idx2) == zeros)
+					continue;
+				if ((vertices[idx1][0] == vertices[idx2][0])
+					& (vertices[idx1][1] == vertices[idx2][1])
+					& (vertices[idx1][2] == vertices[idx2][2])) {
+					sum += *(na + idx2 / 3);
+					*(vertices + idx2) = zeros;
+					*(idxes + count) = idx2;
+					count++;
+				}
+			}
+			*(vertices + idx1) = zeros;
+
+			sum = sum / count;
+			sum = sum / norm(sum);
+			for (uint i = 0; i < count; i++)
+				*(nv + *(idxes + i)) = sum;
+		}
+	}
+	return 1;
 }
 
 uint ophTri::checkValidity(Real* mesh, vec3 no) {
@@ -436,7 +546,7 @@ void ophTri::calGlobalFrequency() {
 	Real dfx = 1 / context_.pixel_pitch[_X] / Nx;
 	Real dfy = 1 / context_.pixel_pitch[_Y] / Ny;
 	fx = new Real[Nx*Ny];
-	fy = new Real[Ny*Ny];
+	fy = new Real[Nx*Ny];
 	fz = new Real[Nx*Ny];
 	uint i = 0;
 	for (int idxFy = Ny / 2; idxFy > -Ny / 2; idxFy--) {
@@ -444,13 +554,14 @@ void ophTri::calGlobalFrequency() {
 			fx[i] = idxFx*dfx;
 			fy[i] = idxFy*dfy;
 			fz[i] = sqrt((1 / context_.lambda)*(1 / context_.lambda) - fx[i] * fx[i] - fy[i] * fy[i]);
+
 			i++;
 		}
 	}
 }
 
 uint ophTri::calFrequencyTerm() {
-
+	
 	int Nx = context_.pixel_number[_X];
 	int Ny = context_.pixel_number[_Y];
 
@@ -464,6 +575,9 @@ uint ophTri::calFrequencyTerm() {
 		
 		flxShifted[i] = flx[i] - (1 / context_.lambda)*(geom.glRot[0] * carrierWave[_X] + geom.glRot[1] * carrierWave[_Y] + geom.glRot[2] * carrierWave[_Z]);
 		flyShifted[i] = fly[i] - (1 / context_.lambda)*(geom.glRot[3] * carrierWave[_X] + geom.glRot[4] * carrierWave[_Y] + geom.glRot[5] * carrierWave[_Z]);
+		//cout << "fxfy: " << fx[i] << ", " << fy[i] << ", " << fz[i] << endl;
+		//cout << "flxfly: " << flx[i] << ", " << fly[i] << ", " << flz[i] << endl;
+		//cout << "fluxfluy: " << flxShifted[i] << ", " << flyShifted[i] << endl;
 		);
 
 	Real* invLoRot = new Real[4];
@@ -471,18 +585,24 @@ uint ophTri::calFrequencyTerm() {
 	invLoRot[1] = -(1 / (geom.loRot[0] * geom.loRot[3] - geom.loRot[1] * geom.loRot[2]))*geom.loRot[2];
 	invLoRot[2] = -(1 / (geom.loRot[0] * geom.loRot[3] - geom.loRot[1] * geom.loRot[2]))*geom.loRot[1];
 	invLoRot[3] = (1 / (geom.loRot[0] * geom.loRot[3] - geom.loRot[1] * geom.loRot[2]))*geom.loRot[0];
+
+	//cout << "ta: " << invLoRot[0] << ", " << invLoRot[1] << ", " << invLoRot[2] << ", " << invLoRot[3] << endl;
 	for_i(Nx*Ny,
 		freqTermX[i] = invLoRot[0] * flxShifted[i] + invLoRot[1] * flyShifted[i];
 		freqTermY[i] = invLoRot[2] * flxShifted[i] + invLoRot[3] * flyShifted[i];
+		//cout << "freqTerm: " << freqTermX[i] << ", " << freqTermY[i] << endl;
+		//cin.get();
 		);
 	
 	delete[] flxShifted, flyShifted, invLoRot;
 	return 1;
 }
 
-uint ophTri::refAS_Flat(vec3 na) {
+uint ophTri::refAS_Flat(vec3 no) {
 	int Nx = context_.pixel_number[_X];
 	int Ny = context_.pixel_number[_Y];
+
+	vec3 n = no / norm(no);
 
 	Real shadingFactor;
 	
@@ -494,7 +614,7 @@ uint ophTri::refAS_Flat(vec3 na) {
 	}
 	else {
 		vec3 normIllu = illumination / norm(illumination);
-		shadingFactor = 2 * (na[_X] * normIllu[_X] + na[_Y] * normIllu[_Y] + na[_Z] * normIllu[_Z]) + 0.3;
+		shadingFactor = 2 * (n[_X] * normIllu[_X] + n[_Y] * normIllu[_Y] + n[_Z] * normIllu[_Z]) + 0.3;
 		if (shadingFactor < 0)
 			shadingFactor = 0;		
 	}
@@ -526,15 +646,22 @@ uint ophTri::refAS_Flat(vec3 na) {
 	return 1;
 }
 
-// 아직
 uint ophTri::refAS_Continuous(uint n) {
 	int Nx = context_.pixel_number[_X];
 	int Ny = context_.pixel_number[_Y];
 
 	vec3 av(0, 0, 0);
-	av[0] = nv[n][0] * illumination[0] + nv[n][1] * illumination[1] + nv[n][2] * illumination[2];
-	av[1] = nv[n][3] * illumination[0] + nv[n][4] * illumination[1] + nv[n][5] * illumination[2];
-	av[2] = nv[n][6] * illumination[0] + nv[n][7] * illumination[1] + nv[n][8] * illumination[2];
+	av[0] = nv[3 * n + 0][0] * illumination[0] + nv[3 * n + 0][1] * illumination[1] + nv[3 * n + 0][2] * illumination[2] + 0.1;
+	av[2] = nv[3 * n + 1][0] * illumination[0] + nv[3 * n + 1][1] * illumination[1] + nv[3 * n + 1][2] * illumination[2] + 0.1;
+	av[1] = nv[3 * n + 2][0] * illumination[0] + nv[3 * n + 2][1] * illumination[1] + nv[3 * n + 2][2] * illumination[2] + 0.1;
+
+	//cout << nv[3 * n + 0][0] << ", " << nv[3 * n + 0][1] << ", " << nv[3 * n + 0][2] << endl;
+	//cout << nv[3 * n + 1][0] << ", " << nv[3 * n + 1][1] << ", " << nv[3 * n + 1][2] << endl;
+	//cout << nv[3 * n + 2][0] << ", " << nv[3 * n + 2][1] << ", " << nv[3 * n + 2][2] << endl;
+	//cout << "illu: " << illumination[0] << ", " << illumination[1] << ", " << illumination[2] << endl;
+	//cout << "av: " << av[0] << ", " << av[1] << ", " << av[2] << endl;
+	//cout << endl;
+
 
 	Complex<Real> D1(0, 0);
 	Complex<Real> D2(0, 0);
@@ -543,35 +670,48 @@ uint ophTri::refAS_Continuous(uint n) {
 	Complex<Real> temp1(0, 0);
 	Complex<Real> temp2(0, 0);
 	Complex<Real> temp3(0, 0);
-	/*
+	
 	for (uint i = 0; i < Nx*Ny; i++) {
 		if (freqTermX[i] == 0 && freqTermY[i] == 0) {
-			D1(1 / 3, 0);
-			D2(1 / 5, 0);
-			D3(1 / 2, 0);
+			D1((Real)1 / (Real)3, 0);
+			D2((Real)1 / (Real)5, 0);
+			D3((Real)1 / (Real)2, 0);
 		}
 		else if (freqTermX[i] == 0 && freqTermY[i] != 0) {
+			cout << i << endl;
+			cout << "2" << endl;
 			temp1[_IM] = -2 * M_PI*freqTermY[i];
 			temp2[_IM] = 1;
 			
-			D1 = (temp1 - (Real)1)*exp(temp1) / (8 * M_PI*M_PI*M_PI*freqTermY[i] * freqTermY[i] * freqTermY[i]) 
+			D1 = (temp1 - (Real)1)*temp1.exp() / (8 * M_PI*M_PI*M_PI*freqTermY[i] * freqTermY[i] * freqTermY[i]) 
 				- temp1 / (4 * M_PI*M_PI*M_PI*freqTermY[i] * freqTermY[i] * freqTermY[i]);
 			D2 = -(M_PI*freqTermY[i] + temp2) / (4 * M_PI*M_PI*M_PI*freqTermY[i] * freqTermY[i] * freqTermY[i])*exp(temp1) 
 				+ temp1 / (8 * M_PI*M_PI*M_PI*freqTermY[i] * freqTermY[i] * freqTermY[i]);
-			D3 = exp(temp1) / (2 * M_PI*freqTermY[i]) + (1 - temp2) / (2 * M_PI*freqTermY[i]);
-			// 자신으로 결과나오는거 없애면 안되나? 중복됨.
+			D3 = exp(temp1) / (2 * M_PI*freqTermY[i]) + ((Real)1 - temp2) / (2 * M_PI*freqTermY[i]);
+			cout << "D1: " << D1 << endl;
+			cout << "D2: " << D2 << endl;
+			cout << "D3: " << D3 << endl;
+			cin.get();
 		}
 		else if (freqTermX[i] != 0 && freqTermY[i] == 0) {
+			cout << i << endl;
+			cout << "3" << endl;
 			temp1[_IM] = 4 * M_PI*M_PI*freqTermX[i] * freqTermX[i];
 			temp2[_IM] = 1;
 			temp3[_IM] = 2 * M_PI*freqTermX[i];
 
-			D1 = (temp1 + 4 * M_PI*freqTermX[i] - 2 * temp2) / (8 * M_PI*M_PI*M_PI*freqTermY[i] * freqTermY[i] * freqTermY[i])*exp(-temp3) 
+			D1 = (temp1 + 4 * M_PI*freqTermX[i] - (Real)2 * temp2) / (8 * M_PI*M_PI*M_PI*freqTermY[i] * freqTermY[i] * freqTermY[i])*exp(-temp3) 
 				+ temp2 / (4 * M_PI*M_PI*M_PI*freqTermX[i] * freqTermX[i] * freqTermX[i]);
-			D2 = 1 / 2 * D1;
-			D3 = ((temp3 + 1)*exp(-temp3) - 1) / (4 * M_PI*M_PI*freqTermX[i] * freqTermX[i]);
+			D2 = (Real)1 / (Real)2 * D1;
+			D3 = ((temp3 + (Real)1)*exp(-temp3) - (Real)1) / (4 * M_PI*M_PI*freqTermX[i] * freqTermX[i]);
+			cout << "D1: " << D1 << endl;
+			cout << "D2: " << D2 << endl;
+			cout << "D3: " << D3 << endl;
+			cin.get();
 		}
 		else if (freqTermX[i] == -freqTermY[i]) {
+			//cout << i << endl;
+			//cout << "4" << endl;
 			temp1[_IM] = 1;
 			temp2[_IM] = 2 * M_PI*freqTermX[i];
 			temp3[_IM] = 2 * M_PI*M_PI*freqTermX[i] * freqTermX[i];
@@ -581,70 +721,51 @@ uint ophTri::refAS_Continuous(uint n) {
 			D2 = (-temp1) / (8 * M_PI*M_PI*M_PI*freqTermX[i] * freqTermX[i] * freqTermX[i])*exp(-temp2) 
 				+ (-temp3 + temp1 + 2 * M_PI*freqTermX[i]) / (8 * M_PI*M_PI*M_PI*freqTermX[i] * freqTermX[i] * freqTermX[i]);
 			D3 = (-temp1) / (4 * M_PI*M_PI*freqTermX[i] * freqTermX[i])*exp(-temp2) 
-				+ (-temp2 + 1) / (4 * M_PI*M_PI*freqTermX[i] * freqTermX[i]);
+				+ (-temp2 + (Real)1) / (4 * M_PI*M_PI*freqTermX[i] * freqTermX[i]);
 		}
 		else {
-			temp1[_IM] = 2 * M_PI*(freqTermX[i] + freqTermY[i]);
+			//cout << i << endl;
+			//cout << "5" << endl;
+			//cout << freqTermX[i] << ", " << freqTermY[i] << endl;
+			temp1[_IM] = -2 * M_PI*(freqTermX[i] + freqTermY[i]);
 			temp2[_IM] = 1;
-			temp3[_IM] = 2 * M_PI*freqTermX[i];
+			temp3[_IM] = -2 * M_PI*freqTermX[i];
+			//cout << temp1 << ", " << temp2 << ", " << temp3 << endl;
+			//cout << exp(temp1) << endl;
+			//cout << (temp2 - 2 * M_PI*(freqTermX[i] + freqTermY[i])) << endl;
+			//cout << temp2 << endl;
+			//cout << (8 * M_PI*M_PI*M_PI*freqTermY[i] * (freqTermX[i] + freqTermY[i])*(freqTermX[i] + freqTermY[i])) << endl;
+			//cout << exp(temp1)*(temp2 - 2 * M_PI*(freqTermX[i] + freqTermY[i])) << endl;
 
-			D1 = exp(-temp1)*(temp2 - 2 * M_PI*(freqTermX[i] + freqTermY[i])) / (8 * M_PI*M_PI*M_PI*freqTermY[i] * (freqTermX[i] + freqTermY[i])*(freqTermX[i] + freqTermY[i]))
-				+ exp(-temp1)*(2 * M_PI*freqTermX[i] - temp2) / (8 * M_PI*M_PI*M_PI*freqTermX[i] * freqTermX[i] * freqTermY[i])
-				+ (temp2*(2 * freqTermX[i] + freqTermY[i])) / (8 * M_PI*M_PI*M_PI*freqTermX[i] * freqTermX[i] * (freqTermX[i] + freqTermY[i])*(freqTermX[i] + freqTermY[i]));
-			D2 = exp(-temp1)*(temp2*(freqTermX[i] + 2 * freqTermY[i]) - 2 * M_PI*freqTermY[i] * (freqTermX[i] + freqTermY[i])) / (8 * M_PI*M_PI*M_PI*freqTermY[i] * freqTermY[i] * (freqTermX[i] + freqTermY[i])*(freqTermX[i] + freqTermY[i]))
-				+ exp(-temp3)*(-temp2) / (8 * M_PI*M_PI*M_PI*freqTermX[i] * freqTermY[i] * freqTermY[i])
+			//cout << exp(temp1)*(temp2 - 2 * M_PI*(freqTermX[i] + freqTermY[i])) / (8 * M_PI*M_PI*M_PI*freqTermY[i] * (freqTermX[i] + freqTermY[i])*(freqTermX[i] + freqTermY[i])) << endl;
+			//cout << exp(temp3)*(2 * M_PI*freqTermX[i] - temp2) / (8 * M_PI*M_PI*M_PI*freqTermX[i] * freqTermX[i] * freqTermY[i]) << endl;
+			//cout << ((2 * freqTermX[i] + freqTermY[i])*temp2) / (8 * M_PI*M_PI*M_PI*freqTermX[i] * freqTermX[i] * (freqTermX[i] + freqTermY[i])*(freqTermX[i] + freqTermY[i])) << endl;
+			//cout << exp(temp1)*(temp2*(freqTermX[i] + 2 * freqTermY[i]) - 2 * M_PI*freqTermY[i] * (freqTermX[i] + freqTermY[i])) / (8 * M_PI*M_PI*M_PI*freqTermY[i] * freqTermY[i] * (freqTermX[i] + freqTermY[i])*(freqTermX[i] + freqTermY[i])) << endl;
+			//cout << exp(temp3)*(-temp2) / (8 * M_PI*M_PI*M_PI*freqTermX[i] * freqTermY[i] * freqTermY[i]) << endl;
+			//cout << temp2 / (8 * M_PI*M_PI*M_PI*freqTermX[i] * (freqTermX[i] + freqTermY[i])* (freqTermX[i] + freqTermY[i])) << endl;
+			//cout << -exp(temp1) / (4 * M_PI*M_PI*freqTermY[i] * (freqTermX[i] + freqTermY[i])) << endl;
+			//cout << exp(temp3) / (4 * M_PI*M_PI*freqTermX[i] * freqTermY[i]) << endl;
+			//cout << -(Real)1 / (4 * M_PI*M_PI*freqTermX[i] * (freqTermX[i] + freqTermY[i])) << endl;
+
+			D1 = exp(temp1)*(temp2 - 2 * M_PI*(freqTermX[i] + freqTermY[i])) / (8 * M_PI*M_PI*M_PI*freqTermY[i] * (freqTermX[i] + freqTermY[i])*(freqTermX[i] + freqTermY[i]))
+				+ exp(temp3)*(2 * M_PI*freqTermX[i] - temp2) / (8 * M_PI*M_PI*M_PI*freqTermX[i] * freqTermX[i] * freqTermY[i])
+				+ ((2 * freqTermX[i] + freqTermY[i])*temp2) / (8 * M_PI*M_PI*M_PI*freqTermX[i] * freqTermX[i] * (freqTermX[i] + freqTermY[i])*(freqTermX[i] + freqTermY[i]));
+			D2 = exp(temp1)*(temp2*(freqTermX[i] + 2 * freqTermY[i]) - 2 * M_PI*freqTermY[i] * (freqTermX[i] + freqTermY[i])) / (8 * M_PI*M_PI*M_PI*freqTermY[i] * freqTermY[i] * (freqTermX[i] + freqTermY[i])*(freqTermX[i] + freqTermY[i]))
+				+ exp(temp3)*(-temp2) / (8 * M_PI*M_PI*M_PI*freqTermX[i] * freqTermY[i] * freqTermY[i])
 				+ temp2 / (8 * M_PI*M_PI*M_PI*freqTermX[i] * (freqTermX[i] + freqTermY[i])* (freqTermX[i] + freqTermY[i]));
-			// ~ing
+			D3 = -exp(temp1) / (4 * M_PI*M_PI*freqTermY[i] * (freqTermX[i] + freqTermY[i]))
+				+ exp(temp3) / (4 * M_PI*M_PI*freqTermX[i] * freqTermY[i])
+				- (Real)1 / (4 * M_PI*M_PI*freqTermX[i] * (freqTermX[i] + freqTermY[i]));
+			//cout << "D1: " << D1 << endl;
+			//cout << "D2: " << D2 << endl;
+			//cout << "D3: " << D3 << endl;
+			//cin.get();
 		}
 		refAS[i] = (av[1] - av[0])*D1 + (av[2] - av[1])*D2 + av[0] * D3;
-	}
-	*/
-	return 1;
-}
-
-// 아직
-uint ophTri::findNormals(uint SHADING_FLAG) {
-	
-	for (uint num = 0; num < num_mesh; num++)
-	{
-		*(no + num) = vecCross({ scaledMeshData[num * 9 + _X2] - scaledMeshData[num * 9 + _X3],
-			scaledMeshData[num * 9 + _Y2] - scaledMeshData[num * 9 + _Y3],
-			scaledMeshData[num * 9 + _Z2] - scaledMeshData[num * 9 + _Z3] },
-			{ scaledMeshData[num * 9 + _X1] - scaledMeshData[num * 9 + _X3],
-				scaledMeshData[num * 9 + _Y1] - scaledMeshData[num * 9 + _Y3],
-				scaledMeshData[num * 9 + _Z1] - scaledMeshData[num * 9 + _Z3] });
-		// 'vec.h'의 cross함수가 전역으로 되어있어서 오류뜸.
-		// 'vec.h'에 extern을 하라해서 했는데 그래도 안 됨.
-		// 그래서그냥함수우선 가져옴.
-		*(na + num) = *(no + num) / norm(*(no + num));
-	}
-
-	if (SHADING_FLAG == SHADING_CONTINUOUS) {
-		vec3* vertices;
-		vec3 zeros(0, 0, 0);
-
-		for (uint idx = 0; idx < num_mesh * 3; idx++)
-			*(vertices + idx) = { scaledMeshData[idx * 3 + 0], scaledMeshData[idx * 3 + 1], scaledMeshData[idx * 3 + 2] };
-		
-		for (uint idx1 = 0; idx1 < num_mesh * 3; idx1++) {
-			if (*(vertices + idx1) == zeros)
-				continue;
-			vec3 sum(0, 0, 0);
-			uint count = 0;
-			uint* idxes = nullptr;
-			for (uint idx2 = 0; idx2 < num_mesh * 3; idx2++) {
-				if (*(vertices + idx1) == *(vertices + idx2)) {
-					sum += *(na + idx2 / 3);
-					*(vertices + idx2) = zeros;
-					*(idxes + count) = idx2;
-					count++;
-				}
-			}
-			sum = sum / count;
-			sum = sum / norm(sum);
-			for (uint i = 0; i < count; i++)
-				*(nv + *(idxes + i)) = sum;
-		}		
+		//cout << av[0] << ", " << av[1] << ", " << av[2] << endl;
+		//cout << D1 << ", " << D2 << ", " << D3 << endl;
+		//cout << i << ": " << refAS[i] << endl;
+		//cin.get();
 	}
 	
 	return 1;
@@ -661,48 +782,10 @@ void ophTri::refToGlobal() {
 		carrierWave[_X] * (geom.glRot[0] * geom.glShift[_X] + geom.glRot[3] * geom.glShift[_Y] + geom.glRot[6] * geom.glShift[_Z])
 		+ carrierWave[_Y] * (geom.glRot[1] * geom.glShift[_X] + geom.glRot[4] * geom.glShift[_Y] + geom.glRot[7] * geom.glShift[_Z])
 		+ carrierWave[_Z] * (geom.glRot[2] * geom.glShift[_X] + geom.glRot[5] * geom.glShift[_Y] + geom.glRot[8] * geom.glShift[_Z]));
-	Complex<Real> temp;
+	Complex<Real> temp(0,0);
 	for (uint i = 0; i < Nx*Ny; i++) {
 		term2[_IM] = 2 * M_PI*(flx[i] * geom.glShift[_X] + fly[i] * geom.glShift[_Y] + flz[i] * geom.glShift[_Z]);
 		temp = refAS[i] / (geom.loRot[0] * geom.loRot[3] - geom.loRot[1] * geom.loRot[2])* exp(term1)* flz[i] / fz[i] * exp(term2);
-		angularSpectrum[i] + temp;	
+		angularSpectrum[i] += temp;	
 	}
-}
-
-void ophTri::generateMeshHologram(uint SHADING_FLAG) {
-	cout << "Hologram Generation ..." << endl;
-	auto start = CUR_TIME;
-
-	initialize();
-	initializeAS();
-	generateAS(SHADING_FLAG);
-
-	//holo_gen = angularSpectrum;
-
-	fft2(context_.pixel_number, angularSpectrum, OPH_BACKWARD, OPH_ESTIMATE);
-	fftwShift(angularSpectrum, holo_gen, context_.pixel_number[_X], context_.pixel_number[_Y], OPH_BACKWARD, false);
-
-	auto end = CUR_TIME;
-	auto during = ((std::chrono::duration<Real>)(end - start)).count();
-
-	LOG("%.5lfsec...hologram generated..\n", during);
-}
-
-void ophTri::generateMeshHologram() {
-	cout << "Hologram Generation ..." << endl;
-	auto start = CUR_TIME;
-
-	initialize();
-	initializeAS();
-	generateAS(SHADING_TYPE);
-
-	//holo_gen = angularSpectrum;
-
-	fft2(context_.pixel_number, angularSpectrum, OPH_BACKWARD, OPH_ESTIMATE);
-	fftwShift(angularSpectrum, holo_gen, context_.pixel_number[_X], context_.pixel_number[_Y], OPH_BACKWARD, false);
-
-	auto end = CUR_TIME;
-	auto during = ((std::chrono::duration<Real>)(end - start)).count();
-
-	LOG("%.5lfsec...hologram generated..\n", during);
 }
