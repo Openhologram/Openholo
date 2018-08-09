@@ -267,6 +267,15 @@ struct GEN_DLL OphWRPConfig {
 	Real propagation_distance;                      ///< distance of Hologram plane
 
 };
+
+struct GEN_DLL OphMeshData {
+	ulonglong n_faces = 0;
+	int color_channels;
+	uint* face_idx;
+	Real* vertex;
+	Real* color;
+};
+
 //struct GEN_DLL OphDepthMapSimul
 //{
 //	// for Simulation (reconstruction)

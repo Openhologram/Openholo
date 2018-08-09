@@ -31,9 +31,9 @@ private:
 	const char* meshDataFileName;
 
 private:
-	uint num_mesh = 0;
-	Real* triMeshData;
+	Real* triMeshArray;
 	Complex<Real>* angularSpectrum;
+	OphMeshData* meshData;
 
 private:
 	Real objSize;
@@ -55,8 +55,8 @@ public:
 	void setIllumination(Real inx, Real iny, Real inz) { illumination = { inx, iny, inz }; }
 	/** Shading Type : SHADING_FLAT, SHADING_CONTINUOUS */
 	void setShadingType(int in) { SHADING_TYPE = in; }
-	Real getNumMesh() { return num_mesh; }
-	Real* getMeshData() { return triMeshData; }
+	ulonglong getNumMesh() { return meshData->n_faces; }
+	Real* getMeshData() { return triMeshArray; }
 	Complex<Real>* getAngularSpectrum() { return angularSpectrum; }
 	Real* getScaledMeshData() {	return scaledMeshData; }
 
@@ -67,8 +67,7 @@ public:
 	* file extension : .txt
 	* data structure : each row = [x1 y1 z1 x2 y2 z2 x3 y3 z3]
 	*/
-	void loadMeshData(const char* fileName);
-	void loadMeshData();
+	void loadMeshData(const char* fileName, const char* ext);
 
 	void objScaleShift();
 	void objScaleShift(Real objSize_, vector<Real> objShift_);
@@ -91,7 +90,7 @@ private:
 	uint findNormals(uint SHADING_FLAG);
 	void refToGlobal();
 
-
+	uint loadMeshText(const char* fileName);
 private:
 	Real* normalizedMeshData;
 	Real* scaledMeshData;

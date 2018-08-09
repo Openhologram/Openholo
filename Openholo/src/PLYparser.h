@@ -115,7 +115,7 @@ public:
 
 	bool loadPLY(					// for Triangle Mesh Data
 		const char* fileName,
-		ulonglong &n_verticies,
+		ulonglong &n_vertices,
 		int &color_channels,
 		uint** face_idx,
 		Real** vertexArray,
@@ -123,7 +123,7 @@ public:
 
 	bool savePLY(
 		const char* fileName,
-		const ulonglong n_verticies,
+		const ulonglong n_vertices,
 		const int color_channels,
 		uint* face_idx,
 		Real* vertexArray,

@@ -2,6 +2,7 @@
 
 #include "sys.h"
 #include "tinyxml2.h"
+#include "PLYparser.h"
 
 #define for_i(iter, oper)	for(int i=0;i<iter;i++){oper}
 
@@ -15,20 +16,20 @@
 #define _Y3 7
 #define _Z3 8
 
-void ophTri::loadMeshData(const char* fileName) {
+uint ophTri::loadMeshText(const char* fileName) {
 
-	meshDataFileName = fileName;
+	cout << "Mesh Text File Load..." << endl;
 
 	ifstream file;
-	file.open(meshDataFileName);
+	file.open(fileName);
 
 	if (!file) {
-		cout << "open failed - mesh data file" << endl;
+		cout << "Open failed - no such file" << endl;
 		cin.get();
-		return;
+		return 0;
 	}
 
-	triMeshData = new Real[9 * 10000];
+	triMeshArray = new Real[9 * 10000];
 
 	Real data;
 	uint num_data;
@@ -36,43 +37,40 @@ void ophTri::loadMeshData(const char* fileName) {
 	num_data = 0;
 	do {
 		file >> data;
-		triMeshData[num_data] = data;
+		triMeshArray[num_data] = data;
 		num_data++;
 	} while (file.get() != EOF);
 
-	num_mesh = num_data / 9;
-	triMeshData[num_mesh*9] = EOF;
+	meshData->n_faces = num_data / 9;
+	triMeshArray[meshData->n_faces * 9] = EOF;
 
-	cout << "Mesh Data Load Finished.." << endl;
+	return 1;
 }
 
-void ophTri::loadMeshData() {
+void ophTri::loadMeshData(const char* fileName, const char* ext) {
+	meshData = new OphMeshData;
+	cout << "ext = " << ext << endl;
 
-	ifstream file;
-	file.open(meshDataFileName);
-
-	if (!file) {
-		cout << "open failed - mesh data file" << endl;
-		cin.get();
-		return;
+	if (!strcmp(ext,"txt")) {
+		cout << "Text File.." << endl;
+		if (loadMeshText(fileName))
+			cout << "Mesh Data Load Finished.." << endl;
+		else
+			cout << "Mesh Data Load Failed.." << endl;
 	}
-
-	triMeshData = new Real[9 * 10000];
-
-	Real data;
-	uint num_data;
-
-	num_data = 0;
-	do {
-		file >> data;
-		triMeshData[num_data] = data;
-		num_data++;
-	} while (file.get() != EOF);
-
-	num_mesh = num_data / 9;
-	triMeshData[num_mesh * 9] = EOF;
-
-	cout << "Mesh Data Load Finished.." << endl;
+	else if (!strcmp(ext,"ply")) {
+		cout << "PLY File.." << endl;
+		PLYparser meshPLY;
+		if (meshPLY.loadPLY(fileName, meshData->n_faces, meshData->color_channels, &meshData->face_idx, &meshData->vertex, &meshData->color))
+			cout << "Mesh Data Load Finished.." << endl;
+		else
+			cout << "Mesh Data Load Failed.." << endl;
+	}
+	else {
+		cout << "Error: Mesh data must be .txt or .ply" << endl;
+	}
+	meshData->n_faces /= 3;
+	triMeshArray = meshData->vertex;
 }
 
 int ophTri::readMeshConfig(const char* mesh_config) {
@@ -162,36 +160,36 @@ void ophTri::initializeAS() {
 
 void ophTri::objNormCenter() {
 
-	normalizedMeshData = new Real[num_mesh * 9];
+	normalizedMeshData = new Real[meshData->n_faces * 9];
 
-	Real* x_point = new Real[num_mesh * 3];
-	Real* y_point = new Real[num_mesh * 3];
-	Real* z_point = new Real[num_mesh * 3];
+	Real* x_point = new Real[meshData->n_faces * 3];
+	Real* y_point = new Real[meshData->n_faces * 3];
+	Real* z_point = new Real[meshData->n_faces * 3];
 
-	for_i(num_mesh * 3,
-		*(x_point + i) = *(triMeshData + 3 * i);
-	*(y_point + i) = *(triMeshData + 3 * i + 1);
-	*(z_point + i) = *(triMeshData + 3 * i + 2);
+	for_i(meshData->n_faces * 3,
+		*(x_point + i) = *(triMeshArray + 3 * i);
+	*(y_point + i) = *(triMeshArray + 3 * i + 1);
+	*(z_point + i) = *(triMeshArray + 3 * i + 2);
 	);
-	Real x_cen = (maxOfArr(x_point, num_mesh * 3) + minOfArr(x_point, num_mesh * 3)) / 2;
-	Real y_cen = (maxOfArr(y_point, num_mesh * 3) + minOfArr(y_point, num_mesh * 3)) / 2;
-	Real z_cen = (maxOfArr(z_point, num_mesh * 3) + minOfArr(z_point, num_mesh * 3)) / 2;
+	Real x_cen = (maxOfArr(x_point, meshData->n_faces * 3) + minOfArr(x_point, meshData->n_faces * 3)) / 2;
+	Real y_cen = (maxOfArr(y_point, meshData->n_faces * 3) + minOfArr(y_point, meshData->n_faces * 3)) / 2;
+	Real z_cen = (maxOfArr(z_point, meshData->n_faces * 3) + minOfArr(z_point, meshData->n_faces * 3)) / 2;
 
-	Real* centered = new Real[num_mesh * 9];
+	Real* centered = new Real[meshData->n_faces * 9];
 
-	for_i(num_mesh * 3,
+	for_i(meshData->n_faces * 3,
 		*(centered + 3 * i) = *(x_point + i) - x_cen;
 	*(centered + 3 * i + 1) = *(y_point + i) - y_cen;
 	*(centered + 3 * i + 2) = *(z_point + i) - z_cen;
 	);
 
-	Real x_del = (maxOfArr(x_point, num_mesh * 3) - minOfArr(x_point, num_mesh * 3));
-	Real y_del = (maxOfArr(y_point, num_mesh * 3) - minOfArr(y_point, num_mesh * 3));
-	Real z_del = (maxOfArr(z_point, num_mesh * 3) - minOfArr(z_point, num_mesh * 3));
+	Real x_del = (maxOfArr(x_point, meshData->n_faces * 3) - minOfArr(x_point, meshData->n_faces * 3));
+	Real y_del = (maxOfArr(y_point, meshData->n_faces * 3) - minOfArr(y_point, meshData->n_faces * 3));
+	Real z_del = (maxOfArr(z_point, meshData->n_faces * 3) - minOfArr(z_point, meshData->n_faces * 3));
 
 	Real del = maxOfArr({ x_del, y_del, z_del });
 
-	for_i(num_mesh * 9,
+	for_i(meshData->n_faces * 9,
 		*(normalizedMeshData + i) = *(centered + i) / del;
 	);
 
@@ -202,21 +200,21 @@ void ophTri::objNormCenter() {
 
 
 void ophTri::objScaleShift() {
-	scaledMeshData = new Real[num_mesh * 9];
+	scaledMeshData = new Real[meshData->n_faces * 9];
 	
 	objNormCenter();
 
-	Real* x_point = new Real[num_mesh * 3];
-	Real* y_point = new Real[num_mesh * 3];
-	Real* z_point = new Real[num_mesh * 3];
+	Real* x_point = new Real[meshData->n_faces * 3];
+	Real* y_point = new Real[meshData->n_faces * 3];
+	Real* z_point = new Real[meshData->n_faces * 3];
 
-	for_i(num_mesh * 3,
+	for_i(meshData->n_faces * 3,
 		*(x_point + i) = *(normalizedMeshData + 3 * i);
 	*(y_point + i) = *(normalizedMeshData + 3 * i + 1);
 	*(z_point + i) = *(normalizedMeshData + 3 * i + 2);
 	);
 
-	for_i(num_mesh * 3,
+	for_i(meshData->n_faces * 3,
 		*(scaledMeshData + 3 * i) = *(x_point + i)*objSize + objShift[_X];
 		*(scaledMeshData + 3 * i + 1) = *(y_point + i)*objSize + objShift[_Y];
 		*(scaledMeshData + 3 * i + 2) = *(z_point + i)*objSize + objShift[_Z];
@@ -231,21 +229,21 @@ void ophTri::objScaleShift(Real objSize_, vector<Real> objShift_) {
 	setObjSize(objSize_);
 	setObjShift(objShift_);
 
-	scaledMeshData = new Real[num_mesh * 9];
+	scaledMeshData = new Real[meshData->n_faces * 9];
 
 	objNormCenter();
 
-	Real* x_point = new Real[num_mesh * 3];
-	Real* y_point = new Real[num_mesh * 3];
-	Real* z_point = new Real[num_mesh * 3];
+	Real* x_point = new Real[meshData->n_faces * 3];
+	Real* y_point = new Real[meshData->n_faces * 3];
+	Real* z_point = new Real[meshData->n_faces * 3];
 
-	for_i(num_mesh * 3,
+	for_i(meshData->n_faces * 3,
 		*(x_point + i) = *(normalizedMeshData + 3 * i);
 	*(y_point + i) = *(normalizedMeshData + 3 * i + 1);
 	*(z_point + i) = *(normalizedMeshData + 3 * i + 2);
 	);
 
-	for_i(num_mesh * 3,
+	for_i(meshData->n_faces * 3,
 		*(scaledMeshData + 3 * i) = *(x_point + i)*objSize + objShift[_X];
 		*(scaledMeshData + 3 * i + 1) = *(y_point + i)*objSize + objShift[_Y];
 		*(scaledMeshData + 3 * i + 2) = *(z_point + i)*objSize + objShift[_Z];
@@ -260,21 +258,21 @@ void ophTri::objScaleShift(Real objSize_, Real objShift_[]) {
 	setObjSize(objSize_);
 	setObjShift(objShift_);
 
-	scaledMeshData = new Real[num_mesh * 9];
+	scaledMeshData = new Real[meshData->n_faces * 9];
 
 	objNormCenter();
 
-	Real* x_point = new Real[num_mesh * 3];
-	Real* y_point = new Real[num_mesh * 3];
-	Real* z_point = new Real[num_mesh * 3];
+	Real* x_point = new Real[meshData->n_faces * 3];
+	Real* y_point = new Real[meshData->n_faces * 3];
+	Real* z_point = new Real[meshData->n_faces * 3];
 
-	for_i(num_mesh * 3,
+	for_i(meshData->n_faces * 3,
 		*(x_point + i) = *(normalizedMeshData + 3 * i);
 	*(y_point + i) = *(normalizedMeshData + 3 * i + 1);
 	*(z_point + i) = *(normalizedMeshData + 3 * i + 2);
 	);
 
-	for_i(num_mesh * 3,
+	for_i(meshData->n_faces * 3,
 		*(scaledMeshData + 3 * i) = *(x_point + i)*objSize + objShift[_X];
 	*(scaledMeshData + 3 * i + 1) = *(y_point + i)*objSize + objShift[_Y];
 	*(scaledMeshData + 3 * i + 2) = *(z_point + i)*objSize + objShift[_Z];
@@ -309,7 +307,10 @@ void ophTri::generateMeshHologram(uint SHADING_FLAG) {
 	generateAS(SHADING_FLAG);
 
 	//holo_gen = angularSpectrum;
-
+	cout << "< AS >" << endl;
+	for_i(context_.pixel_number[_X] * context_.pixel_number[_Y],
+		cout << i << ": " << angularSpectrum[i] << endl;);
+	cin.get();
 	fft2(context_.pixel_number, angularSpectrum, OPH_BACKWARD, OPH_ESTIMATE);
 	fftwShift(angularSpectrum, holo_gen, context_.pixel_number[_X], context_.pixel_number[_Y], OPH_BACKWARD, false);
 	//fftExecute(holo_gen);
@@ -362,7 +363,7 @@ void ophTri::generateAS(uint SHADING_FLAG) {
 
 	findNormals(SHADING_FLAG);
 
-	for (uint n = 0; n < num_mesh; n++) {
+	for (uint n = 0; n < meshData->n_faces; n++) {
 		for_i(9,
 			mesh[i] = scaledMeshData[9 * n + i];
 			);
@@ -389,7 +390,7 @@ void ophTri::generateAS(uint SHADING_FLAG) {
 			cin.get();
 		}
 		refToGlobal();
-		cout << n+1 << " / " << num_mesh << endl;
+		cout << n+1 << " / " << meshData->n_faces << endl;
 	}
 
 	cout << "Angular Spectrum Generated..." << endl;
@@ -400,11 +401,11 @@ void ophTri::generateAS(uint SHADING_FLAG) {
 
 uint ophTri::findNormals(uint SHADING_FLAG) {
 
-	no = new vec3[num_mesh];
-	na = new vec3[num_mesh];
-	nv = new vec3[num_mesh * 3];
+	no = new vec3[meshData->n_faces];
+	na = new vec3[meshData->n_faces];
+	nv = new vec3[meshData->n_faces * 3];
 
-	for (uint num = 0; num < num_mesh; num++)
+	for (uint num = 0; num < meshData->n_faces; num++)
 	{
 		*(no + num) = vecCross({ scaledMeshData[num * 9 + _X1] - scaledMeshData[num * 9 + _X2],
 			scaledMeshData[num * 9 + _Y1] - scaledMeshData[num * 9 + _Y2],
@@ -417,30 +418,30 @@ uint ophTri::findNormals(uint SHADING_FLAG) {
 		// 그래서그냥함수우선 가져옴.
 	}
 	Real normNo = 0;
-	for (uint num = 0; num < num_mesh; num++) {
+	for (uint num = 0; num < meshData->n_faces; num++) {
 		normNo = normNo + norm(no[num])*norm(no[num]);
 	}
 	normNo = sqrt(normNo);
 
-	for (uint num = 0; num < num_mesh; num++) {
+	for (uint num = 0; num < meshData->n_faces; num++) {
 		*(na + num) = no[num] / normNo;
 	}
 
 	if (SHADING_FLAG == SHADING_CONTINUOUS) {
-		vec3* vertices = new vec3[num_mesh * 3];
+		vec3* vertices = new vec3[meshData->n_faces * 3];
 		vec3 zeros(0, 0, 0);
 
-		for (uint idx = 0; idx < num_mesh * 3; idx++) {
+		for (uint idx = 0; idx < meshData->n_faces * 3; idx++) {
 			*(vertices + idx) = { scaledMeshData[idx * 3 + 0], scaledMeshData[idx * 3 + 1], scaledMeshData[idx * 3 + 2] };
 		}
-		for (uint idx1 = 0; idx1 < num_mesh * 3; idx1++) {
+		for (uint idx1 = 0; idx1 < meshData->n_faces * 3; idx1++) {
 			if (*(vertices + idx1) == zeros)
 				continue;
 			vec3 sum = *(na + idx1 / 3);
 			uint count = 1;
-			uint* idxes = new uint[num_mesh * 3];
+			uint* idxes = new uint[meshData->n_faces * 3];
 			*(idxes) = idx1;
-			for (uint idx2 = idx1 + 1; idx2 < num_mesh * 3; idx2++) {
+			for (uint idx2 = idx1 + 1; idx2 < meshData->n_faces * 3; idx2++) {
 				if (*(vertices + idx2) == zeros)
 					continue;
 				if ((vertices[idx1][0] == vertices[idx2][0])
