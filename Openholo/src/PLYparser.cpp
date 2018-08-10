@@ -338,7 +338,7 @@ bool PLYparser::savePLY(const std::string fileName, const ulonglong n_points, co
 	}
 }
 
-bool PLYparser::loadPLY(const char* fileName, ulonglong & n_verticies, int & color_channels, uint ** face_idx, Real ** vertexArray, Real ** colorArray)
+bool PLYparser::loadPLY(const char* fileName, ulonglong & n_vertices, int & color_channels, uint ** face_idx, Real ** vertexArray, Real ** colorArray)
 {
 	std::string inputPath = fileName;
 	if ((inputPath.find(".ply") == std::string::npos) && (inputPath.find(".PLY") == std::string::npos)) inputPath += ".ply";
@@ -435,13 +435,13 @@ bool PLYparser::loadPLY(const char* fileName, ulonglong & n_verticies, int & col
 				}
 			}
 
-			n_verticies = elements[idxE_vertex].size;
-			*face_idx = new uint[n_verticies];
-			*vertexArray = new Real[3 * n_verticies];
-			*colorArray = new Real[3 * n_verticies];
-			std::memset(*face_idx, NULL, sizeof(uint) * n_verticies);
-			std::memset(*vertexArray, NULL, sizeof(Real) * 3 * n_verticies);
-			std::memset(*colorArray, NULL, sizeof(Real) * 3 * n_verticies);
+			n_vertices = elements[idxE_vertex].size;
+			*face_idx = new uint[n_vertices];
+			*vertexArray = new Real[3 * n_vertices];
+			*colorArray = new Real[3 * n_vertices];
+			std::memset(*face_idx, NULL, sizeof(uint) * n_vertices);
+			std::memset(*vertexArray, NULL, sizeof(Real) * 3 * n_vertices);
+			std::memset(*colorArray, NULL, sizeof(Real) * 3 * n_vertices);
 
 			//parse Triangle Mesh Data
 			for (size_t idxE = 0; idxE < elements.size(); ++idxE) {
@@ -491,8 +491,8 @@ bool PLYparser::loadPLY(const char* fileName, ulonglong & n_verticies, int & col
 			File.close();
 
 			if (ok_channel && (color_channels == 1)) {
-				Real* grayArray = new Real[n_verticies];
-				for (ulonglong i = 0; i < n_verticies; ++i) {
+				Real* grayArray = new Real[n_vertices];
+				for (ulonglong i = 0; i < n_vertices; ++i) {
 					grayArray[i] = (*colorArray)[3 * i];
 				}
 				delete[](*colorArray);
@@ -500,7 +500,7 @@ bool PLYparser::loadPLY(const char* fileName, ulonglong & n_verticies, int & col
 			}
 			else if (!ok_channel) {
 				bool check = false;
-				for (ulonglong i = 0; i < n_verticies; ++i) {
+				for (ulonglong i = 0; i < n_vertices; ++i) {
 					if (((*colorArray)[3 * i + 0] != (*colorArray)[3 * i + 1]) || ((*colorArray)[3 * i + 1] != (*colorArray)[3 * i + 2])) {
 						check = true;
 						break;
@@ -510,8 +510,8 @@ bool PLYparser::loadPLY(const char* fileName, ulonglong & n_verticies, int & col
 				if (check) color_channels = 3;
 				else if (!check) {
 					color_channels = 1;
-					Real* grayArray = new Real[n_verticies];
-					for (ulonglong i = 0; i < n_verticies; ++i) {
+					Real* grayArray = new Real[n_vertices];
+					for (ulonglong i = 0; i < n_vertices; ++i) {
 						grayArray[i] = (*colorArray)[3 * i];
 					}
 					delete[](*colorArray);
@@ -519,7 +519,7 @@ bool PLYparser::loadPLY(const char* fileName, ulonglong & n_verticies, int & col
 				}
 			}
 
-			std::cout << "Success loading " << n_verticies << " Triangle Mesh, Color Channels : " << color_channels << std::endl;
+			std::cout << "Success loading " << n_vertices/3 << " Triangle Mesh, Color Channels : " << color_channels << std::endl;
 
 			return true;
 		}
@@ -530,7 +530,7 @@ bool PLYparser::loadPLY(const char* fileName, ulonglong & n_verticies, int & col
 	}
 }
 
-bool PLYparser::savePLY(const char* fileName, const ulonglong n_verticies, const int color_channels, uint * face_idx, Real * vertexArray, Real * colorArray)
+bool PLYparser::savePLY(const char* fileName, const ulonglong n_vertices, const int color_channels, uint * face_idx, Real * vertexArray, Real * colorArray)
 {
 	if ((vertexArray == nullptr) || (colorArray == nullptr)) {
 		std::cerr << "Error : There is not data for saving ply file..." << std::endl;
@@ -552,7 +552,7 @@ bool PLYparser::savePLY(const char* fileName, const ulonglong n_verticies, const
 		File << "comment Triangle Mesh Data Format in OpenHolo Library v" << _OPH_LIB_VERSION_MAJOR_ << "." << _OPH_LIB_VERSION_MINOR_ << "\n";
 		File << "element color 1\n";
 		File << "property int channel\n";
-		File << "element vertex " << n_verticies << std::endl;
+		File << "element vertex " << n_vertices << std::endl;
 		File << "property uint face_idx\n";
 		File << "property float x\n";
 		File << "property float y\n";
@@ -564,7 +564,7 @@ bool PLYparser::savePLY(const char* fileName, const ulonglong n_verticies, const
 
 		File << color_channels << std::endl;
 
-		for (ulonglong i = 0; i < n_verticies; ++i) {
+		for (ulonglong i = 0; i < n_vertices; ++i) {
 			//Vertex Face Index
 			File << std::fixed << face_idx[i] << " ";
 
