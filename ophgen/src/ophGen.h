@@ -1,8 +1,3 @@
-/**
-* @mainpage ophGen
-* @brief Abstract class for generation classes
-*/
-
 #ifndef __ophGen_h
 #define __ophGen_h
 
@@ -30,7 +25,6 @@ struct OphPointCloudConfig;
 struct OphPointCloudData;
 struct OphDepthMapConfig;
 struct OphWRPConfig;
-//struct OphDepthMapSimul;
 
 enum PC_DIFF_FLAG {
 	PC_DIFF_RS_ENCODED,
@@ -39,6 +33,9 @@ enum PC_DIFF_FLAG {
 	PC_DIFF_FRESNEL_NOT_ENCODED,
 };
 
+/**
+* @brief Abstract class for generation classes
+*/
 class GEN_DLL ophGen : public Openholo
 {
 public:
@@ -56,56 +53,101 @@ public:
 
 public:
 	/**
+	* \ingroup const/dest
 	* @brief Constructor
 	*/
 	explicit ophGen(void);
 
 protected:
 	/**
+	* \ingroup const/dest
 	* @brief Destructor
 	*/
 	virtual ~ophGen(void) = 0;
 
 public:
+	/**
+	* \ingroup get/set
+	*/
 	inline oph::Complex<Real>* getHoloBuffer(void) { return holo_gen; }
+	/**
+	* \ingroup get/set
+	*/
 	inline Real* getEncodedBuffer(void) { return holo_encoded; }
+	/**
+	* \ingroup get/set
+	*/
 	inline uchar* getNormalizedBuffer(void) { return holo_normalized; }
 
+	/**
+	* \ingroup get/set
+	*/
 	inline void setPixelNumber(int nx, int ny) { context_.pixel_number[_X] = nx; context_.pixel_number[_Y] = ny; }
+
+	/**
+	* \ingroup get/set
+	*/
 	inline void setPixelPitch(Real px, Real py) { context_.pixel_pitch[_X] = px; context_.pixel_pitch[_Y] = py; }
+
+	/**
+	* \ingroup get/set
+	*/
 	inline void setWaveLength(Real w) { context_.lambda = w; }
 
+	/**
+	* \ingroup get/set
+	*/
 	OphContext& getContext(void) { return context_; }
 
+	/**
+	* \ingroup init
+	* @brief Initialize variables for Hologram complex field, encoded data, normalized data
+	*/
 	void initialize(void);
 
 	/**
-	* @param input parameter. point cloud data file name
-	* @param output parameter. point cloud data, vertices(x0, y0, z0, x1, y1, z1, ...) container's pointer
-	* @param output parameter. point cloud data, amplitudes container's pointer
-	* @param output parameter. point cloud data, phases container's pointer
-	* @return positive integer is points number of point cloud, return a negative integer if the load fails
+	* \ingroup read
+	* @param const char* $Point cloud data file name
+	* @param OphPointCloudData* $Point cloud data - number of points, number of color, geometry of point cloud, color data, phase data
+	* @return Positive integer is points number of point cloud, return a negative integer if the load fails
 	*/
 	int loadPointCloud(const char* pc_file, OphPointCloudData *pc_data_);
 
 	/**
-	* @param input parameter. configuration data file name
-	* @param output parameter. OphConfigParams struct variable can get configuration data
+	* \ingroup read
+	* @param const char* $Input file name
+	* @param OphPointCloudConfig& $Config structures variable can get configuration data
 	*/
 	virtual bool readConfig(const char* fname, OphPointCloudConfig& config);
+
+	/**
+	* \ingroup read
+	* @param const char* $Input file name
+	* @param OphDepthMapConfig& $Config structures variable can get configuration data
+	*/
 	virtual bool readConfig(const char* fname, OphDepthMapConfig& config);
 	virtual bool readConfig(const char* fname, OphWRPConfig& config);
 
+	/**
+	* \ingroup calc
+	* @brief Normalization function to save as image file after hologram creation
+	*/
 	virtual void normalize(void);
 
-	/** \ingroup write_module */
+	/**
+	* \ingroup write
+	* @brief Function for saving image files
+	*/
 	virtual int save(const char* fname, uint8_t bitsperpixel = 8, uchar* src = nullptr, uint px = 0, uint py = 0);
+	
+	/** \ingroup read
+	* @brief Function for loading image files
+	*/
 	virtual void* load(const char* fname);
 
-	/**	*/
-
 protected:
-	/** 
+	/**
+	* \ingroup write
 	* @brief Called when saving multiple hologram data at a time
 	*/
 	virtual int save(const char* fname, uint8_t bitsperpixel, uint px, uint py, uint fnum, uchar* args ...);
@@ -166,22 +208,23 @@ public:
 	void fresnelPropagation(OphContext context, Complex<Real>* in, Complex<Real>* out, Real distance);
 	void fresnelPropagation(Complex<Real>* in, Complex<Real>* out, Real distance);
 protected:
-	/** \ingroup encode_module
-	/**
+	/** 
+	* \ingroup encode
 	* @brief Encode the CGH according to a signal location parameter.
-	* @param sig_location : ivec2 type,
-	*  sig_location[0]: upper or lower half, sig_location[1]:left or right half.
-	* @see encoding_CPU, encoding_GPU
+	* @param bool $Select whether to operate with CPU or GPU
+	* @param oph::ivec2 $sig_location[0]: upper or lower half, sig_location[1]:left or right half.
+	* @see encodeSideBand_CPU, encodeSideBand_GPU
 	*/
 	void encodeSideBand(bool bCPU, ivec2 sig_location);
 	/**
+	* \ingroup encode
 	* @brief Encode the CGH according to a signal location parameter on the CPU.
 	* @details The CPU variable, holo_gen on CPU has the final result.
-	* @param cropx1 : the start x-coordinate to crop.
-	* @param cropx2 : the end x-coordinate to crop.
-	* @param cropy1 : the start y-coordinate to crop.
-	* @param cropy2 : the end y-coordinate to crop.
-	* @param sig_location : ivec2 type,
+	* @param int $the start x-coordinate to crop
+	* @param int $the end x-coordinate to crop
+	* @param int $the start y-coordinate to crop
+	* @param int $the end y-coordinate to crop
+	* @param oph::ivec2 $Signal location
 	*  sig_location[0]: upper or lower half, sig_location[1]:left or right half.
 	* @see encodingSymmetrization, fftwShift
 	*/
@@ -189,6 +232,7 @@ protected:
 	void encodeSideBand_GPU(int cropx1, int cropx2, int cropy1, int cropy2, oph::ivec2 sig_location);
 
 	/**
+	* \ingroup calc
 	* @brief Calculate the shift phase value.
 	* @param shift_phase_val : output variable.
 	* @param idx : the current pixel position.
@@ -198,6 +242,7 @@ protected:
 	void getShiftPhaseValue(oph::Complex<Real>& shift_phase_val, int idx, oph::ivec2 sig_location);
 
 	/**
+	* \ingropu calc
 	* @brief Assign random phase value if RANDOM_PHASE == 1
 	* @details If RANDOM_PHASE == 1, calculate a random phase value using random generator;
 	*  otherwise, random phase value is 1.
@@ -213,19 +258,38 @@ protected:
 };
 
 
+/**
+* @param oph::vec3 $Scaling factor of coordinate of point cloud
+* @param Real $Offset value of point cloud
+* @param int8_t* $Shape of spatial bandpass filter ("Circle" or "Rect" for now)
+* @param oph::vec2 $Width of spatial bandpass filter
+* @param Real $Focal length of input lens of Telecentric
+* @param Real $Focal length of output lens of Telecentric
+* @param Real $Focal length of eyepiece lens
+* @param oph::vec2 $Tilt angle for spatial filtering
+*/
 struct GEN_DLL OphPointCloudConfig {
-	oph::vec3 scale;								///< Scaling factor of coordinate of point cloud
-	Real offset_depth;								///< Offset value of point cloud
+	oph::vec3 scale;
+	Real offset_depth;
 
-	int8_t* filter_shape_flag;						///< Shape of spatial bandpass filter ("Circle" or "Rect" for now)
-	oph::vec2 filter_width;							///< Width of spatial bandpass filter
+	int8_t* filter_shape_flag;
+	oph::vec2 filter_width;
 
-	Real focal_length_lens_in;						///< Focal length of input lens of Telecentric
-	Real focal_length_lens_out;						///< Focal length of output lens of Telecentric
-	Real focal_length_lens_eye_piece;				///< Focal length of eyepiece lens				
+	Real focal_length_lens_in;
+	Real focal_length_lens_out;
+	Real focal_length_lens_eye_piece;
 
-	oph::vec2 tilt_angle;							///< Tilt angle for spatial filtering
+	oph::vec2 tilt_angle;
 };
+
+/**
+* @param ulonglong $Number of points
+* @param int $Number of color chennel
+* @param Real* $Geometry of point clouds
+* @param Real* $Color data of point clouds
+* @param Real* $Phase value of point clouds
+* @param bool $Selects whether to parse the phase data
+*/
 struct GEN_DLL OphPointCloudData {
 	ulonglong n_points;
 	int n_colors;
@@ -236,29 +300,43 @@ struct GEN_DLL OphPointCloudData {
 
 	OphPointCloudData() :vertex(nullptr), color(nullptr), phase(nullptr) { n_points = 0; n_colors = 0; isPhaseParse = 0; }
 };
+
+/**
+* @param Real $FIELD_LENS at config file
+* @param Real $NEAR_OF_DEPTH_MAP at config file
+* @param Real $FAR_OF_DEPTH_MAP at config file
+* @param oph::uint $the number of depth level.
+* <pre>
+* if FLAG_CHANGE_DEPTH_QUANTIZATION == 0
+* num_of_depth = DEFAULT_DEPTH_QUANTIZATION
+* else
+* num_of_depth = NUMBER_OF_DEPTH_QUANTIZATION
+* </pre> 
+* @param std::vector<int> $Used when only few specific depth levels are rendered, usually for test purpose
+* @param bool $if true, change the depth quantization from the default value.
+* @param unsigned int $default value of the depth quantization - 256
+* @param unsigned int $depth level of input depthmap.
+* @param bool $If true, random phase is imposed on each depth layer.
+*/
 struct GEN_DLL OphDepthMapConfig {
-	Real				field_lens;					///< FIELD_LENS at config file
+	Real				field_lens;
 
-	Real				near_depthmap;				///< NEAR_OF_DEPTH_MAP at config file
-	Real				far_depthmap;				///< FAR_OF_DEPTH_MAP at config file
+	Real				near_depthmap;
+	Real				far_depthmap;
 
-	oph::uint			num_of_depth;				///< the number of depth level.
-													/**< <pre>
-													if FLAG_CHANGE_DEPTH_QUANTIZATION == 0
-													num_of_depth = DEFAULT_DEPTH_QUANTIZATION
-													else
-													num_of_depth = NUMBER_OF_DEPTH_QUANTIZATION  </pre> */
+	oph::uint			num_of_depth;
+										
 
-	std::vector<int>	render_depth;				///< Used when only few specific depth levels are rendered, usually for test purpose
+	std::vector<int>	render_depth;
 
-	bool				FLAG_CHANGE_DEPTH_QUANTIZATION;		///< if true, change the depth quantization from the default value.
-	oph::uint			DEFAULT_DEPTH_QUANTIZATION;			///< default value of the depth quantization - 256
-	oph::uint			NUMBER_OF_DEPTH_QUANTIZATION;		///< depth level of input depthmap.
-	bool				RANDOM_PHASE;						///< If true, random phase is imposed on each depth layer.
+	bool				FLAG_CHANGE_DEPTH_QUANTIZATION;
+	oph::uint			DEFAULT_DEPTH_QUANTIZATION;
+	oph::uint			NUMBER_OF_DEPTH_QUANTIZATION;
+	bool				RANDOM_PHASE;
 
 	OphDepthMapConfig() :field_lens(0), near_depthmap(0), far_depthmap(0), num_of_depth(0) {}
-	//test commit
 };
+
 struct GEN_DLL OphWRPConfig {
 	oph::vec3 scale;								///< Scaling factor of coordinate of point cloud
 
@@ -267,25 +345,5 @@ struct GEN_DLL OphWRPConfig {
 	Real propagation_distance;                      ///< distance of Hologram plane
 
 };
-//struct GEN_DLL OphDepthMapSimul
-//{
-//	// for Simulation (reconstruction)
-//	//===================================================
-//	std::string				Simulation_Result_File_Prefix_;		///< reconstruction variable for testing
-//	int						test_pixel_number_scale_;			///< reconstruction variable for testing
-//	oph::vec2				Pixel_pitch_xy_;					///< reconstruction variable for testing
-//	oph::ivec2				SLM_pixel_number_xy_;				///< reconstruction variable for testing
-//	Real					f_field_;							///< reconstruction variable for testing
-//	Real					eye_length_;						///< reconstruction variable for testing
-//	Real					eye_pupil_diameter_;				///< reconstruction variable for testing
-//	oph::vec2				eye_center_xy_;						///< reconstruction variable for testing
-//	Real					focus_distance_;					///< reconstruction variable for testing
-//	int						sim_type_;							///< reconstruction variable for testing
-//	Real					sim_from_;							///< reconstruction variable for testing
-//	Real					sim_to_;							///< reconstruction variable for testing
-//	int						sim_step_num_;						///< reconstruction variable for testing
-//	Real*					sim_final_;							///< reconstruction variable for testing
-//	oph::Complex<Real>*		hh_complex_;						///< reconstruction variable for testing
-//};
 
 #endif // !__ophGen_h

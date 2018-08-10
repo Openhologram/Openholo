@@ -214,17 +214,7 @@ void ophDepthMap::initialize()
 	dstep = 0;
 	dlevel.clear();
 
-	if (holo_gen) delete[] holo_gen;
-	holo_gen = new oph::Complex<Real>[context_.pixel_number[_X] * context_.pixel_number[_Y]];
-	memset(holo_gen, 0.0, sizeof(oph::Complex<Real>) * context_.pixel_number[_X] * context_.pixel_number[_Y]);
-
-	if (holo_encoded) delete[] holo_encoded;
-	holo_encoded = new Real[context_.pixel_number[_X] * context_.pixel_number[_Y]];
-	memset(holo_encoded, 0.0, sizeof(Real) * context_.pixel_number[_X] * context_.pixel_number[_Y]);
-
-	if (holo_normalized) delete[] holo_normalized;
-	holo_normalized = new uchar[context_.pixel_number[_X] * context_.pixel_number[_Y]];
-	memset(holo_normalized, 0.0, sizeof(uchar) * context_.pixel_number[_X] * context_.pixel_number[_Y]);
+	ophGen::initialize();
 
 	if (is_CPU)
 		initCPU();

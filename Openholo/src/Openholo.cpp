@@ -119,7 +119,7 @@ uchar * Openholo::loadAsImg(const char * fname)
 	return img_tmp;
 }
 
-int Openholo::loadAsImgUpSideDown(const char * fname, uchar* dst)
+uchar* Openholo::loadAsImgUpSideDown(const char * fname)
 {
 	FILE *infile;
 	fopen_s(&infile, fname, "rb");
@@ -135,12 +135,15 @@ int Openholo::loadAsImgUpSideDown(const char * fname, uchar* dst)
 	fseek(infile, hf.fileoffset_to_pixelarray, SEEK_SET);
 
 	oph::uchar* img_tmp;
+	oph::uchar* dst;
 	if (hInfo.imagesize == 0) {
 		img_tmp = (oph::uchar*)malloc(sizeof(oph::uchar)*hInfo.width*hInfo.height*(hInfo.bitsperpixel / 8));
+		dst = (oph::uchar*)malloc(sizeof(oph::uchar)*hInfo.width*hInfo.height*(hInfo.bitsperpixel / 8));
 		fread(img_tmp, sizeof(oph::uchar), hInfo.width*hInfo.height*(hInfo.bitsperpixel / 8), infile);
 	}
 	else {
 		img_tmp = (oph::uchar*)malloc(hInfo.imagesize);
+		dst = (oph::uchar*)malloc(hInfo.imagesize);
 		fread(img_tmp, sizeof(oph::uchar), hInfo.imagesize, infile);
 	}
 	fclose(infile);
@@ -148,6 +151,7 @@ int Openholo::loadAsImgUpSideDown(const char * fname, uchar* dst)
 	// data upside down
 	int bytesperpixel = hInfo.bitsperpixel / 8;
 	int rowsz = bytesperpixel * hInfo.width;
+
 
 	for (oph::uint k = 0; k < hInfo.height*rowsz; k++) {
 		int r = k / rowsz;
@@ -157,100 +161,8 @@ int Openholo::loadAsImgUpSideDown(const char * fname, uchar* dst)
 
 	delete[] img_tmp;
 
-	return 1;
-
-
-	//FILE* f = fopen(fname, "rb");
-
-	//if (f == NULL)
-	//	throw "Argument Exception";
-
-	//fileheader hf;
-	//bitmapinfoheader hInfo;
-
-	//fread(&hf, sizeof(fileheader), 1, f);
-	//if (hf.signature[0] != 'B' || hf.signature[1] != 'M') { LOG("Not BMP File");  return 0; }
-
-	//fread(&hInfo, sizeof(bitmapinfoheader), 1, f);
-	//fseek(f, hf.fileoffset_to_pixelarray, SEEK_SET);
-
-	//int width = hInfo.width;
-	//int height = hInfo.height;
-
-	//cout << endl;
-	//cout << "  Name: " << fname << endl;
-	//cout << " Width: " << width << endl;
-	//cout << "Height: " << height << endl;
-
-	//int row_padded = (width * 3 + 3) & (~3);
-
-	////dst) = new uchar[row_padded];
-	//uchar tmp;
-
-	//for (int i = 0; i < height; i++)
-	//{
-	//	fread(dst, sizeof(unsigned char), row_padded, f);
-	//	for (int j = 0; j < width * 3; j += 3)
-	//	{
-	//		// Convert (B, G, R) to (R, G, B)
-	//		tmp = dst[j];
-	//		dst[j] = dst[j + 2];
-	//		dst[j + 2] = tmp;
-
-	//		//cout << "R: " << (int)data[j] << " G: " << (int)data[j + 1] << " B: " << (int)data[j + 2] << endl;
-	//	}
-	//}
-	//fclose(f);
-
-	//return 1;
+	return dst;
 }
-
-//int Openholo::loadAsImg(const char * fname, uchar** dst)
-//{
-//	FILE* f = fopen(fname, "rb");
-//
-//	if (f == NULL)
-//		throw "Argument Exception";
-//
-//	fileheader hf;
-//	bitmapinfoheader hInfo;
-//
-//	fread(&hf, sizeof(fileheader), 1, f);
-//	if (hf.signature[0] != 'B' || hf.signature[1] != 'M') { LOG("Not BMP File");  return 0; }
-//
-//	fread(&hInfo, sizeof(bitmapinfoheader), 1, f);
-//	fseek(f, hf.fileoffset_to_pixelarray, SEEK_SET);
-//
-//	int width = hInfo.width;
-//	int height = hInfo.height;
-//
-//	cout << endl;
-//	cout << "  Name: " << fname << endl;
-//	cout << " Width: " << width << endl;
-//	cout << "Height: " << height << endl;
-//
-//	int row_padded = (width * 3 + 3) & (~3);
-//
-//	(*dst) = new uchar[row_padded];
-//	uchar tmp;
-//
-//	for (int i = 0; i < height; i++)
-//	{
-//		fread(dst, sizeof(unsigned char), row_padded, f);
-//		for (int j = 0; j < width * 3; j += 3)
-//		{
-//			// Convert (B, G, R) to (R, G, B)
-//			tmp = (*dst)[j];
-//			(*dst)[j] = (*dst)[j + 2];
-//			(*dst)[j + 2] = tmp;
-//
-//			//cout << "R: " << (int)data[j] << " G: " << (int)data[j + 1] << " B: " << (int)data[j + 2] << endl;
-//		}
-//	}
-//	fclose(f);
-//
-//	return 1;
-//}
 
 int Openholo::getImgSize(int & w, int & h, int & bytesperpixel, const char * file_name)
 {
