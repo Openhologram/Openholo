@@ -83,7 +83,7 @@ protected:
 	* @param const char* $Input file name
 	* @return unsigned char* $Image file's data
 	*/
-	uchar* loadAsImgUpSideDown(const char* fname);
+	int loadAsImgUpSideDown(const char* fname, uchar* dst);
 
 	/**
 	* \ingroup read

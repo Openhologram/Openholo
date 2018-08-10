@@ -119,7 +119,7 @@ uchar * Openholo::loadAsImg(const char * fname)
 	return img_tmp;
 }
 
-uchar* Openholo::loadAsImgUpSideDown(const char * fname)
+int Openholo::loadAsImgUpSideDown(const char * fname, uchar* dst)
 {
 	FILE *infile;
 	fopen_s(&infile, fname, "rb");
@@ -135,15 +135,12 @@ uchar* Openholo::loadAsImgUpSideDown(const char * fname)
 	fseek(infile, hf.fileoffset_to_pixelarray, SEEK_SET);
 
 	oph::uchar* img_tmp;
-	oph::uchar* dst;
 	if (hInfo.imagesize == 0) {
 		img_tmp = (oph::uchar*)malloc(sizeof(oph::uchar)*hInfo.width*hInfo.height*(hInfo.bitsperpixel / 8));
-		dst = (oph::uchar*)malloc(sizeof(oph::uchar)*hInfo.width*hInfo.height*(hInfo.bitsperpixel / 8));
 		fread(img_tmp, sizeof(oph::uchar), hInfo.width*hInfo.height*(hInfo.bitsperpixel / 8), infile);
 	}
 	else {
 		img_tmp = (oph::uchar*)malloc(hInfo.imagesize);
-		dst = (oph::uchar*)malloc(hInfo.imagesize);
 		fread(img_tmp, sizeof(oph::uchar), hInfo.imagesize, infile);
 	}
 	fclose(infile);
@@ -151,7 +148,6 @@ uchar* Openholo::loadAsImgUpSideDown(const char * fname)
 	// data upside down
 	int bytesperpixel = hInfo.bitsperpixel / 8;
 	int rowsz = bytesperpixel * hInfo.width;
-
 
 	for (oph::uint k = 0; k < hInfo.height*rowsz; k++) {
 		int r = k / rowsz;
@@ -161,7 +157,7 @@ uchar* Openholo::loadAsImgUpSideDown(const char * fname)
 
 	delete[] img_tmp;
 
-	return dst;
+	return 1;
 }
 
 int Openholo::getImgSize(int & w, int & h, int & bytesperpixel, const char * file_name)

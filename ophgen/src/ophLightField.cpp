@@ -215,11 +215,11 @@ void ophLF::convertLF2ComplexField() {
 
 	Real randVal;
 	Complex<Real> phase(0,0);
-	for (uint idxRx = 0; idxRx < rx; idxRx++) {
-		for (uint idxRy = 0; idxRy < ry; idxRy++) {
+	for (int idxRx = 0; idxRx < rx; idxRx++) {
+		for (int idxRy = 0; idxRy < ry; idxRy++) {
 
-			for (uint idxNy = 0; idxNy < ny; idxNy++) {
-				for (uint idxNx = 0; idxNx < nx; idxNx++) {
+			for (int idxNy = 0; idxNy < ny; idxNy++) {
+				for (int idxNx = 0; idxNx < nx; idxNx++) {
 
 					(*(complexLF + (idxNx + nx*idxNy))) = (Real)*(*(LF + (idxNx + nx*idxNy)) + (idxRx + rx*idxRy));
 				}
@@ -228,8 +228,8 @@ void ophLF::convertLF2ComplexField() {
 			//fftExecute(FFTLF);
 			fftwShift(complexLF, FFTLF, nx, ny, OPH_FORWARD, false);
 			
-			for (uint idxNx = 0; idxNx < nx; idxNx++) {
-				for (uint idxNy = 0; idxNy < ny; idxNy++) {
+			for (int idxNx = 0; idxNx < nx; idxNx++) {
+				for (int idxNy = 0; idxNy < ny; idxNy++) {
 
 					randVal = rand((Real)0, (Real)1, idxRx*idxRy);
 					phase(0, 2 * M_PI*randVal);

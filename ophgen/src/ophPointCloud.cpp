@@ -165,7 +165,7 @@ void ophPointCloud::diffractEncodedRS(ivec2 pn, vec2 pp, vec2 ss, vec3 vertex, R
 	}
 }
 
-void ophPointCloud::diffractNotEncodedRS(ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Real k, Real amplitude, Real lambda)
+void ophPointCloud::diffractNotEncodedRS(ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Real k, Real amplitude, Real lambda, vec2 theta)
 {
 	Real tx = context_.lambda / (2 * pp[_X]);
 	Real ty = context_.lambda / (2 * pp[_Y]);
@@ -219,7 +219,7 @@ void ophPointCloud::diffractEncodedFrsn(void)
 {
 }
 
-void ophPointCloud::diffractNotEncodedFrsn(ivec2 pn, vec2 pp, vec3 pc, Real amplitude, Real lambda)
+void ophPointCloud::diffractNotEncodedFrsn(ivec2 pn, vec2 pp, vec3 pc, Real amplitude, Real lambda, vec2 theta)
 {
 	Real k = context_.k;
 	vec2 ss = context_.ss;

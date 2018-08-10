@@ -24,6 +24,7 @@ struct GEN_DLL OphContext {
 struct OphPointCloudConfig;
 struct OphPointCloudData;
 struct OphDepthMapConfig;
+struct OphMeshData;
 struct OphWRPConfig;
 
 enum PC_DIFF_FLAG {
@@ -335,6 +336,14 @@ struct GEN_DLL OphDepthMapConfig {
 	bool				RANDOM_PHASE;
 
 	OphDepthMapConfig() :field_lens(0), near_depthmap(0), far_depthmap(0), num_of_depth(0) {}
+};
+
+struct GEN_DLL OphMeshData {
+	ulonglong n_faces = 0;
+	int color_channels;
+	uint* face_idx;
+	Real* vertex;
+	Real* color;
 };
 
 struct GEN_DLL OphWRPConfig {

@@ -306,20 +306,10 @@ void ophTri::generateMeshHologram(uint SHADING_FLAG) {
 	initializeAS();
 	generateAS(SHADING_FLAG);
 
-	//holo_gen = angularSpectrum;
 	cout << "< AS >" << endl;
-	for_i(context_.pixel_number[_X] * context_.pixel_number[_Y],
-		cout << i << ": " << angularSpectrum[i] << endl;);
-	cin.get();
 	fft2(context_.pixel_number, angularSpectrum, OPH_BACKWARD, OPH_ESTIMATE);
 	fftwShift(angularSpectrum, holo_gen, context_.pixel_number[_X], context_.pixel_number[_Y], OPH_BACKWARD, false);
-	//fftExecute(holo_gen);
 	
-	// fft 안됨!!!ㅜㅜ 아래 cout해보니 nan으로 나옴.
-	
-	for_i(context_.pixel_number[_X] * context_.pixel_number[_Y],
-		cout << holo_gen[i] << endl;);
-
 	auto end = CUR_TIME;
 	auto during = ((std::chrono::duration<Real>)(end - start)).count();
 
@@ -619,7 +609,7 @@ uint ophTri::refAS_Flat(vec3 no) {
 		if (shadingFactor < 0)
 			shadingFactor = 0;		
 	}
-	for (uint i = 0; i < Nx*Ny; i++) {
+	for (int i = 0; i < Nx*Ny; i++) {
 		if (freqTermX[i] == -freqTermY[i] && freqTermY[i] != 0) {
 			temp1[_IM] = 2 * M_PI*freqTermY[i];
 			temp2[_IM] = 1;
@@ -672,7 +662,7 @@ uint ophTri::refAS_Continuous(uint n) {
 	Complex<Real> temp2(0, 0);
 	Complex<Real> temp3(0, 0);
 	
-	for (uint i = 0; i < Nx*Ny; i++) {
+	for (int i = 0; i < Nx*Ny; i++) {
 		if (freqTermX[i] == 0 && freqTermY[i] == 0) {
 			D1((Real)1 / (Real)3, 0);
 			D2((Real)1 / (Real)5, 0);
@@ -784,7 +774,7 @@ void ophTri::refToGlobal() {
 		+ carrierWave[_Y] * (geom.glRot[1] * geom.glShift[_X] + geom.glRot[4] * geom.glShift[_Y] + geom.glRot[7] * geom.glShift[_Z])
 		+ carrierWave[_Z] * (geom.glRot[2] * geom.glShift[_X] + geom.glRot[5] * geom.glShift[_Y] + geom.glRot[8] * geom.glShift[_Z]));
 	Complex<Real> temp(0,0);
-	for (uint i = 0; i < Nx*Ny; i++) {
+	for (int i = 0; i < Nx*Ny; i++) {
 		term2[_IM] = 2 * M_PI*(flx[i] * geom.glShift[_X] + fly[i] * geom.glShift[_Y] + flz[i] * geom.glShift[_Z]);
 		temp = refAS[i] / (geom.loRot[0] * geom.loRot[3] - geom.loRot[1] * geom.loRot[2])* exp(term1)* flz[i] / fz[i] * exp(term2);
 		angularSpectrum[i] += temp;	
