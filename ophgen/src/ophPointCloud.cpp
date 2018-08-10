@@ -127,13 +127,13 @@ void ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 			diffractEncodedRS(pn, pp, ss, vec3(pcx, pcy, pcz), k, amplitude, vec2(thetaX, thetaY));
 			break;
 		case PC_DIFF_RS_NOT_ENCODED:
-			diffractNotEncodedRS(pn, pp, ss, vec3(pcx, pcy, pcz), k, amplitude, context_.lambda);
+			diffractNotEncodedRS(pn, pp, ss, vec3(pcx, pcy, pcz), k, amplitude, context_.lambda, vec2(thetaX, thetaY));
 			break;
 		case PC_DIFF_FRESNEL_ENCODED:
 			diffractEncodedFrsn();
 			break;
 		case PC_DIFF_FRESNEL_NOT_ENCODED:
-			diffractNotEncodedFrsn(pn, pp, vec3(pcx, pcy, pcz), amplitude, context_.lambda);
+			diffractNotEncodedFrsn(pn, pp, vec3(pcx, pcy, pcz), amplitude, context_.lambda, vec2(thetaX, thetaY));
 			break;
 		}
 	}
@@ -188,6 +188,9 @@ void ophPointCloud::diffractNotEncodedRS(ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Re
 			Real xxx = (-ss[_X]) / 2 + (xxtr - 1) * pp[_X];
 			Real yyy = (-ss[_Y]) / 2 + (pn[_Y] - yytr) * pp[_Y];
 			Real r = sqrt((xxx - pc[_X]) * (xxx - pc[_X]) + (yyy - pc[_Y]) * (yyy - pc[_Y]) + (pc[_Z] * pc[_Z]));
+
+			xxx *= sin(theta[_X]);
+			yyy *= sin(theta[_Y]);
 
 			Real range_x[2] = {
 				pc[_X] + abs(tx / sqrt(1 - (tx * tx)) * sqrt((yyy - pc[_Y]) * (yyy - pc[_Y]) + (pc[_Z] * pc[_Z]))),
