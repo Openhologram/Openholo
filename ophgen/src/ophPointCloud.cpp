@@ -181,12 +181,12 @@ void ophPointCloud::diffractNotEncodedRS(ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Re
 	if (Ybound[0] > pn[_Y]) Ybound[0] = pn[_Y];
 	if (Ybound[1] < 0)		Ybound[1] = 0;
 
-	for (int yytr = Ybound[1]; yytr < Ybound[0]; yytr++)
+	for (int xxtr = Xbound[1]; xxtr < Xbound[0]; xxtr++)
 	{
-		for (int xxtr = Xbound[1]; xxtr < Xbound[0]; xxtr++)
+		for (int yytr = Ybound[1]; yytr < Ybound[0]; yytr++)
 		{
-			Real xxx = (-ss[_X]) / 2 + (xxtr - 1) * pp[_X];
-			Real yyy = (-ss[_Y]) / 2 + (pn[_Y] - yytr) * pp[_Y];
+			Real xxx = (-ss[_X] / 2) + ((xxtr - 1) * pp[_X]);
+			Real yyy = (-ss[_Y] / 2) + ((pn[_Y] - yytr) * pp[_Y]);
 
 			Real r = sqrt((xxx - pc[_X]) * (xxx - pc[_X]) + (yyy - pc[_Y]) * (yyy - pc[_Y]) + (pc[_Z] * pc[_Z]));
 
@@ -204,7 +204,7 @@ void ophPointCloud::diffractNotEncodedRS(ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Re
 				Real kr = k * r;
 
 				Real res_real = (amplitude * pc[_Z] * sin(kr)) / (lambda * r * r);
-				Real res_imag = (amplitude * pc[_Z] * cos(kr)) / (lambda * r * r);
+				Real res_imag = (-amplitude * pc[_Z] * cos(kr)) / (lambda * r * r);
 
 				holo_gen[xxtr + yytr * pn[_X]][_RE] += res_real;
 				holo_gen[xxtr + yytr * pn[_X]][_IM] += res_imag;

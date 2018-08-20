@@ -119,39 +119,39 @@ public:
 	* @param const char* $Input file name
 	* @param OphPointCloudConfig& $Config structures variable can get configuration data
 	*/
-	virtual bool readConfig(const char* fname, OphPointCloudConfig& config);
+	bool readConfig(const char* fname, OphPointCloudConfig& config);
 
 	/**
 	* \ingroup read
 	* @param const char* $Input file name
 	* @param OphDepthMapConfig& $Config structures variable can get configuration data
 	*/
-	virtual bool readConfig(const char* fname, OphDepthMapConfig& config);
-	virtual bool readConfig(const char* fname, OphWRPConfig& config);
+	bool readConfig(const char* fname, OphDepthMapConfig& config);
+	bool readConfig(const char* fname, OphWRPConfig& config);
 
 	/**
 	* \ingroup calc
 	* @brief Normalization function to save as image file after hologram creation
 	*/
-	virtual void normalize(void);
+	void normalize(void);
 
 	/**
 	* \ingroup write
 	* @brief Function for saving image files
 	*/
-	virtual int save(const char* fname, uint8_t bitsperpixel = 8, uchar* src = nullptr, uint px = 0, uint py = 0);
+	int save(const char* fname, uint8_t bitsperpixel = 8, uchar* src = nullptr, uint px = 0, uint py = 0);
 	
 	/** \ingroup read
 	* @brief Function for loading image files
 	*/
-	virtual void* load(const char* fname);
+	void* load(const char* fname);
 
 protected:
 	/**
 	* \ingroup write
 	* @brief Called when saving multiple hologram data at a time
 	*/
-	virtual int save(const char* fname, uint8_t bitsperpixel, uint px, uint py, uint fnum, uchar* args ...);
+	int save(const char* fname, uint8_t bitsperpixel, uint px, uint py, uint fnum, uchar* args ...);
 
 protected:
 	OphContext				context_;

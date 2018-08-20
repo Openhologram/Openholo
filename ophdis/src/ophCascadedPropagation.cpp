@@ -80,15 +80,18 @@ bool ophCascadedPropagation::allocateMem()
 
 void ophCascadedPropagation::deallocateMem()
 {
-	for each (auto e in wavefield_SLM)
+	for (auto e : wavefield_SLM)
+	//for each (auto e in wavefield_SLM)
 		delete[] e;
 	wavefield_SLM.clear();
 
-	for each (auto e in wavefield_pupil)
+	for (auto e : wavefield_pupil)
+	//for each (auto e in wavefield_pupil)
 		delete[] e;
 	wavefield_pupil.clear();
 	
-	for each (auto e in wavefield_retina)
+	for (auto e : wavefield_retina)
+	//for each (auto e in wavefield_retina)
 		delete[] e;
 	wavefield_retina.clear();
 }
