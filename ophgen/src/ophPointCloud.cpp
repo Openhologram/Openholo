@@ -92,7 +92,7 @@ void ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 	Real thetaX = RADIAN(pc_config_.tilt_angle[_X]);
 	Real thetaY = RADIAN(pc_config_.tilt_angle[_Y]);
 
-	// Wave Number
+	// Wave Number (2 * PI / lambda(wavelength))
 	Real k = context_.k;
 
 	// Pixel pitch at eyepiece lens plane (by simple magnification) ==> SLM pitch
@@ -147,14 +147,14 @@ void ophPointCloud::diffractEncodedRS(ivec2 pn, vec2 pp, vec2 ss, vec3 vertex, R
 {
 	for (int row = 0; row < pn[_Y]; ++row) {
 		// Y coordinate of the current pixel : Note that pcy index is reversed order
-		Real SLM_y = (ss[_Y] / 2) - ((Real)row + 0.5f) * pp[_Y];
+		Real SLM_y = (ss[_Y] / 2) - ((Real)row + 0.5) * pp[_Y];
 
 		for (int col = 0; col < pn[_X]; ++col) {
 			// X coordinate of the current pixel
 			Real SLM_x = ((Real)col + 0.5) * pp[_X] - (ss[_X] / 2);
 
 			Real r = sqrt((SLM_x - vertex[_X])*(SLM_x - vertex[_X]) + (SLM_y - vertex[_Y])*(SLM_y - vertex[_Y]) + vertex[_Z] * vertex[_Z]);
-			Real phi = k * r - k * SLM_x*sin(theta[_X]) - k * SLM_y*sin(theta[_Y]); // Phase for printer
+			Real phi = (k * r) - (k * SLM_x*sin(theta[_X])) - (k * SLM_y*sin(theta[_Y])); // Phase for printer
 			Real result = amplitude * cos(phi);
 
 			holo_encoded[col + row * pn[_X]] += result; //R-S Integral
@@ -181,16 +181,14 @@ void ophPointCloud::diffractNotEncodedRS(ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Re
 	if (Ybound[0] > pn[_Y]) Ybound[0] = pn[_Y];
 	if (Ybound[1] < 0)		Ybound[1] = 0;
 
-	for (int yytr = Ybound[1]; yytr < Ybound[0]; yytr++)
+	for (int xxtr = Xbound[1]; xxtr < Xbound[0]; xxtr++)
 	{
-		for (int xxtr = Xbound[1]; xxtr < Xbound[0]; xxtr++)
+		for (int yytr = Ybound[1]; yytr < Ybound[0]; yytr++)
 		{
-			Real xxx = (-ss[_X]) / 2 + (xxtr - 1) * pp[_X];
-			Real yyy = (-ss[_Y]) / 2 + (pn[_Y] - yytr) * pp[_Y];
-			Real r = sqrt((xxx - pc[_X]) * (xxx - pc[_X]) + (yyy - pc[_Y]) * (yyy - pc[_Y]) + (pc[_Z] * pc[_Z]));
+			Real xxx = (-ss[_X] / 2) + ((xxtr - 1) * pp[_X]);
+			Real yyy = (-ss[_Y] / 2) + ((pn[_Y] - yytr) * pp[_Y]);
 
-			xxx *= sin(theta[_X]);
-			yyy *= sin(theta[_Y]);
+			Real r = sqrt((xxx - pc[_X]) * (xxx - pc[_X]) + (yyy - pc[_Y]) * (yyy - pc[_Y]) + (pc[_Z] * pc[_Z]));
 
 			Real range_x[2] = {
 				pc[_X] + abs(tx / sqrt(1 - (tx * tx)) * sqrt((yyy - pc[_Y]) * (yyy - pc[_Y]) + (pc[_Z] * pc[_Z]))),
@@ -205,8 +203,8 @@ void ophPointCloud::diffractNotEncodedRS(ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Re
 			if ((xxx < range_x[0] && xxx > range_x[1]) && (yyy < range_y[0] && yyy > range_y[1])) {
 				Real kr = k * r;
 
-				Real res_real = amplitude * (pc[_Z]) * sin(kr) / (lambda * r * r);
-				Real res_imag = amplitude * (pc[_Z]) * cos(kr) / (lambda * r * r);
+				Real res_real = (amplitude * pc[_Z] * sin(kr)) / (lambda * r * r);
+				Real res_imag = (-amplitude * pc[_Z] * cos(kr)) / (lambda * r * r);
 
 				holo_gen[xxtr + yytr * pn[_X]][_RE] += res_real;
 				holo_gen[xxtr + yytr * pn[_X]][_IM] += res_imag;
