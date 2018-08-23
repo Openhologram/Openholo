@@ -306,16 +306,6 @@ void ophTri::generateMeshHologram(uint SHADING_FLAG) {
 	initializeAS();
 	generateAS(SHADING_FLAG);
 
-	for (int i = 0; i < context_.pixel_number[_X] * context_.pixel_number[_Y]; i++) {
-		if(abs(angularSpectrum[i])<1e-5)
-		{ }
-		else
-		{
-			cout << i << ": " << angularSpectrum[i] << endl;
-		}
-	}
-	cin.get();
-
 	fft2(context_.pixel_number, angularSpectrum, OPH_BACKWARD, OPH_ESTIMATE);
 	fftExecute(holo_gen);
 
@@ -581,9 +571,6 @@ uint ophTri::calFrequencyTerm() {
 		
 		flxShifted[i] = flx[i] - (1 / context_.lambda)*(geom.glRot[0] * carrierWave[_X] + geom.glRot[1] * carrierWave[_Y] + geom.glRot[2] * carrierWave[_Z]);
 		flyShifted[i] = fly[i] - (1 / context_.lambda)*(geom.glRot[3] * carrierWave[_X] + geom.glRot[4] * carrierWave[_Y] + geom.glRot[5] * carrierWave[_Z]);
-		//cout << "fxfy: " << fx[i] << ", " << fy[i] << ", " << fz[i] << endl;
-		//cout << "flxfly: " << flx[i] << ", " << fly[i] << ", " << flz[i] << endl;
-		//cout << "fluxfluy: " << flxShifted[i] << ", " << flyShifted[i] << endl;
 		);
 
 	Real det = geom.loRot[0] * geom.loRot[3] - geom.loRot[1] * geom.loRot[2];
@@ -594,12 +581,9 @@ uint ophTri::calFrequencyTerm() {
 	invLoRot[2] = -(1 / det)*geom.loRot[1];
 	invLoRot[3] = (1 / det)*geom.loRot[0];
 
-	//cout << "ta: " << invLoRot[0] << ", " << invLoRot[1] << ", " << invLoRot[2] << ", " << invLoRot[3] << endl;
 	for_i(Nx*Ny,
 		freqTermX[i] = invLoRot[0] * flxShifted[i] + invLoRot[1] * flyShifted[i];
 		freqTermY[i] = invLoRot[2] * flxShifted[i] + invLoRot[3] * flyShifted[i];
-		//cout << "freqTerm: " << freqTermX[i] << ", " << freqTermY[i] << endl;
-		//cin.get();
 		);
 	
 	delete[] flxShifted, flyShifted, invLoRot;

@@ -73,7 +73,7 @@ namespace oph {
 
 		Complex<T> conj() const { return Complex<T>(_Val[_RE], -_Val[_IM]); }
 
-		const Complex<T>& operator()(T re, T im) {
+		Complex<T>& operator()(T re, T im) {
 			_Val[_RE] = re;
 			_Val[_IM] = im;
 
@@ -81,90 +81,90 @@ namespace oph {
 		}
 
 		// arithmetic
-		const Complex<T>& operator= (const Complex<T>& p) {
+		Complex<T>& operator= (const Complex<T>& p) {
 			_Val[_RE] = p._Val[_RE];
 			_Val[_IM] = p._Val[_IM];
 
 			return *this;
 		}
 
-		const Complex<T>& operator = (const T& p) {
+		Complex<T>& operator = (const T& p) {
 			_Val[_RE] = p;
 
 			return *this;
 		}
 
-		const Complex<T> operator+ (const Complex<T>& p) {
+		Complex<T> operator+ (const Complex<T>& p) {
 			Complex<T> n(_Val[_RE] + p._Val[_RE], _Val[_IM] + p._Val[_IM]);
 
 			return n;
 		}
 
-		const Complex<T>& operator+= (const Complex<T>& p) {
+		Complex<T>& operator+= (const Complex<T>& p) {
 			_Val[_RE] += p._Val[_RE];
 			_Val[_IM] += p._Val[_IM];
 
 			return *this;
 		}
 
-		const Complex<T> operator+ (const T p) {
+		Complex<T> operator+ (const T p) {
 			Complex<T> n(_Val[_RE] + p, _Val[_IM]);
 
 			return n;
 		}
 
-		const Complex<T>& operator+= (const T p) {
+		Complex<T>& operator+= (const T p) {
 			_Val[_RE] += p;
 
 			return *this;
 		}
 
-		const Complex<T>& operator- (const Complex<T>& p) {
+		Complex<T> operator- (const Complex<T>& p) {
 			Complex<T> n(_Val[_RE] - p._Val[_RE], _Val[_IM] - p._Val[_IM]);
 
 			return n;
 		}
 
-		const Complex<T>& operator-= (const Complex<T>& p) {
+		Complex<T>& operator-= (const Complex<T>& p) {
 			_Val[_RE] -= p._Val[_RE];
 			_Val[_IM] -= p._Val[_IM];
 
 			return *this;
 		}
 
-		const Complex<T> operator - (const T p) {
+		Complex<T> operator - (const T p) {
 			Complex<T> n(_Val[_RE] - p, _Val[_IM]);
 
 			return n;
 		}
 
-		const Complex<T>& operator -= (const T p) {
+		Complex<T>& operator -= (const T p) {
 			_Val[_RE] -= p;
 
 			return *this;
 		}
 
-		const Complex<T> operator* (const T k) {
+		Complex<T> operator* (const T k) {
 			Complex<T> n(_Val[_RE] * k, _Val[_IM] * k);
 
 			return n;
 		}
 
-		const Complex<T>& operator*= (const T k) {
+		Complex<T>& operator*= (const T k) {
 			_Val[_RE] *= k;
 			_Val[_IM] *= k;
 
 			return *this;
 		}
 
-		const Complex<T>& operator = (const std::complex<T> p) {
+		Complex<T>& operator = (const std::complex<T> p) {
 			_Val[_RE] = p._Val[_RE];
 			_Val[_IM] = p._Val[_IM];
 
 			return *this;
 		}
 
-		const Complex<T> operator* (const Complex<T>& p) {
+		Complex<T> operator* (const Complex<T>& p) {
 			const T tRe = _Val[_RE];
 			const T tIm = _Val[_IM];
 
@@ -173,7 +173,7 @@ namespace oph {
 			return n;
 		}
 
-		const Complex<T>& operator*= (const Complex<T>& p) {
+		Complex<T>& operator*= (const Complex<T>& p) {
 			const T tRe = _Val[_RE];
 			const T tIm = _Val[_IM];
 
@@ -183,20 +183,20 @@ namespace oph {
 			return *this;
 		}
 
-		const Complex<T> operator / (const T& p) {
+		Complex<T> operator / (const T& p) {
 			Complex<T> n(_Val[_RE] / p, _Val[_IM] / p);
 
 			return n;
 		}
 
-		const Complex<T>& operator/= (const T k) {
+		Complex<T>& operator/= (const T k) {
 			_Val[_RE] /= k;
 			_Val[_IM] /= k;
 
 			return *this;
 		}
 
-		const Complex<T> operator / (const Complex<T>& p) {
+		Complex<T> operator / (const Complex<T>& p) {
 			complex<T> a(_Val[_RE], _Val[_IM]);
 			complex<T> b(p._Val[_RE], p._Val[_IM]);
 
@@ -207,7 +207,7 @@ namespace oph {
 			return n;
 		}
 
-		const Complex<T>& operator /= (const Complex<T>& p) {
+		Complex<T>& operator /= (const Complex<T>& p) {
 			complex<T> a(_Val[_RE], _Val[_IM]);
 			complex<T> b(p._Val[_RE], p._Val[_IM]);
 
@@ -231,42 +231,42 @@ namespace oph {
 		}
 
 		operator unsigned char() {
-			return unsigned char(_Val[_RE]);
+			return oph::uchar(_Val[_RE]);
 		}
 
 		operator int() {
 			return int(_Val[_RE]);
 		}
 
-		friend const Complex<T> operator+ (const Complex<T>&p, const T q) {
+		friend Complex<T> operator+ (const Complex<T>&p, const T q) {
 			return Complex<T>(p._Val[_RE] + q, p._Val[_IM]);
 		}
 
-		friend const Complex<T> operator- (const Complex<T>&p, const T q) {
+		friend Complex<T> operator- (const Complex<T>&p, const T q) {
 			return Complex<T>(p._Val[_RE] - q, p._Val[_IM]);
 		}
 
-		friend const Complex<T> operator* (const T k, const Complex<T>& p) {
+		friend Complex<T> operator* (const T k, const Complex<T>& p) {
 			return Complex<T>(p) *= k;
 		}
 
-		friend const Complex<T> operator* (const Complex<T>& p, const T k) {
+		friend Complex<T> operator* (const Complex<T>& p, const T k) {
 			return Complex<T>(p) *= k;
 		}
 
-		friend const Complex<T> operator* (const Complex<T>& p, const Complex<T>& q) {
+		friend Complex<T> operator* (const Complex<T>& p, const Complex<T>& q) {
 			return Complex<T>(p._Val[_RE] * q._Val[_RE] - p._Val[_IM] * q._Val[_IM], p._Val[_RE] * q._Val[_IM] + p._Val[_IM] * q._Val[_RE]);
 		}
 
-		friend const Complex<T> operator/ (const Complex<T>& p, const Complex<T>& q) {
+		friend Complex<T> operator/ (const Complex<T>& p, const Complex<T>& q) {
 			return Complex<T>((1.0 / q.mag2())*(p*q.conj()));
 		}
 
-		friend const Complex<T> operator/ (const Complex<T>& p, const T& q) {
+		friend Complex<T> operator/ (const Complex<T>& p, const T& q) {
 			return Complex<T>(p._Val[_RE] / q, p._Val[_IM] / q);
 		}
 
-		friend const Complex<T> operator/ (const T& p, const Complex<T>& q) {
+		friend Complex<T> operator/ (const T& p, const Complex<T>& q) {
 			return Complex<T>(p / q._Val[_RE], p / q._Val[_IM]);
 		}
 
