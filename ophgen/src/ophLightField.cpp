@@ -6,7 +6,7 @@
 #define for_i(itr, oper) for(int i=0; i<itr; i++){ oper }
 
 int ophLF::readLFConfig(const char* LF_config) {
-	LOG("Reading....%s...", LF_config);
+	LOG("Reading....%s...\n", LF_config);
 
 	auto start = CUR_TIME;
 
@@ -54,6 +54,15 @@ int ophLF::readLFConfig(const char* LF_config) {
 	context_.k = (2 * M_PI) / context_.lambda;
 	context_.ss[_X] = context_.pixel_number[_X] * context_.pixel_pitch[_X];
 	context_.ss[_Y] = context_.pixel_number[_Y] * context_.pixel_pitch[_Y];
+	
+	cout << endl;
+	cout << "SLM pixel pitch: " << context_.pixel_pitch[_X] << ", " << context_.pixel_pitch[_Y] << endl;
+	cout << "Wavelength of LASER: " << context_.lambda << endl;
+	cout << "Distance RS plane to Hologram plane: " << distanceRS2Holo << endl;
+	cout << "# of images: " << num_image[_X] << ", " << num_image[_Y] << endl;
+	cout << "Resolution of the images: " << resolution_image[_X] << ", " << resolution_image[_Y] << endl;
+	cout << "Resolution of hologram: " << context_.pixel_number[_X] << ", " << context_.pixel_number[_Y] << endl;
+	cout << endl;
 
 	auto end = CUR_TIME;
 
@@ -181,7 +190,6 @@ void ophLF::generateHologram() {
 	cout << "Generating Hologram..." << endl;
 	convertLF2ComplexField();
 	cout << "convert finished" << endl;
-
 	fresnelPropagation(RSplane_complex_field, holo_gen, distanceRS2Holo);
 	cout << "Hologram Generated.." << endl;
 }
@@ -225,16 +233,15 @@ void ophLF::convertLF2ComplexField() {
 				}
 			}
 			fft2(num_image, complexLF, OPH_FORWARD, OPH_ESTIMATE);
-			//fftExecute(FFTLF);
-			fftwShift(complexLF, FFTLF, nx, ny, OPH_FORWARD, false);
-			
+			fftExecute(FFTLF);
+
 			for (int idxNx = 0; idxNx < nx; idxNx++) {
 				for (int idxNy = 0; idxNy < ny; idxNy++) {
 
 					randVal = rand((Real)0, (Real)1, idxRx*idxRy);
 					phase(0, 2 * M_PI*randVal);
-					
-					*(RSplane_complex_field + nx*rx*ny*idxRy + nx*rx*idxNy + nx*idxRx + idxNx) = *(FFTLF + (idxNx + nx*idxNy)) *exp(phase);
+
+					*(RSplane_complex_field + nx*rx*ny*idxRy + nx*rx*idxNy + nx*idxRx + idxNx) = *(FFTLF + (idxNx + nx*idxNy))*exp(phase);
 
 				}
 			}		

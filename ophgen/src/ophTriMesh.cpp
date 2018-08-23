@@ -306,10 +306,19 @@ void ophTri::generateMeshHologram(uint SHADING_FLAG) {
 	initializeAS();
 	generateAS(SHADING_FLAG);
 
-	cout << "< AS >" << endl;
+	for (int i = 0; i < context_.pixel_number[_X] * context_.pixel_number[_Y]; i++) {
+		if(abs(angularSpectrum[i])<1e-5)
+		{ }
+		else
+		{
+			cout << i << ": " << angularSpectrum[i] << endl;
+		}
+	}
+	cin.get();
+
 	fft2(context_.pixel_number, angularSpectrum, OPH_BACKWARD, OPH_ESTIMATE);
-	fftwShift(angularSpectrum, holo_gen, context_.pixel_number[_X], context_.pixel_number[_Y], OPH_BACKWARD, false);
-	
+	fftExecute(holo_gen);
+
 	auto end = CUR_TIME;
 	auto during = ((std::chrono::duration<Real>)(end - start)).count();
 
@@ -323,8 +332,6 @@ void ophTri::generateMeshHologram() {
 	initialize();
 	initializeAS();
 	generateAS(SHADING_TYPE);
-
-	//holo_gen = angularSpectrum;
 
 	fft2(context_.pixel_number, angularSpectrum, OPH_BACKWARD, OPH_ESTIMATE);
 	fftExecute(holo_gen);
@@ -379,7 +386,9 @@ void ophTri::generateAS(uint SHADING_FLAG) {
 			cout << "error: WRONG SHADING_FLAG" << endl;
 			cin.get();
 		}
-		refToGlobal();
+		if (refToGlobal() != 1)
+			continue;
+
 		cout << n+1 << " / " << meshData->n_faces << endl;
 	}
 
@@ -459,7 +468,10 @@ uint ophTri::checkValidity(Real* mesh, vec3 no) {
 	if (no[_Z] < 0 || (no[_X] == 0 && no[_Y] == 0 && no[_Z] == 0)) {
 		return -1;
 	}
-	return 1;
+	if (no[_Z] >= 0)
+		return 1;
+
+	return 0;
 }
 
 uint ophTri::findGeometricalRelations(Real* mesh, vec3 no) {
@@ -492,13 +504,16 @@ uint ophTri::findGeometricalRelations(Real* mesh, vec3 no) {
 		mesh_local[3 * i + 2] += geom.glShift[_Z];
 	);
 
-	if (mesh_local[_X2] * mesh_local[_Y3] == mesh_local[_X3] * mesh_local[_Y2])
+	if (mesh_local[_X3] * mesh_local[_Y2] == mesh_local[_Y3] * mesh_local[_X2])
 		return -1;
 
 	geom.loRot[0] = (refTri[_X3] * mesh_local[_Y2] - refTri[_X2] * mesh_local[_Y3]) / (mesh_local[_X3] * mesh_local[_Y2] - mesh_local[_Y3] * mesh_local[_X2]);
 	geom.loRot[1] = (refTri[_X3] * mesh_local[_X2] - refTri[_X2] * mesh_local[_X3]) / (-mesh_local[_X3] * mesh_local[_Y2] + mesh_local[_Y3] * mesh_local[_X2]);
 	geom.loRot[2] = (refTri[_Y3] * mesh_local[_Y2] - refTri[_Y2] * mesh_local[_Y3]) / (mesh_local[_X3] * mesh_local[_Y2] - mesh_local[_Y3] * mesh_local[_X2]);
 	geom.loRot[3] = (refTri[_Y3] * mesh_local[_X2] - refTri[_Y2] * mesh_local[_X3]) / (-mesh_local[_X3] * mesh_local[_Y2] + mesh_local[_Y3] * mesh_local[_X2]);
+
+	if ((geom.loRot[0] * geom.loRot[3] - geom.loRot[1] * geom.loRot[2]) == 0)
+		return -1;
 
 	/*
 	cout << "global rotation" << endl;
@@ -571,11 +586,13 @@ uint ophTri::calFrequencyTerm() {
 		//cout << "fluxfluy: " << flxShifted[i] << ", " << flyShifted[i] << endl;
 		);
 
+	Real det = geom.loRot[0] * geom.loRot[3] - geom.loRot[1] * geom.loRot[2];
+
 	Real* invLoRot = new Real[4];
-	invLoRot[0] = (1 / (geom.loRot[0] * geom.loRot[3] - geom.loRot[1] * geom.loRot[2]))*geom.loRot[3];
-	invLoRot[1] = -(1 / (geom.loRot[0] * geom.loRot[3] - geom.loRot[1] * geom.loRot[2]))*geom.loRot[2];
-	invLoRot[2] = -(1 / (geom.loRot[0] * geom.loRot[3] - geom.loRot[1] * geom.loRot[2]))*geom.loRot[1];
-	invLoRot[3] = (1 / (geom.loRot[0] * geom.loRot[3] - geom.loRot[1] * geom.loRot[2]))*geom.loRot[0];
+	invLoRot[0] = (1 / det)*geom.loRot[3];
+	invLoRot[1] = -(1 / det)*geom.loRot[2];
+	invLoRot[2] = -(1 / det)*geom.loRot[1];
+	invLoRot[3] = (1 / det)*geom.loRot[0];
 
 	//cout << "ta: " << invLoRot[0] << ", " << invLoRot[1] << ", " << invLoRot[2] << ", " << invLoRot[3] << endl;
 	for_i(Nx*Ny,
@@ -646,14 +663,6 @@ uint ophTri::refAS_Continuous(uint n) {
 	av[2] = nv[3 * n + 1][0] * illumination[0] + nv[3 * n + 1][1] * illumination[1] + nv[3 * n + 1][2] * illumination[2] + 0.1;
 	av[1] = nv[3 * n + 2][0] * illumination[0] + nv[3 * n + 2][1] * illumination[1] + nv[3 * n + 2][2] * illumination[2] + 0.1;
 
-	//cout << nv[3 * n + 0][0] << ", " << nv[3 * n + 0][1] << ", " << nv[3 * n + 0][2] << endl;
-	//cout << nv[3 * n + 1][0] << ", " << nv[3 * n + 1][1] << ", " << nv[3 * n + 1][2] << endl;
-	//cout << nv[3 * n + 2][0] << ", " << nv[3 * n + 2][1] << ", " << nv[3 * n + 2][2] << endl;
-	//cout << "illu: " << illumination[0] << ", " << illumination[1] << ", " << illumination[2] << endl;
-	//cout << "av: " << av[0] << ", " << av[1] << ", " << av[2] << endl;
-	//cout << endl;
-
-
 	Complex<Real> D1(0, 0);
 	Complex<Real> D2(0, 0);
 	Complex<Real> D3(0, 0);
@@ -669,8 +678,6 @@ uint ophTri::refAS_Continuous(uint n) {
 			D3((Real)1 / (Real)2, 0);
 		}
 		else if (freqTermX[i] == 0 && freqTermY[i] != 0) {
-			cout << i << endl;
-			cout << "2" << endl;
 			temp1[_IM] = -2 * M_PI*freqTermY[i];
 			temp2[_IM] = 1;
 			
@@ -679,14 +686,8 @@ uint ophTri::refAS_Continuous(uint n) {
 			D2 = -(M_PI*freqTermY[i] + temp2) / (4 * M_PI*M_PI*M_PI*freqTermY[i] * freqTermY[i] * freqTermY[i])*exp(temp1) 
 				+ temp1 / (8 * M_PI*M_PI*M_PI*freqTermY[i] * freqTermY[i] * freqTermY[i]);
 			D3 = exp(temp1) / (2 * M_PI*freqTermY[i]) + ((Real)1 - temp2) / (2 * M_PI*freqTermY[i]);
-			cout << "D1: " << D1 << endl;
-			cout << "D2: " << D2 << endl;
-			cout << "D3: " << D3 << endl;
-			cin.get();
 		}
 		else if (freqTermX[i] != 0 && freqTermY[i] == 0) {
-			cout << i << endl;
-			cout << "3" << endl;
 			temp1[_IM] = 4 * M_PI*M_PI*freqTermX[i] * freqTermX[i];
 			temp2[_IM] = 1;
 			temp3[_IM] = 2 * M_PI*freqTermX[i];
@@ -695,14 +696,8 @@ uint ophTri::refAS_Continuous(uint n) {
 				+ temp2 / (4 * M_PI*M_PI*M_PI*freqTermX[i] * freqTermX[i] * freqTermX[i]);
 			D2 = (Real)1 / (Real)2 * D1;
 			D3 = ((temp3 + (Real)1)*exp(-temp3) - (Real)1) / (4 * M_PI*M_PI*freqTermX[i] * freqTermX[i]);
-			cout << "D1: " << D1 << endl;
-			cout << "D2: " << D2 << endl;
-			cout << "D3: " << D3 << endl;
-			cin.get();
 		}
 		else if (freqTermX[i] == -freqTermY[i]) {
-			//cout << i << endl;
-			//cout << "4" << endl;
 			temp1[_IM] = 1;
 			temp2[_IM] = 2 * M_PI*freqTermX[i];
 			temp3[_IM] = 2 * M_PI*M_PI*freqTermX[i] * freqTermX[i];
@@ -715,28 +710,9 @@ uint ophTri::refAS_Continuous(uint n) {
 				+ (-temp2 + (Real)1) / (4 * M_PI*M_PI*freqTermX[i] * freqTermX[i]);
 		}
 		else {
-			//cout << i << endl;
-			//cout << "5" << endl;
-			//cout << freqTermX[i] << ", " << freqTermY[i] << endl;
 			temp1[_IM] = -2 * M_PI*(freqTermX[i] + freqTermY[i]);
 			temp2[_IM] = 1;
 			temp3[_IM] = -2 * M_PI*freqTermX[i];
-			//cout << temp1 << ", " << temp2 << ", " << temp3 << endl;
-			//cout << exp(temp1) << endl;
-			//cout << (temp2 - 2 * M_PI*(freqTermX[i] + freqTermY[i])) << endl;
-			//cout << temp2 << endl;
-			//cout << (8 * M_PI*M_PI*M_PI*freqTermY[i] * (freqTermX[i] + freqTermY[i])*(freqTermX[i] + freqTermY[i])) << endl;
-			//cout << exp(temp1)*(temp2 - 2 * M_PI*(freqTermX[i] + freqTermY[i])) << endl;
-
-			//cout << exp(temp1)*(temp2 - 2 * M_PI*(freqTermX[i] + freqTermY[i])) / (8 * M_PI*M_PI*M_PI*freqTermY[i] * (freqTermX[i] + freqTermY[i])*(freqTermX[i] + freqTermY[i])) << endl;
-			//cout << exp(temp3)*(2 * M_PI*freqTermX[i] - temp2) / (8 * M_PI*M_PI*M_PI*freqTermX[i] * freqTermX[i] * freqTermY[i]) << endl;
-			//cout << ((2 * freqTermX[i] + freqTermY[i])*temp2) / (8 * M_PI*M_PI*M_PI*freqTermX[i] * freqTermX[i] * (freqTermX[i] + freqTermY[i])*(freqTermX[i] + freqTermY[i])) << endl;
-			//cout << exp(temp1)*(temp2*(freqTermX[i] + 2 * freqTermY[i]) - 2 * M_PI*freqTermY[i] * (freqTermX[i] + freqTermY[i])) / (8 * M_PI*M_PI*M_PI*freqTermY[i] * freqTermY[i] * (freqTermX[i] + freqTermY[i])*(freqTermX[i] + freqTermY[i])) << endl;
-			//cout << exp(temp3)*(-temp2) / (8 * M_PI*M_PI*M_PI*freqTermX[i] * freqTermY[i] * freqTermY[i]) << endl;
-			//cout << temp2 / (8 * M_PI*M_PI*M_PI*freqTermX[i] * (freqTermX[i] + freqTermY[i])* (freqTermX[i] + freqTermY[i])) << endl;
-			//cout << -exp(temp1) / (4 * M_PI*M_PI*freqTermY[i] * (freqTermX[i] + freqTermY[i])) << endl;
-			//cout << exp(temp3) / (4 * M_PI*M_PI*freqTermX[i] * freqTermY[i]) << endl;
-			//cout << -(Real)1 / (4 * M_PI*M_PI*freqTermX[i] * (freqTermX[i] + freqTermY[i])) << endl;
 
 			D1 = exp(temp1)*(temp2 - 2 * M_PI*(freqTermX[i] + freqTermY[i])) / (8 * M_PI*M_PI*M_PI*freqTermY[i] * (freqTermX[i] + freqTermY[i])*(freqTermX[i] + freqTermY[i]))
 				+ exp(temp3)*(2 * M_PI*freqTermX[i] - temp2) / (8 * M_PI*M_PI*M_PI*freqTermX[i] * freqTermX[i] * freqTermY[i])
@@ -747,27 +723,24 @@ uint ophTri::refAS_Continuous(uint n) {
 			D3 = -exp(temp1) / (4 * M_PI*M_PI*freqTermY[i] * (freqTermX[i] + freqTermY[i]))
 				+ exp(temp3) / (4 * M_PI*M_PI*freqTermX[i] * freqTermY[i])
 				- (Real)1 / (4 * M_PI*M_PI*freqTermX[i] * (freqTermX[i] + freqTermY[i]));
-			//cout << "D1: " << D1 << endl;
-			//cout << "D2: " << D2 << endl;
-			//cout << "D3: " << D3 << endl;
-			//cin.get();
 		}
 		refAS[i] = (av[1] - av[0])*D1 + (av[2] - av[1])*D2 + av[0] * D3;
-		//cout << av[0] << ", " << av[1] << ", " << av[2] << endl;
-		//cout << D1 << ", " << D2 << ", " << D3 << endl;
-		//cout << i << ": " << refAS[i] << endl;
-		//cin.get();
 	}
 	
 	return 1;
 }
 
-void ophTri::refToGlobal() {
+uint ophTri::refToGlobal() {
 	int Nx = context_.pixel_number[_X];
 	int Ny = context_.pixel_number[_Y];
 
 	Complex<Real> term1(0,0);
 	Complex<Real> term2(0,0);
+
+	Real det = geom.loRot[0] * geom.loRot[3] - geom.loRot[1] * geom.loRot[2];
+	
+	if (det == 0)
+		return -1;
 
 	term1[_IM] = -2 * M_PI / context_.lambda*(
 		carrierWave[_X] * (geom.glRot[0] * geom.glShift[_X] + geom.glRot[3] * geom.glShift[_Y] + geom.glRot[6] * geom.glShift[_Z])
@@ -775,8 +748,16 @@ void ophTri::refToGlobal() {
 		+ carrierWave[_Z] * (geom.glRot[2] * geom.glShift[_X] + geom.glRot[5] * geom.glShift[_Y] + geom.glRot[8] * geom.glShift[_Z]));
 	Complex<Real> temp(0,0);
 	for (int i = 0; i < Nx*Ny; i++) {
-		term2[_IM] = 2 * M_PI*(flx[i] * geom.glShift[_X] + fly[i] * geom.glShift[_Y] + flz[i] * geom.glShift[_Z]);
-		temp = refAS[i] / (geom.loRot[0] * geom.loRot[3] - geom.loRot[1] * geom.loRot[2])* exp(term1)* flz[i] / fz[i] * exp(term2);
+		if (fz[i] == 0)
+			temp = 0;
+		else {
+			term2[_IM] = 2 * M_PI*(flx[i] * geom.glShift[_X] + fly[i] * geom.glShift[_Y] + flz[i] * geom.glShift[_Z]);
+			temp = refAS[i] / det * exp(term1)* flz[i] / fz[i] * exp(term2);
+		}
+		if (abs(temp)>MIN_DOUBLE) { }
+		else { temp = 0; }
 		angularSpectrum[i] += temp;	
 	}
+
+	return 1;
 }
