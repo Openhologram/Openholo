@@ -1,3 +1,11 @@
+/**
+* @mainpage Openholo library Documentation
+* @section Introduction
+* @Examples
+* 
+*/
+
+
 #include "Openholo.h"
 
 #include <windows.h>

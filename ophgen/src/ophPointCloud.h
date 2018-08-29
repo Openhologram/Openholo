@@ -1,7 +1,3 @@
-/**
-* @mainpage Openholo Generation Point Cloud : GPGPU Accelation using CUDA
-* @brief
-*/
 #ifndef __ophPointCloud_h
 #define __ophPointCloud_h
 

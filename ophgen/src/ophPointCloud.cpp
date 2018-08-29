@@ -78,7 +78,77 @@ Real ophPointCloud::generateHologram(uint diff_flag)
 
 void ophPointCloud::encodeHologram(void)
 {
-	encodeSideBand(is_CPU, ivec2(0, 1));
+	//encodeSideBand(is_CPU, ivec2(0, 1));
+
+	if (holo_gen == nullptr) {
+		LOG("Not found diffracted data.");
+		return;
+	}
+
+	ivec2 pn = context_.pixel_number;
+	vec2 pp = context_.pixel_pitch;
+	vec2 ss = context_.ss;
+
+	vec2 band_limit(0.8, 0.5);			// 임시 변수
+	vec2 spectrum_shift(0.0, 0.5);		// 임시 변수
+
+	Real cropx = floor(pn[_X] * band_limit[_X]);
+	Real cropx1 = cropx - floor(cropx / 2);
+	Real cropx2 = cropx1 + cropx - 1;
+
+	Real cropy = floor(pn[_Y] * band_limit[_Y]);
+	Real cropy1 = cropy - floor(cropy / 2);
+	Real cropy2 = cropy1 + cropy - 1;
+
+	Real* x_o = new Real[pn[_X]];
+	Real* y_o = new Real[pn[_Y]];
+
+	for (int i = 0; i < pn[_X]; i++) 
+		x_o[i] = (-ss[_X] / 2) + (pp[_X] * i) + (pp[_X] / 2);
+
+	for (int i = 0; i < pn[_Y]; i++)
+		y_o[i] = (ss[_Y] - pp[_Y]) - (pp[_Y] * i);
+
+	Real* xx_o = new Real[pn[_X] * pn[_Y]];
+	Real* yy_o = new Real[pn[_X] * pn[_Y]];
+
+	for (int i = 0; i < pn[_X] * pn[_Y]; i++)
+		xx_o[i] = x_o[i % pn[_X]];
+	
+
+	for (int i = 0; i < pn[_X]; i++)
+		for (int j = 0; j < pn[_Y]; j++)
+			yy_o[i + j * pn[_X]] = y_o[j];
+
+	Complex<Real>* h = new Complex<Real>[pn[_X] * pn[_Y]];
+
+	fftwShift(holo_gen, h, pn[_X], pn[_Y], OPH_FORWARD);
+	fft2(pn, h, OPH_FORWARD);
+	fftExecute(h);
+	fftwShift(h, h, pn[_X], pn[_Y], OPH_BACKWARD);
+
+	fftwShift(h, h, pn[_X], pn[_Y], OPH_FORWARD);
+	fft2(pn, h, OPH_BACKWARD);
+	fftExecute(h);
+	fftwShift(h, h, pn[_X], pn[_Y], OPH_BACKWARD);
+
+	for (int i = 0; i < pn[_X] * pn[_Y]; i++) {
+		Complex<Real> shift_phase(1.0, 0.0);
+		int r = i / pn[_X];
+		int c = i % pn[_X];
+
+		Real X = (M_PI * xx_o[i] * spectrum_shift[_X]) / pp[_X];
+		Real Y = (M_PI * yy_o[i] * spectrum_shift[_Y]) / pp[_Y];
+
+		shift_phase._Val[_RE] = shift_phase._Val[_RE] * (cos(X) * cos(Y) - sin(X) * sin(Y));
+
+
+		holo_encoded[i] = (h[i] * shift_phase).real();
+	}
+
+	delete[] h;
+	delete[] x_o, xx_o;
+	delete[] y_o, yy_o;
 }
 
 void ophPointCloud::genCghPointCloudCPU(uint diff_flag)

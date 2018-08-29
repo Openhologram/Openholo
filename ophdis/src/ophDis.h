@@ -1,8 +1,3 @@
-/**
-* @mainpage ophDis
-* @brief Abstract class for display classes
-*/
-
 #ifndef __OphDisplay_h
 #define __OphDisplay_h
 
