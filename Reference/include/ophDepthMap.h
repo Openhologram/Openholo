@@ -37,7 +37,7 @@ The following is the procedure of it and functions called form it..
 
 @section build How to Build Source Codes
 Before building an execution file, you need to install MS Visual Studio 2015 C++ and Qt, also CUDA for the GPU execution. 
- 1. Download the source code from <a href="https://github.com/Openhologram/OpenHologram/tree/master/OpenHolo_DepthMap">here</a>.
+ 1. Download the source code from <a href="https://github.com/Openhologram/OpenHolo/">here</a>.
  2. Go to the directory 'HologramDepthmap'.
  3. Open the Visual Studio soulution file, 'HologramDepthmap.sln'. 
  4. Check the configuation of the Qt & CUDA to work with the Visual Studio. 
@@ -65,16 +65,6 @@ Before building an execution file, you need to install MS Visual Studio 2015 C++
   7. To reinstall the program, first remove the installed program using control panel.
 */
 
- /**
- * \defgroup init_module Initialize
- * \defgroup load_module Loading Data
- * \defgroup depth_module Computing Depth Value
- * \defgroup trans_module Transform 
- * \defgroup gen_module Generation Hologram
- * \defgroup encode_modulel Encoding
- * \defgroup write_module Writing Image
- * \defgroup recon_module Reconstruction
- */
 
 #ifndef __ophDepthMap_h
 #define __ophDepthMap_h

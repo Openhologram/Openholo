@@ -162,50 +162,99 @@ protected:
 
 public:
 	/**
-	* @brief Encoding Functions
-	* ENCODE_PHASE
-	* ENCODE_AMPLITUDE
-	* ENCODE_REAL
-	* ENCODE_SIMPLENI	:	Simple Numerical Interference
-	* ENCODE_BURCKHARDT	:	Burckhardt Encoding
-	*						- C.B. Burckhardt, ¡°A simplification of Lee¡¯s method of generating holograms by computer,¡± Applied Optics, vol. 9, no. 8, pp. 1949-1949, 1970.
-	*						@param output parameter(encoded) : (sizeX*3, sizeY)
-	* ENCODE_TWOPHASE	:	Two Phase Encoding
-	*						@param output parameter(encoded) : (sizeX*2, sizeY)
+	* @brief	Encoding Functions
+	* @details
+	*	ENCODE_PHASE		:	Phase
+	*	ENCODE_AMPLITUDE	:	Amplitude
+	*	ENCODE_REAL			:	Real Part
+	*	ENCODE_SIMPLENI		:	Simple numerical interference
+	*	ENCODE_BURCKHARDT	:	Burckhardt encoding
+	*							@see C.B. Burckhardt, ¡°A simplification of Lee¡¯s method of generating holograms by computer,¡± Applied Optics, vol. 9, no. 8, pp. 1949-1949, 1970.
+	*	ENCODE_TWOPHASE		:	Two Phase Encoding
+	* @return	holo_encoded
+	*	ENCODE_BURCKHARDT - (holosizeX*3, holosizeY)
+	*	ENCODE_TWOPHASE - (holosizeX*2, holosizeY)
+	*	else - (holosizeX, holosizeY)
+	* @overload
 	*/
 	void encoding(unsigned int ENCODE_FLAG);
 	/*
-	* @brief Encoding Functions
-	* ENCODE_SSB		:	Single Side Band Encoding
-	*						@param passband : left, rig, top, btm
-	* ENCODE_OFFSSB		:	Off-axis + Single Side Band Encoding
+	* @brief	Encoding Functions
+	* @details
+	*	 ENCODE_SSB		:	Single Side Band Encoding
+	*	 ENCODE_OFFSSB	:	Off-axis + Single Side Band Encoding
+	* @param	SSB_PASSBAND : SSB_LEFT, SSB_RIGHT, SSB_TOP, SSB_BOTTOM
+	* @overload
 	*/
 	void encoding(unsigned int ENCODE_FLAG, unsigned int SSB_PASSBAND);
 	void encoding();
 	enum SSB_PASSBAND { SSB_LEFT, SSB_RIGHT, SSB_TOP, SSB_BOTTOM };
 
 protected:
+	/**
+	* @param	encode_size		Encoded hologram size, varied from encoding type
+	* @param	ENCODE_METHOD	Encodinng method flag
+	* @param	SSB_PASSBAND	Passband in single side band encoding
+	*/
+
 	ivec2 encode_size;
 	int ENCODE_METHOD;
 	int SSB_PASSBAND;
 public:
+	/** \ingroup */
 	void setEncodeMethod(int in) { ENCODE_METHOD = in; }
+	/** \ingroup */
 	void setSSBPassBand(int in){ SSB_PASSBAND = in; }
+	/** \ingroup */
 	ivec2& getEncodeSize(void) { return encode_size; }
 
 public:
+	/**
+	* @brief	Complex field file load
+	* @details	Just used for the reference
+	*/
 	void loadComplex(char* real_file, char* imag_file, int n_x, int n_y);
+	/**
+	* @brief	Normalize the encoded hologram
+	* @details	Considering the encoded hologram size
+	*/
 	void normalizeEncoded(void);
 
+	void fourierTest() {
+		fft2(context_.pixel_number, holo_gen, OPH_FORWARD, OPH_ESTIMATE);
+		fftExecute(holo_gen);
+		fft2(context_.pixel_number, holo_gen, OPH_BACKWARD, OPH_ESTIMATE);
+		fftExecute(holo_gen);
+	}
+	void fresnelTest(Real dis) {
+		context_.lambda = 532e-9;
+		context_.pixel_pitch = { 8e-6, 8e-6 };
+		fresnelPropagation(context_,holo_gen, holo_gen, dis);
+	}
+
 protected:
+	/**
+	* @brief	Encoding functions
+	*/
+
 	void numericalInterference(oph::Complex<Real>* holo, Real* encoded, const int size);
 	void twoPhaseEncoding(oph::Complex<Real>* holo, Real* encoded, const int size);
 	void burckhardt(oph::Complex<Real>* holo, Real* encoded, const int size);
 	void singleSideBand(oph::Complex<Real>* holo, Real* encoded, const ivec2 holosize, int passband);
 
-	/** @brief Frequency Shift */
+	/**
+	* @brief	Frequency shift
+	*/
 	void freqShift(oph::Complex<Real>* src, Complex<Real>* dst, const ivec2 holosize, int shift_x, int shift_y);
 public:
+	/**
+	* @brief	Fresnel propagation
+	* @param	OphContext		context		OphContext structure
+	* @param	Complex<Real>*	in			Input complex field
+	* @param	Complex<Real>*	out			Output complex field
+	* @param	Real			distance	Propagation distance
+	* @return	out
+	*/
 	void fresnelPropagation(OphContext context, Complex<Real>* in, Complex<Real>* out, Real distance);
 	void fresnelPropagation(Complex<Real>* in, Complex<Real>* out, Real distance);
 protected:
@@ -338,6 +387,14 @@ struct GEN_DLL OphDepthMapConfig {
 	OphDepthMapConfig() :field_lens(0), near_depthmap(0), far_depthmap(0), num_of_depth(0) {}
 };
 
+/**
+* @brief	Triangular mesh data structure
+* @param	ulonglong	n_faces			The number of faces in object
+* @param	int			color_channels
+* @param	uint*		face_idx		Face indexes
+* @param	Real*		vertex			Vertex array
+* @param	Real*		color			Color array
+*/
 struct GEN_DLL OphMeshData {
 	ulonglong n_faces = 0;
 	int color_channels;

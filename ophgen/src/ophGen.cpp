@@ -369,8 +369,8 @@ void* ophGen::load(const char * fname)
 
 void ophGen::loadComplex(char* real_file, char* imag_file, int n_x, int n_y) {
 
-	context_.pixel_number.v[_X] = n_x;
-	context_.pixel_number.v[_Y] = n_y;
+	context_.pixel_number[_X] = n_x;
+	context_.pixel_number[_Y] = n_y;
 
 	ifstream freal, fimag;
 	freal.open(real_file);
@@ -771,14 +771,14 @@ void ophGen::fresnelPropagation(OphContext context, Complex<Real>* in, Complex<R
 	Complex<Real>* temp1 = new Complex<Real>[Nx*Ny * 4];
 
 	fft2({ Nx * 2, Ny * 2 }, in2x, OPH_FORWARD, OPH_ESTIMATE);
-	fftwShift(in2x, temp1, Nx * 2, Ny * 2, OPH_FORWARD, false);
+	fftExecute(temp1);
 
 	Real* fx = new Real[Nx*Ny * 4];
 	Real* fy = new Real[Nx*Ny * 4];
 
 	uint i = 0;
-	for (int idxFy = (1 - Ny); idxFy < Ny; idxFy++) {
-		for (int idxFx = (1 - Nx); idxFx < Nx; idxFx++) {
+	for (int idxFy = -Ny; idxFy < Ny; idxFy++) {
+		for (int idxFx = -Nx; idxFx < Nx; idxFx++) {
 			fx[i] = idxFx / (2 * Nx*context.pixel_pitch[_X]);
 			fy[i] = idxFy / (2 * Ny*context.pixel_pitch[_Y]);
 			i++;
@@ -801,7 +801,7 @@ void ophGen::fresnelPropagation(OphContext context, Complex<Real>* in, Complex<R
 
 	Complex<Real>* temp3 = new Complex<Real>[Nx*Ny * 4];
 	fft2({ Nx * 2, Ny * 2 }, temp2, OPH_BACKWARD, OPH_ESTIMATE);
-	fftwShift(temp2, temp3, Nx * 2, Ny * 2, OPH_BACKWARD, false);
+	fftExecute(temp3);
 
 	uint idxOut = 0;
 
@@ -844,8 +844,8 @@ void ophGen::fresnelPropagation(Complex<Real>* in, Complex<Real>* out, Real dist
 	Real* fy = new Real[Nx*Ny * 4];
 
 	uint i = 0;
-	for (int idxFy = (1 - Ny); idxFy < Ny; idxFy++) {
-		for (int idxFx = (1 - Nx); idxFx < Nx; idxFx++) {
+	for (int idxFy = -Ny; idxFy < Ny; idxFy++) {
+		for (int idxFx = -Nx; idxFx < Nx; idxFx++) {
 			fx[i] = idxFx / (2 * Nx*context_.pixel_pitch[_X]);
 			fy[i] = idxFy / (2 * Ny*context_.pixel_pitch[_Y]);
 			i++;
