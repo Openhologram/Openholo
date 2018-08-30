@@ -1,7 +1,3 @@
-/**
-* @mainpage Openholo Generation Point Cloud : GPGPU Accelation using CUDA
-* @brief
-*/
 #ifndef __ophPointCloud_h
 #define __ophPointCloud_h
 
@@ -164,7 +160,7 @@ private:
 	* @return implement time (sec)
 	*/
 	void genCghPointCloudCPU(uint diff_flag);
-	void diffractEncodedRS(ivec2 pn, vec2 pp, vec2 ss, vec3 vertex, Real k, Real amplitude, vec2 theta);
+	void diffractEncodedRS(ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Real k, Real amplitude, vec2 theta);
 	void diffractNotEncodedRS(ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Real k, Real amplitude, Real lambda, vec2 theta);
 	void diffractEncodedFrsn(void);
 	void diffractNotEncodedFrsn(ivec2 pn, vec2 pp, vec3 pc, Real amplitude, Real lambda, vec2 theta);

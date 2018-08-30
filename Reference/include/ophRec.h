@@ -1,8 +1,3 @@
-/**
-* @mainpage ophRec
-* @brief Abstract class for reconstruction classes
-*/
-
 #ifndef __OphReconstruction_h
 #define __OphReconstruction_h
 

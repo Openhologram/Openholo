@@ -3,6 +3,8 @@
 
 #include "ophPointCloud.h"
 
+#define __DEBUG_LOG_GPU_SPEC_
+
 /* CUDA Library Include */
 #include <cuda_runtime.h>
 
@@ -33,7 +35,8 @@ static void handleError(cudaError_t err, const char *file, int line) {
 
 // for PointCloud only GPU
 typedef struct KernelConst {
-	int n_points;	///number of point cloud
+	int n_points;	/// number of point cloud
+	int n_colors;	/// number of colors per point cloud
 
 	double scale_X;		/// Scaling factor of x coordinate of point cloud
 	double scale_Y;		/// Scaling factor of y coordinate of point cloud
@@ -44,26 +47,27 @@ typedef struct KernelConst {
 	int pn_X;		/// Number of pixel of SLM in x direction
 	int pn_Y;		/// Number of pixel of SLM in y direction
 
-	double sin_thetaX; ///sin(tiltAngleX)
-	double sin_thetaY; ///sin(tiltAngleY)
-	double k;		  ///Wave Number = (2 * PI) / lambda;
-
 	double pp_X; /// Pixel pitch of SLM in x direction
 	double pp_Y; /// Pixel pitch of SLM in y direction
+
 	double half_ss_X; /// (pixel_x * nx) / 2
 	double half_ss_Y; /// (pixel_y * ny) / 2
 
+	double k;		  /// Wave Number = (2 * PI) / lambda;
+
 	KernelConst(
 		const int &n_points,		/// number of point cloud
+		const int &n_colors,		/// number of colors per point cloud
 		const vec3 &scale_factor,	/// Scaling factor of x, y, z coordinate of point cloud
 		const Real &offset_depth,	/// Offset value of point cloud in z direction
 		const ivec2 &pixel_number,	/// Number of pixel of SLM in x, y direction
-		const vec2 &tilt_angle,		/// tilt_Angle_X, tilt_Angle_Y
-		const Real &k,				/// Wave Number = (2 * PI) / lambda;
 		const vec2 &pixel_pitch,	/// Pixel pitch of SLM in x, y direction
-		const vec2 &ss)				/// (pixel_x * nx), (pixel_y * ny);
+		const vec2 &ss,				/// (pixel_x * nx), (pixel_y * ny)
+		const Real &k				/// Wave Number = (2 * PI) / lambda
+	)
 	{
 		this->n_points = n_points;
+		this->n_colors = n_colors;
 		this->scale_X = scale_factor[_X];
 		this->scale_Y = scale_factor[_Y];
 		this->scale_Z = scale_factor[_Z];
@@ -73,35 +77,147 @@ typedef struct KernelConst {
 		this->pn_X = pixel_number[_X];
 		this->pn_Y = pixel_number[_Y];
 
-		// Tilt Angle
-		this->sin_thetaX = sin(RADIAN(tilt_angle[_X]));
-		this->sin_thetaY = sin(RADIAN(tilt_angle[_Y]));
-
-		// Wave Number
-		this->k = k;
-
 		// Pixel pitch at eyepiece lens plane (by simple magnification) ==> SLM pitch
 		this->pp_X = pixel_pitch[_X];
 		this->pp_Y = pixel_pitch[_Y];
 
 		// Length (Width) of complex field at eyepiece plane (by simple magnification)
-		this->half_ss_X = ss[_X] / 2.0;
-		this->half_ss_Y = ss[_Y] / 2.0;
+		this->half_ss_X = ss[_X] / 2;
+		this->half_ss_Y = ss[_Y] / 2;
+
+		// Wave Number
+		this->k = k;
 	}
 } GpuConst;
 
 
+typedef struct KernelConst_EncodedRS : public KernelConst {
+	double sin_thetaX; ///sin(tiltAngleX)
+	double sin_thetaY; ///sin(tiltAngleY)
+
+	KernelConst_EncodedRS(
+		const int &n_points,		/// number of point cloud
+		const int &n_colors,		/// number of colors per point cloud
+		const vec3 &scale_factor,	/// Scaling factor of x, y, z coordinate of point cloud
+		const Real &offset_depth,	/// Offset value of point cloud in z direction
+		const ivec2 &pixel_number,	/// Number of pixel of SLM in x, y direction
+		const vec2 &pixel_pitch,	/// Pixel pitch of SLM in x, y direction
+		const vec2 &ss,				/// (pixel_x * nx), (pixel_y * ny)
+		const Real &k,				/// Wave Number = (2 * PI) / lambda
+		const vec2 &tilt_angle		/// tilt_Angle_X, tilt_Angle_Y
+	)
+		: KernelConst(n_points, n_colors, scale_factor, offset_depth, pixel_number, pixel_pitch, ss, k)
+	{
+		// Tilt Angle
+		this->sin_thetaX = sin(RADIAN(tilt_angle[_X]));
+		this->sin_thetaY = sin(RADIAN(tilt_angle[_Y]));
+	}
+
+	KernelConst_EncodedRS(GpuConst &cuda_config, const vec2 &tilt_angle)
+		: KernelConst(cuda_config)
+	{
+		// Tilt Angle
+		this->sin_thetaX = sin(RADIAN(tilt_angle[_X]));
+		this->sin_thetaY = sin(RADIAN(tilt_angle[_Y]));
+	}
+} GpuConstERS;
+
+
+typedef struct KernelConst_NotEncodedRS : public KernelConst {
+	double lambda;	/// Wave Length
+
+	double tx;
+	double ty;
+
+	double tx_sq;	///tx^2
+	double ty_sq;	///ty^2
+
+	KernelConst_NotEncodedRS(
+		const int &n_points,		/// number of point cloud
+		const int &n_colors,		/// number of colors per point cloud
+		const vec3 &scale_factor,	/// Scaling factor of x, y, z coordinate of point cloud
+		const Real &offset_depth,	/// Offset value of point cloud in z direction
+		const ivec2 &pixel_number,	/// Number of pixel of SLM in x, y direction
+		const vec2 &pixel_pitch,	/// Pixel pitch of SLM in x, y direction
+		const vec2 &ss,				/// (pixel_x * nx), (pixel_y * ny)
+		const Real &k,				/// Wave Number = (2 * PI) / lambda
+		const Real &lambda			/// Wave length = lambda
+	)
+		: KernelConst(n_points, n_colors, scale_factor, offset_depth, pixel_number, pixel_pitch, ss, k)
+	{
+		// Wave Length
+		this->lambda = lambda;
+
+		this->tx = lambda / (2 * pixel_pitch[_X]);
+		this->ty = lambda / (2 * pixel_pitch[_Y]);
+
+		this->tx_sq = tx * tx;
+		this->ty_sq = ty * ty;
+	}
+
+	KernelConst_NotEncodedRS(GpuConst &cuda_config, const Real &lambda)
+		: KernelConst(cuda_config)
+	{
+		// Wave Length
+		this->lambda = lambda;
+
+		this->tx = lambda / (2 * cuda_config.pp_X);
+		this->ty = lambda / (2 * cuda_config.pp_Y);
+
+		this->tx_sq = tx * tx;
+		this->ty_sq = ty * ty;
+	}
+} GpuConstNERS;
+
+
+typedef struct KernelConst_NotEncodedFrsn : public KernelConst {
+	double lambda;	/// Wave Length
+
+	KernelConst_NotEncodedFrsn(
+		const int &n_points,		/// number of point cloud
+		const int &n_colors,		/// number of colors per point cloud
+		const vec3 &scale_factor,	/// Scaling factor of x, y, z coordinate of point cloud
+		const Real &offset_depth,	/// Offset value of point cloud in z direction
+		const ivec2 &pixel_number,	/// Number of pixel of SLM in x, y direction
+		const vec2 &pixel_pitch,	/// Pixel pitch of SLM in x, y direction
+		const vec2 &ss,				/// (pixel_x * nx), (pixel_y * ny)
+		const Real &k,				/// Wave Number = (2 * PI) / lambda
+		const Real &lambda			/// Wave length = lambda
+	)
+		: KernelConst(n_points, n_colors, scale_factor, offset_depth, pixel_number, pixel_pitch, ss, k)
+	{
+		// Wave Length
+		this->lambda = lambda;
+	}
+
+	KernelConst_NotEncodedFrsn(GpuConst &cuda_config, const Real &lambda)
+		: KernelConst(cuda_config)
+	{
+		// Wave Length
+		this->lambda = lambda;
+	}
+} GpuConstNEFR;
+
+
 extern "C"
 {
-	void cudaGenCghPointCloud(
-		const int &nBlocks,
-		const int &nThreads,
-		const int &n_pts_per_stream,
-		Real* cuda_pc_data,
-		Real* cuda_amp_data,
+	void cudaGenCghPointCloud_EncodedRS(
+		const int &nBlocks, const int &nThreads, const int &n_pts_per_stream,
+		Real* cuda_pc_data, Real* cuda_amp_data,
 		Real* cuda_dst,
-		const GpuConst* cuda_config);
-}
+		const GpuConstERS* cuda_config);
 
+	void cudaGenCghPointCloud_NotEncodedRS(
+		const int &nBlocks, const int &nThreads, const int &n_pts_per_stream,
+		Real* cuda_pc_data, Real* cuda_amp_data,
+		Real* cuda_dst_real, Real* cuda_dst_imag,
+		const GpuConstNERS* cuda_config);
+
+	void cudaGenCghPointCloud_NotEncodedFrsn(
+		const int &nBlocks, const int &nThreads, const int &n_pts_per_stream,
+		Real* cuda_pc_data, Real* cuda_amp_data,
+		Real* cuda_dst_real, Real* cuda_dst_imag,
+		const GpuConstNEFR* cuda_config);
+}
 
 #endif

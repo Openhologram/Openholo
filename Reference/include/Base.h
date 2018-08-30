@@ -1,10 +1,3 @@
-/**
-* @mainpage Base
-* @brief Top class
-* @details Class for prevention memory leak
-*/
-
-
 #ifndef __Base_h
 #define __Base_h
 

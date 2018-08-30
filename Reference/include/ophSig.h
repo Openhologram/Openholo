@@ -1,8 +1,3 @@
-/**
-* @mainpage ophSig
-* @brief Abstract class for core processing classes
-*/
-
 #ifndef __ophSig_h
 #define __ophSig_h
 

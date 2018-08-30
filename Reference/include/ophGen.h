@@ -108,23 +108,23 @@ public:
 
 	/**
 	* \ingroup read
-	* @param const char* $Point cloud data file name
-	* @param OphPointCloudData* $Point cloud data - number of points, number of color, geometry of point cloud, color data, phase data
+	* @param const char* Point cloud data file name
+	* @param OphPointCloudData* Point cloud data - number of points, number of color, geometry of point cloud, color data, phase data
 	* @return Positive integer is points number of point cloud, return a negative integer if the load fails
 	*/
 	int loadPointCloud(const char* pc_file, OphPointCloudData *pc_data_);
 
 	/**
 	* \ingroup read
-	* @param const char* $Input file name
-	* @param OphPointCloudConfig& $Config structures variable can get configuration data
+	* @param const char* Input file name
+	* @param OphPointCloudConfig& Config structures variable can get configuration data
 	*/
 	bool readConfig(const char* fname, OphPointCloudConfig& config);
 
 	/**
 	* \ingroup read
-	* @param const char* $Input file name
-	* @param OphDepthMapConfig& $Config structures variable can get configuration data
+	* @param const char* Input file name
+	* @param OphDepthMapConfig& Config structures variable can get configuration data
 	*/
 	bool readConfig(const char* fname, OphDepthMapConfig& config);
 	bool readConfig(const char* fname, OphWRPConfig& config);
@@ -261,8 +261,8 @@ protected:
 	/** 
 	* \ingroup encode
 	* @brief Encode the CGH according to a signal location parameter.
-	* @param bool $Select whether to operate with CPU or GPU
-	* @param oph::ivec2 $sig_location[0]: upper or lower half, sig_location[1]:left or right half.
+	* @param bool Select whether to operate with CPU or GPU
+	* @param oph::ivec2 sig_location[0]: upper or lower half, sig_location[1]:left or right half.
 	* @see encodeSideBand_CPU, encodeSideBand_GPU
 	*/
 	void encodeSideBand(bool bCPU, ivec2 sig_location);
@@ -270,11 +270,11 @@ protected:
 	* \ingroup encode
 	* @brief Encode the CGH according to a signal location parameter on the CPU.
 	* @details The CPU variable, holo_gen on CPU has the final result.
-	* @param int $the start x-coordinate to crop
-	* @param int $the end x-coordinate to crop
-	* @param int $the start y-coordinate to crop
-	* @param int $the end y-coordinate to crop
-	* @param oph::ivec2 $Signal location
+	* @param int the start x-coordinate to crop
+	* @param int the end x-coordinate to crop
+	* @param int the start y-coordinate to crop
+	* @param int the end y-coordinate to crop
+	* @param oph::ivec2 Signal location
 	*  sig_location[0]: upper or lower half, sig_location[1]:left or right half.
 	* @see encodingSymmetrization, fftwShift
 	*/
@@ -309,14 +309,14 @@ protected:
 
 
 /**
-* @param oph::vec3 $Scaling factor of coordinate of point cloud
-* @param Real $Offset value of point cloud
-* @param int8_t* $Shape of spatial bandpass filter ("Circle" or "Rect" for now)
-* @param oph::vec2 $Width of spatial bandpass filter
-* @param Real $Focal length of input lens of Telecentric
-* @param Real $Focal length of output lens of Telecentric
-* @param Real $Focal length of eyepiece lens
-* @param oph::vec2 $Tilt angle for spatial filtering
+* @param oph::vec3 Scaling factor of coordinate of point cloud
+* @param Real Offset value of point cloud
+* @param int8_t* Shape of spatial bandpass filter ("Circle" or "Rect" for now)
+* @param oph::vec2 Width of spatial bandpass filter
+* @param Real Focal length of input lens of Telecentric
+* @param Real Focal length of output lens of Telecentric
+* @param Real Focal length of eyepiece lens
+* @param oph::vec2 Tilt angle for spatial filtering
 */
 struct GEN_DLL OphPointCloudConfig {
 	oph::vec3 scale;
@@ -333,12 +333,12 @@ struct GEN_DLL OphPointCloudConfig {
 };
 
 /**
-* @param ulonglong $Number of points
-* @param int $Number of color chennel
-* @param Real* $Geometry of point clouds
-* @param Real* $Color data of point clouds
-* @param Real* $Phase value of point clouds
-* @param bool $Selects whether to parse the phase data
+* @param ulonglong Number of points
+* @param int Number of color chennel
+* @param Real* Geometry of point clouds
+* @param Real* Color data of point clouds
+* @param Real* Phase value of point clouds
+* @param bool Selects whether to parse the phase data
 */
 struct GEN_DLL OphPointCloudData {
 	ulonglong n_points;
@@ -352,21 +352,21 @@ struct GEN_DLL OphPointCloudData {
 };
 
 /**
-* @param Real $FIELD_LENS at config file
-* @param Real $NEAR_OF_DEPTH_MAP at config file
-* @param Real $FAR_OF_DEPTH_MAP at config file
-* @param oph::uint $the number of depth level.
+* @param Real FIELD_LENS at config file
+* @param Real NEAR_OF_DEPTH_MAP at config file
+* @param Real FAR_OF_DEPTH_MAP at config file
+* @param oph::uint the number of depth level.
 * <pre>
 * if FLAG_CHANGE_DEPTH_QUANTIZATION == 0
 * num_of_depth = DEFAULT_DEPTH_QUANTIZATION
 * else
 * num_of_depth = NUMBER_OF_DEPTH_QUANTIZATION
 * </pre> 
-* @param std::vector<int> $Used when only few specific depth levels are rendered, usually for test purpose
-* @param bool $if true, change the depth quantization from the default value.
-* @param unsigned int $default value of the depth quantization - 256
-* @param unsigned int $depth level of input depthmap.
-* @param bool $If true, random phase is imposed on each depth layer.
+* @param std::vector<int> Used when only few specific depth levels are rendered, usually for test purpose
+* @param bool if true, change the depth quantization from the default value.
+* @param unsigned int default value of the depth quantization - 256
+* @param unsigned int depth level of input depthmap.
+* @param bool If true, random phase is imposed on each depth layer.
 */
 struct GEN_DLL OphDepthMapConfig {
 	Real				field_lens;

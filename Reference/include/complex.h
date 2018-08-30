@@ -90,6 +90,7 @@ namespace oph {
 
 		Complex<T>& operator = (const T& p) {
 			_Val[_RE] = p;
+			_Val[_IM] = 0.0;
 
 			return *this;
 		}
