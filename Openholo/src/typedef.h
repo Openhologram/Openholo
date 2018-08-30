@@ -14,6 +14,7 @@ typedef double Real_t;
 namespace oph
 {
 	typedef unsigned int uint;
+	typedef unsigned short ushort;
 	typedef unsigned char uchar;
 	typedef unsigned long ulong;
 	typedef long long longlong;

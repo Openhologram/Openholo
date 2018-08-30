@@ -64,7 +64,6 @@ Real ophPointCloud::generateHologram(uint diff_flag)
 		std::cout << "Generate Hologram with GPU" << std::endl;
 
 		genCghPointCloudGPU(diff_flag);
-		std::cout << ">>> CUDA GPGPU" << std::endl;
 	}
 
 	auto end_time = CUR_TIME;
@@ -213,24 +212,23 @@ void ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 #endif
 }
 
-void ophPointCloud::diffractEncodedRS(ivec2 pn, vec2 pp, vec2 ss, vec3 vertex, Real k, Real amplitude, vec2 theta)
-{
-	for (int row = 0; row < pn[_Y]; ++row) {
-		// Y coordinate of the current pixel : Note that pcy index is reversed order
-		Real SLM_y = (ss[_Y] / 2) - ((Real)row + 0.5) * pp[_Y];
+void ophPointCloud::diffractEncodedRS(ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Real k, Real amplitude, vec2 theta)
+{	
+	for (int yytr = 0; yytr < pn[_Y]; ++yytr)
+	{
+		for (int xxtr = 0; xxtr < pn[_X]; ++xxtr)
+		{
+			Real xxx = ((Real)xxtr + 0.5) * pp[_X] - (ss[_X] / 2);
+			Real yyy = (ss[_Y] / 2) - ((Real)yytr + 0.5) * pp[_Y];
 
-		for (int col = 0; col < pn[_X]; ++col) {
-			// X coordinate of the current pixel
-			Real SLM_x = ((Real)col + 0.5) * pp[_X] - (ss[_X] / 2);
+			Real r = sqrt((xxx - pc[_X]) * (xxx - pc[_X]) + (yyy - pc[_Y]) * (yyy - pc[_Y]) + (pc[_Z] * pc[_Z]));
+			Real p = k * (r - xxx * sin(theta[_X]) - yyy * sin(theta[_Y]));
+			Real res = amplitude * cos(p);
 
-			Real r = sqrt((SLM_x - vertex[_X])*(SLM_x - vertex[_X]) + (SLM_y - vertex[_Y])*(SLM_y - vertex[_Y]) + vertex[_Z] * vertex[_Z]);
-			Real phi = (k * r) - (k * SLM_x*sin(theta[_X])) - (k * SLM_y*sin(theta[_Y])); // Phase for printer
-			Real result = amplitude * cos(phi);
+			holo_encoded[xxtr + yytr * pn[_X]] += res;
 
-			holo_encoded[col + row * pn[_X]] += result; //R-S Integral
-
-			//LOG("(%3d, %3d) [%7d] : ", col, row, col + row * pn[_X]);
-			//LOG("holo=(%15.5lf)\n", holo_encoded[col + row * pn[_X]]);
+			//LOG("(%3d, %3d) [%7d] : ", xxtr, yytr, xxtr + yytr * pn[_X]);
+			//LOG("holo=(%15.5lf)\n", holo_encoded[xxtr + yytr * pn[_X]]);
 		}
 	}
 }
@@ -240,11 +238,25 @@ void ophPointCloud::diffractNotEncodedRS(ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Re
 	Real tx = context_.lambda / (2 * pp[_X]);
 	Real ty = context_.lambda / (2 * pp[_Y]);
 
-	Real xbound[2] = { pc[_X] + abs(tx / sqrt(1 - (tx * tx)) * pc[_Z]), pc[_X] - abs(tx / sqrt(1 - (tx * tx)) * pc[_Z]) };
-	Real ybound[2] = { pc[_Y] + abs(ty / sqrt(1 - (ty * ty)) * pc[_Z]), pc[_Y] - abs(ty / sqrt(1 - (ty * ty)) * pc[_Z]) };
+	Real _xbound[2] = {
+		pc[_X] + abs(tx / sqrt(1 - (tx * tx)) * pc[_Z]),
+		pc[_X] - abs(tx / sqrt(1 - (tx * tx)) * pc[_Z])
+	};
 
-	Real Xbound[2] = { floor((xbound[0] + ss[_X] / 2) / pp[_X]) + 1, floor((xbound[1] + ss[_X] / 2) / pp[_X]) + 1 };
-	Real Ybound[2] = { pn[_Y] - floor((ybound[1] + ss[_Y] / 2) / pp[_Y]), pn[_Y] - floor((ybound[0] + ss[_Y] / 2) / pp[_Y]) };
+	Real _ybound[2] = {
+		pc[_Y] + abs(ty / sqrt(1 - (ty * ty)) * pc[_Z]),
+		pc[_Y] - abs(ty / sqrt(1 - (ty * ty)) * pc[_Z])
+	};
+
+	Real Xbound[2] = {
+		floor((_xbound[0] + ss[_X] / 2) / pp[_X]) + 1,
+		floor((_xbound[1] + ss[_X] / 2) / pp[_X]) + 1
+	};
+
+	Real Ybound[2] = {
+		pn[_Y] - floor((_ybound[1] + ss[_Y] / 2) / pp[_Y]),
+		pn[_Y] - floor((_ybound[0] + ss[_Y] / 2) / pp[_Y])
+	};
 
 	if (Xbound[0] > pn[_X])	Xbound[0] = pn[_X];
 	if (Xbound[1] < 0)		Xbound[1] = 0;
@@ -270,7 +282,7 @@ void ophPointCloud::diffractNotEncodedRS(ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Re
 				pc[_Y] - abs(ty / sqrt(1 - (ty * ty)) * sqrt((xxx - pc[_X]) * (xxx - pc[_X]) + (pc[_Z] * pc[_Z])))
 			};
 
-			if ((xxx < range_x[0] && xxx > range_x[1]) && (yyy < range_y[0] && yyy > range_y[1])) {
+			if (((xxx < range_x[0]) && (xxx > range_x[1])) && ((yyy < range_y[0]) && (yyy > range_y[1]))) {
 				Real kr = k * r;
 
 				Real res_real = (amplitude * pc[_Z] * sin(kr)) / (lambda * r * r);
@@ -295,11 +307,25 @@ void ophPointCloud::diffractNotEncodedFrsn(ivec2 pn, vec2 pp, vec3 pc, Real ampl
 	Real k = context_.k;
 	vec2 ss = context_.ss;
 
-	Real xbound[2] = { pc[_X] + abs(lambda * pc[_Z] / (2 * pp[_X])), pc[_X] - abs(lambda * pc[_Z] / (2 * pp[_X])) };
-	Real ybound[2] = { pc[_Y] + abs(lambda * pc[_Z] / (2 * pp[_Y])), pc[_Y] - abs(lambda * pc[_Z] / (2 * pp[_Y])) };
+	Real _xbound[2] = {
+		pc[_X] + abs(lambda * pc[_Z] / (2 * pp[_X])),
+		pc[_X] - abs(lambda * pc[_Z] / (2 * pp[_X]))
+	};
 
-	Real Xbound[2] = { floor((xbound[0] + ss[_X] / 2) / pp[_X]) + 1, floor((xbound[1] + ss[_X] / 2) / pp[_X]) + 1 };
-	Real Ybound[2] = { pn[_Y] - floor((ybound[1] + ss[_Y] / 2) / pp[_Y]), pn[_Y] - floor((ybound[0] + ss[_Y] / 2) / pp[_Y]) };
+	Real _ybound[2] = {
+		pc[_Y] + abs(lambda * pc[_Z] / (2 * pp[_Y])),
+		pc[_Y] - abs(lambda * pc[_Z] / (2 * pp[_Y]))
+	};
+
+	Real Xbound[2] = {
+		floor((_xbound[0] + ss[_X] / 2) / pp[_X]) + 1,
+		floor((_xbound[1] + ss[_X] / 2) / pp[_X]) + 1
+	};
+
+	Real Ybound[2] = {
+		pn[_Y] - floor((_ybound[1] + ss[_Y] / 2) / pp[_Y]),
+		pn[_Y] - floor((_ybound[0] + ss[_Y] / 2) / pp[_Y])
+	};
 
 	if (Xbound[0] > pn[_X])	Xbound[0] = pn[_X];
 	if (Xbound[1] < 0)		Xbound[1] = 0;

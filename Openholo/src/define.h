@@ -47,6 +47,18 @@ namespace oph
 #define _W 3
 #endif
 
+#ifndef _COL
+#define _COL 0
+#endif
+
+#ifndef _ROW
+#define _ROW 1
+#endif
+
+#ifndef _MAT
+#define _MAT 2
+#endif
+
 #ifndef MAX_FLOAT
 #define MAX_FLOAT	((float)3.40282347e+38)
 #endif

@@ -41,7 +41,7 @@ namespace oph
 			init();
 			for (int x = 0; x < size[_X]; x++)
 				for (int y = 0; y < size[_Y]; y++) {
-					mat[x][y] = ref[x][y];
+					mat[x][y] = ref.mat[x][y];
 				}
 		}
 
@@ -87,6 +87,15 @@ namespace oph
 						mat[x][y] = 1;
 					else
 						mat[x][y] = 0;
+				}
+			}
+			return *this;
+		}
+
+		matrix<T>& zeros(void) {
+			for (int col = 0; col < size[_COL]; col++) {
+				for (int row = 0; row < size[_ROW]; row++) {
+					mat[col][row] = 0;
 				}
 			}
 			return *this;
