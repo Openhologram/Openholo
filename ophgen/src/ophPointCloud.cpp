@@ -117,7 +117,7 @@ void ophPointCloud::encodeHologram(void)
 	
 
 	for (int i = 0; i < pn[_X]; i++)
-		for (int j = 0; j < pn[_Y]; j++)
+		for (int j = 0; j < pn[_Y]; j++) 
 			yy_o[i + j * pn[_X]] = y_o[j];
 
 	Complex<Real>* h = new Complex<Real>[pn[_X] * pn[_Y]];
