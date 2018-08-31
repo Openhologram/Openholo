@@ -102,7 +102,7 @@ void ophPointCloud::encodeHologram(void)
 	Real* x_o = new Real[pn[_X]];
 	Real* y_o = new Real[pn[_Y]];
 
-	for (int i = 0; i < pn[_X]; i++) 
+	for (int i = 0; i < pn[_X]; i++)
 		x_o[i] = (-ss[_X] / 2) + (pp[_X] * i) + (pp[_X] / 2);
 
 	for (int i = 0; i < pn[_Y]; i++)
@@ -113,10 +113,10 @@ void ophPointCloud::encodeHologram(void)
 
 	for (int i = 0; i < pn[_X] * pn[_Y]; i++)
 		xx_o[i] = x_o[i % pn[_X]];
-	
+
 
 	for (int i = 0; i < pn[_X]; i++)
-		for (int j = 0; j < pn[_Y]; j++) 
+		for (int j = 0; j < pn[_Y]; j++)
 			yy_o[i + j * pn[_X]] = y_o[j];
 
 	Complex<Real>* h = new Complex<Real>[pn[_X] * pn[_Y]];
@@ -178,34 +178,34 @@ void ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 #ifdef _OPENMP
 	int num_threads = 0;
 #pragma omp parallel
-{
-	num_threads = omp_get_num_threads(); // get number of Multi Threading
+	{
+		num_threads = omp_get_num_threads(); // get number of Multi Threading
 #pragma omp for private(j)
 #endif
-	for (j = 0; j < n_points; ++j) { //Create Fringe Pattern
-		uint idx = 3 * j;
-		uint color_idx = pc_data_.n_colors * j;
-		Real pcx = pc_data_.vertex[idx + _X] * pc_config_.scale[_X];
-		Real pcy = pc_data_.vertex[idx + _Y] * pc_config_.scale[_Y];
-		Real pcz = pc_data_.vertex[idx + _Z] * pc_config_.scale[_Z] + pc_config_.offset_depth;
-		Real amplitude = pc_data_.color[color_idx];
+		for (j = 0; j < n_points; ++j) { //Create Fringe Pattern
+			uint idx = 3 * j;
+			uint color_idx = pc_data_.n_colors * j;
+			Real pcx = pc_data_.vertex[idx + _X] * pc_config_.scale[_X];
+			Real pcy = pc_data_.vertex[idx + _Y] * pc_config_.scale[_Y];
+			Real pcz = pc_data_.vertex[idx + _Z] * pc_config_.scale[_Z] + pc_config_.offset_depth;
+			Real amplitude = pc_data_.color[color_idx];
 
-		switch (diff_flag)
-		{
-		case PC_DIFF_RS_ENCODED:
-			diffractEncodedRS(pn, pp, ss, vec3(pcx, pcy, pcz), k, amplitude, vec2(thetaX, thetaY));
-			break;
-		case PC_DIFF_RS_NOT_ENCODED:
-			diffractNotEncodedRS(pn, pp, ss, vec3(pcx, pcy, pcz), k, amplitude, context_.lambda, vec2(thetaX, thetaY));
-			break;
-		case PC_DIFF_FRESNEL_ENCODED:
-			diffractEncodedFrsn();
-			break;
-		case PC_DIFF_FRESNEL_NOT_ENCODED:
-			diffractNotEncodedFrsn(pn, pp, vec3(pcx, pcy, pcz), amplitude, context_.lambda, vec2(thetaX, thetaY));
-			break;
+			switch (diff_flag)
+			{
+			case PC_DIFF_RS_ENCODED:
+				diffractEncodedRS(pn, pp, ss, vec3(pcx, pcy, pcz), k, amplitude, vec2(thetaX, thetaY));
+				break;
+			case PC_DIFF_RS_NOT_ENCODED:
+				diffractNotEncodedRS(pn, pp, ss, vec3(pcx, pcy, pcz), k, amplitude, context_.lambda, vec2(thetaX, thetaY));
+				break;
+			case PC_DIFF_FRESNEL_ENCODED:
+				diffractEncodedFrsn();
+				break;
+			case PC_DIFF_FRESNEL_NOT_ENCODED:
+				diffractNotEncodedFrsn(pn, pp, vec3(pcx, pcy, pcz), amplitude, context_.lambda, vec2(thetaX, thetaY));
+				break;
+			}
 		}
-	}
 #ifdef _OPENMP
 	}
 	std::cout << ">>> All " << num_threads << " threads" << std::endl;
@@ -213,7 +213,7 @@ void ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 }
 
 void ophPointCloud::diffractEncodedRS(ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Real k, Real amplitude, vec2 theta)
-{	
+{
 	for (int yytr = 0; yytr < pn[_Y]; ++yytr)
 	{
 		for (int xxtr = 0; xxtr < pn[_X]; ++xxtr)
