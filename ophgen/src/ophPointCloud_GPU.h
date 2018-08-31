@@ -126,11 +126,8 @@ typedef struct KernelConst_EncodedRS : public KernelConst {
 typedef struct KernelConst_NotEncodedRS : public KernelConst {
 	double lambda;	/// Wave Length
 
-	double tx;
-	double ty;
-
-	double tx_sq;	///tx^2
-	double ty_sq;	///ty^2
+	double det_tx;  /// tx / sqrt(1 - tx^2), tx = lambda / (2 * pp_X)
+	double det_ty;  /// ty / sqrt(1 - ty^2), ty = lambda / (2 * pp_Y)
 
 	KernelConst_NotEncodedRS(
 		const int &n_points,		/// number of point cloud
@@ -148,11 +145,11 @@ typedef struct KernelConst_NotEncodedRS : public KernelConst {
 		// Wave Length
 		this->lambda = lambda;
 
-		this->tx = lambda / (2 * pixel_pitch[_X]);
-		this->ty = lambda / (2 * pixel_pitch[_Y]);
+		double tx = lambda / (2 * pixel_pitch[_X]);
+		double ty = lambda / (2 * pixel_pitch[_Y]);
 
-		this->tx_sq = tx * tx;
-		this->ty_sq = ty * ty;
+		this->det_tx = tx / sqrt(1 - tx * tx);
+		this->det_ty = ty / sqrt(1 - ty * ty);
 	}
 
 	KernelConst_NotEncodedRS(GpuConst &cuda_config, const Real &lambda)
@@ -161,17 +158,20 @@ typedef struct KernelConst_NotEncodedRS : public KernelConst {
 		// Wave Length
 		this->lambda = lambda;
 
-		this->tx = lambda / (2 * cuda_config.pp_X);
-		this->ty = lambda / (2 * cuda_config.pp_Y);
+		double tx = lambda / (2 * cuda_config.pp_X);
+		double ty = lambda / (2 * cuda_config.pp_Y);
 
-		this->tx_sq = tx * tx;
-		this->ty_sq = ty * ty;
+		this->det_tx = tx / sqrt(1 - tx * tx);
+		this->det_ty = ty / sqrt(1 - ty * ty);
 	}
 } GpuConstNERS;
 
 
 typedef struct KernelConst_NotEncodedFrsn : public KernelConst {
 	double lambda;	/// Wave Length
+
+	double tx;	/// tx = lambda / (2 * pp_X)
+	double ty;	/// ty = lambda / (2 * pp_Y)
 
 	KernelConst_NotEncodedFrsn(
 		const int &n_points,		/// number of point cloud
@@ -188,6 +188,9 @@ typedef struct KernelConst_NotEncodedFrsn : public KernelConst {
 	{
 		// Wave Length
 		this->lambda = lambda;
+
+		this->tx = lambda / (2 * pixel_pitch[_X]);
+		this->ty = lambda / (2 * pixel_pitch[_Y]);
 	}
 
 	KernelConst_NotEncodedFrsn(GpuConst &cuda_config, const Real &lambda)
@@ -195,6 +198,9 @@ typedef struct KernelConst_NotEncodedFrsn : public KernelConst {
 	{
 		// Wave Length
 		this->lambda = lambda;
+
+		this->tx = lambda / (2 * cuda_config.pp_X);
+		this->ty = lambda / (2 * cuda_config.pp_Y);
 	}
 } GpuConstNEFR;
 

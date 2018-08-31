@@ -18,20 +18,22 @@ __global__ void cudaKernel_diffractEncodedRS(Real* pc_data, Real* amp_data, cons
 	for (tid; tid < n_pixels; tid += tid_offset) {
 		int xxtr = tid % config->pn_X;
 		int yytr = tid / config->pn_X;
+		ulonglong idx = xxtr + yytr * config->pn_X;
+
+		Real xxx = ((Real)xxtr + 0.5) * config->pp_X - config->half_ss_X;
+		Real yyy = config->half_ss_Y - ((Real)yytr + 0.5) * config->pp_Y;
+		Real interWav = xxx * config->sin_thetaX + yyy * config->sin_thetaY;
 
 		for (int j = 0; j < n_points_stream; ++j) { //Create Fringe Pattern
 			Real pcx = pc_data[3 * j + _X] * config->scale_X;
 			Real pcy = pc_data[3 * j + _Y] * config->scale_Y;
 			Real pcz = pc_data[3 * j + _Z] * config->scale_Z + config->offset_depth;
 
-			Real xxx = ((Real)xxtr + 0.5) * config->pp_X - config->half_ss_X;
-			Real yyy = config->half_ss_Y - ((Real)yytr + 0.5) * config->pp_Y;
-
 			Real r = sqrt((xxx - pcx) * (xxx - pcx) + (yyy - pcy) * (yyy - pcy) + (pcz * pcz));
-			Real p = config->k * (r - xxx * config->sin_thetaX - yyy * config->sin_thetaY);
+			Real p = config->k * (r - interWav);
 			Real res = amp_data[config->n_colors * j] * cos(p);
 
-			*(dst + xxtr + yytr * config->pn_X) += res;
+			*(dst + idx) += res;
 		}
 	}
 	__syncthreads();
@@ -46,22 +48,28 @@ __global__ void cudaKernel_diffractNotEncodedRS(Real* pc_data, Real* amp_data, c
 	for (tid; tid < n_pixels; tid += tid_offset) {
 		int xxtr = tid % config->pn_X;
 		int yytr = tid / config->pn_X;
+		ulonglong idx = xxtr + yytr * config->pn_X;
+
+		Real xxx = -config->half_ss_X + (xxtr - 1) * config->pp_X;
+		Real yyy = -config->half_ss_Y + (config->pn_Y - yytr) * config->pp_Y;
 
 		for (int j = 0; j < n_points_stream; ++j) { //Create Fringe Pattern
-			Real amplitude = amp_data[config->n_colors * j];
 			Real pcx = pc_data[3 * j + _X] * config->scale_X;
 			Real pcy = pc_data[3 * j + _Y] * config->scale_Y;
 			Real pcz = pc_data[3 * j + _Z] * config->scale_Z + config->offset_depth;
+			Real amplitude = amp_data[config->n_colors * j];
 
 			//boundary test
+			Real abs_det_txy_pcz = abs(config->det_tx * pcz);
 			Real _xbound[2] = {
-				pcx + abs(config->tx / sqrt(1 - (config->tx * config->tx)) * pcz),
-				pcx - abs(config->tx / sqrt(1 - (config->tx * config->tx)) * pcz)
+				pcx + abs_det_txy_pcz,
+				pcx - abs_det_txy_pcz
 			};
 
+			abs_det_txy_pcz = abs(config->det_ty * pcz);
 			Real _ybound[2] = {
-				pcy + abs(config->ty / sqrt(1 - (config->ty * config->ty)) * pcz),
-				pcy - abs(config->ty / sqrt(1 - (config->ty * config->ty)) * pcz)
+				pcy + abs_det_txy_pcz,
+				pcy - abs_det_txy_pcz
 			};
 
 			Real Xbound[2] = {
@@ -81,28 +89,33 @@ __global__ void cudaKernel_diffractNotEncodedRS(Real* pc_data, Real* amp_data, c
 			//
 
 			if (((xxtr >= Xbound[1]) && (xxtr < Xbound[0])) && ((yytr >= Ybound[1]) && (yytr < Ybound[0]))) {
-				Real xxx = -config->half_ss_X + (xxtr - 1) * config->pp_X;
-				Real yyy = -config->half_ss_Y + (config->pn_Y - yytr) * config->pp_Y;
+				Real xxx_pcx_sq = (xxx - pcx) * (xxx - pcx);
+				Real yyy_pcy_sq = (yyy - pcy) * (yyy - pcy);
+				Real pcz_sq = pcz * pcz;
 
-				Real r = sqrt((xxx - pcx) * (xxx - pcx) + (yyy - pcy) * (yyy - pcy) + (pcz * pcz));
-
+				//range test
+				Real abs_det_txy_sqrt = abs(config->det_tx * sqrt(yyy_pcy_sq + pcz_sq));
 				Real range_x[2] = {
-					pcx + abs(config->tx / sqrt(1 - (config->tx * config->tx)) * sqrt((yyy - pcy) * (yyy - pcy) + (pcz * pcz))),
-					pcx - abs(config->tx / sqrt(1 - (config->tx * config->tx)) * sqrt((yyy - pcy) * (yyy - pcy) + (pcz * pcz)))
+					pcx + abs_det_txy_sqrt,
+					pcx - abs_det_txy_sqrt
 				};
 
+				abs_det_txy_sqrt = abs(config->det_ty * sqrt(xxx_pcx_sq + pcz_sq));
 				Real range_y[2] = {
-					pcy + abs(config->ty / sqrt(1 - (config->ty * config->ty)) * sqrt((xxx - pcx) * (xxx - pcx) + (pcz * pcz))),
-					pcy - abs(config->ty / sqrt(1 - (config->ty * config->ty)) * sqrt((xxx - pcx) * (xxx - pcx) + (pcz * pcz)))
+					pcy + abs_det_txy_sqrt,
+					pcy - abs_det_txy_sqrt
 				};
+				//
 
 				if (((xxx < range_x[0]) && (xxx > range_x[1])) && ((yyy < range_y[0]) && (yyy > range_y[1]))) {
-					Real kr = config->k * r;
-					Real res_real = (amplitude * pcz * sin(kr)) / (config->lambda * r * r);
-					Real res_imag = (-amplitude * pcz * cos(kr)) / (config->lambda * r * r);
+					Real r = sqrt(xxx_pcx_sq + yyy_pcy_sq + pcz_sq);
+					Real p = config->k * r;
+					Real a = (amplitude * pcz) / (config->lambda * r * r);;
+					Real res_real = sin(p) * a;
+					Real res_imag = -cos(p) * a;
 
-					*(dst_real + xxtr + yytr * config->pn_X) += res_real;
-					*(dst_imag + xxtr + yytr * config->pn_X) += res_imag;
+					*(dst_real + idx) += res_real;
+					*(dst_imag + idx) += res_imag;
 				}
 			}
 		}
@@ -119,22 +132,28 @@ __global__ void cudaKernel_diffractNotEncodedFrsn(Real* pc_data, Real* amp_data,
 	for (tid; tid < n_pixels; tid += tid_offset) {
 		int xxtr = tid % config->pn_X;
 		int yytr = tid / config->pn_X;
+		ulonglong idx = xxtr + yytr * config->pn_X;
+
+		Real xxx = -config->half_ss_X + (xxtr - 1) * config->pp_X;
+		Real yyy = -config->half_ss_Y + (config->pn_Y - yytr) * config->pp_Y;
 
 		for (int j = 0; j < n_points_stream; ++j) { //Create Fringe Pattern
-			Real amplitude = amp_data[config->n_colors * j];
 			Real pcx = pc_data[3 * j + _X] * config->scale_X;
 			Real pcy = pc_data[3 * j + _Y] * config->scale_Y;
 			Real pcz = pc_data[3 * j + _Z] * config->scale_Z + config->offset_depth;
+			Real amplitude = amp_data[config->n_colors * j];
 
 			//boundary test
+			Real abs_txy_pcz = abs(config->tx * pcz);
 			Real _xbound[2] = {
-				pcx + abs(config->lambda * pcz / (2 * config->pp_X)),
-				pcx - abs(config->lambda * pcz / (2 * config->pp_X))
+				pcx + abs_txy_pcz,
+				pcx - abs_txy_pcz
 			};
 
+			abs_txy_pcz = abs(config->ty * pcz);
 			Real _ybound[2] = {
-				pcy + abs(config->lambda * pcz / (2 * config->pp_Y)),
-				pcy - abs(config->lambda * pcz / (2 * config->pp_Y))
+				pcy + abs_txy_pcz,
+				pcy - abs_txy_pcz
 			};
 
 			Real Xbound[2] = {
@@ -154,15 +173,13 @@ __global__ void cudaKernel_diffractNotEncodedFrsn(Real* pc_data, Real* amp_data,
 			//
 
 			if (((xxtr >= Xbound[1]) && (xxtr < Xbound[0])) && ((yytr >= Ybound[1]) && (yytr < Ybound[0]))) {
-				Real xxx = (-config->half_ss_X + (xxtr - 1) * config->pp_X) - pcx;
-				Real yyy = (-config->half_ss_Y + (config->pn_Y - yytr) * config->pp_Y) - pcy;
-				Real p = config->k * (xxx * xxx + yyy * yyy + 2 * pcz * pcz) / (2 * pcz);
+				Real p = config->k * ((xxx - pcx) * (xxx - pcx) + (yyy - pcy) * (yyy - pcy) + (2 * pcz * pcz)) / (2 * pcz);
+				Real a = amplitude / (config->lambda * pcz);
+				Real res_real = sin(p) * a;
+				Real res_imag = -cos(p) * a;
 
-				Real res_real = amplitude * sin(p) / (config->lambda * pcz);
-				Real res_imag = amplitude * (-cos(p)) / (config->lambda * pcz);
-
-				*(dst_real + xxtr + yytr * config->pn_X) += res_real;
-				*(dst_imag + xxtr + yytr * config->pn_X) += res_imag;
+				*(dst_real + idx) += res_real;
+				*(dst_imag + idx) += res_imag;
 			}
 		}
 	}
