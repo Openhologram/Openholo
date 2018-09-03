@@ -77,6 +77,10 @@ Real ophPointCloud::generateHologram(uint diff_flag)
 
 void ophPointCloud::encodeHologram(void)
 {
+	if (holo_gen == NULL) {
+		LOG("No encoding required\n");
+		return;
+	}
 	//encodeSideBand(is_CPU, ivec2(0, 1));
 
 	if (holo_gen == nullptr) {
