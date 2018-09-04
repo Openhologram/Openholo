@@ -32,7 +32,7 @@ public:
 	explicit ophSig(void);
 	bool load(const char *real, const char *imag, uint8_t bitpixel);
 	bool save(const char *real, const char *imag, uint8_t bitpixel);
-
+	
 protected:
 	/**
 	* @brief Destructor
@@ -102,6 +102,9 @@ protected:
 	float _redRate;
 	float _radius;
 	float _foc[3];
+
+
+
 };
 
 #endif // !__ophSig_h
