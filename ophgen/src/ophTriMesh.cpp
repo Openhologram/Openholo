@@ -183,6 +183,15 @@ void ophTri::objNormCenter() {
 	*(centered + 3 * i + 2) = *(z_point + i) - z_cen;
 	);
 
+	//
+	Real x_cen1 = (maxOfArr(x_point, meshData->n_faces * 3) + minOfArr(x_point, meshData->n_faces * 3)) / 2;
+	Real y_cen1 = (maxOfArr(y_point, meshData->n_faces * 3) + minOfArr(y_point, meshData->n_faces * 3)) / 2;
+	Real z_cen1 = (maxOfArr(z_point, meshData->n_faces * 3) + minOfArr(z_point, meshData->n_faces * 3)) / 2;
+
+	cout << "center: "<< x_cen1 << ", " << y_cen1 << ", " << z_cen1 << endl;
+
+	//
+
 	Real x_del = (maxOfArr(x_point, meshData->n_faces * 3) - minOfArr(x_point, meshData->n_faces * 3));
 	Real y_del = (maxOfArr(y_point, meshData->n_faces * 3) - minOfArr(y_point, meshData->n_faces * 3));
 	Real z_del = (maxOfArr(z_point, meshData->n_faces * 3) - minOfArr(z_point, meshData->n_faces * 3));
@@ -307,7 +316,8 @@ void ophTri::generateMeshHologram(uint SHADING_FLAG) {
 	generateAS(SHADING_FLAG);
 
 	fft2(context_.pixel_number, angularSpectrum, OPH_BACKWARD, OPH_ESTIMATE);
-	fftExecute(holo_gen);
+	fftwShift(angularSpectrum, holo_gen, context_.pixel_number[_X], context_.pixel_number[_Y], OPH_BACKWARD);
+	/*fftExecute(holo_gen);*/
 
 	auto end = CUR_TIME;
 	auto during = ((std::chrono::duration<Real>)(end - start)).count();
@@ -594,12 +604,10 @@ uint ophTri::refAS_Flat(vec3 no) {
 	int Nx = context_.pixel_number[_X];
 	int Ny = context_.pixel_number[_Y];
 
-	vec3 n = no / norm(no);
-
-	Real shadingFactor;
-	
-	Complex<Real> temp1(0,0);
-	Complex<Real> temp2(0,0);
+	n = no / norm(no);
+		
+	refTerm1(0,0);
+	refTerm2(0,0);
 
 	if (illumination[_X] == 0 && illumination[_Y] == 0 && illumination[_Z] == 0) {
 		shadingFactor = 1;
@@ -612,27 +620,27 @@ uint ophTri::refAS_Flat(vec3 no) {
 	}
 	for (int i = 0; i < Nx*Ny; i++) {
 		if (freqTermX[i] == -freqTermY[i] && freqTermY[i] != 0) {
-			temp1[_IM] = 2 * M_PI*freqTermY[i];
-			temp2[_IM] = 1;
-			refAS[i] = shadingFactor*(((Complex<Real>)1 - exp(temp1)) / (4 * M_PI*M_PI*freqTermY[i] * freqTermY[i]) + temp2 / (2 * M_PI*freqTermY[i]));
+			refTerm1[_IM] = 2 * M_PI*freqTermY[i];
+			refTerm2[_IM] = 1;
+			refAS[i] = shadingFactor*(((Complex<Real>)1 - exp(refTerm1)) / (4 * M_PI*M_PI*freqTermY[i] * freqTermY[i]) + refTerm2 / (2 * M_PI*freqTermY[i]));
 		}
 		else if (freqTermX[i] == freqTermY[i] && freqTermX[i] == 0) {
 			refAS[i] = shadingFactor * 1 / 2;
 		}
 		else if (freqTermX[i] != 0 && freqTermY[i] == 0) {
-			temp1[_IM] = -2 * M_PI*freqTermX[i];
-			temp2[_IM] = 1;
-			refAS[i] = shadingFactor*((exp(temp1) - (Complex<Real>)1) / (2 * M_PI*freqTermX[i] * 2 * M_PI*freqTermX[i]) + (temp2 * exp(temp1)) / (2 * M_PI*freqTermX[i]));
+			refTerm1[_IM] = -2 * M_PI*freqTermX[i];
+			refTerm2[_IM] = 1;
+			refAS[i] = shadingFactor*((exp(refTerm1) - (Complex<Real>)1) / (2 * M_PI*freqTermX[i] * 2 * M_PI*freqTermX[i]) + (refTerm2 * exp(refTerm1)) / (2 * M_PI*freqTermX[i]));
 		}
 		else if (freqTermX[i] == 0 && freqTermY[i] != 0) {
-			temp1[_IM] = 2 * M_PI*freqTermY[i];
-			temp2[_IM] = 1;
-			refAS[i] = shadingFactor*(((Complex<Real>)1 - exp(temp1)) / (4 * M_PI*M_PI*freqTermY[i] * freqTermY[i]) - temp2 / (2 * M_PI*freqTermY[i]));
+			refTerm1[_IM] = 2 * M_PI*freqTermY[i];
+			refTerm2[_IM] = 1;
+			refAS[i] = shadingFactor*(((Complex<Real>)1 - exp(refTerm1)) / (4 * M_PI*M_PI*freqTermY[i] * freqTermY[i]) - refTerm2 / (2 * M_PI*freqTermY[i]));
 		}
 		else {
-			temp1[_IM] = -2 * M_PI*freqTermX[i];
-			temp2[_IM] = -2 * M_PI*(freqTermX[i] + freqTermY[i]);
-			refAS[i] = shadingFactor*((exp(temp1) - (Complex<Real>)1) / (4 * M_PI*M_PI*freqTermX[i] * freqTermY[i]) + ((Complex<Real>)1 - exp(temp2)) / (4 * M_PI*M_PI*freqTermY[i] * (freqTermX[i] + freqTermY[i])));
+			refTerm1[_IM] = -2 * M_PI*freqTermX[i];
+			refTerm2[_IM] = -2 * M_PI*(freqTermX[i] + freqTermY[i]);
+			refAS[i] = shadingFactor*((exp(refTerm1) - (Complex<Real>)1) / (4 * M_PI*M_PI*freqTermX[i] * freqTermY[i]) + ((Complex<Real>)1 - exp(refTerm2)) / (4 * M_PI*M_PI*freqTermY[i] * (freqTermX[i] + freqTermY[i])));
 		}
 	}
 	return 1;
@@ -647,13 +655,13 @@ uint ophTri::refAS_Continuous(uint n) {
 	av[2] = nv[3 * n + 1][0] * illumination[0] + nv[3 * n + 1][1] * illumination[1] + nv[3 * n + 1][2] * illumination[2] + 0.1;
 	av[1] = nv[3 * n + 2][0] * illumination[0] + nv[3 * n + 2][1] * illumination[1] + nv[3 * n + 2][2] * illumination[2] + 0.1;
 
-	Complex<Real> D1(0, 0);
-	Complex<Real> D2(0, 0);
-	Complex<Real> D3(0, 0);
+	D1(0, 0);
+	D2(0, 0);
+	D3(0, 0);
 
-	Complex<Real> temp1(0, 0);
-	Complex<Real> temp2(0, 0);
-	Complex<Real> temp3(0, 0);
+	refTerm1(0, 0);
+	refTerm2(0, 0);
+	refTerm3(0, 0);
 	
 	for (int i = 0; i < Nx*Ny; i++) {
 		if (freqTermX[i] == 0 && freqTermY[i] == 0) {
@@ -662,50 +670,50 @@ uint ophTri::refAS_Continuous(uint n) {
 			D3((Real)1 / (Real)2, 0);
 		}
 		else if (freqTermX[i] == 0 && freqTermY[i] != 0) {
-			temp1[_IM] = -2 * M_PI*freqTermY[i];
-			temp2[_IM] = 1;
+			refTerm1[_IM] = -2 * M_PI*freqTermY[i];
+			refTerm2[_IM] = 1;
 			
-			D1 = (temp1 - (Real)1)*temp1.exp() / (8 * M_PI*M_PI*M_PI*freqTermY[i] * freqTermY[i] * freqTermY[i]) 
-				- temp1 / (4 * M_PI*M_PI*M_PI*freqTermY[i] * freqTermY[i] * freqTermY[i]);
-			D2 = -(M_PI*freqTermY[i] + temp2) / (4 * M_PI*M_PI*M_PI*freqTermY[i] * freqTermY[i] * freqTermY[i])*exp(temp1) 
-				+ temp1 / (8 * M_PI*M_PI*M_PI*freqTermY[i] * freqTermY[i] * freqTermY[i]);
-			D3 = exp(temp1) / (2 * M_PI*freqTermY[i]) + ((Real)1 - temp2) / (2 * M_PI*freqTermY[i]);
+			D1 = (refTerm1 - (Real)1)*refTerm1.exp() / (8 * M_PI*M_PI*M_PI*freqTermY[i] * freqTermY[i] * freqTermY[i]) 
+				- refTerm1 / (4 * M_PI*M_PI*M_PI*freqTermY[i] * freqTermY[i] * freqTermY[i]);
+			D2 = -(M_PI*freqTermY[i] + refTerm2) / (4 * M_PI*M_PI*M_PI*freqTermY[i] * freqTermY[i] * freqTermY[i])*exp(refTerm1) 
+				+ refTerm1 / (8 * M_PI*M_PI*M_PI*freqTermY[i] * freqTermY[i] * freqTermY[i]);
+			D3 = exp(refTerm1) / (2 * M_PI*freqTermY[i]) + ((Real)1 - refTerm2) / (2 * M_PI*freqTermY[i]);
 		}
 		else if (freqTermX[i] != 0 && freqTermY[i] == 0) {
-			temp1[_IM] = 4 * M_PI*M_PI*freqTermX[i] * freqTermX[i];
-			temp2[_IM] = 1;
-			temp3[_IM] = 2 * M_PI*freqTermX[i];
+			refTerm1[_IM] = 4 * M_PI*M_PI*freqTermX[i] * freqTermX[i];
+			refTerm2[_IM] = 1;
+			refTerm3[_IM] = 2 * M_PI*freqTermX[i];
 
-			D1 = (temp1 + 4 * M_PI*freqTermX[i] - (Real)2 * temp2) / (8 * M_PI*M_PI*M_PI*freqTermY[i] * freqTermY[i] * freqTermY[i])*exp(-temp3) 
-				+ temp2 / (4 * M_PI*M_PI*M_PI*freqTermX[i] * freqTermX[i] * freqTermX[i]);
+			D1 = (refTerm1 + 4 * M_PI*freqTermX[i] - (Real)2 * refTerm2) / (8 * M_PI*M_PI*M_PI*freqTermY[i] * freqTermY[i] * freqTermY[i])*exp(-refTerm3) 
+				+ refTerm2 / (4 * M_PI*M_PI*M_PI*freqTermX[i] * freqTermX[i] * freqTermX[i]);
 			D2 = (Real)1 / (Real)2 * D1;
-			D3 = ((temp3 + (Real)1)*exp(-temp3) - (Real)1) / (4 * M_PI*M_PI*freqTermX[i] * freqTermX[i]);
+			D3 = ((refTerm3 + (Real)1)*exp(-refTerm3) - (Real)1) / (4 * M_PI*M_PI*freqTermX[i] * freqTermX[i]);
 		}
 		else if (freqTermX[i] == -freqTermY[i]) {
-			temp1[_IM] = 1;
-			temp2[_IM] = 2 * M_PI*freqTermX[i];
-			temp3[_IM] = 2 * M_PI*M_PI*freqTermX[i] * freqTermX[i];
+			refTerm1[_IM] = 1;
+			refTerm2[_IM] = 2 * M_PI*freqTermX[i];
+			refTerm3[_IM] = 2 * M_PI*M_PI*freqTermX[i] * freqTermX[i];
 
-			D1 = (-2 * M_PI*freqTermX[i] + temp1) / (8 * M_PI*M_PI*M_PI*freqTermX[i] * freqTermX[i] * freqTermX[i])*exp(-temp2) 
-				- (temp3 + temp1) / (8 * M_PI*M_PI*M_PI*freqTermX[i] * freqTermX[i] * freqTermX[i]);
-			D2 = (-temp1) / (8 * M_PI*M_PI*M_PI*freqTermX[i] * freqTermX[i] * freqTermX[i])*exp(-temp2) 
-				+ (-temp3 + temp1 + 2 * M_PI*freqTermX[i]) / (8 * M_PI*M_PI*M_PI*freqTermX[i] * freqTermX[i] * freqTermX[i]);
-			D3 = (-temp1) / (4 * M_PI*M_PI*freqTermX[i] * freqTermX[i])*exp(-temp2) 
-				+ (-temp2 + (Real)1) / (4 * M_PI*M_PI*freqTermX[i] * freqTermX[i]);
+			D1 = (-2 * M_PI*freqTermX[i] + refTerm1) / (8 * M_PI*M_PI*M_PI*freqTermX[i] * freqTermX[i] * freqTermX[i])*exp(-refTerm2) 
+				- (refTerm3 + refTerm1) / (8 * M_PI*M_PI*M_PI*freqTermX[i] * freqTermX[i] * freqTermX[i]);
+			D2 = (-refTerm1) / (8 * M_PI*M_PI*M_PI*freqTermX[i] * freqTermX[i] * freqTermX[i])*exp(-refTerm2) 
+				+ (-refTerm3 + refTerm1 + 2 * M_PI*freqTermX[i]) / (8 * M_PI*M_PI*M_PI*freqTermX[i] * freqTermX[i] * freqTermX[i]);
+			D3 = (-refTerm1) / (4 * M_PI*M_PI*freqTermX[i] * freqTermX[i])*exp(-refTerm2) 
+				+ (-refTerm2 + (Real)1) / (4 * M_PI*M_PI*freqTermX[i] * freqTermX[i]);
 		}
 		else {
-			temp1[_IM] = -2 * M_PI*(freqTermX[i] + freqTermY[i]);
-			temp2[_IM] = 1;
-			temp3[_IM] = -2 * M_PI*freqTermX[i];
+			refTerm1[_IM] = -2 * M_PI*(freqTermX[i] + freqTermY[i]);
+			refTerm2[_IM] = 1;
+			refTerm3[_IM] = -2 * M_PI*freqTermX[i];
 
-			D1 = exp(temp1)*(temp2 - 2 * M_PI*(freqTermX[i] + freqTermY[i])) / (8 * M_PI*M_PI*M_PI*freqTermY[i] * (freqTermX[i] + freqTermY[i])*(freqTermX[i] + freqTermY[i]))
-				+ exp(temp3)*(2 * M_PI*freqTermX[i] - temp2) / (8 * M_PI*M_PI*M_PI*freqTermX[i] * freqTermX[i] * freqTermY[i])
-				+ ((2 * freqTermX[i] + freqTermY[i])*temp2) / (8 * M_PI*M_PI*M_PI*freqTermX[i] * freqTermX[i] * (freqTermX[i] + freqTermY[i])*(freqTermX[i] + freqTermY[i]));
-			D2 = exp(temp1)*(temp2*(freqTermX[i] + 2 * freqTermY[i]) - 2 * M_PI*freqTermY[i] * (freqTermX[i] + freqTermY[i])) / (8 * M_PI*M_PI*M_PI*freqTermY[i] * freqTermY[i] * (freqTermX[i] + freqTermY[i])*(freqTermX[i] + freqTermY[i]))
-				+ exp(temp3)*(-temp2) / (8 * M_PI*M_PI*M_PI*freqTermX[i] * freqTermY[i] * freqTermY[i])
-				+ temp2 / (8 * M_PI*M_PI*M_PI*freqTermX[i] * (freqTermX[i] + freqTermY[i])* (freqTermX[i] + freqTermY[i]));
-			D3 = -exp(temp1) / (4 * M_PI*M_PI*freqTermY[i] * (freqTermX[i] + freqTermY[i]))
-				+ exp(temp3) / (4 * M_PI*M_PI*freqTermX[i] * freqTermY[i])
+			D1 = exp(refTerm1)*(refTerm2 - 2 * M_PI*(freqTermX[i] + freqTermY[i])) / (8 * M_PI*M_PI*M_PI*freqTermY[i] * (freqTermX[i] + freqTermY[i])*(freqTermX[i] + freqTermY[i]))
+				+ exp(refTerm3)*(2 * M_PI*freqTermX[i] - refTerm2) / (8 * M_PI*M_PI*M_PI*freqTermX[i] * freqTermX[i] * freqTermY[i])
+				+ ((2 * freqTermX[i] + freqTermY[i])*refTerm2) / (8 * M_PI*M_PI*M_PI*freqTermX[i] * freqTermX[i] * (freqTermX[i] + freqTermY[i])*(freqTermX[i] + freqTermY[i]));
+			D2 = exp(refTerm1)*(refTerm2*(freqTermX[i] + 2 * freqTermY[i]) - 2 * M_PI*freqTermY[i] * (freqTermX[i] + freqTermY[i])) / (8 * M_PI*M_PI*M_PI*freqTermY[i] * freqTermY[i] * (freqTermX[i] + freqTermY[i])*(freqTermX[i] + freqTermY[i]))
+				+ exp(refTerm3)*(-refTerm2) / (8 * M_PI*M_PI*M_PI*freqTermX[i] * freqTermY[i] * freqTermY[i])
+				+ refTerm2 / (8 * M_PI*M_PI*M_PI*freqTermX[i] * (freqTermX[i] + freqTermY[i])* (freqTermX[i] + freqTermY[i]));
+			D3 = -exp(refTerm1) / (4 * M_PI*M_PI*freqTermY[i] * (freqTermX[i] + freqTermY[i]))
+				+ exp(refTerm3) / (4 * M_PI*M_PI*freqTermX[i] * freqTermY[i])
 				- (Real)1 / (4 * M_PI*M_PI*freqTermX[i] * (freqTermX[i] + freqTermY[i]));
 		}
 		refAS[i] = (av[1] - av[0])*D1 + (av[2] - av[1])*D2 + av[0] * D3;
@@ -738,7 +746,7 @@ uint ophTri::refToGlobal() {
 			term2[_IM] = 2 * M_PI*(flx[i] * geom.glShift[_X] + fly[i] * geom.glShift[_Y] + flz[i] * geom.glShift[_Z]);
 			temp = refAS[i] / det * exp(term1)* flz[i] / fz[i] * exp(term2);
 		}
-		if (abs(temp)>MIN_DOUBLE) { }
+		if (abs(temp) > MIN_DOUBLE) {}
 		else { temp = 0; }
 		angularSpectrum[i] += temp;	
 	}
