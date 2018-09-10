@@ -143,7 +143,7 @@ bool oph::ImgDecoderOhc::load() {
 		}
 
 		// Read Wavelength Table
-		for (int n = 0; n < FldInfo.wavlenNum; ++n) {
+		for (uint n = 0; n < FldInfo.wavlenNum; ++n) {
 			double_t wavelength = 0.;
 			this->File.read((char*)&wavelength, sizeof(double_t));
 			WavLeng.push_back(wavelength);
@@ -209,8 +209,8 @@ bool oph::ImgDecoderOhc::decodeFieldData() {
 	// Data Type Info for Decoding
 	bool bIsInteger = std::numeric_limits<T>::is_integer; // only float, double, long double is false
 	//bool bIsSigned = std::numeric_limits<T>::is_signed; // unsigned type is false, bool is too false.
-	double max_T = std::numeric_limits<T>::max();
-	double min_T = std::numeric_limits<T>::min();
+	double max_T = (double)std::numeric_limits<T>::max();
+	double min_T = (double)std::numeric_limits<T>::min();
 
 	int n_wavlens = FldInfo.wavlenNum;
 	int cols = FldInfo.pxNumX;
@@ -505,7 +505,7 @@ void oph::ImgEncoderOhc::push_back_FldData(const OphComplexField &data) {
 
 void oph::ImgEncoderOhc::push_back_Wavlen(const Real wavlen) {
 	this->Header->wavlenTable.push_back(wavlen);
-	this->Header->fieldInfo.wavlenNum = this->Header->wavlenTable.size();
+	this->Header->fieldInfo.wavlenNum = (uint32_t)this->Header->wavlenTable.size();
 }
 
 void oph::ImgEncoderOhc::push_back_LinkFilePath(const std::string &path) {
@@ -574,7 +574,7 @@ bool oph::ImgEncoderOhc::save() {
 			return false;
 		}
 		else {
-			FldInfo.headerSize = sizeof(OHCFIELDINFOHEADER) + wavlenTableSize;
+			FldInfo.headerSize = (uint32_t)(sizeof(OHCFIELDINFOHEADER) + wavlenTableSize);
 			FldInfo.fldSize = dataSize;
 
 			if (FldInfo.cmplxFldType != DataType::ImgFmt)
@@ -598,7 +598,7 @@ bool oph::ImgEncoderOhc::save() {
 		this->File.write((char*)&FldInfo, sizeof(OHCFIELDINFOHEADER));
 
 		// write Wavelength Table
-		for (int n = 0; n < FldInfo.wavlenNum; ++n) {
+		for (uint n = 0; n < FldInfo.wavlenNum; ++n) {
 			double_t waveLength = WavLeng[n];
 			this->File.write((char*)&waveLength, sizeof(double_t));
 		}
@@ -621,8 +621,8 @@ uint64_t oph::ImgEncoderOhc::encodeFieldData() {
 	// Data Type Info for Encoding
 	bool bIsInteger = std::numeric_limits<T>::is_integer; // only float, double, long double is false
 	//bool bIsSigned = std::numeric_limits<T>::is_signed; // unsigned type is false, bool is too false.
-	double max_T = std::numeric_limits<T>::max();
-	double min_T = std::numeric_limits<T>::min();
+	double max_T = (double)std::numeric_limits<T>::max();
+	double min_T = (double)std::numeric_limits<T>::min();
 
 	ulonglong dataSizeBytes = 0;
 	int n_wavlens = FldInfo.wavlenNum;
