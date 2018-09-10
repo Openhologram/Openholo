@@ -186,6 +186,8 @@ private:
 	* @details	not considered for the users
 	*/
 
+	vec3 n;
+	Real shadingFactor;
 	geometric geom;
 	Real* mesh_local;
 	Real* flx;
@@ -194,6 +196,16 @@ private:
 	Real* freqTermX;
 	Real* freqTermY;
 	Complex<Real>* refAS;
+
+	Complex<Real> refTerm1;
+	Complex<Real> refTerm2;
+	Complex<Real> refTerm3;
+
+	Complex<Real> D1;
+	Complex<Real> D2;
+	Complex<Real> D3;
+
+
 };
 
 

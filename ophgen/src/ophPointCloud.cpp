@@ -75,10 +75,8 @@ Real ophPointCloud::generateHologram(uint diff_flag)
 	return during_time;
 }
 
-void ophPointCloud::encodeHologram(void)
+void ophPointCloud::encodeHologram(const vec2 band_limit, const vec2 spectrum_shift)
 {
-	//encodeSideBand(is_CPU, ivec2(0, 1));
-
 	if (holo_gen == nullptr) {
 		LOG("Not found diffracted data.");
 		return;
@@ -87,9 +85,6 @@ void ophPointCloud::encodeHologram(void)
 	ivec2 pn = context_.pixel_number;
 	vec2 pp = context_.pixel_pitch;
 	vec2 ss = context_.ss;
-
-	vec2 band_limit(0.8, 0.5);			// 임시 변수
-	vec2 spectrum_shift(0.0, 0.5);		// 임시 변수
 
 	Real cropx = floor(pn[_X] * band_limit[_X]);
 	Real cropx1 = cropx - floor(cropx / 2);
@@ -140,7 +135,6 @@ void ophPointCloud::encodeHologram(void)
 		Real Y = (M_PI * yy_o[i] * spectrum_shift[_Y]) / pp[_Y];
 
 		shift_phase._Val[_RE] = shift_phase._Val[_RE] * (cos(X) * cos(Y) - sin(X) * sin(Y));
-
 
 		holo_encoded[i] = (h[i] * shift_phase).real();
 	}

@@ -187,11 +187,18 @@ int ophLF::loadLF()
 }
 
 void ophLF::generateHologram() {
+
+	auto start = CUR_TIME;
+
 	cout << "Generating Hologram..." << endl;
 	convertLF2ComplexField();
-	cout << "convert finished" << endl;
+	cout << "Convert finished" << endl;
 	fresnelPropagation(RSplane_complex_field, holo_gen, distanceRS2Holo);
-	cout << "Hologram Generated.." << endl;
+
+	auto end = CUR_TIME;
+	auto during = ((std::chrono::duration<Real>)(end - start)).count();
+
+	LOG("%.5lfsec...hologram generated..\n", during);
 }
 
 
