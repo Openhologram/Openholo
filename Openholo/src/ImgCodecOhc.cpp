@@ -143,7 +143,7 @@ bool oph::ImgDecoderOhc::load() {
 		}
 
 		// Read Wavelength Table
-		for (int n = 0; n < FldInfo.wavlenNum; ++n) {
+		for (uint n = 0; n < FldInfo.wavlenNum; ++n) {
 			double_t wavelength = 0.;
 			this->File.read((char*)&wavelength, sizeof(double_t));
 			WavLeng.push_back(wavelength);
