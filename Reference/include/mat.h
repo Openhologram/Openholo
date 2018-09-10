@@ -37,7 +37,7 @@ namespace oph
 			init();
 		}
 
-		matrix(matrix<T>& ref) : size(ref.size) {
+		matrix(const matrix<T>& ref) : size(ref.size) {
 			init();
 			for (int x = 0; x < size[_X]; x++)
 				for (int y = 0; y < size[_Y]; y++) {

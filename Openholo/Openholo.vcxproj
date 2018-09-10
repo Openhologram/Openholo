@@ -26,6 +26,8 @@
     <ClInclude Include="src\epsilon.h" />
     <ClInclude Include="src\fftw3.h" />
     <ClInclude Include="src\function.h" />
+    <ClInclude Include="src\ImgCodecDefine.h" />
+    <ClInclude Include="src\ImgCodecOhc.h" />
     <ClInclude Include="src\include.h" />
     <ClInclude Include="src\ivec.h" />
     <ClInclude Include="src\mat.h" />
@@ -38,6 +40,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\epsilon.cpp" />
+    <ClCompile Include="src\ImgCodecOhc.cpp" />
     <ClCompile Include="src\Openholo.cpp" />
     <ClCompile Include="src\PLYparser.cpp" />
     <ClCompile Include="src\sys.cpp" />
@@ -47,7 +50,7 @@
     <VCProjectVersion>15.0</VCProjectVersion>
     <ProjectGuid>{F87DA845-513D-4F3B-9F72-16BB2C18A782}</ProjectGuid>
     <RootNamespace>openholo</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.16299.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.17134.0</WindowsTargetPlatformVersion>
     <ProjectName>openholo</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
