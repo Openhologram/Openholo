@@ -817,6 +817,247 @@ bool ophSig::save(const char *real, const char *imag, uint8_t bitpixel)
 }
 
 
+bool ophSig::save(const char *real, uint8_t bitpixel)
+{
+	string realname = real;
+
+	int checktype = static_cast<int>(realname.rfind("."));
+
+	if (realname.substr(checktype + 1, realname.size()) == "bmp")
+	{
+		oph::uchar* realdata;
+		int _pixelbytesize = 0;
+		int _width = _cfgSig.cols, _height = _cfgSig.rows;
+
+		if (bitpixel == 8)
+		{
+			_pixelbytesize = _height * _width;
+		}
+		else
+		{
+			_pixelbytesize = _height * _width * 3;
+		}
+		int _filesize = 0;
+
+
+		FILE *freal, *fimag;
+		fopen_s(&freal, realname.c_str(), "wb");
+
+		if ((freal == nullptr) || (fimag == nullptr))
+		{
+			LOG("file not found\n");
+			return FALSE;
+		}
+
+		if (bitpixel == 8)
+		{
+			realdata = (oph::uchar*)malloc(sizeof(oph::uchar) * _cfgSig.rows * _cfgSig.cols);
+			_filesize = _pixelbytesize + sizeof(bitmap);
+
+			bitmap *pbitmap = (bitmap*)calloc(1, sizeof(bitmap));
+			memset(pbitmap, 0x00, sizeof(bitmap));
+
+			pbitmap->fileheader.signature[0] = 'B';
+			pbitmap->fileheader.signature[1] = 'M';
+			pbitmap->fileheader.filesize = _filesize;
+			pbitmap->fileheader.fileoffset_to_pixelarray = sizeof(bitmap);
+
+			for (int i = 0; i < 256; i++) {
+				pbitmap->rgbquad[i].rgbBlue = i;
+				pbitmap->rgbquad[i].rgbGreen = i;
+				pbitmap->rgbquad[i].rgbRed = i;
+			}
+
+
+			//// denormalization
+			for (int i = _height - 1; i >= 0; i--)
+			{
+				for (int j = 0; j < _width; j++)
+				{
+					if (ComplexH[0].mat[_height - i - 1][j]._Val[_RE] < 0)
+					{
+						ComplexH[0].mat[_height - i - 1][j]._Val[_RE] = 0;
+					}
+				}
+			}
+
+			double minVal, maxVal;
+			for (int j = 0; j < ComplexH[0].size[_Y]; j++) {
+				for (int i = 0; i < ComplexH[0].size[_X]; i++) {
+					if ((i == 0) && (j == 0))
+					{
+						minVal = ComplexH[0](i, j)._Val[_RE];
+						maxVal = ComplexH[0](i, j)._Val[_RE];
+					}
+					else {
+						if (ComplexH[0](i, j)._Val[_RE] < minVal)
+						{
+							minVal = ComplexH[0](i, j).real();
+						}
+						if (ComplexH[0](i, j)._Val[_RE] > maxVal)
+						{
+							maxVal = ComplexH[0](i, j).real();
+						}
+					}
+				}
+			}
+			for (int i = _height - 1; i >= 0; i--)
+			{
+				for (int j = 0; j < _width; j++)
+				{
+					realdata[i*_width + j] = (uchar)((ComplexH[0](_height - i - 1, j)._Val[_RE] - minVal) / (maxVal - minVal) * 255 + 0.5);
+				}
+			}
+
+			pbitmap->bitmapinfoheader.dibheadersize = sizeof(bitmapinfoheader);
+			pbitmap->bitmapinfoheader.width = _width;
+			pbitmap->bitmapinfoheader.height = _height;
+			pbitmap->bitmapinfoheader.planes = OPH_PLANES;
+			pbitmap->bitmapinfoheader.bitsperpixel = bitpixel;
+			pbitmap->bitmapinfoheader.compression = OPH_COMPRESSION;
+			pbitmap->bitmapinfoheader.imagesize = _pixelbytesize;
+			pbitmap->bitmapinfoheader.ypixelpermeter = 0;
+			pbitmap->bitmapinfoheader.xpixelpermeter = 0;
+			pbitmap->bitmapinfoheader.numcolorspallette = 256;
+
+			fwrite(pbitmap, 1, sizeof(bitmap), freal);
+			fwrite(realdata, 1, _pixelbytesize, freal);
+
+			fclose(freal);
+			free(pbitmap);
+		}
+		else
+		{
+			realdata = (oph::uchar*)malloc(sizeof(oph::uchar) * _cfgSig.rows * _cfgSig.cols * bitpixel / 3);
+			_filesize = _pixelbytesize + sizeof(fileheader) + sizeof(bitmapinfoheader);
+
+			fileheader *hf = (fileheader*)calloc(1, sizeof(fileheader));
+			bitmapinfoheader *hInfo = (bitmapinfoheader*)calloc(1, sizeof(bitmapinfoheader));
+
+			hf->signature[0] = 'B';
+			hf->signature[1] = 'M';
+			hf->filesize = _filesize;
+			hf->fileoffset_to_pixelarray = sizeof(fileheader) + sizeof(bitmapinfoheader);
+
+			double minVal, maxVal;
+			for (int z = 0; z < 3; z++)
+			{
+				for (int j = 0; j < ComplexH[0].size[_Y]; j++) {
+					for (int i = 0; i < ComplexH[0].size[_X]; i++) {
+						if ((i == 0) && (j == 0))
+						{
+							minVal = ComplexH[z](i, j)._Val[_RE];
+							maxVal = ComplexH[z](i, j)._Val[_RE];
+						}
+						else {
+							if (ComplexH[z](i, j)._Val[_RE] < minVal)
+							{
+								minVal = ComplexH[z](i, j)._Val[_RE];
+							}
+							if (ComplexH[z](i, j)._Val[_RE] > maxVal)
+							{
+								maxVal = ComplexH[z](i, j)._Val[_RE];
+							}
+						}
+					}
+				}
+
+				for (int i = _height - 1; i >= 0; i--)
+				{
+					for (int j = 0; j < _width; j++)
+					{
+						realdata[3 * j + 3 * i * _width + z] = (uchar)((ComplexH[z](_height - i - 1, j)._Val[_RE] - minVal) / (maxVal - minVal) * 255);
+
+					}
+				}
+			}
+			hInfo->dibheadersize = sizeof(bitmapinfoheader);
+			hInfo->width = _width;
+			hInfo->height = _height;
+			hInfo->planes = OPH_PLANES;
+			hInfo->bitsperpixel = bitpixel;
+			hInfo->compression = OPH_COMPRESSION;
+			hInfo->imagesize = _pixelbytesize;
+			hInfo->ypixelpermeter = 0;
+			hInfo->xpixelpermeter = 0;
+
+			fwrite(hf, 1, sizeof(fileheader), freal);
+			fwrite(hInfo, 1, sizeof(bitmapinfoheader), freal);
+			fwrite(realdata, 1, _pixelbytesize, freal);
+
+			fclose(freal);
+			free(hf);
+			free(hInfo);
+		}
+
+		free(realdata);
+		std::cout << "file save bmp complete" << endl;
+		return TRUE;
+	}
+	else if (realname.substr(checktype + 1, realname.size()) == "bin")
+	{
+
+		if (bitpixel == 8)
+		{
+			std::ofstream cos(realname, std::ios::binary);
+
+			if (!cos.is_open()) {
+				printf("real file not found.\n");
+				cos.close();
+				return FALSE;
+			}
+
+			double *realdata = new  double[ComplexH[0].size[_X] * ComplexH[0].size[_Y]];
+
+			for (int col = 0; col < ComplexH[0].size[_Y]; col++)
+			{
+				for (int row = 0; row < ComplexH[0].size[_X]; row++)
+				{
+					realdata[_cfgSig.rows*col + row] = ComplexH[0].mat[row][col]._Val[_RE];
+				}
+			}
+
+			cos.write(reinterpret_cast<const char*>(realdata), sizeof(double) * ComplexH[0].size[_X] * ComplexH[0].size[_Y]);
+
+			cos.close();
+			delete[]realdata;
+		}
+		else if (bitpixel == 24)
+		{
+			std::string RGB_name[] = { "_B.", "_G.", "_R." };
+
+			double *realdata = new  double[_cfgSig.rows * _cfgSig.cols];
+
+			for (int z = 0; z < 3; z++)
+			{
+				std::ofstream cos(strtok((char*)realname.c_str(), ".") + RGB_name[z] + "bin", std::ios::binary);
+
+				if (!cos.is_open()) {
+					LOG("real file not found.\n");
+					cos.close();
+					return FALSE;
+				}
+
+				for (int col = 0; col < ComplexH[0].size[_Y]; col++)
+				{
+					for (int row = 0; row < ComplexH[0].size[_X]; row++)
+					{
+						realdata[_cfgSig.rows*col + row] = ComplexH[z].mat[row][col]._Val[_RE];
+					}
+				}
+				cos.write(reinterpret_cast<const char*>(realdata), sizeof(double) * _cfgSig.rows * _cfgSig.cols);
+
+				cos.close();
+			}
+			delete[]realdata;
+		}
+		std::cout << "file save binary complete" << endl;
+	}
+	return TRUE;
+}
+
+
+
 bool ophSig::sigConvertOffaxis() {
 	matrix<Real> x, y, H1;
 	vector<Real> X, Y;
