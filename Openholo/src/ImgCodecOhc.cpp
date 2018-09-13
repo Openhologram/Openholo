@@ -706,20 +706,33 @@ void oph::ImgEncoderOhc::setPhaseEncoding(const BPhaseCode _bPhaseCode, const ve
 //}
 
 void oph::ImgEncoderOhc::setWavelength(const Real _wavlen, const LenUnit _unit) {
-	this->addWavlen(_wavlen);
+	this->addWavelength(_wavlen);
 	this->setUnitOfWavlen(_unit);
 }
 
-void oph::ImgEncoderOhc::addWaveFld(const Real wavlen, const OphComplexField &data) {
-	this->addWavlen(wavlen);
-	this->addFldData(data);
+void oph::ImgEncoderOhc::addWavelengthNComplexFieldData(const Real wavlen, const OphComplexField &data) {
+	this->addWavelength(wavlen);
+	this->addComplexFieldData(data);
 }
 
-void oph::ImgEncoderOhc::addFldData(const OphComplexField &data) {
+void oph::ImgEncoderOhc::addComplexFieldData(const OphComplexField &data) {
 	this->field_cmplx.push_back(data);
 }
 
-void oph::ImgEncoderOhc::addWavlen(const Real wavlen) {
+void oph::ImgEncoderOhc::addComplexFieldData(const Complex<Real>* data, ivec2 buffer_size)
+{
+	if (data == nullptr) {
+		LOG("not found Complex data");
+		return;
+	}
+
+	OphComplexField complexField;
+	Buffer2Field(data, complexField, buffer_size);
+
+	this->field_cmplx.push_back(complexField);
+}
+
+void oph::ImgEncoderOhc::addWavelength(const Real wavlen) {
 	WavLeng.push_back(wavlen);
 	this->setNumOfWavlen((uint32_t)WavLeng.size());
 }
