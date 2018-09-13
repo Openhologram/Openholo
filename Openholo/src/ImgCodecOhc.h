@@ -33,7 +33,7 @@ namespace oph
 		void getOHCheader(OHCheader &_Header);
 		void getFieldInfo(OHCFIELDINFOHEADER &_FieldInfo, std::vector<double_t> &_wavlenTable);
 
-		void getComplexFieldData(std::vector<OphComplexField>& cmplx_field) { cmplx_field = field_cmplx; }
+		void getComplexFieldData(OphComplexField& cmplx_field) { cmplx_field = field_cmplx[0]; }
 		
 	protected: /* field */
 		std::string fname;
@@ -106,7 +106,7 @@ namespace oph
 
 		void addWavelengthNComplexFieldData(const Real wavlen, const OphComplexField &data);
 		void addComplexFieldData(const OphComplexField &data);
-		void addComplexFieldData(const Complex<Real> *data, ivec2 buffer_size);
+		void addComplexFieldData(const Complex<Real> *data);
 		void addWavelength(const Real wavlen);
 		//void addLinkFilePath(const std::string &path);
 

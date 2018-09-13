@@ -135,7 +135,7 @@ uchar * Openholo::loadAsImg(const char * fname)
 int Openholo::saveAsOhc(const char * fname, Complex<Real> *src)
 {
 	OHC_encoder->setFileName(fname);
-	OHC_encoder->addComplexFieldData(src, OHC_decoder->getNumOfPixel());
+	OHC_encoder->addComplexFieldData(src);
 
 	if (!OHC_encoder->save()) return -1;
 
@@ -145,7 +145,7 @@ int Openholo::saveAsOhc(const char * fname, Complex<Real> *src)
 int Openholo::saveAsOhc(const char * fname, OphComplexField & src)
 {
 	OHC_encoder->setFileName(fname);
-
+	OHC_encoder->addComplexFieldData(src);	
 
 	if (!OHC_encoder->save()) return -1;
 
@@ -157,6 +157,11 @@ int Openholo::loadAsOhc(const char * fname, Complex<Real>* dst)
 	OHC_decoder->setFileName(fname);
 	if (!OHC_decoder->load()) return -1;
 
+	OphComplexField res;
+	OHC_decoder->getComplexFieldData(res);
+
+	Field2Buffer(res, dst);
+
 	return 1;
 }
 
@@ -164,6 +169,8 @@ int Openholo::loadAsOhc(const char * fname, OphComplexField & dst)
 {
 	OHC_decoder->setFileName(fname);
 	if (!OHC_decoder->load()) return -1;
+
+	OHC_decoder->getComplexFieldData(dst);
 
 	return 1;
 }

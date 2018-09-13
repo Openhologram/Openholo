@@ -144,6 +144,7 @@ public:
 	* @brief Function for saving image files
 	*/
 	int save(const char* fname, uint8_t bitsperpixel = 8, uchar* src = nullptr, uint px = 0, uint py = 0);
+	int saveAsOhc(const char* fname);
 	
 	/** \ingroup read
 	* @brief Function for loading image files

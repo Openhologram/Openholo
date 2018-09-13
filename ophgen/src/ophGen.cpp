@@ -121,7 +121,10 @@ bool ophGen::readConfig(const char* fname, OphPointCloudConfig& configdata)
 	context_.k = (2 * M_PI) / context_.lambda;
 	context_.ss[_X] = context_.pixel_number[_X] * context_.pixel_pitch[_X];
 	context_.ss[_Y] = context_.pixel_number[_Y] * context_.pixel_pitch[_Y];
-	/*XML parsing*/
+
+	Openholo::setPixelNumber(context_.pixel_number);
+	Openholo::setPixelPitch(context_.pixel_pitch);
+	Openholo::setWavelength(context_.lambda, LenUnit::m);
 
 	auto end = CUR_TIME;
 
@@ -215,7 +218,10 @@ bool ophGen::readConfig(const char* fname, OphDepthMapConfig & config)
 	context_.k = (2 * M_PI) / context_.lambda;
 	context_.ss[_X] = context_.pixel_number[_X] * context_.pixel_pitch[_X];
 	context_.ss[_Y] = context_.pixel_number[_Y] * context_.pixel_pitch[_Y];
-	/*XML parsing*/
+
+	Openholo::setPixelNumber(context_.pixel_number);
+	Openholo::setPixelPitch(context_.pixel_pitch);
+	Openholo::setWavelength(context_.lambda, LenUnit::m);
 
 	auto end = CUR_TIME;
 
@@ -282,7 +288,10 @@ bool ophGen::readConfig(const char* fname, OphWRPConfig& configdata)
 	context_.k = (2 * M_PI) / context_.lambda;
 	context_.ss[_X] = context_.pixel_number[_X] * context_.pixel_pitch[_X];
 	context_.ss[_Y] = context_.pixel_number[_Y] * context_.pixel_pitch[_Y];
-	/*XML parsing*/
+
+	Openholo::setPixelNumber(context_.pixel_number);
+	Openholo::setPixelPitch(context_.pixel_pitch);
+	Openholo::setWavelength(context_.lambda, LenUnit::m);
 
 	auto end = CUR_TIME;
 
@@ -360,6 +369,13 @@ int ophGen::save(const char * fname, uint8_t bitsperpixel, uchar* src, uint px, 
 
 		return Openholo::saveAsImg(buf, bitsperpixel, source, p[_X], p[_Y]);
 	}
+}
+
+int ophGen::saveAsOhc(const char * fname)
+{
+	Openholo::saveAsOhc(fname, holo_gen);
+
+	return 0;
 }
 
 int ophGen::save(const char * fname, uint8_t bitsperpixel, uint px, uint py, uint fnum, uchar* args ...)

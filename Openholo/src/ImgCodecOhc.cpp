@@ -377,7 +377,7 @@ bool oph::ImgDecoderOhc::decodeFieldData() {
 				int idx = y * cols + x;
 
 				for (int clrChnl = 0; clrChnl < n_wavlens; ++clrChnl) { // RGB is wavlenNum == 3
-					int idx_sqtlChnl = n_wavlens * idx + clrChnl;
+					ulonglong idx_sqtlChnl = n_wavlens * idx + clrChnl;
 
 					if (FldInfo.clrArrange == ColorArran::SequentialRGB) {
 						switch (FldInfo.fldCodeType) {
@@ -432,7 +432,7 @@ bool oph::ImgDecoderOhc::decodeFieldData() {
 						}
 					}
 					else if (FldInfo.clrArrange == ColorArran::EachChannel) {
-						int idx_eachChnl = idx + clrChnl * n_pixels;
+						ulonglong idx_eachChnl = idx + clrChnl * n_pixels;
 
 						switch (FldInfo.fldCodeType) {
 						case FldCodeType::RI: {
@@ -518,16 +518,19 @@ Real oph::ImgDecoderOhc::decodePhase(const T phase, const Real min_p, const Real
 oph::ImgEncoderOhc::ImgEncoderOhc()
 	: ImgCodecOhc()
 {
+	initOHCheader();
 }
 
 oph::ImgEncoderOhc::ImgEncoderOhc(const std::string &_fname, const OHCheader &_Header)
 	: ImgCodecOhc(_fname, _Header)
 {
+	initOHCheader();
 }
 
 oph::ImgEncoderOhc::ImgEncoderOhc(const std::string &_fname)
 	: ImgCodecOhc(_fname)
 {
+	initOHCheader();
 }
 
 oph::ImgEncoderOhc::~ImgEncoderOhc()
@@ -589,7 +592,7 @@ void oph::ImgEncoderOhc::setNumOfPixel(const ivec2 _pxNum) {
 	}
 	else {
 		FldInfo.pxNumX = _pxNum[_X];
-		FldInfo.pxNumX = _pxNum[_Y];
+		FldInfo.pxNumY = _pxNum[_Y];
 	}
 }
 
@@ -719,14 +722,16 @@ void oph::ImgEncoderOhc::addComplexFieldData(const OphComplexField &data) {
 	this->field_cmplx.push_back(data);
 }
 
-void oph::ImgEncoderOhc::addComplexFieldData(const Complex<Real>* data, ivec2 buffer_size)
+void oph::ImgEncoderOhc::addComplexFieldData(const Complex<Real>* data)
 {
 	if (data == nullptr) {
 		LOG("not found Complex data");
 		return;
 	}
 
-	OphComplexField complexField;
+	ivec2 buffer_size = ivec2(this->Header->fieldInfo.pxNumX, this->Header->fieldInfo.pxNumY);
+
+	OphComplexField complexField(buffer_size[_X], buffer_size[_Y]);
 	Buffer2Field(data, complexField, buffer_size);
 
 	this->field_cmplx.push_back(complexField);
@@ -744,6 +749,11 @@ void oph::ImgEncoderOhc::addWavelength(const Real wavlen) {
 bool oph::ImgEncoderOhc::save() {
 	this->File.open(this->fname, std::ios::out | std::ios::trunc);
 
+	//FILE *fp;
+	//fopen_s(&fp, this->fname.c_str(), "w");
+	//if (fp == nullptr) return false;
+
+	//if (fp) {
 	if (this->File.is_open()) {
 		if (this->Header == nullptr) {
 			this->Header = new OHCheader();
@@ -785,11 +795,13 @@ bool oph::ImgEncoderOhc::save() {
 			break;
 		case DataType::CmprFmt: // 파일 링크 아님, 이미지 코덱을 직접 저장하는 방식
 			LOG("Error : Compressed Image Format Encoding is Not Yet supported...");
+			//fclose(fp);
 			this->File.close();
 			return false;
 			break;
 		default:
 			LOG("Error : Invalid Encoding Complex Field Data Type...");
+			//fclose(fp);
 			this->File.close();
 			return false;
 			break;
@@ -800,6 +812,7 @@ bool oph::ImgEncoderOhc::save() {
 
 		if (dataSize == 0) {
 			LOG("Error : No Field Data");
+			//fclose(fp);
 			this->File.close();
 			return false;
 		}
@@ -814,20 +827,25 @@ bool oph::ImgEncoderOhc::save() {
 		}
 
 		// write File Header
+		//fwrite(&FHeader, 1, sizeof(OHCheader), fp);
 		this->File.write((char*)&FHeader, sizeof(OHCheader));
 
 		// write Field Info Header
+		//fwrite(&FldInfo, 1, sizeof(OHCFIELDINFOHEADER), fp);
 		this->File.write((char*)&FldInfo, sizeof(OHCFIELDINFOHEADER));
 
 		// write Wavelength Table
 		for (uint n = 0; n < FldInfo.wavlenNum; ++n) {
 			double_t waveLength = WavLeng[n];
+			//fwrite(&waveLength, 1, sizeof(double_t), fp);
 			this->File.write((char*)&waveLength, sizeof(double_t));
 		}
 
 		// write Complex Field Data
+		//fwrite(this->buf, 1, sizeof(dataSize), fp);
 		this->File.write((char*)this->buf, sizeof(dataSize));
 
+		//fclose(fp);
 		this->File.close();
 		return true;
 	}
@@ -868,20 +886,20 @@ uint64_t oph::ImgEncoderOhc::encodeFieldData() {
 				int idx = y * cols + x;
 
 				for (int clrChnl = 0; clrChnl < n_wavlens; ++clrChnl) { // RGB is wavlenNum == 3
-					int idx_sqtlChnl = n_wavlens * idx + clrChnl;
+					ulonglong idx_sqtlChnl = n_wavlens * idx + clrChnl;
 
 					if (FldInfo.clrArrange == ColorArran::SequentialRGB) {
 						switch (FldInfo.fldCodeType) {
 						case FldCodeType::RI: {
 							if (!bIsInteger) { // floating type
 								setPhaseEncoding(BPhaseCode::NotEncoded, -1.0, 1.0);
-								*((T*)this->buf + idx_sqtlChnl + 0 * n_fields) = (T)this->field_cmplx[clrChnl][x][y][_RE];
-								*((T*)this->buf + idx_sqtlChnl + 1 * n_fields) = (T)this->field_cmplx[clrChnl][x][y][_IM];
+								*(((T*)this->buf) + idx_sqtlChnl + 0 * n_fields) = (T)this->field_cmplx[clrChnl][x][y][_RE];
+								*(((T*)this->buf) + idx_sqtlChnl + 1 * n_fields) = (T)this->field_cmplx[clrChnl][x][y][_IM];
 							}
 							else if (bIsInteger) { // integer type
 								setPhaseEncoding(BPhaseCode::NotEncoded, -1.0, 1.0);
-								*((T*)this->buf + idx_sqtlChnl + 0 * n_fields) = (T)this->field_cmplx[clrChnl][x][y][_RE];
-								*((T*)this->buf + idx_sqtlChnl + 1 * n_fields) = (T)this->field_cmplx[clrChnl][x][y][_IM];
+								*(((T*)this->buf) + idx_sqtlChnl + 0 * n_fields) = (T)this->field_cmplx[clrChnl][x][y][_RE];
+								*(((T*)this->buf) + idx_sqtlChnl + 1 * n_fields) = (T)this->field_cmplx[clrChnl][x][y][_IM];
 							}
 							break;
 						}
@@ -936,14 +954,14 @@ uint64_t oph::ImgEncoderOhc::encodeFieldData() {
 						}
 					}
 					else if (FldInfo.clrArrange == ColorArran::EachChannel) {
-						int idx_eachChnl = idx + clrChnl * n_pixels;
+						ulonglong idx_eachChnl = idx + clrChnl * n_pixels;
 
 						switch (FldInfo.fldCodeType) {
 						case FldCodeType::RI: {
 							if (!bIsInteger) { // floating type
 								setPhaseEncoding(BPhaseCode::NotEncoded, -1.0, 1.0);
-								*((T*)this->buf + idx_eachChnl + 0 * n_fields) = (T)this->field_cmplx[clrChnl][x][y][_RE];
-								*((T*)this->buf + idx_eachChnl + 1 * n_fields) = (T)this->field_cmplx[clrChnl][x][y][_IM];
+								*(((T*)this->buf) + idx_eachChnl + 0 * n_fields) = (T)this->field_cmplx[clrChnl][x][y][_RE];
+								*(((T*)this->buf) + idx_eachChnl + 1 * n_fields) = (T)this->field_cmplx[clrChnl][x][y][_IM];
 							}
 							else if (bIsInteger) { // integer type
 								setPhaseEncoding(BPhaseCode::NotEncoded, -1.0, 1.0);
