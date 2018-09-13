@@ -6,18 +6,16 @@
 #include <limits> // limit value of each data types
 
 
+//hot key for call by this pointer
 #define FHeader this->Header->fileHeader
 #define FldInfo this->Header->fieldInfo
 #define WavLeng this->Header->wavlenTable
 
 
-#define FMT_SIGN_OHC "OH" // File Format Signature : 0x484F
-#define LINK_IMG_PATH_SIZE 4 * 1024 * sizeof(BYTE) // 4KB
-
-
 /************************ OHC CODEC *****************************/
 
 oph::ImgCodecOhc::ImgCodecOhc() {
+	this->initOHCheader();
 }
 
 oph::ImgCodecOhc::~ImgCodecOhc() {
@@ -27,12 +25,21 @@ oph::ImgCodecOhc::~ImgCodecOhc() {
 }
 
 oph::ImgCodecOhc::ImgCodecOhc(const std::string &_fname) {
+	this->initOHCheader();
 	this->setFileName(_fname);
 }
 
 oph::ImgCodecOhc::ImgCodecOhc(const std::string &_fname, const OHCheader &_Header) {
+	this->initOHCheader();
 	this->setFileName(_fname);
 	this->setOHCheader(_Header);
+}
+
+void oph::ImgCodecOhc::initOHCheader() {
+	if (this->Header != nullptr)
+		delete this->Header;
+
+	this->Header = new OHCheader();
 }
 
 bool oph::ImgCodecOhc::setFileName(const std::string &_fname) {
@@ -90,14 +97,20 @@ oph::ImgDecoderOhc::ImgDecoderOhc()
 }
 
 oph::ImgDecoderOhc::ImgDecoderOhc(const std::string &_fname)
-	: ImgCodecOhc(_fname) {
+	: ImgCodecOhc(_fname)
+{
 }
 
 oph::ImgDecoderOhc::ImgDecoderOhc(const std::string &_fname, const OHCheader &_Header)
-	: ImgCodecOhc(_fname, _Header) {
+	: ImgCodecOhc(_fname, _Header)
+{
 }
 
-oph::ImgDecoderOhc::~ImgDecoderOhc() {
+oph::ImgDecoderOhc::~ImgDecoderOhc()
+{
+	this->releaseOHCheader();
+	this->releaseFldData();
+	this->releaseCodeBuffer();
 }
 
 void oph::ImgDecoderOhc::releaseFldData() {
@@ -112,12 +125,107 @@ void oph::ImgDecoderOhc::releaseFldData() {
 		this->field_phase[i].release();
 	}
 	this->field_phase.clear();
+
+	this->bLoadFile = false;
+}
+
+ivec2 oph::ImgDecoderOhc::getNumOfPixel() {
+	if ((this->Header == nullptr) || !this->bLoadFile) {
+		LOG("OHC CODEC Error : No loaded data.");
+		return ivec2(-1, -1);
+	}
+	else
+		return ivec2(FldInfo.pxNumX, FldInfo.pxNumY);
+}
+
+vec2 oph::ImgDecoderOhc::getPixelPitch() {
+	if ((this->Header == nullptr) || !this->bLoadFile) {
+		LOG("OHC CODEC Error : No loaded data.");
+		return vec2(-1., -1.);
+	}
+	else
+		return vec2(FldInfo.pxPitchX, FldInfo.pxPitchY);
+}
+
+LenUnit oph::ImgDecoderOhc::getPixelPitchUnit() {
+	if ((this->Header == nullptr) || !this->bLoadFile) {
+		LOG("OHC CODEC Error : No loaded data.");
+		return (LenUnit)-1;
+	}
+	else
+		return FldInfo.pitchUnit;
+}
+
+uint oph::ImgDecoderOhc::getNumOfWavlen() {
+	if ((this->Header == nullptr) || !this->bLoadFile) {
+		LOG("OHC CODEC Error : No loaded data.");
+		return (uint)-1;
+	}
+	else
+		return FldInfo.wavlenNum;
+}
+
+ColorType oph::ImgDecoderOhc::getColorType() {
+	if ((this->Header == nullptr) || !this->bLoadFile) {
+		LOG("OHC CODEC Error : No loaded data.");
+		return (ColorType)-1;
+	}
+	else
+		return FldInfo.clrType;
+}
+
+ColorArran oph::ImgDecoderOhc::getColorArrange() {
+	if ((this->Header == nullptr) || !this->bLoadFile) {
+		LOG("OHC CODEC Error : No loaded data.");
+		return (ColorArran)-1;
+	}
+	else
+		return FldInfo.clrArrange;
+}
+
+LenUnit oph::ImgDecoderOhc::getUnitOfWavlen() {
+	if ((this->Header == nullptr) || !this->bLoadFile) {
+		LOG("OHC CODEC Error : No loaded data.");
+		return (LenUnit)-1;
+	}
+	else
+		return FldInfo.wavlenUnit;
+}
+
+CompresType oph::ImgDecoderOhc::getCompressedFormatType() {
+	if ((this->Header == nullptr) || !this->bLoadFile) {
+		LOG("OHC CODEC Error : No loaded data.");
+		return (CompresType)-1;
+	}
+	else
+		return FldInfo.comprsType;
+}
+
+void oph::ImgDecoderOhc::getWavelength(std::vector<double_t> &wavlen_array) {
+	if ((this->Header == nullptr) || !this->bLoadFile) {
+		LOG("OHC CODEC Error : No loaded data.");
+		return;
+	}
+	else
+		wavlen_array = WavLeng;
+}
+
+void oph::ImgDecoderOhc::getLinkFilePath(std::vector<std::string> &linkFilePath_array) {
+	if ((this->Header == nullptr) || !this->bLoadFile) {
+		LOG("OHC CODEC Error : No loaded data.");
+		return;
+	}
+	else
+		linkFilePath_array = this->linkFilePath;
 }
 
 bool oph::ImgDecoderOhc::load() {
 	this->File.open(this->fname, std::ios::in | std::ios::trunc);
 
 	if (this->File.is_open()) {
+		if (this->Header == nullptr)
+			this->Header = new OHCheader();
+
 		// Read OHC File Header
 		this->File.read((char*)&FHeader, sizeof(OHCheader));
 		if ((FHeader.fileSignature[0] != FMT_SIGN_OHC[0]) || (FHeader.fileSignature[1] != FMT_SIGN_OHC[1])) {
@@ -125,11 +233,6 @@ bool oph::ImgDecoderOhc::load() {
 			return false;
 		}
 		else {
-			if (this->Header != nullptr) delete this->Header;
-
-			this->Header = new OHCheader;
-			this->Header->fileHeader = FHeader;
-
 			std::cout << "Reading Openholo Complex Field File..." << std::endl << fname << std::endl;
 			std::cout << "OHC File was made on OpenHolo version " << (int)FHeader.fileVersionMajor << "." << (int)FHeader.fileVersionMinor << "..." << std::endl;
 		}
@@ -182,8 +285,8 @@ bool oph::ImgDecoderOhc::load() {
 		case DataType::Uint64:
 			ok = decodeFieldData<uint64_t>();
 			break;
-		case DataType::ImgFmt: //파일 링크 아님, 이미지 코덱을 직접 저장하는 방식
-			LOG("Error : Image Format Decoding is Not Yet supported...");
+		case DataType::CmprFmt: //파일 링크 아님, 이미지 코덱을 직접 저장하는 방식
+			LOG("Error : Compressed Image Format Decoding is Not Yet supported...");
 			this->File.close();
 			return false;
 			break;
@@ -194,8 +297,8 @@ bool oph::ImgDecoderOhc::load() {
 			break;
 		}
 
+		this->bLoadFile = true;
 		this->File.close();
-		this->releaseCodeBuffer();
 		return true;
 	}
 	else {
@@ -418,108 +521,222 @@ oph::ImgEncoderOhc::ImgEncoderOhc()
 }
 
 oph::ImgEncoderOhc::ImgEncoderOhc(const std::string &_fname, const OHCheader &_Header)
-	: ImgCodecOhc(_fname, _Header) {
+	: ImgCodecOhc(_fname, _Header)
+{
 }
 
 oph::ImgEncoderOhc::ImgEncoderOhc(const std::string &_fname)
-	: ImgCodecOhc(_fname) {
+	: ImgCodecOhc(_fname)
+{
 }
 
-oph::ImgEncoderOhc::~ImgEncoderOhc() {
+oph::ImgEncoderOhc::~ImgEncoderOhc()
+{
+	this->releaseOHCheader();
+	this->releaseFldData();
+	this->releaseCodeBuffer();
+}
+
+void oph::ImgEncoderOhc::initOHCheader() {
+	if (this->Header != nullptr)
+		delete this->Header;
+
+	this->Header = new OHCheader();
+
+	//Set Initial Header of Encoder
+	FHeader.fileSignature[0] = FMT_SIGN_OHC[0];
+	FHeader.fileSignature[1] = FMT_SIGN_OHC[1];
+	FHeader.fileVersionMajor = _OPH_LIB_VERSION_MAJOR_;
+	FHeader.fileVersionMinor = _OPH_LIB_VERSION_MINOR_;
+	FHeader.fileReserved1 = 0;
+	FHeader.fileReserved2 = 0;
+
+	//Set Initial Complex Field Information for Encoder
+	FldInfo.headerSize = 0;
+	FldInfo.pitchUnit = LenUnit::m;
+	FldInfo.wavlenNum = 0;
+	FldInfo.clrType = ColorType::MLT;
+	FldInfo.clrArrange = ColorArran::EachChannel;
+	FldInfo.wavlenUnit = LenUnit::m;
+	FldInfo.fldStore = FldStore::Directly;
+	FldInfo.fldCodeType = FldCodeType::RI;
+	FldInfo.bPhaseCode = BPhaseCode::NotEncoded;
+	FldInfo.phaseCodeMin = -1.0;
+	FldInfo.phaseCodeMax = 1.0;
+	FldInfo.comprsType = (CompresType)-1;
+
+	if (std::is_same<double, Real>::value)
+		FldInfo.cmplxFldType = DataType::Float64;
+	else if (std::is_same<float, Real>::value)
+		FldInfo.cmplxFldType = DataType::Float32;
 }
 
 void oph::ImgEncoderOhc::setNumOfPixel(const uint _pxNumX, const uint _pxNumY) {
-	this->Header->fieldInfo.pxNumX = _pxNumX;
-	this->Header->fieldInfo.pxNumY = _pxNumY;
+	if (this->Header == nullptr) {
+		LOG("OHC CODEC Error : No header data.");
+		return;
+	}
+	else {
+		FldInfo.pxNumX = _pxNumX;
+		FldInfo.pxNumY = _pxNumY;
+	}
 }
 
 void oph::ImgEncoderOhc::setNumOfPixel(const ivec2 _pxNum) {
-	this->Header->fieldInfo.pxNumX = _pxNum[_X];
-	this->Header->fieldInfo.pxNumX = _pxNum[_Y];
+	if (this->Header == nullptr) {
+		LOG("OHC CODEC Error : No header data.");
+		return;
+	}
+	else {
+		FldInfo.pxNumX = _pxNum[_X];
+		FldInfo.pxNumX = _pxNum[_Y];
+	}
 }
 
 void oph::ImgEncoderOhc::setPixelPitch(const double _pxPitchX, const double _pxPitchY, const LenUnit unit) {
-	this->Header->fieldInfo.pxPitchX = _pxPitchX;
-	this->Header->fieldInfo.pxPitchY = _pxPitchY;
-	this->Header->fieldInfo.pitchUnit = unit;
+	if (this->Header == nullptr) {
+		LOG("OHC CODEC Error : No header data.");
+		return;
+	}
+	else {
+		FldInfo.pxPitchX = _pxPitchX;
+		FldInfo.pxPitchY = _pxPitchY;
+		FldInfo.pitchUnit = unit;
+	}
 }
 
 void oph::ImgEncoderOhc::setPixelPitch(const vec2 _pxPitch, const LenUnit unit) {
-	this->Header->fieldInfo.pxPitchX = _pxPitch[_X];
-	this->Header->fieldInfo.pxPitchY = _pxPitch[_Y];
-	this->Header->fieldInfo.pitchUnit = unit;
+	if (this->Header == nullptr) {
+		LOG("OHC CODEC Error : No header data.");
+		return;
+	}
+	else {
+		FldInfo.pxPitchX = _pxPitch[_X];
+		FldInfo.pxPitchY = _pxPitch[_Y];
+		FldInfo.pitchUnit = unit;
+	}
 }
 
 void oph::ImgEncoderOhc::setNumOfWavlen(const uint n_wavlens) {
-	this->Header->fieldInfo.wavlenNum = n_wavlens;
+	if (this->Header == nullptr) {
+		LOG("OHC CODEC Error : No header data.");
+		return;
+	}
+	else {
+		FldInfo.wavlenNum = n_wavlens;
+	}
 }
 
 void oph::ImgEncoderOhc::setColorType(const ColorType _clrType) {
-	this->Header->fieldInfo.clrType = _clrType;
+	if (this->Header == nullptr) {
+		LOG("OHC CODEC Error : No header data.");
+		return;
+	}
+	else {
+		FldInfo.clrType = _clrType;
+	}
 }
 
 void oph::ImgEncoderOhc::setColorArrange(const ColorArran _clrArrange) {
-	this->Header->fieldInfo.clrArrange = _clrArrange;
+	if (this->Header == nullptr) {
+		LOG("OHC CODEC Error : No header data.");
+		return;
+	}
+	else {
+		FldInfo.clrArrange = _clrArrange;
+	}
 }
 
 void oph::ImgEncoderOhc::setUnitOfWavlen(const LenUnit unit) {
-	this->Header->fieldInfo.wavlenUnit = unit;
+	if (this->Header == nullptr) {
+		LOG("OHC CODEC Error : No header data.");
+		return;
+	}
+	else {
+		FldInfo.wavlenUnit = unit;
+	}
 }
 
-void oph::ImgEncoderOhc::setFieldEncoding(const FldStore _fldStore, const FldCodeType _fldCodeType, const DataType _cmplxFldType) {
-	this->Header->fieldInfo.fldStore = _fldStore;
-	this->Header->fieldInfo.fldCodeType = _fldCodeType;
-	this->Header->fieldInfo.cmplxFldType = _cmplxFldType;
+//void oph::ImgEncoderOhc::setFieldEncoding(const FldStore _fldStore, const FldCodeType _fldCodeType, const DataType _cmplxFldType) {
+void oph::ImgEncoderOhc::setFieldEncoding(const FldStore _fldStore, const FldCodeType _fldCodeType) {
+	if (this->Header == nullptr) {
+		LOG("OHC CODEC Error : No header data.");
+		return;
+	}
+	else {
+		FldInfo.fldStore = _fldStore;
+		FldInfo.fldCodeType = _fldCodeType;
+		//FldInfo.cmplxFldType = _cmplxFldType;
+	}
 }
 
 void oph::ImgEncoderOhc::setPhaseEncoding(const BPhaseCode _bPhaseCode, const double _phaseCodeMin, const double _phaseCodeMax) {
-	this->Header->fieldInfo.bPhaseCode = _bPhaseCode;
-	this->Header->fieldInfo.phaseCodeMin = _phaseCodeMin;
-	this->Header->fieldInfo.phaseCodeMax = _phaseCodeMax;
+	if (this->Header == nullptr) {
+		LOG("OHC CODEC Error : No header data.");
+		return;
+	}
+	else {
+		FldInfo.bPhaseCode = _bPhaseCode;
+		FldInfo.phaseCodeMin = _phaseCodeMin;
+		FldInfo.phaseCodeMax = _phaseCodeMax;
+	}
 }
 
 
 void oph::ImgEncoderOhc::setPhaseEncoding(const BPhaseCode _bPhaseCode, const vec2 _phaseCodeRange) {
-	this->Header->fieldInfo.bPhaseCode = _bPhaseCode;
-	this->Header->fieldInfo.phaseCodeMin = _phaseCodeRange[0];
-	this->Header->fieldInfo.phaseCodeMax = _phaseCodeRange[1];;
+	if (this->Header == nullptr) {
+		LOG("OHC CODEC Error : No header data.");
+		return;
+	}
+	else {
+		FldInfo.bPhaseCode = _bPhaseCode;
+		FldInfo.phaseCodeMin = _phaseCodeRange[0];
+		FldInfo.phaseCodeMax = _phaseCodeRange[1];
+	}
 }
 
-void oph::ImgEncoderOhc::setImageFormat(const ImageFormat _imgFmt) {
-	this->Header->fieldInfo.imgFmt = _imgFmt;
-}
+//void oph::ImgEncoderOhc::setCompressedFormatType(const CompresType _comprsType) {
+//	if (this->Header == nullptr) {
+//		LOG("OHC CODEC Error : No header data.");
+//		return;
+//	}
+//	else {
+//		FldInfo.comprsType = _comprsType;
+//	}	
+//}
 
 void oph::ImgEncoderOhc::setWavelength(const Real _wavlen, const LenUnit _unit) {
-	push_back_Wavlen(_wavlen);
-	setUnitOfWavlen(_unit);
+	this->addWavlen(_wavlen);
+	this->setUnitOfWavlen(_unit);
 }
 
-void oph::ImgEncoderOhc::push_back_WaveFld(const Real wavlen, const OphComplexField &data) {
-	push_back_Wavlen(wavlen);
-	push_back_FldData(data);
+void oph::ImgEncoderOhc::addWaveFld(const Real wavlen, const OphComplexField &data) {
+	this->addWavlen(wavlen);
+	this->addFldData(data);
 }
 
-void oph::ImgEncoderOhc::push_back_FldData(const OphComplexField &data) {
+void oph::ImgEncoderOhc::addFldData(const OphComplexField &data) {
 	this->field_cmplx.push_back(data);
 }
 
-void oph::ImgEncoderOhc::push_back_Wavlen(const Real wavlen) {
-	this->Header->wavlenTable.push_back(wavlen);
-	this->Header->fieldInfo.wavlenNum = (uint32_t)this->Header->wavlenTable.size();
+void oph::ImgEncoderOhc::addWavlen(const Real wavlen) {
+	WavLeng.push_back(wavlen);
+	this->setNumOfWavlen((uint32_t)WavLeng.size());
 }
 
-void oph::ImgEncoderOhc::push_back_LinkFilePath(const std::string &path) {
-	this->linkFilePath.push_back(path);
-}
-
-void oph::ImgEncoderOhc::getLinkFilePath(const int idx, std::string &path) {
-	path = this->linkFilePath[idx];
-}
+//void oph::ImgEncoderOhc::addLinkFilePath(const std::string &path) {
+//	this->linkFilePath.push_back(path);
+//}
 
 bool oph::ImgEncoderOhc::save() {
 	this->File.open(this->fname, std::ios::out | std::ios::trunc);
 
 	if (this->File.is_open()) {
+		if (this->Header == nullptr) {
+			this->Header = new OHCheader();
+			this->initOHCheader();
+		}
+
 		// Encoding Field Data
 		uint64_t dataSize = 0;
 		switch (FldInfo.cmplxFldType) {
@@ -553,8 +770,8 @@ bool oph::ImgEncoderOhc::save() {
 		case DataType::Uint64:
 			dataSize = encodeFieldData<uint64_t>();
 			break;
-		case DataType::ImgFmt: // 파일 링크 아님, 이미지 코덱을 직접 저장하는 방식
-			LOG("Error : Image Format Encoding is Not Yet supported...");
+		case DataType::CmprFmt: // 파일 링크 아님, 이미지 코덱을 직접 저장하는 방식
+			LOG("Error : Compressed Image Format Encoding is Not Yet supported...");
 			this->File.close();
 			return false;
 			break;
@@ -574,22 +791,14 @@ bool oph::ImgEncoderOhc::save() {
 			return false;
 		}
 		else {
+			if (FldInfo.cmplxFldType != DataType::CmprFmt)
+				FldInfo.comprsType = (CompresType)-1;
+
 			FldInfo.headerSize = (uint32_t)(sizeof(OHCFIELDINFOHEADER) + wavlenTableSize);
 			FldInfo.fldSize = dataSize;
-
-			if (FldInfo.cmplxFldType != DataType::ImgFmt)
-				FldInfo.imgFmt = ImageFormat::RAW;
+			FHeader.fileSize = sizeof(OHCFILEHEADER) + FldInfo.headerSize + FldInfo.fldSize;
+			FHeader.fileOffBytes = sizeof(OHCFILEHEADER) + FldInfo.headerSize;
 		}
-
-		// Set File Header
-		FHeader.fileSignature[0] = FMT_SIGN_OHC[0];
-		FHeader.fileSignature[1] = FMT_SIGN_OHC[1];
-		FHeader.fileSize = sizeof(OHCFILEHEADER) + FldInfo.headerSize + FldInfo.fldSize;
-		FHeader.fileVersionMajor = _OPH_LIB_VERSION_MAJOR_;
-		FHeader.fileVersionMinor = _OPH_LIB_VERSION_MINOR_;
-		FHeader.fileReserved1 = 0;
-		FHeader.fileReserved2 = 0;
-		FHeader.fileOffBytes = sizeof(OHCFILEHEADER) + FldInfo.headerSize;
 
 		// write File Header
 		this->File.write((char*)&FHeader, sizeof(OHCheader));
@@ -607,7 +816,6 @@ bool oph::ImgEncoderOhc::save() {
 		this->File.write((char*)this->buf, sizeof(dataSize));
 
 		this->File.close();
-		this->releaseCodeBuffer();
 		return true;
 	}
 	else {
