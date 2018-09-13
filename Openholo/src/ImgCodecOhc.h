@@ -33,6 +33,8 @@ namespace oph
 		void getOHCheader(OHCheader &_Header);
 		void getFieldInfo(OHCFIELDINFOHEADER &_FieldInfo, std::vector<double_t> &_wavlenTable);
 
+		void getComplexFieldData(std::vector<OphComplexField>& cmplx_field) { cmplx_field = field_cmplx; }
+		
 	protected: /* field */
 		std::string fname;
 		void* buf = nullptr; //coded data

@@ -397,10 +397,7 @@ void* ophGen::load(const char * fname)
 	if (checkExtension(fname, ".bmp")) {
 		return Openholo::loadAsImg(fname);
 	}
-	else if (checkExtension(fname, ".ohf")) {
-		return nullptr;
-	}
-	else {			// when extension is not .ohf, .bmp
+	else {			// when extension is not .bmp
 		return nullptr;
 	}
 

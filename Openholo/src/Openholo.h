@@ -95,13 +95,15 @@ public:
 	* \ingroup write
 	* @brief Function to write OHC file
 	*/
-	virtual int saveAsOhc(const char* fname);
+	virtual int saveAsOhc(const char *fname, Complex<Real> *src);
+	virtual int saveAsOhc(const char *fname, OphComplexField &src);
 
 	/**
 	* \ingroup read
 	* @brief Function to read OHC file
 	*/
-	virtual int loadAsOhc(const char* fname);
+	virtual int loadAsOhc(const char *fname, Complex<Real> *dst);
+	virtual int loadAsOhc(const char *fname, OphComplexField &dst);
 
 protected:
 	/**
@@ -248,14 +250,14 @@ protected:
 	inline 	void setWaveLengthUnit(const LenUnit length_unit)
 		{ OHC_encoder->setUnitOfWavlen(length_unit);	}
 
-	inline 	void setFieldEncoding(const FldStore field_store, const FldCodeType field_code_type, const DataType cplxfield_type)
-		{ OHC_encoder->setFieldEncoding(field_store, field_code_type, cplxfield_type); }
+	inline 	void setFieldEncoding(const FldStore field_store, const FldCodeType field_code_type)
+		{ OHC_encoder->setFieldEncoding(field_store, field_code_type); }
 
 	inline 	void setPhaseEncoding(const BPhaseCode phase_code, const vec2 phase_code_range)
 		{ OHC_encoder->setPhaseEncoding(phase_code, phase_code_range); }
 
-	inline void setImageFormat(const ImageFormat image_format)
-		{ OHC_encoder->setImageFormat(image_format); }
+	//inline void setCompressedFormatType(const CompresType compress_type)
+	//	{ OHC_encoder->setCompressedFormatType(compress_type); }
 
 	/**
 	* @brief Function to add ComplexField when adding wavelength data
@@ -272,14 +274,14 @@ protected:
 	/**
 
 	*/
-	inline void addLinkFilePath(const std::string& path)
-		{ OHC_encoder->addLinkFilePath(path); }
+	//inline void addLinkFilePath(const std::string& path)
+	//	{ OHC_encoder->addLinkFilePath(path); }
 
 	/**
 
 	*/
-	inline void getLinkFilePath(const int idx, std::string& path)
-		{ OHC_encoder->getLinkFilePath(idx, path); }
+	inline void getLinkFilePath(std::vector<std::string> &linkFilePath_array)
+		{ OHC_decoder->getLinkFilePath(linkFilePath_array); }
 
 
 };
