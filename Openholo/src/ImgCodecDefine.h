@@ -4,6 +4,10 @@
 
 namespace oph
 {
+
+#define FMT_SIGN_OHC "OH" // File Format Signature : 0x484F
+#define LINK_IMG_PATH_SIZE 4*1024*sizeof(BYTE) // 4KB
+
 	/************************ Enumerator Class for OHC *****************************/
 
 	/* Unit of Length */
@@ -30,17 +34,17 @@ namespace oph
 
 	/* Complex Field Data Type */
 	enum class DataType : uint8_t {
-		Int8 = 0,	/* char : 8S */
-		Int16 = 1,	/* short : 16S */
-		Int32 = 2,	/* long : 32S */
-		Int64 = 3,	/* longlong : 64S */
-		Uint8 = 4,	/* uchar : 8U */
-		Uint16 = 5,	/* ushort : 16U */
-		Uint32 = 6,	/* ulong : 32U */
-		Uint64 = 7,	/* ulonglong : 64U */
-		Float32 = 8,	/* Single precision floating : 32F */
-		Float64 = 9,	/* Double precision floating : 64F */
-		ImgFmt = 10,	/* Compressed Image File : IMG */
+		Int8 = 0,		/* char */
+		Int16 = 1,		/* short */
+		Int32 = 2,		/* long */
+		Int64 = 3,		/* longlong */
+		Uint8 = 4,		/* uchar */
+		Uint16 = 5,		/* ushort */
+		Uint32 = 6,		/* ulong */
+		Uint64 = 7,		/* ulonglong */
+		Float32 = 8,	/* Single precision floating */
+		Float64 = 9,	/* Double precision floating */
+		CmprFmt = 10,	/* Compressed Image File */
 	};
 
 	/* Field Store Type */
@@ -63,8 +67,8 @@ namespace oph
 		Encoded = 1,
 	};
 
-	/* Compressed Image File Format */
-	enum class ImageFormat : uint8_t {
+	/* Compressed Image Type File Format */
+	enum class CompresType : uint8_t {
 		RAW = 0,	/* No Image Format, Directly store raw data. */
 		BMP = 1,	/* Bitmap (bmp, dib) */
 		JPG = 2,	/* JPEG (jpg, jpeg, jpe) */
@@ -86,6 +90,18 @@ namespace oph
 		uint32_t	fileReserved1;		/* For potential use. Currently zero. */
 		uint32_t	fileReserved2;		/* For potential use. Currently zero. */
 		uint32_t	fileOffBytes;		/* Address of complex field data */
+
+		//basic constructor
+		ohcFileHeader() {
+			this->fileSignature[0] = FMT_SIGN_OHC[0];
+			this->fileSignature[1] = FMT_SIGN_OHC[1];
+			this->fileSize = 0;
+			this->fileVersionMajor = _OPH_LIB_VERSION_MAJOR_;
+			this->fileVersionMinor = _OPH_LIB_VERSION_MINOR_;
+			this->fileReserved1 = 0;
+			this->fileReserved2 = 0;
+			this->fileOffBytes = -1;
+		}
 	} OHCFILEHEADER;
 
 	typedef struct ohcFieldInfoHeader {
@@ -106,7 +122,29 @@ namespace oph
 		double_t	phaseCodeMin;	/* Phase Encoded Min. */
 		double_t	phaseCodeMax;	/* Phase Encoded Max. */
 		uint64_t	fldSize;		/* Entire Field data size */
-		ImageFormat	imgFmt;			/* Image file format of complex data : for 'cmplxFldType == ImgFmt' */
+		CompresType	comprsType;		/* Image file format of complex data : for 'cmplxFldType == ImgFmt' */
+
+		//basic constructor
+		ohcFieldInfoHeader() {
+			this->headerSize = 0;
+			this->pxNumX = (uint32_t)-1;
+			this->pxNumY = (uint32_t)-1;
+			this->pxPitchX = (double_t)-1;
+			this->pxPitchY = (double_t)-1;
+			this->pitchUnit = (LenUnit)-1;
+			this->wavlenNum = 0;
+			this->clrType = (ColorType)-1;
+			this->clrArrange = (ColorArran)-1;
+			this->wavlenUnit = (LenUnit)-1;
+			this->cmplxFldType = (DataType)-1;
+			this->fldStore = (FldStore)-1;
+			this->fldCodeType = (FldCodeType)-1;
+			this->bPhaseCode = (BPhaseCode)-1;
+			this->phaseCodeMin = -1.0;
+			this->phaseCodeMax = 1.0;
+			this->fldSize = 0;
+			this->comprsType = (CompresType)-1;
+		}
 	} OHCFIELDINFOHEADER;
 
 	typedef struct ophComplexFile {

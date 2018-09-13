@@ -22,16 +22,16 @@ namespace oph
 		ImgCodecOhc(const std::string &_fname);
 		ImgCodecOhc(const std::string &_fname, const OHCheader &_Header);
 		virtual ~ImgCodecOhc() = 0;
+		virtual void initOHCheader();
+		virtual void releaseFldData();
+		void releaseOHCheader();
+		void releaseCodeBuffer();
 
 		bool setFileName(const std::string &_fname);
 		bool setOHCheader(const OHCheader &_Header);
 
 		void getOHCheader(OHCheader &_Header);
 		void getFieldInfo(OHCFIELDINFOHEADER &_FieldInfo, std::vector<double_t> &_wavlenTable);
-
-		void releaseOHCheader();
-		void releaseCodeBuffer();
-		void releaseFldData();
 
 	protected: /* field */
 		std::string fname;
@@ -50,12 +50,24 @@ namespace oph
 		ImgDecoderOhc(const std::string &_fname);
 		ImgDecoderOhc(const std::string &_fname, const OHCheader &_Header);
 		virtual ~ImgDecoderOhc();
+		virtual void releaseFldData();
 
-		void releaseFldData(); //override
+		//Get field Info parameters functions
+		ivec2		getNumOfPixel();
+		vec2		getPixelPitch();
+		LenUnit		getPixelPitchUnit();
+		uint		getNumOfWavlen();
+		ColorType	getColorType();
+		ColorArran	getColorArrange();
+		LenUnit		getUnitOfWavlen();
+		CompresType	getCompressedFormatType();
+		void getWavelength(std::vector<double_t> &wavlen_array);
+		void getLinkFilePath(std::vector<std::string> &linkFilePath_array);
 
 		bool load();
 
 	protected:
+		bool bLoadFile = false;
 		template<typename T> bool decodeFieldData();
 		template<typename T> Real decodePhase(const T phase, const Real min_p, const Real max_p, const double min_T, const double max_T);
 
@@ -73,6 +85,7 @@ namespace oph
 		ImgEncoderOhc(const std::string &_fname);
 		ImgEncoderOhc(const std::string &_fname, const OHCheader &_Header);
 		virtual ~ImgEncoderOhc();
+		virtual void initOHCheader();
 
 		//Set field Info parameters functions
 		void setNumOfPixel(const uint _pxNumX, const uint _pxNumY);
@@ -83,16 +96,15 @@ namespace oph
 		void setColorType(const ColorType _clrType);
 		void setColorArrange(const ColorArran _clrArrange);
 		void setUnitOfWavlen(const LenUnit unit);
-		void setFieldEncoding(const FldStore _fldStore, const FldCodeType _fldCodeType, const DataType _cmplxFldType = DataType::Float64);
+		void setFieldEncoding(const FldStore _fldStore, const FldCodeType _fldCodeType); //const DataType _cmplxFldType = DataType::Float64);
 		void setPhaseEncoding(const BPhaseCode _bPhaseCode, const double _phaseCodeMin, const double _phaseCodeMax);
 		void setPhaseEncoding(const BPhaseCode _bPhaseCode, const vec2 _phaseCodeRange);
-		void setImageFormat(const ImageFormat _imgFmt);
-		void setWavelength(const Real _wavlen, const LenUnit _unit = LenUnit::nm);
-		void push_back_WaveFld(const Real wavlen, const OphComplexField &data);
-		void push_back_FldData(const OphComplexField &data);
-		void push_back_Wavlen(const Real wavlen);
-		void push_back_LinkFilePath(const std::string &path);
-		void getLinkFilePath(const int idx, std::string &path);
+		//void setCompressedFormatType(const CompresType _comprsType);
+		void setWavelength(const Real _wavlen, const LenUnit _unit = LenUnit::m);
+		void addWaveFld(const Real wavlen, const OphComplexField &data);
+		void addFldData(const OphComplexField &data);
+		void addWavlen(const Real wavlen);
+		//void addLinkFilePath(const std::string &path);
 
 		bool save();
 
