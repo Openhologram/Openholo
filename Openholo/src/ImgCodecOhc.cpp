@@ -3,6 +3,7 @@
 #define NOMINMAX // using std::numeric_limits<DataType>::max(), min() of <limits> instead of <minwindef.h>
 
 #include "sys.h"
+#include "function.h"
 #include <limits> // limit value of each data types
 
 
@@ -482,7 +483,7 @@ void oph::ImgEncoderOhc::setPhaseEncoding(const BPhaseCode _bPhaseCode, const do
 void oph::ImgEncoderOhc::setPhaseEncoding(const BPhaseCode _bPhaseCode, const vec2 _phaseCodeRange) {
 	this->Header->fieldInfo.bPhaseCode = _bPhaseCode;
 	this->Header->fieldInfo.phaseCodeMin = _phaseCodeRange[0];
-	this->Header->fieldInfo.phaseCodeMax = _phaseCodeRange[1];;
+	this->Header->fieldInfo.phaseCodeMax = _phaseCodeRange[1];
 }
 
 void oph::ImgEncoderOhc::setImageFormat(const ImageFormat _imgFmt) {
@@ -490,25 +491,38 @@ void oph::ImgEncoderOhc::setImageFormat(const ImageFormat _imgFmt) {
 }
 
 void oph::ImgEncoderOhc::setWavelength(const Real _wavlen, const LenUnit _unit) {
-	push_back_Wavlen(_wavlen);
+	addWavelength(_wavlen);
 	setUnitOfWavlen(_unit);
 }
 
-void oph::ImgEncoderOhc::push_back_WaveFld(const Real wavlen, const OphComplexField &data) {
-	push_back_Wavlen(wavlen);
-	push_back_FldData(data);
+void oph::ImgEncoderOhc::addWavelengthNComplexFieldData(const Real wavlen, const OphComplexField &data) {
+	addWavelength(wavlen);
+	addComplexFieldData(data);
 }
 
-void oph::ImgEncoderOhc::push_back_FldData(const OphComplexField &data) {
+void oph::ImgEncoderOhc::addComplexFieldData(const OphComplexField &data) {
 	this->field_cmplx.push_back(data);
 }
 
-void oph::ImgEncoderOhc::push_back_Wavlen(const Real wavlen) {
-	this->Header->wavlenTable.push_back(wavlen);
-	this->Header->fieldInfo.wavlenNum = (uint32_t)this->Header->wavlenTable.size();
+void oph::ImgEncoderOhc::addComplexFieldData(const Complex<Real>* data, ivec2 buffer_size)
+{
+	if (data == nullptr) {
+		LOG("not found Complex data");
+		return;
+	}
+
+	OphComplexField complexField;
+	Buffer2Field(data, complexField, buffer_size);
+
+	this->field_cmplx.push_back(complexField);
 }
 
-void oph::ImgEncoderOhc::push_back_LinkFilePath(const std::string &path) {
+void oph::ImgEncoderOhc::addWavelength(const Real wavlen) {
+	this->Header->wavlenTable.push_back(wavlen);
+	setNumOfWavlen((uint32_t)this->Header->wavlenTable.size());
+}
+
+void oph::ImgEncoderOhc::addLinkFilePath(const std::string &path) {
 	this->linkFilePath.push_back(path);
 }
 

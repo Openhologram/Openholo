@@ -12,7 +12,8 @@
 #include <fileapi.h>
 
 #include "sys.h"
-#include "include.h"
+
+#include "ImgCodecOhc.h"
 
 Openholo::Openholo(void)
 	: Base()
@@ -24,7 +25,11 @@ Openholo::Openholo(void)
 	, pny(1)
 	, pnz(1)
 	, fft_sign(OPH_FORWARD)
+	, OHC_encoder(nullptr)
+	, OHC_decoder(nullptr)
 {
+	OHC_encoder = new oph::ImgEncoderOhc;
+	OHC_decoder = new oph::ImgDecoderOhc;
 }
 
 Openholo::~Openholo(void)
@@ -421,5 +426,20 @@ void Openholo::fftShift(int nx, int ny, Complex<Real>* input, Complex<Real>* out
 
 void Openholo::ophFree(void)
 {
-	//fftFree();
+	delete OHC_encoder;
+	delete OHC_decoder;
+}
+
+int Openholo::saveAsOhc(const char * fname)
+{
+	OHC_encoder->setFileName(fname);
+	if (!OHC_encoder->save()) return -1;
+	return 1;
+}
+
+int Openholo::loadAsOhc(const char * fname)
+{
+	OHC_decoder->setFileName(fname);
+	if (!OHC_decoder->load()) return -1;
+	return 1;
 }

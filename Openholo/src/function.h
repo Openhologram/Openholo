@@ -24,13 +24,13 @@ namespace oph
 		return type(p);
 	}
 
-	inline const Real minOfArr(const std::vector<Real>& arr) {
+	inline Real minOfArr(const std::vector<Real>& arr) {
 		Real min = MAX_DOUBLE;
 		for (auto item : arr) { if (item < min) min = item; }
 		return min;
 	}
 
-	inline const Real minOfArr(const Real* src, const int& size) {
+	inline Real minOfArr(const Real* src, const int& size) {
 		Real min = MAX_DOUBLE;
 		for (int i = 0; i < size; i++) {
 			if (*(src + i) < min) min = *(src + i);
@@ -38,13 +38,13 @@ namespace oph
 		return min;
 	}
 
-	inline const Real maxOfArr(const std::vector<Real>& arr) {
+	inline Real maxOfArr(const std::vector<Real>& arr) {
 		Real max = MIN_DOUBLE;
 		for (auto item : arr) { if (item > max) max = item; }
 		return max;
 	}
 
-	inline const Real maxOfArr(const Real* src, const int& size) {
+	inline Real maxOfArr(const Real* src, const int& size) {
 		Real max = MIN_DOUBLE;
 		for (int i = 0; i < size; i++) {
 			if (*(src + i) > max) max = *(src + i);
@@ -52,7 +52,7 @@ namespace oph
 		return max;
 	}
 
-	inline const Real average(const Real* src, const int& size) {
+	inline Real average(const Real* src, const int& size) {
 		Real ave;
 		Real sum = 0;
 		for (int i = 0; i < size; i++) {
@@ -273,8 +273,37 @@ namespace oph
 		}
 	
 	}
+
 	inline void getAmplitude(oph::Complex<Real>* src, Real* dst, const int& size) {
 		absCplxArr<Real>(src, dst, size);
+	}
+
+	template<typename T>
+	inline void Field2Buffer(const matrix<T>& src, T* dst) {
+		ivec2 bufferSize = src.getSize();
+
+		dst = new oph::Complex<Real>[bufferSize[_X] * bufferSize[_Y]];
+
+		int idx = 0;
+		for (int x = 0; x < bufferSize[_X]; x++) {
+			for (int y = 0; y < bufferSize[_Y]; y++) {
+				dst[idx] = src[_X][_Y];
+				idx++;
+			}
+		}
+	}
+
+	template<typename T>
+	inline void Buffer2Field(const T* src, matrix<T>& dst, const ivec2 buffer_size) {
+		ivec2 matSize = buffer_size;
+
+		int idx = 0;
+		for (int x = 0; x < matSize[_X]; x++) {
+			for (int y = 0; y < matSize[_Y]; y++) {
+				dst[x][y] = src[idx];
+				idx++;
+			}
+		}
 	}
 
 

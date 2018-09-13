@@ -122,7 +122,7 @@ class DISP_DLL ophCascadedPropagation : public ophDis {
 		* @return true if successfully saved
 		* @return false when failed
 		*/
-		bool saveIntensityAsImg(const wchar_t* pathname, uint8_t bitsperpixel);
+		bool save(const wchar_t* pathname, uint8_t bitsperpixel);
 
 
 	private:

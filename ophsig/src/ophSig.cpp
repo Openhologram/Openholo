@@ -840,7 +840,7 @@ bool ophSig::save(const char *real, uint8_t bitpixel)
 		int _filesize = 0;
 
 
-		FILE *freal, *fimag;
+		FILE *freal = nullptr, *fimag = nullptr;
 		fopen_s(&freal, realname.c_str(), "wb");
 
 		if ((freal == nullptr) || (fimag == nullptr))

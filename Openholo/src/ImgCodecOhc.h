@@ -87,11 +87,13 @@ namespace oph
 		void setPhaseEncoding(const BPhaseCode _bPhaseCode, const double _phaseCodeMin, const double _phaseCodeMax);
 		void setPhaseEncoding(const BPhaseCode _bPhaseCode, const vec2 _phaseCodeRange);
 		void setImageFormat(const ImageFormat _imgFmt);
-		void setWavelength(const Real _wavlen, const LenUnit _unit = LenUnit::nm);
-		void push_back_WaveFld(const Real wavlen, const OphComplexField &data);
-		void push_back_FldData(const OphComplexField &data);
-		void push_back_Wavlen(const Real wavlen);
-		void push_back_LinkFilePath(const std::string &path);
+		void setWavelength(const Real _wavlen, const LenUnit _unit = LenUnit::m);
+
+		void addWavelengthNComplexFieldData(const Real wavlen, const OphComplexField &data);
+		void addComplexFieldData(const OphComplexField &data);
+		void addComplexFieldData(const Complex<Real> *data, ivec2 buffer_size);
+		void addWavelength(const Real wavlen);
+		void addLinkFilePath(const std::string &path);
 		void getLinkFilePath(const int idx, std::string &path);
 
 		bool save();

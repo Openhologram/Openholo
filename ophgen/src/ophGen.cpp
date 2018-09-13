@@ -292,6 +292,48 @@ bool ophGen::readConfig(const char* fname, OphWRPConfig& configdata)
 	return true;
 }
 
+
+
+/**
+* @brief Angular spectrum propagation method
+* @details The propagation results of all depth levels are accumulated in the variable 'U_complex_'.
+* @param input_u : each depth plane data.
+* @param propagation_dist : the distance from the object to the hologram plane.
+* @see Calc_Holo_by_Depth, Calc_Holo_CPU, fftwShift
+*/
+void ophGen::propagationAngularSpectrum(Complex<Real>* input_u, Real propagation_dist)
+{
+	int pnx = context_.pixel_number[0];
+	int pny = context_.pixel_number[1];
+	Real ppx = context_.pixel_pitch[0];
+	Real ppy = context_.pixel_pitch[1];
+	Real ssx = context_.ss[0];
+	Real ssy = context_.ss[1];
+	Real lambda = context_.lambda;
+
+	for (int i = 0; i < pnx * pny; i++)
+	{
+		Real x = i % pnx;
+		Real y = i / pnx;
+
+		Real fxx = (-1.0 / (2.0*ppx)) + (1.0 / ssx) * x;
+		Real fyy = (1.0 / (2.0*ppy)) - (1.0 / ssy) - (1.0 / ssy) * y;
+
+		Real sval = sqrt(1 - (lambda*fxx)*(lambda*fxx) - (lambda*fyy)*(lambda*fyy));
+		sval *= context_.k * propagation_dist;
+		Complex<Real> kernel(0, sval);
+		kernel.exp();
+
+		int prop_mask = ((fxx * fxx + fyy * fyy) < (context_.k *context_.k)) ? 1 : 0;
+
+		Complex<Real> u_frequency;
+		if (prop_mask == 1)
+			u_frequency = kernel * input_u[i];
+
+		holo_gen[i] = holo_gen[i] + u_frequency;
+	}
+}
+
 void ophGen::normalize(void)
 {
 	oph::normalize((Real*)holo_encoded, holo_normalized, context_.pixel_number[_X], context_.pixel_number[_Y]);
