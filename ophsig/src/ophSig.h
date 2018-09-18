@@ -88,6 +88,8 @@ public:
 	Mat propagationHolo(Mat complexH, float depth);
 	double sigGetParamAT();
 	double sigGetParamSF(float zMax, float zMin, int sampN, float th);
+
+	bool getComplexHFromPSDH(const char* fname0, const char* fname90, const char* fname180, const char* fname270);
 	
 protected:
 	/**
