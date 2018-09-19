@@ -15,14 +15,13 @@
     <ClCompile Include="src\tinyxml2.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\Openholo\src\fftw3.h" />
     <ClInclude Include="src\ophSig.h" />
     <ClInclude Include="src\tinyxml2.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{37973A95-102B-491C-BE36-F9203D2B6EDA}</ProjectGuid>
     <RootNamespace>ophsig</RootNamespace>
-    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.10240.0</WindowsTargetPlatformVersion>
     <ProjectName>ophsig</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />

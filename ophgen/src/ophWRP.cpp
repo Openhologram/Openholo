@@ -305,7 +305,7 @@ oph::Complex<Real>** ophWRP::calculateMWRP(void)
 	if (wrp_num < 1)
 		return nullptr;
 
-	oph::Complex<Real>** wrp_list;
+	oph::Complex<Real>** wrp_list = nullptr;
 
 	Real wave_num = context_.k;   // wave_number
 	Real wave_len = context_.lambda;  //wave_length
@@ -320,7 +320,7 @@ oph::Complex<Real>** ophWRP::calculateMWRP(void)
 	int Nx_h = Nx >> 1;
 	int Ny_h = Ny >> 1;
 
-	oph::Complex<Real>* wrp;
+	oph::Complex<Real>* wrp = nullptr;
 
 	// Memory Location for Result Image
 	if (wrp != nullptr) free(wrp);

@@ -12,7 +12,8 @@
 #include <fileapi.h>
 
 #include "sys.h"
-#include "include.h"
+
+#include "ImgCodecOhc.h"
 
 Openholo::Openholo(void)
 	: Base()
@@ -24,7 +25,11 @@ Openholo::Openholo(void)
 	, pny(1)
 	, pnz(1)
 	, fft_sign(OPH_FORWARD)
+	, OHC_encoder(nullptr)
+	, OHC_decoder(nullptr)
 {
+	OHC_encoder = new oph::ImgEncoderOhc;
+	OHC_decoder = new oph::ImgDecoderOhc;
 }
 
 Openholo::~Openholo(void)
@@ -126,6 +131,50 @@ uchar * Openholo::loadAsImg(const char * fname)
 
 	return img_tmp;
 }
+
+int Openholo::saveAsOhc(const char * fname, Complex<Real> *src)
+{
+	OHC_encoder->setFileName(fname);
+	OHC_encoder->addComplexFieldData(src);
+
+	if (!OHC_encoder->save()) return -1;
+
+	return 1;
+}
+
+int Openholo::saveAsOhc(const char * fname, OphComplexField & src)
+{
+	OHC_encoder->setFileName(fname);
+	OHC_encoder->addComplexFieldData(src);	
+
+	if (!OHC_encoder->save()) return -1;
+
+	return 1;
+}
+
+int Openholo::loadAsOhc(const char * fname, Complex<Real>* dst)
+{
+	OHC_decoder->setFileName(fname);
+	if (!OHC_decoder->load()) return -1;
+
+	OphComplexField res;
+	OHC_decoder->getComplexFieldData(res);
+
+	Field2Buffer(res, dst);
+
+	return 1;
+}
+
+int Openholo::loadAsOhc(const char * fname, OphComplexField & dst)
+{
+	OHC_decoder->setFileName(fname);
+	if (!OHC_decoder->load()) return -1;
+
+	OHC_decoder->getComplexFieldData(dst);
+
+	return 1;
+}
+
 
 int Openholo::loadAsImgUpSideDown(const char * fname, uchar* dst)
 {
@@ -421,5 +470,6 @@ void Openholo::fftShift(int nx, int ny, Complex<Real>* input, Complex<Real>* out
 
 void Openholo::ophFree(void)
 {
-	//fftFree();
+	delete OHC_encoder;
+	delete OHC_decoder;
 }

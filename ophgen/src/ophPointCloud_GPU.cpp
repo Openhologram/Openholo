@@ -39,7 +39,7 @@ void ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 	std::cout << ">>> All " << blockSize * gridSize << " threads in CUDA" << std::endl;
 	std::cout << ">>> " << blockSize << " threads/block, " << gridSize << " blocks/grid" << std::endl;
 
-	const int n_streams = 3;
+	const int n_streams = OPH_CUDA_N_STREAM;
 
 	//threads number
 	const ulonglong bufferSize = n_pixels * sizeof(Real);

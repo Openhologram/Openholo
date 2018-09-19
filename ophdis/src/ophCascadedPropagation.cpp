@@ -51,7 +51,7 @@ bool ophCascadedPropagation::propagate()
 	return true;
 }
 
-bool ophCascadedPropagation::saveIntensityAsImg(const wchar_t* pathname, uint8_t bitsperpixel)
+bool ophCascadedPropagation::save(const wchar_t* pathname, uint8_t bitsperpixel)
 {
 	wstring bufw(pathname);
 	string bufs;
@@ -59,7 +59,6 @@ bool ophCascadedPropagation::saveIntensityAsImg(const wchar_t* pathname, uint8_t
 	oph::uchar* src = getIntensityfields(getRetinaWavefieldAll());
 	return (1 == saveAsImg(bufs.c_str(), bitsperpixel, src, getResX(), getResY()));
 }
-
 
 bool ophCascadedPropagation::allocateMem()
 {

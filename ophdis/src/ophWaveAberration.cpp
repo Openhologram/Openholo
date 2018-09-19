@@ -129,7 +129,6 @@ void ophWaveAberration::imresize(double **X, int Nx, int Ny, int nx, int ny, dou
 
 void ophWaveAberration::accumulateZernikePolynomial()
 {
-	
 	const oph::Complex<Real> j(0,1);
 
 	double wave_lambda = waveLength; // wavelength
@@ -289,6 +288,8 @@ void ophWaveAberration::accumulateZernikePolynomial()
 
 	complex_W = WD;
 
+
+
 //	return WD;
 }
 
@@ -300,7 +301,6 @@ void ophWaveAberration::Free2D(oph::Complex<Real> ** doublePtr)
 		delete[] doublePtr[i];
 	}
 }
-
 
 void ophWaveAberration::ophFree(void)
 {
@@ -338,6 +338,8 @@ bool ophWaveAberration::readConfig(const char* fname)
 	if (!xml_element || tinyxml2::XML_SUCCESS != xml_element->QueryDoubleText(&waveLength))
 		return false;
 
+	setWavelength(waveLength, oph::LenUnit::m);
+
 	xml_element = xml_node->FirstChildElement("PixelPitchHor");
 	if (!xml_element || tinyxml2::XML_SUCCESS != xml_element->QueryDoubleText(&pixelPitchX))
 		return false;
@@ -346,6 +348,8 @@ bool ophWaveAberration::readConfig(const char* fname)
 	if (!xml_element || tinyxml2::XML_SUCCESS != xml_element->QueryDoubleText(&pixelPitchY))
 		return false;
 
+	setPixelPitch(vec2(pixelPitchX, pixelPitchY));
+
 	xml_element = xml_node->FirstChildElement("ResolutionHor");
 	if (!xml_element || tinyxml2::XML_SUCCESS != xml_element->QueryUnsignedText(&resolutionX))
 		return false;
@@ -353,6 +357,8 @@ bool ophWaveAberration::readConfig(const char* fname)
 	xml_element = xml_node->FirstChildElement("ResolutionVer");
 	if (!xml_element || tinyxml2::XML_SUCCESS != xml_element->QueryUnsignedText(&resolutionY))
 		return false;
+
+	setPixelNumber(ivec2(resolutionX, resolutionY));
 
 	xml_element = xml_node->FirstChildElement("ZernikeCoeff");
 	xml_attribute = xml_element->FirstAttribute();
@@ -389,7 +395,6 @@ void ophWaveAberration::saveAberration(const char* fname)
 	ofstream fout(fname, ios_base::out | ios_base::binary);
 	fout.write((char *)complex_W, resolutionX * resolutionY * sizeof(oph::Complex<Real>));
 	fout.close();
-
 }
 
 void ophWaveAberration::readAberration(const char* fname)
