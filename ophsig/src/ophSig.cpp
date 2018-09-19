@@ -1602,6 +1602,162 @@ double ophSig::sigGetParamSF(float zMax, float zMin, int sampN, float th) {
 	return -z.at(index);
 }
 
+bool ophSig::getComplexHFromPSDH(const char * fname0, const char * fname90, const char * fname180, const char * fname270)
+{
+	string fname0str = fname0;
+	string fname90str = fname90;
+	string fname180str = fname180;
+	string fname270str = fname270;
+	int checktype = static_cast<int>(fname0str.rfind("."));
+	matrix<Real> f0Mat[3], f90Mat[3], f180Mat[3], f270Mat[3];
+
+	std::string f0type = fname0str.substr(checktype + 1, fname0str.size());
+
+	uint8_t bitsperpixel;
+
+	if (f0type == "bmp")
+	{
+		FILE *f0, *f90, *f180, *f270;
+		fileheader hf;
+		bitmapinfoheader hInfo;
+		fopen_s(&f0, fname0str.c_str(), "rb"); fopen_s(&f90, fname90str.c_str(), "rb");
+		fopen_s(&f180, fname180str.c_str(), "rb"); fopen_s(&f270, fname270str.c_str(), "rb");
+		if (!f0)
+		{
+			LOG("bmp file open fail! (phase shift = 0)\n");
+			return false;
+		}
+		if (!f90)
+		{
+			LOG("bmp file open fail! (phase shift = 90)\n");
+			return false;
+		}
+		if (!f180)
+		{
+			LOG("bmp file open fail! (phase shift = 180)\n");
+			return false;
+		}
+		if (!f270)
+		{
+			LOG("bmp file open fail! (phase shift = 270)\n");
+			return false;
+		}
+		fread(&hf, sizeof(fileheader), 1, f0);
+		fread(&hInfo, sizeof(bitmapinfoheader), 1, f0);
+
+		if (hf.signature[0] != 'B' || hf.signature[1] != 'M') { LOG("Not BMP File!\n"); }
+		if ((hInfo.height == 0) || (hInfo.width == 0))
+		{
+			LOG("bmp header is empty!\n");
+			hInfo.height = _cfgSig.rows;
+			hInfo.width = _cfgSig.cols;
+			if (_cfgSig.rows == 0 || _cfgSig.cols == 0)
+			{
+				LOG("check your parameter file!\n");
+				return false;
+			}
+		}
+		if ((_cfgSig.rows != hInfo.height) || (_cfgSig.cols != hInfo.width)) {
+			LOG("image size is different!\n");
+			_cfgSig.rows = hInfo.height;
+			_cfgSig.cols = hInfo.width;
+			LOG("changed parameter of size %d x %d\n", _cfgSig.cols, _cfgSig.rows);
+		}
+		bitsperpixel = hInfo.bitsperpixel;
+		if (hInfo.bitsperpixel == 8)
+		{
+			rgbquad palette[256];
+			fread(palette, sizeof(rgbquad), 256, f0);
+			fread(palette, sizeof(rgbquad), 256, f90);
+			fread(palette, sizeof(rgbquad), 256, f180);
+			fread(palette, sizeof(rgbquad), 256, f270);
+
+			f0Mat[0].resize(hInfo.height, hInfo.width);
+			f90Mat[0].resize(hInfo.height, hInfo.width);
+			f180Mat[0].resize(hInfo.height, hInfo.width);
+			f270Mat[0].resize(hInfo.height, hInfo.width);
+			ComplexH[0].resize(hInfo.height, hInfo.width);
+		}
+		else
+		{
+			f0Mat[0].resize(hInfo.height, hInfo.width);
+			f90Mat[0].resize(hInfo.height, hInfo.width);
+			f180Mat[0].resize(hInfo.height, hInfo.width);
+			f270Mat[0].resize(hInfo.height, hInfo.width);
+			ComplexH[0].resize(hInfo.height, hInfo.width);
+
+			f0Mat[1].resize(hInfo.height, hInfo.width);
+			f90Mat[1].resize(hInfo.height, hInfo.width);
+			f180Mat[1].resize(hInfo.height, hInfo.width);
+			f270Mat[1].resize(hInfo.height, hInfo.width);
+			ComplexH[1].resize(hInfo.height, hInfo.width);
+
+			f0Mat[2].resize(hInfo.height, hInfo.width);
+			f90Mat[2].resize(hInfo.height, hInfo.width);
+			f180Mat[2].resize(hInfo.height, hInfo.width);
+			f270Mat[2].resize(hInfo.height, hInfo.width);
+			ComplexH[2].resize(hInfo.height, hInfo.width);
+		}
+
+		uchar* f0data = (uchar*)malloc(sizeof(uchar)*hInfo.width*hInfo.height*(hInfo.bitsperpixel / 8));
+		uchar* f90data = (uchar*)malloc(sizeof(uchar)*hInfo.width*hInfo.height*(hInfo.bitsperpixel / 8));
+		uchar* f180data = (uchar*)malloc(sizeof(uchar)*hInfo.width*hInfo.height*(hInfo.bitsperpixel / 8));
+		uchar* f270data = (uchar*)malloc(sizeof(uchar)*hInfo.width*hInfo.height*(hInfo.bitsperpixel / 8));
+
+		fread(f0data, sizeof(uchar), hInfo.width*hInfo.height*(hInfo.bitsperpixel / 8), f0);
+		fread(f90data, sizeof(uchar), hInfo.width*hInfo.height*(hInfo.bitsperpixel / 8), f90);
+		fread(f180data, sizeof(uchar), hInfo.width*hInfo.height*(hInfo.bitsperpixel / 8), f180);
+		fread(f270data, sizeof(uchar), hInfo.width*hInfo.height*(hInfo.bitsperpixel / 8), f270);
+
+		fclose(f0);
+		fclose(f90);
+		fclose(f180);
+		fclose(f270);
+
+		for (int i = hInfo.height - 1; i >= 0; i--)
+		{
+			for (int j = 0; j < static_cast<int>(hInfo.width); j++)
+			{
+				for (int z = 0; z < (hInfo.bitsperpixel / 8); z++)
+				{
+					f0Mat[z](hInfo.height - i - 1, j) = (double)f0data[i*hInfo.width*(hInfo.bitsperpixel / 8) + (hInfo.bitsperpixel / 8)*j + z];
+					f90Mat[z](hInfo.height - i - 1, j) = (double)f90data[i*hInfo.width*(hInfo.bitsperpixel / 8) + (hInfo.bitsperpixel / 8)*j + z];
+					f180Mat[z](hInfo.height - i - 1, j) = (double)f180data[i*hInfo.width*(hInfo.bitsperpixel / 8) + (hInfo.bitsperpixel / 8)*j + z];
+					f270Mat[z](hInfo.height - i - 1, j) = (double)f270data[i*hInfo.width*(hInfo.bitsperpixel / 8) + (hInfo.bitsperpixel / 8)*j + z];
+				}
+			}
+		}
+		LOG("PSDH file load complete!\n");
+
+		free(f0data);
+		free(f90data);
+		free(f180data);
+		free(f270data);
+		
+	}
+	else
+	{
+		LOG("wrong type (only BMP supported)\n");
+	}
+
+	// calculation complexH from 4 psdh and then normalize
+	double normalizefactor = 1. / 256.;
+	for (int z = 0; z < (bitsperpixel / 8); z++)
+	{
+		for (int i = 0; i < _cfgSig.rows; i++)
+		{
+			for (int j = 0; j < _cfgSig.cols; j++)
+			{
+				ComplexH[z](i, j)._Val[_RE] = (f0Mat[z](i, j) - f180Mat[z](i,j))*normalizefactor;
+				ComplexH[z](i, j)._Val[_IM] = (f90Mat[z](i, j) - f270Mat[z](i, j))*normalizefactor;
+
+			}
+		}
+	}
+	LOG("complex field obtained from 4 psdh\n");
+	return true;
+}
+
 void ophSig::ophFree(void) {
 
 }

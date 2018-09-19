@@ -225,6 +225,8 @@ public:
 	*/
 	double sigGetParamSF(float zMax, float zMin, int sampN, float th);
 
+	bool getComplexHFromPSDH(const char* fname0, const char* fname90, const char* fname180, const char* fname270);
+	
 protected:
 
 	virtual void ophFree(void);
@@ -236,6 +238,9 @@ protected:
 	float _redRate;
 	float _radius;
 	float _foc[3];
+
+
+
 };
 
 #endif // !__ophSig_h

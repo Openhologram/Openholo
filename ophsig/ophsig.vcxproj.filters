@@ -31,5 +31,8 @@
       <Filter>__ophSig</Filter>
     </ClInclude>
     <ClInclude Include="src\tinyxml2.h" />
+    <ClInclude Include="..\Openholo\src\fftw3.h">
+      <Filter>__Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
