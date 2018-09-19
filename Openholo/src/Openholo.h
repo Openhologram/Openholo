@@ -102,8 +102,8 @@ public:
 	* \ingroup read
 	* @brief Function to read OHC file
 	*/
-	virtual int loadAsOhc(const char *fname, Complex<Real> *dst);
-	virtual int loadAsOhc(const char *fname, OphComplexField &dst);
+	virtual int loadAsOhc(const char *fname, Complex<Real> **dst, ivec2 &pixel_number, vec2 &pixel_pitch, Real &wave_length);
+	virtual int loadAsOhc(const char *fname, OphComplexField &dst, ivec2 &pixel_number, vec2 &pixel_pitch, Real &wave_length);
 
 protected:
 	/**

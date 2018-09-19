@@ -420,6 +420,20 @@ void* ophGen::load(const char * fname)
 	return nullptr;
 }
 
+int ophGen::loadAsOhc(const char * fname)
+{
+	if (Openholo::loadAsOhc(fname, &holo_gen, context_.pixel_number, context_.pixel_pitch, context_.lambda) == -1) return false;
+
+	context_.k = (2 * M_PI) / context_.lambda;
+	context_.ss[_X] = context_.pixel_number[_X] * context_.pixel_pitch[_X];
+	context_.ss[_Y] = context_.pixel_number[_Y] * context_.pixel_pitch[_Y];
+
+	holo_encoded = new Real[context_.pixel_number[_X] * context_.pixel_number[_Y]];
+	holo_normalized = new uchar[context_.pixel_number[_X] * context_.pixel_number[_Y]];
+
+	return true;
+}
+
 #define for_i(itr, oper) for(int i=0; i<itr; i++){ oper }
 
 void ophGen::loadComplex(char* real_file, char* imag_file, int n_x, int n_y) {
