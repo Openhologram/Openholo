@@ -1425,6 +1425,12 @@ bool ophSig::getComplexHFromPSDH(const char * fname0, const char * fname90, cons
 		bitsperpixel = hInfo.bitsperpixel;
 		if (hInfo.bitsperpixel == 8)
 		{
+			rgbquad palette[256];
+			fread(palette, sizeof(rgbquad), 256, f0);
+			fread(palette, sizeof(rgbquad), 256, f90);
+			fread(palette, sizeof(rgbquad), 256, f180);
+			fread(palette, sizeof(rgbquad), 256, f270);
+
 			f0Mat[0].resize(hInfo.height, hInfo.width);
 			f90Mat[0].resize(hInfo.height, hInfo.width);
 			f180Mat[0].resize(hInfo.height, hInfo.width);
@@ -1494,7 +1500,7 @@ bool ophSig::getComplexHFromPSDH(const char * fname0, const char * fname90, cons
 	}
 
 	// calculation complexH from 4 psdh and then normalize
-	double normalizefactor = 1 / 256;
+	double normalizefactor = 1. / 256.;
 	for (int z = 0; z < (bitsperpixel / 8); z++)
 	{
 		for (int i = 0; i < _cfgSig.rows; i++)
