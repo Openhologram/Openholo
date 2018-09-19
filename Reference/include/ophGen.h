@@ -130,6 +130,10 @@ public:
 	bool readConfig(const char* fname, OphWRPConfig& config);
 
 	/**
+	*/
+	void propagationAngularSpectrum(Complex<Real>* input_u, Real propagation_dist);
+
+	/**
 	* \ingroup calc
 	* @brief Normalization function to save as image file after hologram creation
 	*/
@@ -140,6 +144,7 @@ public:
 	* @brief Function for saving image files
 	*/
 	int save(const char* fname, uint8_t bitsperpixel = 8, uchar* src = nullptr, uint px = 0, uint py = 0);
+	int saveAsOhc(const char* fname);
 	
 	/** \ingroup read
 	* @brief Function for loading image files

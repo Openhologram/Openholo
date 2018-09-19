@@ -85,7 +85,6 @@ private:
 	void calcHoloByDepth(void);
 	void calcHoloCPU(void);
 	void calcHoloGPU(void);
-	void propagationAngularSpectrumCPU(Complex<Real>* input_u, Real propagation_dist);
 	void propagationAngularSpectrumGPU(cufftDoubleComplex* input_u, Real propagation_dist);
 
 protected:
