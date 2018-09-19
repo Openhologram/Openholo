@@ -134,7 +134,9 @@ uchar * Openholo::loadAsImg(const char * fname)
 
 int Openholo::saveAsOhc(const char * fname, Complex<Real> *src)
 {
-	OHC_encoder->setFileName(fname);
+	std::string fullname = fname;
+	if (checkExtension(fname, ".ohc") == 0) fullname.append(".ohc");
+	OHC_encoder->setFileName(fullname.c_str());
 	OHC_encoder->addComplexFieldData(src);
 
 	if (!OHC_encoder->save()) return -1;
@@ -144,7 +146,9 @@ int Openholo::saveAsOhc(const char * fname, Complex<Real> *src)
 
 int Openholo::saveAsOhc(const char * fname, OphComplexField & src)
 {
-	OHC_encoder->setFileName(fname);
+	std::string fullname = fname;
+	if (checkExtension(fname, ".ohc") == 0) fullname.append(".ohc");
+	OHC_encoder->setFileName(fullname.c_str());
 	OHC_encoder->addComplexFieldData(src);	
 
 	if (!OHC_encoder->save()) return -1;
@@ -152,12 +156,21 @@ int Openholo::saveAsOhc(const char * fname, OphComplexField & src)
 	return 1;
 }
 
-int Openholo::loadAsOhc(const char * fname, Complex<Real>* dst)
+int Openholo::loadAsOhc(const char * fname, Complex<Real>** dst, ivec2 &pixel_number, vec2 &pixel_pitch, Real &wave_length)
 {
-	OHC_decoder->setFileName(fname);
+	std::string fullname = fname;
+	if (checkExtension(fname, ".ohc") == 0) fullname.append(".ohc");
+	OHC_decoder->setFileName(fullname.c_str());
 	if (!OHC_decoder->load()) return -1;
 
-	OphComplexField res;
+	pixel_number = OHC_decoder->getNumOfPixel();
+	pixel_pitch = OHC_decoder->getPixelPitch();
+
+	vector<Real> wavelengthArray;
+	OHC_decoder->getWavelength(wavelengthArray);
+	wave_length = wavelengthArray[0];
+	
+	OphComplexField res(pixel_number[_X], pixel_number[_Y]);
 	OHC_decoder->getComplexFieldData(res);
 
 	Field2Buffer(res, dst);
@@ -165,10 +178,22 @@ int Openholo::loadAsOhc(const char * fname, Complex<Real>* dst)
 	return 1;
 }
 
-int Openholo::loadAsOhc(const char * fname, OphComplexField & dst)
+int Openholo::loadAsOhc(const char * fname, OphComplexField & dst, ivec2 &pixel_number, vec2 &pixel_pitch, Real &wave_length)
 {
-	OHC_decoder->setFileName(fname);
+	std::string fullname = fname;
+	if (checkExtension(fname, ".ohc") == 0) fullname.append(".ohc");
+	OHC_decoder->setFileName(fullname.c_str());
 	if (!OHC_decoder->load()) return -1;
+
+	pixel_number = OHC_decoder->getNumOfPixel();
+	pixel_pitch = OHC_decoder->getPixelPitch();
+
+	vector<Real> wavelengthArray;
+	OHC_decoder->getWavelength(wavelengthArray);
+	wave_length = wavelengthArray[0];
+
+	dst.resize(pixel_number[_X], pixel_number[_Y]);
+	dst.zeros();
 
 	OHC_decoder->getComplexFieldData(dst);
 

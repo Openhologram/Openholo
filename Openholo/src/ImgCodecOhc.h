@@ -37,7 +37,9 @@ namespace oph
 		
 	protected: /* field */
 		std::string fname;
-		void* buf = nullptr; //coded data
+		//void* buf = nullptr; //coded data
+		float*	buf_f32 = nullptr; //coded data
+		double* buf_f64 = nullptr; //coded data		
 		std::vector<OphComplexField> field_cmplx; //Real & Imagine data
 		std::vector<std::string> linkFilePath;
 
@@ -70,8 +72,9 @@ namespace oph
 
 	protected:
 		bool bLoadFile = false;
-		template<typename T> bool decodeFieldData();
-		template<typename T> Real decodePhase(const T phase, const Real min_p, const Real max_p, const double min_T, const double max_T);
+		//template<typename T> bool decodeFieldData();
+		//template<typename T> Real decodePhase(const T phase, const Real min_p, const Real max_p, const double min_T, const double max_T);
+		bool decodeFieldData();
 
 		//Only Amplitude Encoding or Only Phase Encoding or Amplitude & Phase data
 		std::vector<OphRealField> field_ampli;
@@ -113,8 +116,9 @@ namespace oph
 		bool save();
 
 	protected:
-		template<typename T> uint64_t encodeFieldData();
-		template<typename T> T encodePhase(const Real phase_angle, const Real min_p, const Real max_p, const double min_T, const double max_T);
+		//template<typename T> uint64_t encodeFieldData();
+		//template<typename T> T encodePhase(const Real phase_angle, const Real min_p, const Real max_p, const double min_T, const double max_T);
+		uint64_t encodeFieldData();
 
 		std::ofstream File;
 	};
