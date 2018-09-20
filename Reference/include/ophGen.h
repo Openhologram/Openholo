@@ -150,6 +150,7 @@ public:
 	* @brief Function for loading image files
 	*/
 	void* load(const char* fname);
+	int loadAsOhc(const char* fname);
 
 protected:
 	/**

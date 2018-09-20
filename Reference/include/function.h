@@ -279,15 +279,15 @@ namespace oph
 	}
 
 	template<typename T>
-	inline void Field2Buffer(matrix<T>& src, T* dst) {
+	inline void Field2Buffer(matrix<T>& src, T** dst) {
 		ivec2 bufferSize = src.getSize();
 
-		dst = new oph::Complex<Real>[bufferSize[_X] * bufferSize[_Y]];
+		*dst = new oph::Complex<Real>[bufferSize[_X] * bufferSize[_Y]];
 
 		int idx = 0;
 		for (int x = 0; x < bufferSize[_X]; x++) {
 			for (int y = 0; y < bufferSize[_Y]; y++) {
-				dst[idx] = src[_X][_Y];
+				dst[0][idx] = src[x][y];
 				idx++;
 			}
 		}

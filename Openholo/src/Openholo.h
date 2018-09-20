@@ -1,3 +1,323 @@
+/*M///////////////////////////////////////////////////////////////////////////////////////
+//
+//  IMPORTANT: READ BEFORE DOWNLOADING, COPYING, INSTALLING OR USING.
+//
+//  By downloading, copying, installing or using the software you agree to this license.
+//  If you do not agree to this license, do not download, install, copy or use the software.
+//
+//
+//                           License Agreement
+//                For Open Source Digital Holographic Library
+//
+// Openholo library is free software;
+// you can redistribute it and/or modify it under the terms of the BSD 2-Clause license.
+//
+// Copyright (C) 2017-2024, Korea Electronics Technology Institute. All rights reserved.
+// E-mail : contact.openholo@gmail.com
+// Web : http://www.openholo.org
+//
+// Redistribution and use in source and binary forms, with or without modification,
+// are permitted provided that the following conditions are met:
+//
+//  1. Redistribution's of source code must retain the above copyright notice,
+//     this list of conditions and the following disclaimer.
+//
+//  2. Redistribution's in binary form must reproduce the above copyright notice,
+//     this list of conditions and the following disclaimer in the documentation
+//     and/or other materials provided with the distribution.
+//
+// This software is provided by the copyright holders and contributors "as is" and
+// any express or implied warranties, including, but not limited to, the implied
+// warranties of merchantability and fitness for a particular purpose are disclaimed.
+// In no event shall the copyright holder or contributors be liable for any direct,
+// indirect, incidental, special, exemplary, or consequential damages
+// (including, but not limited to, procurement of substitute goods or services;
+// loss of use, data, or profits; or business interruption) however caused
+// and on any theory of liability, whether in contract, strict liability,
+// or tort (including negligence or otherwise) arising in any way out of
+// the use of this software, even if advised of the possibility of such damage.
+//
+// This software contains opensource software released under GNU Generic Public License,
+// NVDIA Software License Agreement, or CUDA supplement to Software License Agreement.
+// Check whether software you use contains licensed software.
+//
+//M*/
+
+/**
+* @mainpage Openholo library Documentation
+* @section Introduction
+
+OpenHolo is an open source library which contains algorithms and their software implementation
+for generation of holograms to be applied in various fields. The goal behind the library development
+is facilitating production of digital holographic contents and expanding the area of their application.
+The developed by us open source library is a tool for computer generation of holograms, simulations and
+signal processing at various formats of 3D input data and properties of the 3D displays. Based on this,
+we want to lay the foundation for commercializing digital holographic service in various fields.
+
+
+* @section Examples
+
+Generation Hologram - Point Cloud Example
+
+@code
+	#include "ophPointCloud.h"
+
+	ophPointCloud* Hologram = new ophPointCloud();
+
+	Hologram->setMode(MODE_CPU); //Select CPU or GPU Processing
+	Hologram->readConfig("config/TestSpecPointCloud.xml");
+	Hologram->loadPointCloud("source/TestPointCloud_Saturn.ply");
+
+	Hologram->generateHologram(PC_DIFF_RS_NOT_ENCODED);
+	Hologram->encodeHologram();
+	Hologram->normalize();
+	Hologram->save("result/Result_PointCloudSample_Saturn");
+	Hologram->release();
+@endcode
+
+
+Generation Hologram - Depth Map Example
+
+@code
+	#include "ophDepthMap.h"
+
+	ophDepthMap* Hologram = new ophDepthMap();
+
+	Hologram->setMode(MODE_CPU); //Select CPU or GPU Processing
+	Hologram->readConfig("config/TestSpecDepthMap.xml");
+	Hologram->readImageDepth("source", "RGB_D", "D_D");
+
+	Hologram->generateHologram();
+	Hologram->encodeHologram();
+	Hologram->normalize();
+	Hologram->save("result/Result_DepthmapSample.bmp");
+	Hologram->release();
+@endcode
+
+
+Generation Hologram - Triangle Mesh Example
+
+@code
+	#include "ophTriMesh.h"
+
+	ophTri* Hologram = new ophTri();
+
+	Hologram->readMeshConfig("config/TestSpecMesh.xml");
+	Hologram->loadMeshData("source/mesh_teapot.ply","ply");
+	Hologram->objScaleShift();
+
+	Hologram->generateMeshHologram(Hologram->SHADING_FLAT);
+	Hologram->encoding(Hologram->ENCODE_AMPLITUDE);
+	Hologram->normalizeEncoded();
+	ivec2 encode_size = Hologram->getEncodeSize();
+	Hologram->save("result/Mesh.bmp", 8, nullptr, encode_size[_X], encode_size[_Y]);
+@endcode
+
+
+Generation Hologram - Light Field Example
+
+@code
+	#include "ophLightField.h"
+
+	ophLF* Hologram = new ophLF();
+
+	Hologram->readLFConfig("config/TestSpecLF.xml");
+	Hologram->loadLF("source/sample_orthographic_images","bmp");
+
+	Hologram->generateHologram();
+	Hologram->encoding(Hologram->ENCODE_AMPLITUDE);
+	Hologram->normalizeEncoded();
+	ivec2 encode_size = Hologram->getEncodeSize();
+	Hologram->save("result/Light_Field.bmp", 8, nullptr, encode_size[_X], encode_size[_Y]);
+@endcode
+
+
+Generation Hologram - Wavefront Recording Plane(WRP) Example
+
+@code
+	#include "ophWRP.h"
+
+	ophWRP* Hologram = new ophWRP();
+
+	Hologram->readConfig("config/TestSpecWRP.xml");
+	Hologram->loadPointCloud("source/TestPointCloud_WRP.ply");
+	Hologram->calculateMWRP();
+
+	Hologram->generateHologram();
+	Hologram->encodeHologram();
+	Hologram->normalize();
+	Hologram->save("result/Result_WRP.bmp");
+	Hologram->release();
+@endcode
+
+
+Encoding Example
+
+@code
+	#include "ophPointCloud.h"
+
+	ophPointCloud* Hologram = new ophPointCloud();
+
+	Hologram->loadComplex("source/teapot_real_1920,1080.txt", "source/teapot_imag_1920,1080.txt", 1920, 1080);
+	Hologram->encoding(ophGen::ENCODE_AMPLITUDE);
+	Hologram->normalizeEncoded();
+	ivec2 encode_size = Hologram->getEncodeSize();
+	Hologram->save("result/Encoding.bmp",8,nullptr,encode_size[_X], encode_size[_Y]);
+@endcode
+
+
+Wave Aberration Example
+
+@code
+	#include "ophWaveAberration.h"
+
+	ophWaveAberration* wa = new ophWaveAberration;
+
+	wa->readConfig("config/TestSpecAberration.xml"); // reads parameters from a configuration file
+	wa->accumulateZernikePolynomial(); // generates 2D complex data array of wave aberration according to parameters
+	wa->complex_W; // double pointer variable of 2D complex data array of wave aberration
+	wa->resolutionX; // resolution in x axis of 2D complex data array of wave aberration
+	wa->resolutionY; // resolution in y axis of 2D complex data array of wave aberration
+	wa->saveAberration("result/aberration.bin"); // saves 2D complex data array of complex wave aberration into a file
+
+	wa->readAberration("result/aberration.bin"); // reads 2D complex data array of complex wave aberration from a file
+	wa->complex_W; // double pointer variable of 2D complex data array of wave aberration
+	wa->resolutionX; // resolution in x axis of 2D complex data array of wave aberration
+	wa->resolutionY; // resolution in y axis of 2D complex data array of wave aberration
+	wa->release();
+@endcode
+
+
+Hologram core processing - HPO transform Example
+
+@code
+	#include "ophSig.h"
+
+	ophSig *holo = new ophSig();
+
+	if (!holo->readConfig("config/holoParam.xml")) {
+		// no file
+		return false;
+	}
+
+	if (!holo->load("source/3_point_re.bmp", "source/3_point_im.bmp", 8)) {
+		// no file
+		return false;
+	}
+
+	holo->sigConvertHPO();
+	holo->save("result/HPO_re_C.bmp", "result/HPO_im_C.bmp", 8);
+@endcode
+
+
+Hologram core processing - CAC transform Example
+
+@code
+	#include "ophSig.h"
+
+	ophSig *holo = new ophSig();
+
+	if (!holo->readConfig("config/holoParam.xml")) {
+		// no file
+		return false;
+	}
+
+	if (!holo->load("source/ColorPoint_re.bmp", "source/ColorPoint_im.bmp",24)) {
+		// no file
+		return false;
+	}
+
+	holo->sigConvertCAC(0.000000633,0.000000532,0.000000473);
+	holo->save("result/CAC_re_C.bin", "result/CAC_im_C.bin",24);
+@endcode
+
+
+Hologram core processing - Off-axis hologram transform Example
+
+@code
+	#include "ophSig.h"
+
+	ophSig *holo = new ophSig();
+
+	if (!holo->readConfig("config/holoParam.xml")) {
+		// no file
+		return false;
+	}
+
+	if (!holo->load("source/3_point_re.bmp", "source/3_point_im.bmp", 8)) {
+		// no file
+		return false;
+	}
+
+	holo->sigConvertOffaxis();
+	holo->save("result/Off_axis.bmp",8);
+@endcode
+
+
+Hologram core processing - get parameter using axis transformation Example
+
+@code
+	#include "ophSig.h"
+
+	ophSig* holo = new ophSig();
+
+	float depth = 0;
+
+	if (!holo->readConfig("config/holoParam.xml")) {
+		// no file
+		return false;
+	}
+
+	if (!holo->load("source/3_point_re.bmp", "source/3_point_im.bmp", 8)) {
+		// no file
+		return false;
+	}
+
+	depth = holo->sigGetParamSF(10, -10, 100, 0.3);
+	holo->propagationHolo(depth); // backpropagation
+	holo->save("result/SF_re.bmp", "result/SF_im.bmp", 8);
+@endcode
+
+
+@code
+	#include "ophSig.h"
+
+	ophSig* holo = new ophSig();
+
+	float depth = 0;
+
+	if (!holo->readConfig("config/holoParam.xml")) {
+		// no file
+		return false;
+	}
+
+	if (!holo->load("source/0.1point_re.bmp", "source/0.1point_im.bmp", 8)) {
+		// no file
+		return false;
+	}
+
+	depth = holo->sigGetParamAT();
+	holo->propagationHolo(-depth); // backpropagation
+	holo->save("result/AT_re.bmp", "result/AT_im.bmp", 8);
+@endcode
+
+
+Cascaded Propagation Example
+
+@code
+	#include "ophCascadedPropagation.h"
+
+	ophCascadedPropagation* pCp = new ophCascadedPropagation(L"config/TestSpecCascadedPropagation.xml");
+
+	if (pCp->propagate())
+		pCp->saveIntensityAsImg(L"result/intensityRGB.bmp", pCp->getNumColors() * 8);
+
+	pCp->release();
+@endcode
+
+*
+*/
+
 
 /**
 * \defgroup const/dest Constructor & Destructor
