@@ -152,6 +152,7 @@ private:
 	uint calFrequencyTerm();
 	uint refAS_Flat(vec3 na);
 	uint refAS_Continuous(uint n);
+	void randPhaseDist(Complex<Real>* AS);
 	void generateAS(uint SHADING_FLAG);
 	uint findNormals(uint SHADING_FLAG);
 	uint refToGlobal();
@@ -205,6 +206,10 @@ private:
 	Complex<Real> D2;
 	Complex<Real> D3;
 
+	Complex<Real>* ASTerm;
+	Complex<Real>* randTerm;
+	Complex<Real>* phaseTerm;
+	Complex<Real>* convol;
 
 };
 

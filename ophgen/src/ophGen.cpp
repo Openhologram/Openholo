@@ -794,13 +794,15 @@ void ophGen::freqShift(oph::Complex<Real>* src, Complex<Real>* dst, const ivec2 
 
 	oph::Complex<Real>* AS = new oph::Complex<Real>[size];
 	fft2(holosize, src, OPH_FORWARD, OPH_ESTIMATE);
-	fftExecute(AS);
+	fftwShift(src, AS, holosize[_X], holosize[_Y], OPH_FORWARD);
+	//fftExecute(AS);
 
 	oph::Complex<Real>* shifted = new oph::Complex<Real>[size];
 	oph::circShift<Complex<Real>>(AS, shifted, shift_x, shift_y, holosize.v[_X], holosize.v[_Y]);
 
 	fft2(holosize, shifted, OPH_BACKWARD, OPH_ESTIMATE);
-	fftExecute(dst);
+	fftwShift(shifted, dst, holosize[_X], holosize[_Y], OPH_BACKWARD);
+	//fftExecute(dst);
 }
 
 
@@ -826,7 +828,8 @@ void ophGen::fresnelPropagation(OphContext context, Complex<Real>* in, Complex<R
 	Complex<Real>* temp1 = new Complex<Real>[Nx*Ny * 4];
 
 	fft2({ Nx * 2, Ny * 2 }, in2x, OPH_FORWARD, OPH_ESTIMATE);
-	fftExecute(temp1);
+	fftwShift(in2x, temp1, Nx, Ny, OPH_FORWARD);
+	//fftExecute(temp1);
 
 	Real* fx = new Real[Nx*Ny * 4];
 	Real* fy = new Real[Nx*Ny * 4];
@@ -856,7 +859,8 @@ void ophGen::fresnelPropagation(OphContext context, Complex<Real>* in, Complex<R
 
 	Complex<Real>* temp3 = new Complex<Real>[Nx*Ny * 4];
 	fft2({ Nx * 2, Ny * 2 }, temp2, OPH_BACKWARD, OPH_ESTIMATE);
-	fftExecute(temp3);
+	fftwShift(temp2, temp3, Nx*2, Ny*2, OPH_BACKWARD);
+	//fftExecute(temp3);
 
 	uint idxOut = 0;
 

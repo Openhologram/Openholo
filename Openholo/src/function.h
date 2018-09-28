@@ -269,7 +269,7 @@ namespace oph
 	inline void getPhase(oph::Complex<Real>* src, Real* dst, const int& size)
 	{
 		for (int i = 0; i < size; i++) {
-			*(dst + i) = angle<Real>(*(src + i));
+			*(dst + i) = angle<Real>(*(src + i)) + M_PI;
 		}
 	
 	}

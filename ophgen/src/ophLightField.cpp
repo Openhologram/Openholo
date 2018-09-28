@@ -240,7 +240,8 @@ void ophLF::convertLF2ComplexField() {
 				}
 			}
 			fft2(num_image, complexLF, OPH_FORWARD, OPH_ESTIMATE);
-			fftExecute(FFTLF);
+			fftwShift(complexLF, FFTLF, nx, ny, OPH_FORWARD);
+			//fftExecute(FFTLF);
 
 			for (int idxNx = 0; idxNx < nx; idxNx++) {
 				for (int idxNy = 0; idxNy < ny; idxNy++) {

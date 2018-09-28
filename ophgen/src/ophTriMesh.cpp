@@ -315,6 +315,7 @@ void ophTri::generateMeshHologram(uint SHADING_FLAG) {
 	initializeAS();
 	generateAS(SHADING_FLAG);
 
+	holo_gen = angularSpectrum;
 	fft2(context_.pixel_number, angularSpectrum, OPH_BACKWARD, OPH_ESTIMATE);
 	fftwShift(angularSpectrum, holo_gen, context_.pixel_number[_X], context_.pixel_number[_Y], OPH_BACKWARD);
 	/*fftExecute(holo_gen);*/
@@ -334,7 +335,8 @@ void ophTri::generateMeshHologram() {
 	generateAS(SHADING_TYPE);
 
 	fft2(context_.pixel_number, angularSpectrum, OPH_BACKWARD, OPH_ESTIMATE);
-	fftExecute(holo_gen);
+	fftwShift(angularSpectrum, holo_gen, context_.pixel_number[_X], context_.pixel_number[_Y], OPH_BACKWARD);
+	//fftExecute(holo_gen);
 
 	auto end = CUR_TIME;
 	auto during = ((std::chrono::duration<Real>)(end - start)).count();
@@ -348,15 +350,22 @@ void ophTri::generateAS(uint SHADING_FLAG) {
 	Real* mesh = new Real[9];
 	calGlobalFrequency();
 
+	ivec2 px = context_.pixel_number;
+
 	mesh_local = new Real[9];
-	flx = new Real[context_.pixel_number[_X] * context_.pixel_number[_Y]];
-	fly = new Real[context_.pixel_number[_X] * context_.pixel_number[_Y]];
-	flz = new Real[context_.pixel_number[_X] * context_.pixel_number[_Y]];
+	flx = new Real[px[_X] * px[_Y]];
+	fly = new Real[px[_X] * px[_Y]];
+	flz = new Real[px[_X] * px[_Y]];
 
-	freqTermX = new Real[context_.pixel_number[_X] * context_.pixel_number[_Y]];
-	freqTermY = new Real[context_.pixel_number[_X] * context_.pixel_number[_Y]];
+	freqTermX = new Real[px[_X] * px[_Y]];
+	freqTermY = new Real[px[_X] * px[_Y]];
 
-	refAS = new Complex<Real>[context_.pixel_number[_X] * context_.pixel_number[_Y]];
+	refAS = new Complex<Real>[px[_X] * px[_Y]];
+
+	ASTerm = new Complex<Real>[px[_X] * px[_Y]];
+	randTerm = new Complex<Real>[px[_X] * px[_Y]];
+	phaseTerm = new Complex<Real>[px[_X] * px[_Y]];
+	convol = new Complex<Real>[px[_X] * px[_Y]];
 
 	findNormals(SHADING_FLAG);
 
@@ -394,7 +403,7 @@ void ophTri::generateAS(uint SHADING_FLAG) {
 
 	cout << "Angular Spectrum Generated..." << endl;
 
-	delete[] mesh, scaledMeshData, fx, fy, fz, mesh_local, flx, fly, flz, freqTermX, freqTermY, refAS;
+	delete[] mesh, scaledMeshData, fx, fy, fz, mesh_local, flx, fly, flz, freqTermX, freqTermY, refAS, ASTerm, randTerm, phaseTerm, convol;
 }
 
 
@@ -643,6 +652,9 @@ uint ophTri::refAS_Flat(vec3 no) {
 			refAS[i] = shadingFactor*((exp(refTerm1) - (Complex<Real>)1) / (4 * M_PI*M_PI*freqTermX[i] * freqTermY[i]) + ((Complex<Real>)1 - exp(refTerm2)) / (4 * M_PI*M_PI*freqTermY[i] * (freqTermX[i] + freqTermY[i])));
 		}
 	}
+
+	//randPhaseDist(refAS);
+
 	return 1;
 }
 
@@ -718,8 +730,42 @@ uint ophTri::refAS_Continuous(uint n) {
 		}
 		refAS[i] = (av[1] - av[0])*D1 + (av[2] - av[1])*D2 + av[0] * D3;
 	}
+
+
+	//randPhaseDist(refAS);
 	
 	return 1;
+}
+
+void ophTri::randPhaseDist(Complex<Real>* AS)
+{
+	ivec2 px = context_.pixel_number;
+
+	fft2(px, AS, OPH_FORWARD, OPH_ESTIMATE);
+	fftwShift(AS, ASTerm, px[_X], px[_Y], OPH_FORWARD, OPH_ESTIMATE);
+	//fftExecute(ASTerm);
+
+	Real randVal;
+	Complex<Real> phase;
+
+	for_i(px[_X] * px[_Y],
+		randVal = rand((Real)0, (Real)1, px[_X] * px[_Y]);
+	phase[_RE] = 0;
+	phase[_IM] = 2 * M_PI*randVal;
+	phaseTerm[i] = exp(phase);
+	);
+
+	fft2(px, phaseTerm, OPH_FORWARD, OPH_ESTIMATE);
+	fftwShift(phaseTerm, randTerm, px[_X], px[_Y], OPH_FORWARD, OPH_ESTIMATE);
+	//fftExecute(randTerm);
+
+	for_i(px[_X] * px[_Y],
+		convol[i] = ASTerm[i] * randTerm[i];);
+
+	fft2(px, convol, OPH_BACKWARD, OPH_ESTIMATE);
+	fftwShift(convol, AS, px[_X], px[_Y], OPH_BACKWARD, OPH_ESTIMATE);
+	//fftExecute(AS);
+
 }
 
 uint ophTri::refToGlobal() {

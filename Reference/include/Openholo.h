@@ -22,8 +22,22 @@
 #include "ivec.h"
 #include "fftw3.h"
 
+#include "ImgCodecOhc.h"
+
 using namespace oph;
 
+//namespace oph{
+//	class ImgEncoderOhc;
+//	class ImgDecoderOhc;
+//	enum class LenUnit : uint8_t;
+//	enum class ColorType : uint8_t;
+//	enum class ColorArran : uint8_t;
+//	enum class DataType : uint8_t;
+//	enum class FldStore : uint8_t;
+//	enum class FldCodeType : uint8_t;
+//	enum class BPhaseCode : uint8_t;
+//	enum class ImageFormat : uint8_t;
+//}
 /**
 * @brief Abstract class
 * @detail Top class of Openholo library. Common functions required by subclasses are implemented.
@@ -55,7 +69,7 @@ protected:
 	*/
 	int checkExtension(const char* fname, const char* ext);
 
-protected:
+public:
 	/**
 	* \ingroup write
 	* @brief Function for creating image files
@@ -67,7 +81,7 @@ protected:
 	* @return int  return -1 : Failed to save image file
 	*			   return  1 : Success to save image file
 	*/
-	int saveAsImg(const char* fname, uint8_t bitsperpixel, uchar* src, int pic_width, int pic_height);
+	virtual int saveAsImg(const char* fname, uint8_t bitsperpixel, uchar* src, int pic_width, int pic_height);
 
 	/**
 	* \ingroup read
@@ -75,8 +89,23 @@ protected:
 	* @param const char* Input file name
 	* @return unsigned char* Image file's data
 	*/
-	uchar* loadAsImg(const char* fname);
+	virtual uchar* loadAsImg(const char* fname);
 
+	/**
+	* \ingroup write
+	* @brief Function to write OHC file
+	*/
+	virtual int saveAsOhc(const char *fname, Complex<Real> *src);
+	virtual int saveAsOhc(const char *fname, OphComplexField &src);
+
+	/**
+	* \ingroup read
+	* @brief Function to read OHC file
+	*/
+	virtual int loadAsOhc(const char *fname, Complex<Real> *dst);
+	virtual int loadAsOhc(const char *fname, OphComplexField &dst);
+
+protected:
 	/**
 	* \ingroup read
 	* @brief Function for loading image files | Output image data upside down
@@ -182,12 +211,79 @@ protected:
 
 private:
 	/**
-	* @brief Fftw-library variables for running fft inside Openholo
+	* @brief fftw-library variables for running fft inside Openholo
 	*/
 	fftw_plan plan_fwd, plan_bwd;
 	fftw_complex *fft_in, *fft_out;
 	int pnx, pny, pnz;
 	int fft_sign;
+
+protected:
+	/**
+	* @brief OHC file format Variables for read and write
+	*/
+	ImgEncoderOhc* OHC_encoder;
+	ImgDecoderOhc* OHC_decoder;
+
+protected:
+	/**
+	* @brief getter/setter for OHC file read and write
+	*/
+	inline void setPixelNumber(const ivec2 pixel_number) 
+		{ OHC_encoder->setNumOfPixel(pixel_number); }
+
+	inline void setPixelPitch(const vec2 pixel_pitch)
+		{ OHC_encoder->setPixelPitch(pixel_pitch); }
+
+	inline void setWavelength(const Real wavelength, const LenUnit wavelength_unit)
+		{ OHC_encoder->setWavelength(wavelength, wavelength_unit); }
+
+	inline void setWaveLengthNum(const uint wavelength_num)
+		{ OHC_encoder->setNumOfWavlen(wavelength_num); }
+
+	inline void setColorType(const ColorType color_type)
+		{ OHC_encoder->setColorType(color_type); }
+
+	inline void setColorArrange(const ColorArran color_arrange)
+		{ OHC_encoder->setColorArrange(color_arrange);	}
+
+	inline 	void setWaveLengthUnit(const LenUnit length_unit)
+		{ OHC_encoder->setUnitOfWavlen(length_unit);	}
+
+	inline 	void setFieldEncoding(const FldStore field_store, const FldCodeType field_code_type)
+		{ OHC_encoder->setFieldEncoding(field_store, field_code_type); }
+
+	inline 	void setPhaseEncoding(const BPhaseCode phase_code, const vec2 phase_code_range)
+		{ OHC_encoder->setPhaseEncoding(phase_code, phase_code_range); }
+
+	//inline void setCompressedFormatType(const CompresType compress_type)
+	//	{ OHC_encoder->setCompressedFormatType(compress_type); }
+
+	/**
+	* @brief Function to add ComplexField when adding wavelength data
+	*/
+	inline void addWaveLengthNComplexFieldData(const Real wavelength, const OphComplexField& complex_field)
+		{ OHC_encoder->addWavelengthNComplexFieldData(wavelength, complex_field); }
+
+	inline void addWaveLength(const Real wavelength)
+		{ OHC_encoder->addWavelength(wavelength); }
+
+	inline void addComplexFieldData(const OphComplexField& complex_field)
+		{ OHC_encoder->addComplexFieldData(complex_field); }
+
+	/**
+
+	*/
+	//inline void addLinkFilePath(const std::string& path)
+	//	{ OHC_encoder->addLinkFilePath(path); }
+
+	/**
+
+	*/
+	inline void getLinkFilePath(std::vector<std::string> &linkFilePath_array)
+		{ OHC_decoder->getLinkFilePath(linkFilePath_array); }
+
+
 };
 
 #endif // !__Openholo_h
