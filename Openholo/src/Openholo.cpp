@@ -1,10 +1,47 @@
-/**
-* @mainpage Openholo library Documentation
-* @section Introduction
-* @Examples
-* 
-*/
-
+/*M///////////////////////////////////////////////////////////////////////////////////////
+//
+//  IMPORTANT: READ BEFORE DOWNLOADING, COPYING, INSTALLING OR USING.
+//
+//  By downloading, copying, installing or using the software you agree to this license.
+//  If you do not agree to this license, do not download, install, copy or use the software.
+//
+//
+//                           License Agreement
+//                For Open Source Digital Holographic Library
+//
+// Openholo library is free software;
+// you can redistribute it and/or modify it under the terms of the BSD 2-Clause license.
+//
+// Copyright (C) 2017-2024, Korea Electronics Technology Institute. All rights reserved.
+// E-mail : contact.openholo@gmail.com
+// Web : http://www.openholo.org
+//
+// Redistribution and use in source and binary forms, with or without modification,
+// are permitted provided that the following conditions are met:
+//
+//  1. Redistribution's of source code must retain the above copyright notice,
+//     this list of conditions and the following disclaimer.
+//
+//  2. Redistribution's in binary form must reproduce the above copyright notice,
+//     this list of conditions and the following disclaimer in the documentation
+//     and/or other materials provided with the distribution.
+//
+// This software is provided by the copyright holders and contributors "as is" and
+// any express or implied warranties, including, but not limited to, the implied
+// warranties of merchantability and fitness for a particular purpose are disclaimed.
+// In no event shall the copyright holder or contributors be liable for any direct,
+// indirect, incidental, special, exemplary, or consequential damages
+// (including, but not limited to, procurement of substitute goods or services;
+// loss of use, data, or profits; or business interruption) however caused
+// and on any theory of liability, whether in contract, strict liability,
+// or tort (including negligence or otherwise) arising in any way out of
+// the use of this software, even if advised of the possibility of such damage.
+//
+// This software contains opensource software released under GNU Generic Public License,
+// NVDIA Software License Agreement, or CUDA supplement to Software License Agreement.
+// Check whether software you use contains licensed software.
+//
+//M*/
 
 #include "Openholo.h"
 
@@ -134,7 +171,9 @@ uchar * Openholo::loadAsImg(const char * fname)
 
 int Openholo::saveAsOhc(const char * fname, Complex<Real> *src)
 {
-	OHC_encoder->setFileName(fname);
+	std::string fullname = fname;
+	if (checkExtension(fname, ".ohc") == 0) fullname.append(".ohc");
+	OHC_encoder->setFileName(fullname.c_str());
 	OHC_encoder->addComplexFieldData(src);
 
 	if (!OHC_encoder->save()) return -1;
@@ -144,7 +183,9 @@ int Openholo::saveAsOhc(const char * fname, Complex<Real> *src)
 
 int Openholo::saveAsOhc(const char * fname, OphComplexField & src)
 {
-	OHC_encoder->setFileName(fname);
+	std::string fullname = fname;
+	if (checkExtension(fname, ".ohc") == 0) fullname.append(".ohc");
+	OHC_encoder->setFileName(fullname.c_str());
 	OHC_encoder->addComplexFieldData(src);	
 
 	if (!OHC_encoder->save()) return -1;
@@ -152,12 +193,21 @@ int Openholo::saveAsOhc(const char * fname, OphComplexField & src)
 	return 1;
 }
 
-int Openholo::loadAsOhc(const char * fname, Complex<Real>* dst)
+int Openholo::loadAsOhc(const char * fname, Complex<Real>** dst, ivec2 &pixel_number, vec2 &pixel_pitch, Real &wave_length)
 {
-	OHC_decoder->setFileName(fname);
+	std::string fullname = fname;
+	if (checkExtension(fname, ".ohc") == 0) fullname.append(".ohc");
+	OHC_decoder->setFileName(fullname.c_str());
 	if (!OHC_decoder->load()) return -1;
 
-	OphComplexField res;
+	pixel_number = OHC_decoder->getNumOfPixel();
+	pixel_pitch = OHC_decoder->getPixelPitch();
+
+	vector<Real> wavelengthArray;
+	OHC_decoder->getWavelength(wavelengthArray);
+	wave_length = wavelengthArray[0];
+	
+	OphComplexField res(pixel_number[_X], pixel_number[_Y]);
 	OHC_decoder->getComplexFieldData(res);
 
 	Field2Buffer(res, dst);
@@ -165,10 +215,22 @@ int Openholo::loadAsOhc(const char * fname, Complex<Real>* dst)
 	return 1;
 }
 
-int Openholo::loadAsOhc(const char * fname, OphComplexField & dst)
+int Openholo::loadAsOhc(const char * fname, OphComplexField & dst, ivec2 &pixel_number, vec2 &pixel_pitch, Real &wave_length)
 {
-	OHC_decoder->setFileName(fname);
+	std::string fullname = fname;
+	if (checkExtension(fname, ".ohc") == 0) fullname.append(".ohc");
+	OHC_decoder->setFileName(fullname.c_str());
 	if (!OHC_decoder->load()) return -1;
+
+	pixel_number = OHC_decoder->getNumOfPixel();
+	pixel_pitch = OHC_decoder->getPixelPitch();
+
+	vector<Real> wavelengthArray;
+	OHC_decoder->getWavelength(wavelengthArray);
+	wave_length = wavelengthArray[0];
+
+	dst.resize(pixel_number[_X], pixel_number[_Y]);
+	dst.zeros();
 
 	OHC_decoder->getComplexFieldData(dst);
 
