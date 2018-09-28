@@ -25,14 +25,23 @@
       <Filter>__ophSig</Filter>
     </ClCompile>
     <ClCompile Include="src\tinyxml2.cpp" />
+    <ClCompile Include="src\ophSigCH.cpp">
+      <Filter>__ophSig</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ophSigPU.cpp">
+      <Filter>__ophSig</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\ophSig.h">
       <Filter>__ophSig</Filter>
     </ClInclude>
     <ClInclude Include="src\tinyxml2.h" />
-    <ClInclude Include="..\Openholo\src\fftw3.h">
-      <Filter>__Header Files</Filter>
+    <ClInclude Include="src\ophSigCH.h">
+      <Filter>__ophSig</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ophSigPU.h">
+      <Filter>__ophSig</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -33,6 +33,8 @@ namespace oph
 		void getOHCheader(OHCheader &_Header);
 		void getFieldInfo(OHCFIELDINFOHEADER &_FieldInfo, std::vector<double_t> &_wavlenTable);
 
+		void getComplexFieldData(OphComplexField& cmplx_field) { cmplx_field = field_cmplx[0]; }
+		
 	protected: /* field */
 		std::string fname;
 		void* buf = nullptr; //coded data
@@ -93,6 +95,7 @@ namespace oph
 		void setPixelPitch(const double _pxPitchX, const double _pxPitchY, const LenUnit unit = LenUnit::m);
 		void setPixelPitch(const vec2 _pxPitch, const LenUnit unit = LenUnit::m);
 		void setNumOfWavlen(const uint n_wavlens);
+		void setWavelength(const Real _wavlen, const LenUnit _unit = LenUnit::m);
 		void setColorType(const ColorType _clrType);
 		void setColorArrange(const ColorArran _clrArrange);
 		void setUnitOfWavlen(const LenUnit unit);
@@ -100,10 +103,11 @@ namespace oph
 		void setPhaseEncoding(const BPhaseCode _bPhaseCode, const double _phaseCodeMin, const double _phaseCodeMax);
 		void setPhaseEncoding(const BPhaseCode _bPhaseCode, const vec2 _phaseCodeRange);
 		//void setCompressedFormatType(const CompresType _comprsType);
-		void setWavelength(const Real _wavlen, const LenUnit _unit = LenUnit::m);
-		void addWaveFld(const Real wavlen, const OphComplexField &data);
-		void addFldData(const OphComplexField &data);
-		void addWavlen(const Real wavlen);
+
+		void addWavelengthNComplexFieldData(const Real wavlen, const OphComplexField &data);
+		void addComplexFieldData(const OphComplexField &data);
+		void addComplexFieldData(const Complex<Real> *data);
+		void addWavelength(const Real wavlen);
 		//void addLinkFilePath(const std::string &path);
 
 		bool save();

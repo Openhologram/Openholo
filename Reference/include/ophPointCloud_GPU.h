@@ -15,6 +15,8 @@
 #include <vector_functions.h> //Vector Processing Function
 #undef __CUDA_INTERNAL_COMPILATION__
 
+#define OPH_CUDA_N_STREAM 3
+
 
 static void handleError(cudaError_t err, const char *file, int line) {
 	if (err != cudaSuccess) {

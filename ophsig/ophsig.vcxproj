@@ -12,16 +12,24 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\ophSig.cpp" />
+    <ClCompile Include="src\ophSigCH.cpp" />
+    <ClCompile Include="src\ophSigPU.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="src\tinyxml2.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\ophSig.h" />
+    <ClInclude Include="src\ophSigCH.h" />
+    <ClInclude Include="src\ophSigPU.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+    </ClInclude>
     <ClInclude Include="src\tinyxml2.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{37973A95-102B-491C-BE36-F9203D2B6EDA}</ProjectGuid>
     <RootNamespace>ophsig</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.10240.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.17134.0</WindowsTargetPlatformVersion>
     <ProjectName>ophsig</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
