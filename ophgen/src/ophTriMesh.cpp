@@ -1,3 +1,48 @@
+/*M///////////////////////////////////////////////////////////////////////////////////////
+//
+//  IMPORTANT: READ BEFORE DOWNLOADING, COPYING, INSTALLING OR USING.
+//
+//  By downloading, copying, installing or using the software you agree to this license.
+//  If you do not agree to this license, do not download, install, copy or use the software.
+//
+//
+//                           License Agreement
+//                For Open Source Digital Holographic Library
+//
+// Openholo library is free software;
+// you can redistribute it and/or modify it under the terms of the BSD 2-Clause license.
+//
+// Copyright (C) 2017-2024, Korea Electronics Technology Institute. All rights reserved.
+// E-mail : contact.openholo@gmail.com
+// Web : http://www.openholo.org
+//
+// Redistribution and use in source and binary forms, with or without modification,
+// are permitted provided that the following conditions are met:
+//
+//  1. Redistribution's of source code must retain the above copyright notice,
+//     this list of conditions and the following disclaimer.
+//
+//  2. Redistribution's in binary form must reproduce the above copyright notice,
+//     this list of conditions and the following disclaimer in the documentation
+//     and/or other materials provided with the distribution.
+//
+// This software is provided by the copyright holders and contributors "as is" and
+// any express or implied warranties, including, but not limited to, the implied
+// warranties of merchantability and fitness for a particular purpose are disclaimed.
+// In no event shall the copyright holder or contributors be liable for any direct,
+// indirect, incidental, special, exemplary, or consequential damages
+// (including, but not limited to, procurement of substitute goods or services;
+// loss of use, data, or profits; or business interruption) however caused
+// and on any theory of liability, whether in contract, strict liability,
+// or tort (including negligence or otherwise) arising in any way out of
+// the use of this software, even if advised of the possibility of such damage.
+//
+// This software contains opensource software released under GNU Generic Public License,
+// NVDIA Software License Agreement, or CUDA supplement to Software License Agreement.
+// Check whether software you use contains licensed software.
+//
+//M*/
+
 #include "ophTriMesh.h"
 
 #include "sys.h"
@@ -142,6 +187,10 @@ int ophTri::readMeshConfig(const char* mesh_config) {
 	cout << "illu: " << illumination[_X] << ", " << illumination[_Y] << ", " << illumination[_Z] << endl;
 	cout << "size: " << objSize << endl;
 	cout << "shift: " << objShift[_X] << ", " << objShift[_Y] << ", " << objShift[_Z] << endl;
+
+	setPixelNumber(context_.pixel_number[_X], context_.pixel_number[_Y]);
+	setPixelPitch(context_.pixel_pitch[_X], context_.pixel_pitch[_Y]);
+	setWaveLength(context_.lambda);
 
 	auto end = CUR_TIME;
 
@@ -315,6 +364,7 @@ void ophTri::generateMeshHologram(uint SHADING_FLAG) {
 	initializeAS();
 	generateAS(SHADING_FLAG);
 
+	holo_gen = angularSpectrum;
 	fft2(context_.pixel_number, angularSpectrum, OPH_BACKWARD, OPH_ESTIMATE);
 	fftwShift(angularSpectrum, holo_gen, context_.pixel_number[_X], context_.pixel_number[_Y], OPH_BACKWARD);
 	/*fftExecute(holo_gen);*/
@@ -334,7 +384,8 @@ void ophTri::generateMeshHologram() {
 	generateAS(SHADING_TYPE);
 
 	fft2(context_.pixel_number, angularSpectrum, OPH_BACKWARD, OPH_ESTIMATE);
-	fftExecute(holo_gen);
+	fftwShift(angularSpectrum, holo_gen, context_.pixel_number[_X], context_.pixel_number[_Y], OPH_BACKWARD);
+	//fftExecute(holo_gen);
 
 	auto end = CUR_TIME;
 	auto during = ((std::chrono::duration<Real>)(end - start)).count();
@@ -348,15 +399,22 @@ void ophTri::generateAS(uint SHADING_FLAG) {
 	Real* mesh = new Real[9];
 	calGlobalFrequency();
 
+	ivec2 px = context_.pixel_number;
+
 	mesh_local = new Real[9];
-	flx = new Real[context_.pixel_number[_X] * context_.pixel_number[_Y]];
-	fly = new Real[context_.pixel_number[_X] * context_.pixel_number[_Y]];
-	flz = new Real[context_.pixel_number[_X] * context_.pixel_number[_Y]];
+	flx = new Real[px[_X] * px[_Y]];
+	fly = new Real[px[_X] * px[_Y]];
+	flz = new Real[px[_X] * px[_Y]];
 
-	freqTermX = new Real[context_.pixel_number[_X] * context_.pixel_number[_Y]];
-	freqTermY = new Real[context_.pixel_number[_X] * context_.pixel_number[_Y]];
+	freqTermX = new Real[px[_X] * px[_Y]];
+	freqTermY = new Real[px[_X] * px[_Y]];
 
-	refAS = new Complex<Real>[context_.pixel_number[_X] * context_.pixel_number[_Y]];
+	refAS = new Complex<Real>[px[_X] * px[_Y]];
+
+	ASTerm = new Complex<Real>[px[_X] * px[_Y]];
+	randTerm = new Complex<Real>[px[_X] * px[_Y]];
+	phaseTerm = new Complex<Real>[px[_X] * px[_Y]];
+	convol = new Complex<Real>[px[_X] * px[_Y]];
 
 	findNormals(SHADING_FLAG);
 
@@ -394,7 +452,7 @@ void ophTri::generateAS(uint SHADING_FLAG) {
 
 	cout << "Angular Spectrum Generated..." << endl;
 
-	delete[] mesh, scaledMeshData, fx, fy, fz, mesh_local, flx, fly, flz, freqTermX, freqTermY, refAS;
+	delete[] mesh, scaledMeshData, fx, fy, fz, mesh_local, flx, fly, flz, freqTermX, freqTermY, refAS, ASTerm, randTerm, phaseTerm, convol;
 }
 
 
@@ -643,6 +701,9 @@ uint ophTri::refAS_Flat(vec3 no) {
 			refAS[i] = shadingFactor*((exp(refTerm1) - (Complex<Real>)1) / (4 * M_PI*M_PI*freqTermX[i] * freqTermY[i]) + ((Complex<Real>)1 - exp(refTerm2)) / (4 * M_PI*M_PI*freqTermY[i] * (freqTermX[i] + freqTermY[i])));
 		}
 	}
+
+	//randPhaseDist(refAS);
+
 	return 1;
 }
 
@@ -718,8 +779,42 @@ uint ophTri::refAS_Continuous(uint n) {
 		}
 		refAS[i] = (av[1] - av[0])*D1 + (av[2] - av[1])*D2 + av[0] * D3;
 	}
+
+
+	//randPhaseDist(refAS);
 	
 	return 1;
+}
+
+void ophTri::randPhaseDist(Complex<Real>* AS)
+{
+	ivec2 px = context_.pixel_number;
+
+	fft2(px, AS, OPH_FORWARD, OPH_ESTIMATE);
+	fftwShift(AS, ASTerm, px[_X], px[_Y], OPH_FORWARD, OPH_ESTIMATE);
+	//fftExecute(ASTerm);
+
+	Real randVal;
+	Complex<Real> phase;
+
+	for_i(px[_X] * px[_Y],
+		randVal = rand((Real)0, (Real)1, px[_X] * px[_Y]);
+	phase[_RE] = 0;
+	phase[_IM] = 2 * M_PI*randVal;
+	phaseTerm[i] = exp(phase);
+	);
+
+	fft2(px, phaseTerm, OPH_FORWARD, OPH_ESTIMATE);
+	fftwShift(phaseTerm, randTerm, px[_X], px[_Y], OPH_FORWARD, OPH_ESTIMATE);
+	//fftExecute(randTerm);
+
+	for_i(px[_X] * px[_Y],
+		convol[i] = ASTerm[i] * randTerm[i];);
+
+	fft2(px, convol, OPH_BACKWARD, OPH_ESTIMATE);
+	fftwShift(convol, AS, px[_X], px[_Y], OPH_BACKWARD, OPH_ESTIMATE);
+	//fftExecute(AS);
+
 }
 
 uint ophTri::refToGlobal() {
