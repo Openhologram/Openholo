@@ -188,6 +188,10 @@ int ophTri::readMeshConfig(const char* mesh_config) {
 	cout << "size: " << objSize << endl;
 	cout << "shift: " << objShift[_X] << ", " << objShift[_Y] << ", " << objShift[_Z] << endl;
 
+	setPixelNumber(context_.pixel_number[_X], context_.pixel_number[_Y]);
+	setPixelPitch(context_.pixel_pitch[_X], context_.pixel_pitch[_Y]);
+	setWaveLength(context_.lambda);
+
 	auto end = CUR_TIME;
 
 	auto during = ((std::chrono::duration<Real>)(end - start)).count();

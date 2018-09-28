@@ -109,6 +109,10 @@ int ophLF::readLFConfig(const char* LF_config) {
 	cout << "Resolution of hologram: " << context_.pixel_number[_X] << ", " << context_.pixel_number[_Y] << endl;
 	cout << endl;
 
+	setPixelNumber(context_.pixel_number[_X], context_.pixel_number[_Y]);
+	setPixelPitch(context_.pixel_pitch[_X], context_.pixel_pitch[_Y]);
+	setWaveLength(context_.lambda);
+
 	auto end = CUR_TIME;
 
 	auto during = ((std::chrono::duration<Real>)(end - start)).count();
