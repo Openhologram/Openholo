@@ -145,8 +145,6 @@ int ophLF::loadLF(const char* directory, const char* exten)
 
 			getImgSize(sizeOut[_X], sizeOut[_Y], bytesperpixel, imgfullname.c_str());
 
-			rgbOut = new uchar[sizeOut[_X] * sizeOut[_Y] * 3];
-
 			rgbOut = loadAsImg(imgfullname.c_str());
 
 			if (rgbOut == 0) {
@@ -200,8 +198,6 @@ int ophLF::loadLF()
 			string imgfullname = std::string(LF_directory).append("/").append(data.name);
 
 			getImgSize(sizeOut[_X], sizeOut[_Y], bytesperpixel, imgfullname.c_str());
-			rgbOut = new uchar[sizeOut[_X] * sizeOut[_Y] * 3];
-
 			rgbOut = loadAsImg(imgfullname.c_str());
 
 			if (rgbOut == 0) {

@@ -142,7 +142,7 @@ private:
 	
 public:
 	bool loadPLY(					// for Point Cloud Data
-		const std::string fileName,
+		const std::string& fileName,
 		ulonglong &n_points,
 		int &color_channels, //1 or 3 (If it is 4, Alpha channel is not loaded.)
 		Real** vertexArray,
@@ -151,7 +151,7 @@ public:
 		bool &isPhaseParse);
 
 	bool savePLY(					
-		const std::string fileName,
+		const std::string& fileName,
 		const ulonglong n_points,
 		const int color_channels,
 		Real* vertexArray,

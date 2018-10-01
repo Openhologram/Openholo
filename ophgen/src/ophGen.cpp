@@ -702,8 +702,7 @@ void ophGen::numericalInterference(oph::Complex<Real>* holo, Real* encoded, cons
 	Real* ref = new Real;
 	*ref = oph::maxOfArr(temp1, size);
 
-	oph::Complex<Real>* temp2 = new oph::Complex<Real>[size];
-	temp2 = holo;
+	oph::Complex<Real>* temp2 = holo;
 	for_i(size,
 		temp2[i][_RE] += *ref;
 	);
@@ -715,7 +714,9 @@ void ophGen::numericalInterference(oph::Complex<Real>* holo, Real* encoded, cons
 		encoded[i] = temp3[i] * temp3[i];
 	);
 
-	delete[] temp1, temp2, temp3;
+	delete[] temp1;
+	delete[] temp2;
+	delete[] temp3;
 	delete ref;
 }
 
@@ -740,7 +741,10 @@ void ophGen::twoPhaseEncoding(oph::Complex<Real>* holo, Real* encoded, const int
 	*(encoded + i * 2 + 1) = *(pha + i) - *(delPhase + i);
 	);
 
-	delete[] normCplx, amp, pha, delPhase;
+	delete[] normCplx; 
+	delete[] amp;
+	delete[] pha;
+	delete[] delPhase;
 }
 
 void ophGen::burckhardt(oph::Complex<Real>* holo, Real* encoded, const int size)
@@ -931,7 +935,13 @@ void ophGen::fresnelPropagation(OphContext context, Complex<Real>* in, Complex<R
 		}
 	}
 
-	delete[] in2x, temp1, fx, fy, prop, temp2, temp3;
+	delete[] in2x;
+	delete[] temp1;
+	delete[] fx;
+	delete[] fy;
+	delete[] prop;
+	delete[] temp2;
+	delete[] temp3;
 }
 
 void ophGen::fresnelPropagation(Complex<Real>* in, Complex<Real>* out, Real distance) {
@@ -998,7 +1008,13 @@ void ophGen::fresnelPropagation(Complex<Real>* in, Complex<Real>* out, Real dist
 		}
 	}
 
-	delete[] in2x, temp1, fx, fy, prop, temp2, temp3;
+	delete[] in2x;
+	delete[] temp1;
+	delete[] fx;
+	delete[] fy;
+	delete[] prop;
+	delete[] temp2;
+	delete[] temp3;
 }
 
 
@@ -1172,7 +1188,7 @@ void ophGen::encodeSideBand_GPU(int cropx1, int cropx2, int cropy1, int cropy2, 
 	for (int i = 0; i < pnx * pny; i++)
 		holo_encoded[i] = sample_fd[i].x;
 
-	delete[] sample_fd;
+	cudaFree(sample_fd);
 	cudaStreamDestroy(stream_);
 }
 

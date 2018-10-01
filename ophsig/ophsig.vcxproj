@@ -12,10 +12,18 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\ophSig.cpp" />
+    <ClCompile Include="src\ophSigCH.cpp" />
+    <ClCompile Include="src\ophSigPU.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="src\tinyxml2.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\ophSig.h" />
+    <ClInclude Include="src\ophSigCH.h" />
+    <ClInclude Include="src\ophSigPU.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+    </ClInclude>
     <ClInclude Include="src\tinyxml2.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

@@ -473,7 +473,6 @@ bool oph::ImgDecoderOhc::decodeFieldData()
 	default: {
 		LOG("Error : Invalid Complex Field Encoding Type...");
 		return false;
-		break;
 	}
 	}
 

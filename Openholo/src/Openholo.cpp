@@ -255,11 +255,11 @@ int Openholo::loadAsImgUpSideDown(const char * fname, uchar* dst)
 
 	oph::uchar* img_tmp;
 	if (hInfo.imagesize == 0) {
-		img_tmp = (oph::uchar*)malloc(sizeof(oph::uchar)*hInfo.width*hInfo.height*(hInfo.bitsperpixel / 8));
+		img_tmp = new oph::uchar[hInfo.width*hInfo.height*(hInfo.bitsperpixel / 8)];
 		fread(img_tmp, sizeof(oph::uchar), hInfo.width*hInfo.height*(hInfo.bitsperpixel / 8), infile);
 	}
 	else {
-		img_tmp = (oph::uchar*)malloc(hInfo.imagesize);
+		img_tmp = new oph::uchar[hInfo.imagesize];
 		fread(img_tmp, sizeof(oph::uchar), hInfo.imagesize, infile);
 	}
 	fclose(infile);
@@ -347,12 +347,15 @@ void Openholo::convertToFormatGray8(unsigned char * src, unsigned char * dst, in
 void Openholo::fft1(int n, Complex<Real>* in, int sign, uint flag)
 {
 	pnx = n;
+	bool bIn = true;
 
 	fft_in = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * n);
 	fft_out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * n);
 
-	if (!in)
+	if (!in){
 		in = new Complex<Real>[pnx];
+		bIn = false;
+	}
 
 	for (int i = 0; i < n; i++) {
 		fft_in[i][_RE] = in[i].real();
@@ -360,6 +363,8 @@ void Openholo::fft1(int n, Complex<Real>* in, int sign, uint flag)
 	}
 
 	fft_sign = sign;
+
+	if (!bIn) delete[] in;
 
 	if (sign == OPH_FORWARD)
 		plan_fwd = fftw_plan_dft_1d(n, fft_in, fft_out, sign, flag);
@@ -375,12 +380,15 @@ void Openholo::fft1(int n, Complex<Real>* in, int sign, uint flag)
 void Openholo::fft2(oph::ivec2 n, Complex<Real>* in, int sign, uint flag)
 {
 	pnx = n[_X], pny = n[_Y];
+	bool bIn = true;
 
 	fft_in = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * pnx * pny);
 	fft_out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * pnx * pny);
 
-	if (!in)
+	if (!in) {
 		in = new Complex<Real>[pnx * pny];
+		bIn = false;
+	}
 
 	for (int i = 0; i < pnx * pny; i++) {
 		fft_in[i][_RE] = in[i].real();
@@ -388,6 +396,8 @@ void Openholo::fft2(oph::ivec2 n, Complex<Real>* in, int sign, uint flag)
 	}
 
 	fft_sign = sign;
+
+	if (!bIn) delete[] in;
 
 	if (sign == OPH_FORWARD)
 		plan_fwd = fftw_plan_dft_2d(pny, pnx, fft_in, fft_out, sign, flag);
@@ -403,12 +413,15 @@ void Openholo::fft2(oph::ivec2 n, Complex<Real>* in, int sign, uint flag)
 void Openholo::fft3(oph::ivec3 n, Complex<Real>* in, int sign, uint flag)
 {
 	pnx = n[_X], pny = n[_Y], pnz = n[_Z];
+	bool bIn = true;
 
 	fft_in = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * pnx * pny * pnz);
 	fft_out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * pnx * pny * pnz);
 
-	if (!in)
+	if (!in) {
 		in = new Complex<Real>[pnx * pny * pnz];
+		bIn = false;
+	}
 
 	for (int i = 0; i < pnx * pny * pnz; i++) {
 		fft_in[i][_RE] = in[i].real();
@@ -416,6 +429,8 @@ void Openholo::fft3(oph::ivec3 n, Complex<Real>* in, int sign, uint flag)
 	}
 
 	fft_sign = sign;
+
+	if (!bIn) delete[] in;
 
 	if (sign == OPH_FORWARD)
 		plan_fwd = fftw_plan_dft_3d(pnz, pny, pnx, fft_in, fft_out, sign, flag);
@@ -473,7 +488,7 @@ void Openholo::fftFree(void)
 
 void Openholo::fftwShift(Complex<Real>* src, Complex<Real>* dst, int nx, int ny, int type, bool bNormalized)
 {
-	Complex<Real>* tmp = (Complex<Real>*)malloc(sizeof(Complex<Real>)*nx*ny);
+	Complex<Real>* tmp = new Complex<Real>[nx*ny];
 	memset(tmp, 0, sizeof(Complex<Real>)*nx*ny);
 	fftShift(nx, ny, src, tmp);
 

@@ -278,7 +278,10 @@ void ophTri::objScaleShift() {
 		*(scaledMeshData + 3 * i + 2) = *(z_point + i)*objSize + objShift[_Z];
 		);
 
-	delete[] x_point, y_point, z_point, normalizedMeshData;
+	delete[] x_point;
+	delete[] y_point;
+	delete[] z_point;
+	delete[] normalizedMeshData;
 
 	cout << "Object Scaling and Shifting Finishied.." << endl;
 }
@@ -307,7 +310,9 @@ void ophTri::objScaleShift(Real objSize_, vector<Real> objShift_) {
 		*(scaledMeshData + 3 * i + 2) = *(z_point + i)*objSize + objShift[_Z];
 	);
 
-	delete[] x_point, y_point, z_point;
+	delete[] x_point;
+	delete[] y_point;
+	delete[] z_point;
 
 	cout << "Object Scaling and Shifting Finishied.." << endl;
 }
@@ -336,7 +341,9 @@ void ophTri::objScaleShift(Real objSize_, Real objShift_[]) {
 	*(scaledMeshData + 3 * i + 2) = *(z_point + i)*objSize + objShift[_Z];
 	);
 
-	delete[] x_point, y_point, z_point;
+	delete[] x_point;
+	delete[] y_point;
+	delete[] z_point;
 
 	cout << "Object Scaling and Shifting Finishied.." << endl;
 }
@@ -516,8 +523,13 @@ uint ophTri::findNormals(uint SHADING_FLAG) {
 			sum = sum / norm(sum);
 			for (uint i = 0; i < count; i++)
 				*(nv + *(idxes + i)) = sum;
+
+			delete[] idxes;
 		}
+
+		delete[] vertices;
 	}
+
 	return 1;
 }
 
@@ -654,7 +666,9 @@ uint ophTri::calFrequencyTerm() {
 		freqTermY[i] = invLoRot[2] * flxShifted[i] + invLoRot[3] * flyShifted[i];
 		);
 	
-	delete[] flxShifted, flyShifted, invLoRot;
+	delete[] flxShifted;
+	delete[] flyShifted;
+	delete[] invLoRot;
 	return 1;
 }
 

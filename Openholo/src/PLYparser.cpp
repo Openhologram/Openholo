@@ -130,7 +130,7 @@ bool PLYparser::findIdxOfPropertiesAndElement(const std::vector<PlyElement> &ele
 }
 
 
-bool PLYparser::loadPLY(const std::string fileName, ulonglong &n_points, int &color_channels, Real** vertexArray, Real** colorArray, Real** phaseArray, bool &isPhaseParse) {
+bool PLYparser::loadPLY(const std::string& fileName, ulonglong &n_points, int &color_channels, Real** vertexArray, Real** colorArray, Real** phaseArray, bool &isPhaseParse) {
 	std::string inputPath = fileName;
 	if ((fileName.find(".ply") == std::string::npos) && (fileName.find(".PLY") == std::string::npos)) inputPath += ".ply";
 	std::ifstream File(inputPath, std::ios::in | std::ios::binary);
@@ -327,7 +327,7 @@ bool PLYparser::loadPLY(const std::string fileName, ulonglong &n_points, int &co
 }
 
 
-bool PLYparser::savePLY(const std::string fileName, const ulonglong n_points, const int color_channels, Real* vertexArray, Real* colorArray, Real* phaseArray) {
+bool PLYparser::savePLY(const std::string& fileName, const ulonglong n_points, const int color_channels, Real* vertexArray, Real* colorArray, Real* phaseArray) {
 	if ((vertexArray == nullptr) || (colorArray == nullptr) || (phaseArray == nullptr)) {
 		std::cerr << "Error : There is not data for saving ply file..." << std::endl;
 		return false;
