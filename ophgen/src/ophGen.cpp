@@ -1,3 +1,48 @@
+/*M///////////////////////////////////////////////////////////////////////////////////////
+//
+//  IMPORTANT: READ BEFORE DOWNLOADING, COPYING, INSTALLING OR USING.
+//
+//  By downloading, copying, installing or using the software you agree to this license.
+//  If you do not agree to this license, do not download, install, copy or use the software.
+//
+//
+//                           License Agreement
+//                For Open Source Digital Holographic Library
+//
+// Openholo library is free software;
+// you can redistribute it and/or modify it under the terms of the BSD 2-Clause license.
+//
+// Copyright (C) 2017-2024, Korea Electronics Technology Institute. All rights reserved.
+// E-mail : contact.openholo@gmail.com
+// Web : http://www.openholo.org
+//
+// Redistribution and use in source and binary forms, with or without modification,
+// are permitted provided that the following conditions are met:
+//
+//  1. Redistribution's of source code must retain the above copyright notice,
+//     this list of conditions and the following disclaimer.
+//
+//  2. Redistribution's in binary form must reproduce the above copyright notice,
+//     this list of conditions and the following disclaimer in the documentation
+//     and/or other materials provided with the distribution.
+//
+// This software is provided by the copyright holders and contributors "as is" and
+// any express or implied warranties, including, but not limited to, the implied
+// warranties of merchantability and fitness for a particular purpose are disclaimed.
+// In no event shall the copyright holder or contributors be liable for any direct,
+// indirect, incidental, special, exemplary, or consequential damages
+// (including, but not limited to, procurement of substitute goods or services;
+// loss of use, data, or profits; or business interruption) however caused
+// and on any theory of liability, whether in contract, strict liability,
+// or tort (including negligence or otherwise) arising in any way out of
+// the use of this software, even if advised of the possibility of such damage.
+//
+// This software contains opensource software released under GNU Generic Public License,
+// NVDIA Software License Agreement, or CUDA supplement to Software License Agreement.
+// Check whether software you use contains licensed software.
+//
+//M*/
+
 #include "ophGen.h"
 #include <windows.h>
 #include "sys.h"
@@ -808,13 +853,15 @@ void ophGen::freqShift(oph::Complex<Real>* src, Complex<Real>* dst, const ivec2 
 
 	oph::Complex<Real>* AS = new oph::Complex<Real>[size];
 	fft2(holosize, src, OPH_FORWARD, OPH_ESTIMATE);
-	fftExecute(AS);
+	fftwShift(src, AS, holosize[_X], holosize[_Y], OPH_FORWARD);
+	//fftExecute(AS);
 
 	oph::Complex<Real>* shifted = new oph::Complex<Real>[size];
 	oph::circShift<Complex<Real>>(AS, shifted, shift_x, shift_y, holosize.v[_X], holosize.v[_Y]);
 
 	fft2(holosize, shifted, OPH_BACKWARD, OPH_ESTIMATE);
-	fftExecute(dst);
+	fftwShift(shifted, dst, holosize[_X], holosize[_Y], OPH_BACKWARD);
+	//fftExecute(dst);
 }
 
 
@@ -840,7 +887,8 @@ void ophGen::fresnelPropagation(OphContext context, Complex<Real>* in, Complex<R
 	Complex<Real>* temp1 = new Complex<Real>[Nx*Ny * 4];
 
 	fft2({ Nx * 2, Ny * 2 }, in2x, OPH_FORWARD, OPH_ESTIMATE);
-	fftExecute(temp1);
+	fftwShift(in2x, temp1, Nx, Ny, OPH_FORWARD);
+	//fftExecute(temp1);
 
 	Real* fx = new Real[Nx*Ny * 4];
 	Real* fy = new Real[Nx*Ny * 4];
@@ -870,7 +918,8 @@ void ophGen::fresnelPropagation(OphContext context, Complex<Real>* in, Complex<R
 
 	Complex<Real>* temp3 = new Complex<Real>[Nx*Ny * 4];
 	fft2({ Nx * 2, Ny * 2 }, temp2, OPH_BACKWARD, OPH_ESTIMATE);
-	fftExecute(temp3);
+	fftwShift(temp2, temp3, Nx*2, Ny*2, OPH_BACKWARD);
+	//fftExecute(temp3);
 
 	uint idxOut = 0;
 
