@@ -137,7 +137,7 @@ double** ophWaveAberration::calculateZernikePolynomial(double n, double m, vecto
 	{
 		delete[] A[i];
 	}
-	delete A;
+	delete[] A;
 		
 	return Z;
 }
@@ -316,20 +316,20 @@ void ophWaveAberration::accumulateZernikePolynomial()
 		delete [] W[i];
 		delete [] Temp_W[i];
 	}
-	delete W;
-	delete Temp_W; 
+	delete[] W;
+	delete[] Temp_W; 
 
 	for (int i = 0; i < (int)xr; i++)
 	{
 		delete[] WS[i];
 	}
-	delete WS;
+	delete[] WS;
 
 	for (int i = 0; i < (int)length_xnn; i++)
 	{
 		delete[] WT[i];
 	}
-	delete WT;
+	delete[] WT;
 
 	complex_W = WD;
 

@@ -45,8 +45,14 @@
 
 #include "ophSig.h"
 
-ophSig::ophSig(void) {
-
+ophSig::ophSig(void) 
+	: _cfgSig()
+	, _angleX(0)
+	, _angleY(0)
+	, _redRate(0)
+	, _radius(0)
+{
+	memset(_foc, 0, sizeof(float) * 3);
 }
 
 
@@ -830,12 +836,16 @@ bool ophSig::save(const char *real, const char *imag, uint8_t bitpixel)
 				if (!cos.is_open()) {
 					LOG("real file not found.\n");
 					cos.close();
+					delete[] realdata;
+					delete[] imagdata;
 					return FALSE;
 				}
 
 				if (!sin.is_open()) {
 					LOG("imag file not found.\n");
 					sin.close();
+					delete[] realdata;
+					delete[] imagdata;
 					return FALSE;
 				}
 
@@ -1080,6 +1090,7 @@ bool ophSig::save(const char *real, uint8_t bitpixel)
 				if (!cos.is_open()) {
 					LOG("real file not found.\n");
 					cos.close();
+					delete[] realdata;
 					return FALSE;
 				}
 

@@ -203,7 +203,7 @@ namespace oph {
 			return *this;
 		}
 
-		Complex<T>& operator = (const std::complex<T> p) {
+		Complex<T>& operator = (const std::complex<T>& p) {
 			_Val[_RE] = p._Val[_RE];
 			_Val[_IM] = p._Val[_IM];
 

@@ -133,15 +133,15 @@ void store(FILE* fp, const vec2& v)
     fprintf(fp, ")\n");
 }
 
-int scan(FILE* fp, const vec2& v)
-{
-    int a = fscanf(fp, " (");
-    for(int i = 0; i < 2;++i){
-	a += fscanf(fp, " %lg", const_cast<Real*>(&v[i]));
-    }
-    a += fscanf(fp, " )");
-    return a;
-}
+//int scan(FILE* fp, const vec2& v)
+//{
+//    int a = fscanf(fp, " (");
+//    for(int i = 0; i < 2;++i){
+//	a += fscanf(fp, " %lg", const_cast<Real*>(&v[i]));
+//    }
+//    a += fscanf(fp, " )");
+//    return a;
+//}
 
 int apx_equal(const vec2& a, const vec2& b)
 {
@@ -350,15 +350,15 @@ void store(FILE* fp, const vec3& v)
     fprintf(fp, ")\n");
 }
 
-int scan(FILE* fp, const vec3& v)
-{
-    int a = fscanf(fp, " (");
-    for(int i = 0; i < 3;++i){
-	a += fscanf(fp, " %lg", const_cast<Real*>(&v[i]));
-    }
-    a += fscanf(fp, " )");
-    return a;
-}
+//int scan(FILE* fp, const vec3& v)
+//{
+//    int a = fscanf(fp, " (");
+//    for(int i = 0; i < 3;++i){
+//	a += fscanf(fp, " %lg", const_cast<Real*>(&v[i]));
+//    }
+//    a += fscanf(fp, " )");
+//    return a;
+//}
 
 int apx_equal(const vec3& a, const vec3& b)
 {
@@ -409,15 +409,15 @@ void store(FILE* fp, const vec4& v)
     fprintf(fp, ")\n");
 }
 
-int scan(FILE* fp, const vec4& v)
-{
-    int a = fscanf(fp, " (");
-    for(int i = 0; i < 4;++i){
-	a += fscanf(fp, " %lg", const_cast<Real*>(&v[i]));
-    }
-    a += fscanf(fp, " )");
-    return a;
-}
+//int scan(FILE* fp, const vec4& v)
+//{
+//    int a = fscanf(fp, " (");
+//    for(int i = 0; i < 4;++i){
+//	a += fscanf(fp, " %lg", const_cast<Real*>(&v[i]));
+//    }
+//    a += fscanf(fp, " )");
+//    return a;
+//}
 
 int apx_equal(const vec4& a, const vec4& b)
 {

@@ -185,8 +185,10 @@ void ophPointCloud::encodeHologram(const vec2 band_limit, const vec2 spectrum_sh
 	}
 
 	delete[] h;
-	delete[] x_o, xx_o;
-	delete[] y_o, yy_o;
+	delete[] x_o;
+	delete[] xx_o;
+	delete[] y_o;
+	delete[] yy_o;
 }
 
 void ophPointCloud::genCghPointCloudCPU(uint diff_flag)

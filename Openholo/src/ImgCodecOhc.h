@@ -135,7 +135,7 @@ namespace oph
 		ImgEncoderOhc(const std::string &_fname);
 		ImgEncoderOhc(const std::string &_fname, const OHCheader &_Header);
 		virtual ~ImgEncoderOhc();
-		virtual void initOHCheader();
+		void initOHCheader();
 
 		//Set field Info parameters functions
 		void setNumOfPixel(const uint _pxNumX, const uint _pxNumY);

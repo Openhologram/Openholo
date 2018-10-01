@@ -1,6 +1,12 @@
 #include "ophSigCH.h"
 
-ophSigCH::ophSigCH(void) {
+ophSigCH::ophSigCH(void) 
+	: Nz(0)
+	, MaxIter(0)
+	, Tau(0)
+	, TolA(0)
+	, TvIter(0)
+{
 }
 
 bool ophSigCH::saveNumRec(const char *fname) {

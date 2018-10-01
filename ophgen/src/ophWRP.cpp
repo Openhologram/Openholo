@@ -332,6 +332,9 @@ void ophWRP::fresnelPropagation(Complex<Real>* in, Complex<Real>* out, Real dist
 	fft2({ Nx, Ny }, temp2, OPH_BACKWARD, OPH_ESTIMATE);
 	fftExecute(holo_gen);
 
+	delete[] x;
+	delete[] y;
+	delete[] temp2;
 }
 
 void ophWRP::generateHologram(void)
