@@ -364,7 +364,7 @@ void ophTri::generateMeshHologram(uint SHADING_FLAG) {
 	initializeAS();
 	generateAS(SHADING_FLAG);
 
-	holo_gen = angularSpectrum;
+	//holo_gen = angularSpectrum;
 	fft2(context_.pixel_number, angularSpectrum, OPH_BACKWARD, OPH_ESTIMATE);
 	fftwShift(angularSpectrum, holo_gen, context_.pixel_number[_X], context_.pixel_number[_Y], OPH_BACKWARD);
 	/*fftExecute(holo_gen);*/
@@ -847,4 +847,15 @@ uint ophTri::refToGlobal() {
 	}
 
 	return 1;
+}
+
+
+void ophTri::waveCarry(Real carryingAngleX, Real carryingAngleY) {
+	Complex<Real>* carrier = new Complex<Real>[context_.pixel_number[_X] * context_.pixel_number[_Y]];
+
+	for_i(context_.pixel_number[_X] * context_.pixel_number[_Y],
+		carrier[i][_RE] = 0;
+		carrier[i][_IM] = objShift[_Z] * tan(carryingAngleX)*fx[i] + objShift[_Z] * tan(carryingAngleY)*fy[i];
+		holo_gen[i] = holo_gen[i] * exp(carrier[i]);
+		);
 }
