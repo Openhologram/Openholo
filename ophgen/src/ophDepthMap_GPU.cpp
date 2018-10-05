@@ -74,10 +74,6 @@ cudaStream_t	stream_;
 extern "C"
 {
 	/**
-	* \defgroup gpu_model GPU Modules
-	* @{
-	*/
-	/**
 	* @brief Convert data from the spatial domain to the frequency domain using 2D FFT on GPU.
 	* @details call CUDA Kernel - fftShift and CUFFT Library.
 	* @param stream : CUDA Stream

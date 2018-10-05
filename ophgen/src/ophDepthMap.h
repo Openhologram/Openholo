@@ -53,6 +53,15 @@
 
 using namespace oph;
 
+
+
+
+/**
+* @ingroup depthmap
+* @brief
+* @detail
+* @author
+*/
 class GEN_DLL ophDepthMap : public ophGen {
 
 public:
@@ -63,70 +72,43 @@ protected:
 
 public:
 
-	/** \ingroup init_module */
 	void setMode(bool is_CPU);
 	bool readConfig(const char* fname);
 	bool readImageDepth(const char* source_folder, const char* img_prefix, const char* depth_img_prefix);
 
-	/** \ingroup gen_module */
 	Real generateHologram(void);
 
-	/** \ingroup encode_module */
 	void encodeHologram(void);
 
-	/** \ingroup write_module */
 	virtual int save(const char* fname, uint8_t bitsperpixel = 24);
 
 public:
-	/** \ingroup getter/setter */
 	inline void setFieldLens(Real fieldlens) { dm_config_.field_lens = fieldlens; }
-	/** \ingroup getter/setter */
 	inline void setNearDepth(Real neardepth) { dm_config_.near_depthmap = neardepth; }
-	/** \ingroup getter/setter */
 	inline void setFarDepth(Real fardetph) { dm_config_.far_depthmap = fardetph; }
-	/** \ingroup getter/setter */
 	inline void setNumOfDepth(uint numofdepth) { dm_config_.num_of_depth = numofdepth; }
 
-	/** \ingroup getter/setter */
 	inline Real getFieldLens(void) { return dm_config_.field_lens; }
-	/** \ingroup getter/setter */
 	inline Real getNearDepth(void) { return dm_config_.near_depthmap; }
-	/** \ingroup getter/setter */
 	inline Real getFarDepth(void) { return dm_config_.far_depthmap; }
-	/** \ingroup getter/setter */
 	inline uint getNumOfDepth(void) { return dm_config_.num_of_depth; }
-	/** \ingroup getter/setter */
 	inline void getRenderDepth(std::vector<int>& renderdepth) { renderdepth = dm_config_.render_depth; }
 	
 private:
 
-	/** \ingroup init_module
-	* @{ */
 	void initialize();
 	void initCPU();   
 	void initGPU();
-	/** @} */
 
-	/** \ingroup load_module
-	* @{ */
 	bool prepareInputdataCPU(uchar* img, uchar* dimg);
 	bool prepareInputdataGPU(uchar* img, uchar* dimg);
-	/** @} */
 
-	/** \ingroup depth_module
-	* @{ */
 	void getDepthValues();
 	void changeDepthQuanCPU();
 	void changeDepthQuanGPU();
-	/** @} */
 
-	/** \ingroup trans_module
-	* @{ */
 	void transformViewingWindow();
-	/** @} */
 
-	/** \ingroup gen_module 
-	* @{ */
 	void calcHoloByDepth(void);
 	void calcHoloCPU(void);
 	void calcHoloGPU(void);

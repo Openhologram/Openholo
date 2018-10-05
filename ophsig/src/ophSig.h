@@ -73,13 +73,14 @@ struct SIG_DLL ophSigConfig {
 	float z;
 };
 
-/**
-* @file
-* @author
-* @brief
-* @pram
-*/
 
+
+/**
+* @ingroup sig
+* @brief
+* @detail
+* @author
+*/
 class SIG_DLL ophSig : public Openholo
 {
 public:
@@ -207,69 +208,89 @@ protected:
 	template<typename T>
 	void fft1(matrix<Complex<T>> &src, matrix<Complex<T>> &dst, int sign = OPH_FORWARD, uint flag = OPH_ESTIMATE);
 	/**
-	* @brief         Function for Fast Fourier transform 2D
-	* @param src     input signal
-	* @param dst     output signal
-	* @param sign    sign = OPH_FORWARD is fft and sign= OPH_BACKWARD is inverse fft
-	* @param flag    flag = OPH_ESTIMATE is fine best way to compute the transform but it is need some time, flag = OPH_ESTIMATE is probably sub-optimal
+	* @brief Function for Fast Fourier transform 2D
+	* @param src input signal
+	* @param dst output signal
+	* @param sign sign = OPH_FORWARD is fft and sign= OPH_BACKWARD is inverse fft
+	* @param flag flag = OPH_ESTIMATE is fine best way to compute the transform but it is need some time, flag = OPH_ESTIMATE is probably sub-optimal
 	*/
 	template<typename T>
 	void fft2(matrix<Complex<T>> &src, matrix<Complex<T>> &dst, int sign = OPH_FORWARD, uint flag = OPH_ESTIMATE);
 	/**
-	* @brief         Function for Shift zero-frequency component to center of spectrum
-	* @param src     input signal
-	* @param dst     output signal
+	* @brief Function for Shift zero-frequency component to center of spectrum
+	* @param src input signal
+	* @param dst output signal
 	*/
 	template<typename T>
 	void fftShift(matrix<Complex<T>> &src, matrix<Complex<T>> &dst);
 public:
 	/**
-	* @brief          Function for Read parameter
-	* @param fname    file name
-	* @return         if works well return 0  or error occurs return -1
+	* @brief Function for Read parameter
+	* @param fname file name
+	* @return if works well return 0  or error occurs return -1
 	*/
 	virtual bool readConfig(const char* fname);
 	/**
-	* @brief          Function for Convert complex hologram to off-axis hologram
-	* @return         if works well return 0  or error occurs return -1
+	* @ingroup offaxis
+	* @brief Function for Convert complex hologram to off-axis hologram
+	* @detail
+	* @return if works well return 0  or error occurs return -1
 	*/
 	bool sigConvertOffaxis();
 	/**
-	* @brief          Function for Convert complex hologram to horizontal parallax only hologram
-	* @return         if works well return 0  or error occurs return -1
+	* @ingroup convHPO
+	* @brief Function for Convert complex hologram to horizontal parallax only hologram
+	* @detail
+	* @return if works well return 0  or error occurs return -1
 	*/
 	bool sigConvertHPO();
 	/**
-	* @brief          Function for Chromatic aberration compensation filter
-	* @return         if works well return 0  or error occurs return -1
+	* @ingroup convCAC
+	* @brief Function for Chromatic aberration compensation filter
+	* @detail
+	* @return if works well return 0  or error occurs return -1
 	*/
 	bool sigConvertCAC(double red, double green, double blue);
 	/**
-	* @brief          Function for Chromatic aberration compensation filter
-	* @return         if works well return 0  or error occurs return -1
+	* @brief Function for Chromatic aberration compensation filter
+	* @return if works well return 0  or error occurs return -1
 	*/
 	bool propagationHolo(float depth);
 	/**
-	* @brief          Function for propagation hologram
-	* @param depth    position from hologram plane to propagation hologram plane
-	* @return         output signal
+	* @brief Function for propagation hologram
+	* @param depth position from hologram plane to propagation hologram plane
+	* @return output signal
 	*/
 	matrix<Complex<Real>> propagationHolo(matrix<Complex<Real>> complexH, float depth);
 	/**
-	* @brief          Extraction of distance parameter using axis transfomation
-	* @return         result distance
+	* @ingroup getAT 
+	* @brief Extraction of distance parameter using axis transfomation
+	* @detail
+	* @return result distance
 	*/
 	double sigGetParamAT();
 	/**
-	* @brief          Extraction of distance parameter using sharpness functions
-	* @param zMax     maximum value of distance on z axis
-	* @param zMin     minimum value of distance on z axis
-	* @param sampN    count of search step
-	* @param th       threshold value
-	* @return         result distance
+	* @ingroup getSF
+	* @brief Extraction of distance parameter using sharpness functions
+	* @detail
+	* @param zMax maximum value of distance on z axis
+	* @param zMin minimum value of distance on z axis
+	* @param sampN count of search step
+	* @param th threshold value
+	* @return result distance
 	*/
 	double sigGetParamSF(float zMax, float zMin, int sampN, float th);
 
+	/**
+	* @ingroup PSDH
+	* @brief
+	* @detail
+	* @param
+	* @param
+	* @param
+	* @param
+	* @return
+	*/
 	bool getComplexHFromPSDH(const char* fname0, const char* fname90, const char* fname180, const char* fname270);
 	
 protected:

@@ -1092,10 +1092,6 @@ void ophGen::encodeSideBand_CPU(int cropx1, int cropx2, int cropy1, int cropy2, 
 extern "C"
 {
 	/**
-	* \defgroup gpu_model GPU Modules
-	* @{
-	*/
-	/**
 	* @brief Convert data from the spatial domain to the frequency domain using 2D FFT on GPU.
 	* @details call CUDA Kernel - fftShift and CUFFT Library.
 	* @param stream : CUDA Stream

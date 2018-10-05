@@ -68,8 +68,13 @@ struct geometric {
 	Real loRot[4];
 };
 
+
+
 /**
-* @brief	Openholo Triangular Mesh based CGH Generation Class
+* @ingroup mesh
+* @brief
+* @detail
+* @author
 */
 class GEN_DLL ophTri : public ophGen
 {
@@ -119,27 +124,16 @@ private:
 	int SHADING_TYPE;
 
 public:
-	/** \ingroup */
 	void setObjSize(Real in) { objSize = in; }
-	/** \ingroup */
 	void setObjShift(Real in[]) { objShift[_X] = in[_X]; objShift[_Y] = in[_Y]; objShift[_Z] = in[_Z]; }
-	/** \ingroup */
 	void setObjShift(vector<Real> in) { objShift[_X] = in[_X]; objShift[_Y] = in[_Y]; objShift[_Z] = in[_Z]; }
-	/** \ingroup */
 	void setCarrierWave(Real in1, Real in2, Real in3) { carrierWave[_X] = in1; carrierWave[_Y] = in2; carrierWave[_Z] = in3; }
-	/** \ingroup */
 	void setIllumination(vec3 in) { illumination = in; }
-	/** \ingroup */
 	void setIllumination(Real inx, Real iny, Real inz) { illumination = { inx, iny, inz }; }
-	/** \ingroup */
 	void setShadingType(int in) { SHADING_TYPE = in; }
-	/** \ingroup */
 	ulonglong getNumMesh() { return meshData->n_faces; }
-	/** \ingroup */
 	Real* getMeshData() { return triMeshArray; }
-	/** \ingroup */
 	Complex<Real>* getAngularSpectrum() { return angularSpectrum; }
-	/** \ingroup */
 	Real* getScaledMeshData() {	return scaledMeshData; }
 
 public:

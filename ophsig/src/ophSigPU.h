@@ -6,12 +6,17 @@
 
 #include "ophSig.h"
 
+
+
+/**
+* @ingroup PU
+* @brief
+* @detail
+* @author
+*/
 class SIG_DLL ophSigPU : public ophSig
 {
 public:
-	/**
-	* @brief Constructor
-	*/
 	explicit ophSigPU(void);
 
 	bool setPUparam(int maxBoxRadius);

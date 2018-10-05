@@ -320,17 +320,53 @@ Cascaded Propagation Example
 
 
 /**
-* \defgroup const,dest Constructor & Destructor
-* \defgroup oper Operator
-* \defgroup get,set Parameters
-* \defgroup init Initialize
-* \defgroup calc Calculate
-* \defgroup gen Generate Hologram
-* \defgroup reconstruct Reconstruct Hologram
-* \defgroup signal Signal Processing
-* \defgroup encode Encoding
-* \defgroup read Read Data
-* \defgroup write Write Data
+* @defgroup oph Openholo
+
+* @defgroup gen Generate
+* @ingroup oph
+
+* @defgroup pointcloud Point Cloud
+* @ingroup gen
+* @defgroup depthmap Depth Map
+* @ingroup gen
+* @defgroup lightfield LightField
+* @ingroup gen
+* @defgroup mesh Triangle Mesh
+* @ingroup gen
+* @defgroup wrp WRP
+* @ingroup gen
+
+* @defgroup rec Reconstruct
+* @ingroup oph
+* @defgroup dis Display
+* @ingroup rec
+
+* @defgroup waveaberr Wave Aberration
+* @ingroup dis
+* @defgroup casprop Cacaded Propagation
+* @ingroup dis
+* @defgroup partial Partial Coherence
+* @ingroup dis
+
+* @defgroup sig Signal Process
+* @ingroup oph
+
+* @defgroup offaxis Off-Axis
+* @ingroup sig
+* @defgroup convCAC Convert-CAC
+* @ingroup sig
+* @defgroup convHPO Convert-HPO
+* @ingroup sig
+* @defgroup getAT Get Parameter-AT
+* @ingroup sig
+* @defgroup getSF Get Parameter-SF
+* @ingroup sig
+* @defgroup PSDH Phase Shifting
+* @ingroup sig
+* @defgroup PU Phase Unwrapping
+* @ingroup sig
+* @defgroup CH Compressive Holography
+* @ingroup sig
 */
 
 #ifndef __Openholo_h
@@ -358,34 +394,27 @@ struct OphConfig
 	Real*			wave_length;				//< wave length
 };
 
-//namespace oph{
-//	class ImgEncoderOhc;
-//	class ImgDecoderOhc;
-//	enum class LenUnit : uint8_t;
-//	enum class ColorType : uint8_t;
-//	enum class ColorArran : uint8_t;
-//	enum class DataType : uint8_t;
-//	enum class FldStore : uint8_t;
-//	enum class FldCodeType : uint8_t;
-//	enum class BPhaseCode : uint8_t;
-//	enum class ImageFormat : uint8_t;
-//}
+
+
+
+
+
 /**
+* @ingroup oph
 * @brief Abstract class
 * @detail Top class of Openholo library. Common functions required by subclasses are implemented.
+* @author Kim Ryeon-woo
 */
 class OPH_DLL Openholo : public Base{
 
 public:
 	/**
-	* \ingroup const,dest
 	* @brief Constructor
 	*/
 	explicit Openholo(void);
 
 protected:
 	/**
-	* \ingroup const,dest
 	* @brief Destructor
 	* @detail Pure virtual function for class abstraction
 	*/
@@ -403,7 +432,6 @@ protected:
 
 public:
 	/**
-	* \ingroup write
 	* @brief Function for creating image files
 	* @param const char* Output file name
 	* @param uint8_t Bit per pixel
@@ -416,7 +444,6 @@ public:
 	virtual int saveAsImg(const char* fname, uint8_t bitsperpixel, uchar* src, int pic_width, int pic_height);
 
 	/**
-	* \ingroup read
 	* @brief Function for loading image files
 	* @param const char* Input file name
 	* @return unsigned char* Image file's data
@@ -424,44 +451,23 @@ public:
 	virtual uchar* loadAsImg(const char* fname);
 
 	/**
-	* \ingroup write
 	* @brief Function to write OHC file
 	*/
 	virtual int saveAsOhc(const char *fname);
 
 	/**
-	* \ingroup read
 	* @brief Function to read OHC file
 	*/
 	virtual int loadAsOhc(const char *fname);
 
-	/**
-	* \ingroup get,set
-	*/
 	inline oph::Complex<Real>** getComplexField(void) { return complex_H; }
-
-	/**
-	* \ingroup get,set
-	*/
-	inline void setPixelNumber(ivec2 n) { context_.pixel_number[_X] = n[_X]; context_.pixel_number[_Y] = n[_Y]; }
-
-	/**
-	* \ingroup get,set
-	*/
-	inline void setPixelPitch(vec2 p) { context_.pixel_pitch[_X] = p[_X]; context_.pixel_pitch[_Y] = p[_Y]; }
-
-	/**
-	* \ingroup get,set
-	*/
-	inline void setWaveLength(Real w, const uint idx) { context_.wave_length[idx] = w; }
-
-	/**
-	* \ingroup get,set
-	*/
 	OphConfig& getContext(void) { return context_; }
+
+	inline void setPixelNumber(ivec2 n) { context_.pixel_number[_X] = n[_X]; context_.pixel_number[_Y] = n[_Y]; }
+	inline void setPixelPitch(vec2 p) { context_.pixel_pitch[_X] = p[_X]; context_.pixel_pitch[_Y] = p[_Y]; }
+	inline void setWaveLength(Real w, const uint idx) { context_.wave_length[idx] = w; }
 protected:
 	/**
-	* \ingroup read
 	* @brief Function for loading image files | Output image data upside down
 	* @param const char* Input file name
 	* @return unsigned char* Image file's data
@@ -469,7 +475,6 @@ protected:
 	int loadAsImgUpSideDown(const char* fname, uchar* dst);
 
 	/**
-	* \ingroup read
 	* @brief Function for getting the image size
 	* @param int& Image size - width
 	* @param int& Image size - Height
@@ -501,7 +506,6 @@ protected:
 
 
 	/**
-	* \ingroup calc
 	* @brief Functions for performing fftw 1-dimension operations inside Openholo
 	* @param int Number of data
 	* @param Complex<Real>* Source of data
@@ -510,7 +514,6 @@ protected:
 	*/
 	void fft1(int n, Complex<Real>* in, int sign = OPH_FORWARD, uint flag = OPH_ESTIMATE);
 	/**
-	* \ingroup calc
 	* @brief Functions for performing fftw 2-dimension operations inside Openholo
 	* @param oph::ivec2 Number of data(int x, int y)
 	* @param Complex<Real>* Source of data
@@ -519,7 +522,6 @@ protected:
 	*/
 	void fft2(oph::ivec2 n, Complex<Real>* in, int sign = OPH_FORWARD, uint flag = OPH_ESTIMATE);
 	/**
-	* \ingroup calc
 	* @brief Functions for performing fftw 3-dimension operations inside Openholo
 	* @param oph::ivec3 Number of data(int x, int y, int z)
 	* @param Complex<Real>* Source of data
@@ -529,14 +531,12 @@ protected:
 	void fft3(oph::ivec3 n, Complex<Real>* in, int sign = OPH_FORWARD, uint flag = OPH_ESTIMATE);
 
 	/**
-	* \ingroup calc
 	* @brief Execution functions to be called after fft1, fft2, and fft3
 	* @param Complex<Real>* Dest of data
 	*/
 	void fftExecute(Complex<Real>* out);
 	void fftFree(void);
 	/**
-	* \ingroup calc
 	* @brief Convert data from the spatial domain to the frequency domain using 2D FFT on CPU.
 	* @param Complex<Real>* Input data variable
 	* @param Complex<Real>* Output data variable
@@ -548,7 +548,6 @@ protected:
 	void fftwShift(Complex<Real>* src, Complex<Real>* dst, int nx, int ny, int type, bool bNormalized = false);
 
 	/**
-	* \ingroup calc
 	* @brief Swap the top-left quadrant of data with the bottom-right , and the top-right quadrant with the bottom-left.
 	* @param int the number of column of the input data
 	* @param int the number of row of the input data

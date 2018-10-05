@@ -75,6 +75,16 @@
 
 using namespace oph;
 
+
+
+
+
+/**
+* @ingroup wrp
+* @brief
+* @detail
+* @author
+*/
 class GEN_DLL ophWRP : public ophGen
 {
 
@@ -94,7 +104,6 @@ protected:
 public:
 
 	/**
-	\defgroup loadPointCloud
 	* @brief override
 	* @{
 	* @brief Import Point Cloud Data Base File : *.PYL file.

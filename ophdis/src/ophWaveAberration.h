@@ -43,13 +43,6 @@
 //
 //M*/
 
-/**
-* @file ophWaveAberration.h
-* @brief Wave Aberration module
-* @author Minsik Park
-* @date 2018/07/30
-*/
-
 
 
 #pragma once
@@ -76,6 +69,16 @@ using namespace std;
 #define DISP_DLL __declspec(dllimport)
 #endif
 
+
+
+
+
+/**
+* @ingroup waveaberr
+* @brief Wave Aberration module
+* @detail
+* @author Minsik Park
+*/
 class DISP_DLL ophWaveAberration : public ophDis
 {
 private :

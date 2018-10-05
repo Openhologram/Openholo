@@ -59,8 +59,14 @@
 
 using namespace oph;
 
+
+
+
 /**
-* @brief	Openholo Light Field based CGH generation class
+* @ingroup lightfield
+* @brief 
+* @detail
+* @author
 */
 class GEN_DLL ophLF : public ophGen
 {
@@ -92,25 +98,15 @@ private:
 	const char* LF_directory;
 	const char* ext;
 public:
-	/** \ingroup */
 	inline void setNumImage(int nx, int ny) { num_image[_X] = nx; num_image[_Y] = ny; }
-	/** \ingroup */
 	inline void setNumImage(ivec2 num) { num_image = num; }
-	/** \ingroup */
 	inline void setResolImage(int nx, int ny) { resolution_image[_X] = nx; resolution_image[_Y] = ny; }
-	/** \ingroup */
 	inline void setResolImage(ivec2 num) { resolution_image = num; }
-	/** \ingroup */
 	inline void setDistRS2Holo(Real dist) { distanceRS2Holo = dist; }
-	/** \ingroup */
 	inline ivec2 getNumImage() { return num_image; }
-	/** \ingroup */
 	inline ivec2 getResolImage() { return resolution_image; }
-	/** \ingroup */
 	inline Real getDistRS2Holo() { return distanceRS2Holo; }
-	/** \ingroup */
 	inline uchar** getLF() { return LF; }
-	/** \ingroup */
 	inline oph::Complex<Real>* getRSPlane() { return RSplane_complex_field; }
 public:
 	/**

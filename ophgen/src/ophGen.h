@@ -69,9 +69,19 @@ enum PC_DIFF_FLAG {
 	PC_DIFF_FRESNEL_NOT_ENCODED,
 };
 
+
+
+
 /**
-* @brief Abstract class for generation classes
+* @ingroup gen
+* @brief 
+* @detail
+* @author
 */
+
+
+
+
 class GEN_DLL ophGen : public Openholo
 {
 public:
@@ -89,36 +99,26 @@ public:
 
 public:
 	/**
-	* \ingroup const,dest
 	* @brief Constructor
 	*/
 	explicit ophGen(void);
 
 protected:
 	/**
-	* \ingroup const,dest
 	* @brief Destructor
 	*/
 	virtual ~ophGen(void) = 0;
 
 public:
-	/**
-	* \ingroup get,set
-	*/
 	inline Real* getEncodedBuffer(void) { return holo_encoded; }
-	/**
-	* \ingroup get,set
-	*/
 	inline uchar* getNormalizedBuffer(void) { return holo_normalized; }
 
 	/**
-	* \ingroup init
 	* @brief Initialize variables for Hologram complex field, encoded data, normalized data
 	*/
 	void initialize(void);
 
 	/**
-	* \ingroup read
 	* @param const char* Point cloud data file name
 	* @param OphPointCloudData* Point cloud data - number of points, number of color, geometry of point cloud, color data, phase data
 	* @return Positive integer is points number of point cloud, return a negative integer if the load fails
@@ -126,14 +126,12 @@ public:
 	int loadPointCloud(const char* pc_file, OphPointCloudData *pc_data_);
 
 	/**
-	* \ingroup read
 	* @param const char* Input file name
 	* @param OphPointCloudConfig& Config structures variable can get configuration data
 	*/
 	bool readConfig(const char* fname, OphPointCloudConfig& config);
 
 	/**
-	* \ingroup read
 	* @param const char* Input file name
 	* @param OphDepthMapConfig& Config structures variable can get configuration data
 	*/
@@ -145,31 +143,27 @@ public:
 	void propagationAngularSpectrum(Complex<Real>* input_u, Real propagation_dist);
 
 	/**
-	* \ingroup calc
 	* @brief Normalization function to save as image file after hologram creation
 	*/
 	void normalize(void);
 
 	/**
-	* \ingroup write
 	* @brief Function for saving image files
 	*/
 	int save(const char* fname, uint8_t bitsperpixel = 8, uchar* src = nullptr, uint px = 0, uint py = 0);
 	
-	/** \ingroup read
+	/**
 	* @brief Function for loading image files
 	*/
 	void* load(const char* fname);
 
 	/**
-	* \ingroup read
 	* @brief Function to read OHC file
 	*/
 	virtual int loadAsOhc(const char *fname);
 
 protected:
 	/**
-	* \ingroup write
 	* @brief Called when saving multiple hologram data at a time
 	*/
 	int save(const char* fname, uint8_t bitsperpixel, uint px, uint py, uint fnum, uchar* args ...);
@@ -219,11 +213,8 @@ protected:
 	int ENCODE_METHOD;
 	int SSB_PASSBAND;
 public:
-	/** \ingroup */
 	void setEncodeMethod(int in) { ENCODE_METHOD = in; }
-	/** \ingroup */
 	void setSSBPassBand(int in){ SSB_PASSBAND = in; }
-	/** \ingroup */
 	ivec2& getEncodeSize(void) { return encode_size; }
 
 public:
@@ -277,7 +268,6 @@ public:
 	void fresnelPropagation(Complex<Real>* in, Complex<Real>* out, Real distance);
 protected:
 	/** 
-	* \ingroup encode
 	* @brief Encode the CGH according to a signal location parameter.
 	* @param bool Select whether to operate with CPU or GPU
 	* @param oph::ivec2 sig_location[0]: upper or lower half, sig_location[1]:left or right half.
@@ -285,7 +275,6 @@ protected:
 	*/
 	void encodeSideBand(bool bCPU, ivec2 sig_location);
 	/**
-	* \ingroup encode
 	* @brief Encode the CGH according to a signal location parameter on the CPU.
 	* @details The CPU variable, (*complex_H) on CPU has the final result.
 	* @param int the start x-coordinate to crop
@@ -300,7 +289,6 @@ protected:
 	void encodeSideBand_GPU(int cropx1, int cropx2, int cropy1, int cropy2, oph::ivec2 sig_location);
 
 	/**
-	* \ingroup calc
 	* @brief Calculate the shift phase value.
 	* @param shift_phase_val : output variable.
 	* @param idx : the current pixel position.
@@ -310,7 +298,6 @@ protected:
 	void getShiftPhaseValue(oph::Complex<Real>& shift_phase_val, int idx, oph::ivec2 sig_location);
 
 	/**
-	* \ingropu calc
 	* @brief Assign random phase value if RANDOM_PHASE == 1
 	* @details If RANDOM_PHASE == 1, calculate a random phase value using random generator;
 	*  otherwise, random phase value is 1.

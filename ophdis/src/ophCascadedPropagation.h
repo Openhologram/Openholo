@@ -42,14 +42,6 @@
 // Check whether software you use contains licensed software.
 //
 //M*/
-
-/**
-* @file ophCascadedPropagation.h
-* @brief Cascaded propagation module
-* @author Seunghyup Shin
-* @date 2018/07/30
-*/
-
 #pragma once
 #ifndef _OphCascadedPropagation_h
 #define _OphCascadedPropagation_h
@@ -134,6 +126,14 @@ struct OphCascadedPropagationConfig {
 #define DISP_DLL __declspec(dllimport)
 #endif
 
+
+
+/**
+* @ingroup casprop
+* @brief Cascaded propagation module
+* @detail
+* @author Seunghyup Shin
+*/
 class DISP_DLL ophCascadedPropagation : public ophDis {
 	private:
 		/**
