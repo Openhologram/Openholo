@@ -75,6 +75,9 @@
     <ClInclude Include="src\ImgCodecOhc.h">
       <Filter>_2_ImgFmt</Filter>
     </ClInclude>
+    <ClInclude Include="src\comment.h">
+      <Filter>_1_Openholo</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Openholo.cpp">
