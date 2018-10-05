@@ -320,9 +320,9 @@ Cascaded Propagation Example
 
 
 /**
-* \defgroup const/dest Constructor & Destructor
+* \defgroup const,dest Constructor & Destructor
 * \defgroup oper Operator
-* \defgroup get/set Parameters
+* \defgroup get,set Parameters
 * \defgroup init Initialize
 * \defgroup calc Calculate
 * \defgroup gen Generate Hologram
@@ -346,6 +346,18 @@ Cascaded Propagation Example
 
 using namespace oph;
 
+
+struct OphConfig
+{
+	oph::ivec2		pixel_number;				//< SLM_PIXEL_NUMBER_X & SLM_PIXEL_NUMBER_Y
+	oph::vec2		pixel_pitch;				//< SLM_PIXEL_PITCH_X & SLM_PIXEL_PITCH_Y
+
+	Real			k;							//< 2 * PI / lambda(wavelength)
+	vec2			ss;							//< pn * pp
+
+	Real*			wave_length;				//< wave length
+};
+
 //namespace oph{
 //	class ImgEncoderOhc;
 //	class ImgDecoderOhc;
@@ -366,14 +378,14 @@ class OPH_DLL Openholo : public Base{
 
 public:
 	/**
-	* \ingroup const/dest
+	* \ingroup const,dest
 	* @brief Constructor
 	*/
 	explicit Openholo(void);
 
 protected:
 	/**
-	* \ingroup const/dest
+	* \ingroup const,dest
 	* @brief Destructor
 	* @detail Pure virtual function for class abstraction
 	*/
@@ -415,16 +427,38 @@ public:
 	* \ingroup write
 	* @brief Function to write OHC file
 	*/
-	virtual int saveAsOhc(const char *fname, Complex<Real> *src);
-	virtual int saveAsOhc(const char *fname, OphComplexField &src);
+	virtual int saveAsOhc(const char *fname);
 
 	/**
 	* \ingroup read
 	* @brief Function to read OHC file
 	*/
-	virtual int loadAsOhc(const char *fname, Complex<Real> **dst, ivec2 &pixel_number, vec2 &pixel_pitch, Real &wave_length);
-	virtual int loadAsOhc(const char *fname, OphComplexField &dst, ivec2 &pixel_number, vec2 &pixel_pitch, Real &wave_length);
+	virtual int loadAsOhc(const char *fname);
 
+	/**
+	* \ingroup get,set
+	*/
+	inline oph::Complex<Real>** getComplexField(void) { return complex_H; }
+
+	/**
+	* \ingroup get,set
+	*/
+	inline void setPixelNumber(ivec2 n) { context_.pixel_number[_X] = n[_X]; context_.pixel_number[_Y] = n[_Y]; }
+
+	/**
+	* \ingroup get,set
+	*/
+	inline void setPixelPitch(vec2 p) { context_.pixel_pitch[_X] = p[_X]; context_.pixel_pitch[_Y] = p[_Y]; }
+
+	/**
+	* \ingroup get,set
+	*/
+	inline void setWaveLength(Real w, const uint idx) { context_.wave_length[idx] = w; }
+
+	/**
+	* \ingroup get,set
+	*/
+	OphConfig& getContext(void) { return context_; }
 protected:
 	/**
 	* \ingroup read
@@ -539,6 +573,10 @@ private:
 	int fft_sign;
 
 protected:
+	OphConfig context_;
+	Complex<Real>** complex_H;
+
+protected:
 	/**
 	* @brief OHC file format Variables for read and write
 	*/
@@ -549,31 +587,31 @@ protected:
 	/**
 	* @brief getter/setter for OHC file read and write
 	*/
-	inline void setPixelNumber(const ivec2 pixel_number) 
+	inline void setPixelNumberOHC(const ivec2 pixel_number) 
 		{ OHC_encoder->setNumOfPixel(pixel_number); }
 
-	inline void setPixelPitch(const vec2 pixel_pitch)
+	inline void setPixelPitchOHC(const vec2 pixel_pitch)
 		{ OHC_encoder->setPixelPitch(pixel_pitch); }
 
-	inline void setWavelength(const Real wavelength, const LenUnit wavelength_unit)
+	inline void setWavelengthOHC(const Real wavelength, const LenUnit wavelength_unit)
 		{ OHC_encoder->setWavelength(wavelength, wavelength_unit); }
 
-	inline void setWaveLengthNum(const uint wavelength_num)
+	inline void setWaveLengthNumOHC(const uint wavelength_num)
 		{ OHC_encoder->setNumOfWavlen(wavelength_num); }
 
-	inline void setColorType(const ColorType color_type)
+	inline void setColorTypeOHC(const ColorType color_type)
 		{ OHC_encoder->setColorType(color_type); }
 
-	inline void setColorArrange(const ColorArran color_arrange)
+	inline void setColorArrangeOHC(const ColorArran color_arrange)
 		{ OHC_encoder->setColorArrange(color_arrange);	}
 
-	inline 	void setWaveLengthUnit(const LenUnit length_unit)
+	inline 	void setWaveLengthUnitOHC(const LenUnit length_unit)
 		{ OHC_encoder->setUnitOfWavlen(length_unit);	}
 
-	inline 	void setFieldEncoding(const FldStore field_store, const FldCodeType field_code_type)
+	inline 	void setFieldEncodingOHC(const FldStore field_store, const FldCodeType field_code_type)
 		{ OHC_encoder->setFieldEncoding(field_store, field_code_type); }
 
-	inline 	void setPhaseEncoding(const BPhaseCode phase_code, const vec2 phase_code_range)
+	inline 	void setPhaseEncodingOHC(const BPhaseCode phase_code, const vec2 phase_code_range)
 		{ OHC_encoder->setPhaseEncoding(phase_code, phase_code_range); }
 
 	//inline void setCompressedFormatType(const CompresType compress_type)
@@ -582,13 +620,13 @@ protected:
 	/**
 	* @brief Function to add ComplexField when adding wavelength data
 	*/
-	inline void addWaveLengthNComplexFieldData(const Real wavelength, const OphComplexField& complex_field)
+	inline void addWaveLengthNComplexFieldDataOHC(const Real wavelength, const OphComplexField& complex_field)
 		{ OHC_encoder->addWavelengthNComplexFieldData(wavelength, complex_field); }
 
-	inline void addWaveLength(const Real wavelength)
+	inline void addWaveLengthOHC(const Real wavelength)
 		{ OHC_encoder->addWavelength(wavelength); }
 
-	inline void addComplexFieldData(const OphComplexField& complex_field)
+	inline void addComplexFieldDataOHC(const OphComplexField& complex_field)
 		{ OHC_encoder->addComplexFieldData(complex_field); }
 
 	/**
@@ -600,8 +638,38 @@ protected:
 	/**
 
 	*/
-	inline void getLinkFilePath(std::vector<std::string> &linkFilePath_array)
-		{ OHC_decoder->getLinkFilePath(linkFilePath_array); }
+	//inline void getLinkFilePath(std::vector<std::string> &linkFilePath_array)
+	//	{ OHC_decoder->getLinkFilePath(linkFilePath_array); }
+
+	inline void getPixelNumberOHC(ivec2& pixel_number)
+		{ pixel_number = OHC_decoder->getNumOfPixel(); }
+
+	inline void getPixelPitchOHC(vec2& pixel_pitch)
+		{ pixel_pitch = OHC_decoder->getPixelPitch(); }
+
+	inline void getWavelengthOHC(vector<Real>& wavelength)
+		{ OHC_decoder->getWavelength(wavelength); }
+
+	inline void getWaveLengthNumOHC(uint& wavelength_num)
+		{ wavelength_num = OHC_decoder->getNumOfWavlen(); }
+
+	inline void getColorTypeOHC(ColorType& color_type)
+		{ color_type = OHC_decoder->getColorType(); }
+
+	inline void getColorArrangeOHC(ColorArran& color_arrange)
+		{ color_arrange = OHC_decoder->getColorArrange(); }
+
+	inline 	void getWaveLengthUnitOHC(LenUnit& length_unit)
+		{ length_unit = OHC_decoder->getUnitOfWavlen(); }
+
+	inline void getComplexFieldDataOHC(Complex<Real>** cmplx, uint wavelen_idx)
+		{ OHC_decoder->getComplexFieldData(cmplx, wavelen_idx); }
+
+	inline void getComplexFieldDataOHC(OphComplexField& cmplx, uint wavelen_idx)
+		{ OHC_decoder->getComplexFieldData(cmplx, wavelen_idx); }
+
+	//inline void getCompressedFormatType(const CompresType compress_type)
+	//	{ OHC_encoder->setCompressedFormatType(compress_type); }
 
 
 };

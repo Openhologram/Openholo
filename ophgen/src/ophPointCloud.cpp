@@ -103,7 +103,7 @@ Real ophPointCloud::generateHologram(uint diff_flag)
 #else
 		std::cout << "Generate Hologram with Single Core CPU" << std::endl;
 #endif
-		genCghPointCloudCPU(diff_flag); /// 홀로그램 데이터 Complex data로 변경 시 holo_gen으로
+		genCghPointCloudCPU(diff_flag); /// 홀로그램 데이터 Complex data로 변경 시 (*complex_H)으로
 	}
 	else { //Run GPU
 		std::cout << "Generate Hologram with GPU" << std::endl;
@@ -122,7 +122,7 @@ Real ophPointCloud::generateHologram(uint diff_flag)
 
 void ophPointCloud::encodeHologram(const vec2 band_limit, const vec2 spectrum_shift)
 {
-	if (holo_gen == nullptr) {
+	if ((*complex_H) == nullptr) {
 		LOG("Not found diffracted data.");
 		return;
 	}
@@ -161,7 +161,7 @@ void ophPointCloud::encodeHologram(const vec2 band_limit, const vec2 spectrum_sh
 
 	Complex<Real>* h = new Complex<Real>[pn[_X] * pn[_Y]];
 
-	fftwShift(holo_gen, h, pn[_X], pn[_Y], OPH_FORWARD);
+	fftwShift((*complex_H), h, pn[_X], pn[_Y], OPH_FORWARD);
 	fft2(pn, h, OPH_FORWARD);
 	fftExecute(h);
 	fftwShift(h, h, pn[_X], pn[_Y], OPH_BACKWARD);
@@ -237,13 +237,13 @@ void ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 				diffractEncodedRS(pn, pp, ss, vec3(pcx, pcy, pcz), k, amplitude, vec2(thetaX, thetaY));
 				break;
 			case PC_DIFF_RS_NOT_ENCODED:
-				diffractNotEncodedRS(pn, pp, ss, vec3(pcx, pcy, pcz), k, amplitude, context_.lambda, vec2(thetaX, thetaY));
+				diffractNotEncodedRS(pn, pp, ss, vec3(pcx, pcy, pcz), k, amplitude, context_.wave_length[0], vec2(thetaX, thetaY));
 				break;
 			case PC_DIFF_FRESNEL_ENCODED:
 				diffractEncodedFrsn();
 				break;
 			case PC_DIFF_FRESNEL_NOT_ENCODED:
-				diffractNotEncodedFrsn(pn, pp, vec3(pcx, pcy, pcz), amplitude, context_.lambda, vec2(thetaX, thetaY));
+				diffractNotEncodedFrsn(pn, pp, vec3(pcx, pcy, pcz), amplitude, context_.wave_length[0], vec2(thetaX, thetaY));
 				break;
 			}
 		}
@@ -276,8 +276,8 @@ void ophPointCloud::diffractEncodedRS(ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Real 
 
 void ophPointCloud::diffractNotEncodedRS(ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Real k, Real amplitude, Real lambda, vec2 theta)
 {
-	Real tx = context_.lambda / (2 * pp[_X]);
-	Real ty = context_.lambda / (2 * pp[_Y]);
+	Real tx = context_.wave_length[0] / (2 * pp[_X]);
+	Real ty = context_.wave_length[0] / (2 * pp[_Y]);
 
 	Real _xbound[2] = {
 		pc[_X] + abs(tx / sqrt(1 - (tx * tx)) * pc[_Z]),
@@ -329,11 +329,11 @@ void ophPointCloud::diffractNotEncodedRS(ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Re
 				Real res_real = (amplitude * pc[_Z] * sin(kr)) / (lambda * r * r);
 				Real res_imag = (-amplitude * pc[_Z] * cos(kr)) / (lambda * r * r);
 
-				holo_gen[xxtr + yytr * pn[_X]][_RE] += res_real;
-				holo_gen[xxtr + yytr * pn[_X]][_IM] += res_imag;
+				(*complex_H)[xxtr + yytr * pn[_X]][_RE] += res_real;
+				(*complex_H)[xxtr + yytr * pn[_X]][_IM] += res_imag;
 
 				//LOG("(%3d, %3d) [%7d] : ", xxtr, yytr, xxtr + yytr * pn[_X]);
-				//LOG("holo=(%15.5lf + %20.10lf * i )\n", holo_gen[xxtr + yytr * pn[_X]][_RE], holo_gen[xxtr + yytr * pn[_X]][_IM]);
+				//LOG("holo=(%15.5lf + %20.10lf * i )\n", (*complex_H)[xxtr + yytr * pn[_X]][_RE], (*complex_H)[xxtr + yytr * pn[_X]][_IM]);
 			}
 		}
 	}
@@ -384,11 +384,11 @@ void ophPointCloud::diffractNotEncodedFrsn(ivec2 pn, vec2 pp, vec3 pc, Real ampl
 			Real res_real = amplitude * sin(p) / (lambda * pc[_Z]);
 			Real res_imag = amplitude * (-cos(p)) / (lambda * pc[_Z]);
 
-			holo_gen[xxtr + yytr * pn[_X]][_RE] += res_real;
-			holo_gen[xxtr + yytr * pn[_X]][_IM] += res_imag;
+			(*complex_H)[xxtr + yytr * pn[_X]][_RE] += res_real;
+			(*complex_H)[xxtr + yytr * pn[_X]][_IM] += res_imag;
 
 			//LOG("(%3d, %3d) [%7d] : ", xxtr, yytr, xxtr + yytr * pn[_X]);
-			//LOG("holo=(%15.5lf + %20.10lf * i )\n", holo_gen[xxtr + yytr * pn[_X]][_RE], holo_gen[xxtr + yytr * pn[_X]][_IM]);
+			//LOG("holo=(%15.5lf + %20.10lf * i )\n", (*complex_H)[xxtr + yytr * pn[_X]][_RE], (*complex_H)[xxtr + yytr * pn[_X]][_IM]);
 		}
 	}
 }

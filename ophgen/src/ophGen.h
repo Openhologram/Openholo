@@ -56,16 +56,6 @@
 
 #pragma comment(lib, "libfftw3-3.lib")
 
-struct GEN_DLL OphContext {
-	oph::ivec2		pixel_number;				///< SLM_PIXEL_NUMBER_X & SLM_PIXEL_NUMBER_Y
-	oph::vec2		pixel_pitch;				///< SLM_PIXEL_PITCH_X & SLM_PIXEL_PITCH_Y
-
-	Real			k;							///< 2 * PI / lambda(wavelength)
-	vec2			ss;							///< pn * pp
-
-	Real			lambda;						///< wave length
-};
-
 struct OphPointCloudConfig;
 struct OphPointCloudData;
 struct OphDepthMapConfig;
@@ -99,51 +89,27 @@ public:
 
 public:
 	/**
-	* \ingroup const/dest
+	* \ingroup const,dest
 	* @brief Constructor
 	*/
 	explicit ophGen(void);
 
 protected:
 	/**
-	* \ingroup const/dest
+	* \ingroup const,dest
 	* @brief Destructor
 	*/
 	virtual ~ophGen(void) = 0;
 
 public:
 	/**
-	* \ingroup get/set
-	*/
-	inline oph::Complex<Real>* getHoloBuffer(void) { return holo_gen; }
-	/**
-	* \ingroup get/set
+	* \ingroup get,set
 	*/
 	inline Real* getEncodedBuffer(void) { return holo_encoded; }
 	/**
-	* \ingroup get/set
+	* \ingroup get,set
 	*/
 	inline uchar* getNormalizedBuffer(void) { return holo_normalized; }
-
-	/**
-	* \ingroup get/set
-	*/
-	inline void setPixelNumber(int nx, int ny) { context_.pixel_number[_X] = nx; context_.pixel_number[_Y] = ny; }
-
-	/**
-	* \ingroup get/set
-	*/
-	inline void setPixelPitch(Real px, Real py) { context_.pixel_pitch[_X] = px; context_.pixel_pitch[_Y] = py; }
-
-	/**
-	* \ingroup get/set
-	*/
-	inline void setWaveLength(Real w) { context_.lambda = w; }
-
-	/**
-	* \ingroup get/set
-	*/
-	OphContext& getContext(void) { return context_; }
 
 	/**
 	* \ingroup init
@@ -189,13 +155,17 @@ public:
 	* @brief Function for saving image files
 	*/
 	int save(const char* fname, uint8_t bitsperpixel = 8, uchar* src = nullptr, uint px = 0, uint py = 0);
-	int saveAsOhc(const char* fname);
 	
 	/** \ingroup read
 	* @brief Function for loading image files
 	*/
 	void* load(const char* fname);
-	int loadAsOhc(const char* fname);
+
+	/**
+	* \ingroup read
+	* @brief Function to read OHC file
+	*/
+	virtual int loadAsOhc(const char *fname);
 
 protected:
 	/**
@@ -205,9 +175,6 @@ protected:
 	int save(const char* fname, uint8_t bitsperpixel, uint px, uint py, uint fnum, uchar* args ...);
 
 protected:
-	OphContext				context_;
-
-	oph::Complex<Real>*		holo_gen;
 	Real*					holo_encoded;
 	oph::uchar*				holo_normalized;
 
@@ -271,17 +238,17 @@ public:
 	*/
 	void normalizeEncoded(void);
 
-	void fourierTest() {
-		fft2(context_.pixel_number, holo_gen, OPH_FORWARD, OPH_ESTIMATE);
-		fftExecute(holo_gen);
-		fft2(context_.pixel_number, holo_gen, OPH_BACKWARD, OPH_ESTIMATE);
-		fftExecute(holo_gen);
-	}
-	void fresnelTest(Real dis) {
-		context_.lambda = 532e-9;
-		context_.pixel_pitch = { 8e-6, 8e-6 };
-		fresnelPropagation(context_,holo_gen, holo_gen, dis);
-	}
+	//void fourierTest() {
+	//	fft2(context_.pixel_number, (*complex_H), OPH_FORWARD, OPH_ESTIMATE);
+	//	fftExecute((*complex_H));
+	//	fft2(context_.pixel_number, (*complex_H), OPH_BACKWARD, OPH_ESTIMATE);
+	//	fftExecute((*complex_H));
+	//}
+	//void fresnelTest(Real dis) {
+	//	context_.lambda = 532e-9;
+	//	context_.pixel_pitch = { 8e-6, 8e-6 };
+	//	fresnelPropagation(context_,(*complex_H), (*complex_H), dis);
+	//}
 
 protected:
 	/**
@@ -306,7 +273,7 @@ public:
 	* @param	Real			distance	Propagation distance
 	* @return	out
 	*/
-	void fresnelPropagation(OphContext context, Complex<Real>* in, Complex<Real>* out, Real distance);
+	void fresnelPropagation(OphConfig context, Complex<Real>* in, Complex<Real>* out, Real distance);
 	void fresnelPropagation(Complex<Real>* in, Complex<Real>* out, Real distance);
 protected:
 	/** 
@@ -320,7 +287,7 @@ protected:
 	/**
 	* \ingroup encode
 	* @brief Encode the CGH according to a signal location parameter on the CPU.
-	* @details The CPU variable, holo_gen on CPU has the final result.
+	* @details The CPU variable, (*complex_H) on CPU has the final result.
 	* @param int the start x-coordinate to crop
 	* @param int the end x-coordinate to crop
 	* @param int the start y-coordinate to crop

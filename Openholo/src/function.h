@@ -326,7 +326,7 @@ namespace oph
 		int idx = 0;
 		for (int x = 0; x < bufferSize[_X]; x++) {
 			for (int y = 0; y < bufferSize[_Y]; y++) {
-				dst[0][idx] = src[x][y];
+				(*dst)[idx] = src[x][y];
 				idx++;
 			}
 		}

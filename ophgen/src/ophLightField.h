@@ -137,7 +137,7 @@ public:
 
 	/**
 	* @brief	Hologram generation
-	* @return	holo_gen
+	* @return	(*complex_H)
 	*/
 	void generateHologram();
 

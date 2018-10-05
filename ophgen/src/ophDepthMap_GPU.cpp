@@ -296,8 +296,8 @@ void ophDepthMap::calcHoloGPU(void)
 
 	for (int n = 0; n < N; n++)
 	{
-		holo_gen[n][_RE] = p_holo_gen[n].x;
-		holo_gen[n][_IM]= p_holo_gen[n].y;
+		(*complex_H)[n][_RE] = p_holo_gen[n].x;
+		(*complex_H)[n][_IM]= p_holo_gen[n].y;
 	}
 
 	delete[] p_holo_gen;
@@ -319,7 +319,7 @@ void ophDepthMap::propagationAngularSpectrumGPU(cufftDoubleComplex* input_u, Rea
 	Real ppy = context_.pixel_pitch[1];
 	Real ssx = context_.ss[0];
 	Real ssy = context_.ss[1];
-	Real lambda = context_.lambda;
+	Real lambda = context_.wave_length[0];
 
 	cudaPropagation_AngularSpKernel(stream_, pnx, pny, k_temp_d_, u_complex_gpu_,
 		ppx, ppy, ssx, ssy, lambda, context_.k, propagation_dist);

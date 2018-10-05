@@ -64,7 +64,10 @@ Openholo::Openholo(void)
 	, fft_sign(OPH_FORWARD)
 	, OHC_encoder(nullptr)
 	, OHC_decoder(nullptr)
+	, complex_H(nullptr)
 {
+	context_ = { 0 };
+
 	OHC_encoder = new oph::ImgEncoderOhc;
 	OHC_decoder = new oph::ImgDecoderOhc;
 }
@@ -169,74 +172,48 @@ uchar * Openholo::loadAsImg(const char * fname)
 	return img_tmp;
 }
 
-int Openholo::saveAsOhc(const char * fname, Complex<Real> *src)
+int Openholo::saveAsOhc(const char * fname)
 {
 	std::string fullname = fname;
 	if (checkExtension(fname, ".ohc") == 0) fullname.append(".ohc");
 	OHC_encoder->setFileName(fullname.c_str());
-	OHC_encoder->addComplexFieldData(src);
+
+	OHCheader header;
+	OHC_encoder->getOHCheader(header);
+	auto wavelength_num = header.fieldInfo.wavlenNum;
+
+	for (int i = 0; i < wavelength_num; i++)
+		OHC_encoder->addComplexFieldData(complex_H[i]);
 
 	if (!OHC_encoder->save()) return -1;
 
 	return 1;
 }
 
-int Openholo::saveAsOhc(const char * fname, OphComplexField & src)
-{
-	std::string fullname = fname;
-	if (checkExtension(fname, ".ohc") == 0) fullname.append(".ohc");
-	OHC_encoder->setFileName(fullname.c_str());
-	OHC_encoder->addComplexFieldData(src);	
-
-	if (!OHC_encoder->save()) return -1;
-
-	return 1;
-}
-
-int Openholo::loadAsOhc(const char * fname, Complex<Real>** dst, ivec2 &pixel_number, vec2 &pixel_pitch, Real &wave_length)
+int Openholo::loadAsOhc(const char * fname)
 {
 	std::string fullname = fname;
 	if (checkExtension(fname, ".ohc") == 0) fullname.append(".ohc");
 	OHC_decoder->setFileName(fullname.c_str());
 	if (!OHC_decoder->load()) return -1;
 
-	pixel_number = OHC_decoder->getNumOfPixel();
-	pixel_pitch = OHC_decoder->getPixelPitch();
+	context_.pixel_number = OHC_decoder->getNumOfPixel();
+	context_.pixel_pitch = OHC_decoder->getPixelPitch();
 
 	vector<Real> wavelengthArray;
 	OHC_decoder->getWavelength(wavelengthArray);
-	wave_length = wavelengthArray[0];
+	context_.wave_length = new Real[wavelengthArray.size()];
+	for (int i = 0; i < wavelengthArray.size(); i++)
+		context_.wave_length[i] = wavelengthArray[i];
 	
-	OphComplexField res(pixel_number[_X], pixel_number[_Y]);
-	OHC_decoder->getComplexFieldData(res);
+	OHC_decoder->getComplexFieldData(&complex_H);
 
-	Field2Buffer(res, dst);
-
-	return 1;
-}
-
-int Openholo::loadAsOhc(const char * fname, OphComplexField & dst, ivec2 &pixel_number, vec2 &pixel_pitch, Real &wave_length)
-{
-	std::string fullname = fname;
-	if (checkExtension(fname, ".ohc") == 0) fullname.append(".ohc");
-	OHC_decoder->setFileName(fullname.c_str());
-	if (!OHC_decoder->load()) return -1;
-
-	pixel_number = OHC_decoder->getNumOfPixel();
-	pixel_pitch = OHC_decoder->getPixelPitch();
-
-	vector<Real> wavelengthArray;
-	OHC_decoder->getWavelength(wavelengthArray);
-	wave_length = wavelengthArray[0];
-
-	dst.resize(pixel_number[_X], pixel_number[_Y]);
-	dst.zeros();
-
-	OHC_decoder->getComplexFieldData(dst);
+	context_.k = (2 * M_PI) / context_.wave_length[0];
+	context_.ss[_X] = context_.pixel_number[_X] * context_.pixel_pitch[_X];
+	context_.ss[_Y] = context_.pixel_number[_Y] * context_.pixel_pitch[_Y];
 
 	return 1;
 }
-
 
 int Openholo::loadAsImgUpSideDown(const char * fname, uchar* dst)
 {
@@ -547,6 +524,10 @@ void Openholo::fftShift(int nx, int ny, Complex<Real>* input, Complex<Real>* out
 
 void Openholo::ophFree(void)
 {
+	if (complex_H) delete[] complex_H;
+	if ((*complex_H)) delete[](*complex_H);
+	if (context_.wave_length) delete[] context_.wave_length;
+
 	delete OHC_encoder;
 	delete OHC_decoder;
 }
