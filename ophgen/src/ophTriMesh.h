@@ -43,14 +43,6 @@
 //
 //M*/
 
-/**
-* @file		ophTriMesh.h
-* @brief	Openholo Triangular Mesh based CGH generation
-* @author	Yeon-Gyeong Ju, Jae-Hyeung Park
-* @data		2018-08
-* @version	0.0.1
-*/
-
 #ifndef __ophTriMesh_h
 #define __ophTriMesh_h
 
@@ -68,13 +60,18 @@ struct geometric {
 	Real loRot[4];
 };
 
+/**
+* @addtogroup mesh
+//@{
+* @detail
 
+*/
+//! @} mesh
 
 /**
 * @ingroup mesh
-* @brief
-* @detail
-* @author
+* @brief Openholo Triangular Mesh based CGH generation
+* @author Yeon-Gyeong Ju, Jae-Hyeung Park
 */
 class GEN_DLL ophTri : public ophGen
 {

@@ -77,12 +77,17 @@ using namespace oph;
 
 
 
+/**
+* @addtogroup wrp
+//@{
+* @detail
 
+*/
+//! @} wrp
 
 /**
 * @ingroup wrp
 * @brief
-* @detail
 * @author
 */
 class GEN_DLL ophWRP : public ophGen

@@ -43,13 +43,6 @@
 //
 //M*/
 
-/**
-* @file		ophPointCloud.h
-* @brief	Openholo Point Cloud based CGH generation
-* @author	Ryeon-Woo Kim
-* @date		2018/08
-*/
-
 #ifndef __ophPointCloud_h
 #define __ophPointCloud_h
 
@@ -72,13 +65,17 @@
 
 using namespace oph;
 
+/**
+* @addtogroup pointcloud
+//@{
+* @detail
 
-
+*/
+//! @} pointcloud
 
 /**
 * @ingroup pointcloud
-* @brief
-* @detail
+* @brief Openholo Point Cloud based CGH generation
 * @author
 */
 class GEN_DLL ophPointCloud : public ophGen

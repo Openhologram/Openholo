@@ -43,10 +43,6 @@
 //
 //M*/
 
-/**
-* @mainpage ophSig
-* @brief Abstract class for core processing classes
-*/
 
 #ifndef __ophSig_h
 #define __ophSig_h
@@ -73,12 +69,17 @@ struct SIG_DLL ophSigConfig {
 	float z;
 };
 
+/**
+* @addtogroup sig
+//@{
+* @detail
 
+*/
+//! @} sig
 
 /**
 * @ingroup sig
 * @brief
-* @detail
 * @author
 */
 class SIG_DLL ophSig : public Openholo

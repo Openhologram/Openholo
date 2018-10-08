@@ -6,12 +6,17 @@
 
 #include "ophSig.h"
 
+/**
+* @addtogroup CH
+//@{
+* @detail
 
+*/
+//! @} CH
 
 /**
 * @ingroup CH
 * @brief
-* @detail
 * @author
 */
 class SIG_DLL ophSigCH : public ophSig

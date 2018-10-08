@@ -43,13 +43,6 @@
 //
 //M*/
 
-/**
-* @file		ophLightField.h
-* @brief	Openholo Light Field based CGH generation
-* @author	Yeon-Gyeong Ju, Jae-Hyeung Park
-* @data		2018-08
-* @version	0.0.1
-*/
 #ifndef __ophLightField_h
 #define __ophLightField_h
 
@@ -60,13 +53,18 @@
 using namespace oph;
 
 
+/**
+* @addtogroup lightfield
+//@{
+* @detail
 
+*/
+//! @} lightfield
 
 /**
 * @ingroup lightfield
-* @brief 
-* @detail
-* @author
+* @brief Openholo Light Field based CGH generation
+* @author Yeon-Gyeong Ju, Jae-Hyeung Park
 */
 class GEN_DLL ophLF : public ophGen
 {

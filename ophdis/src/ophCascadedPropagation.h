@@ -126,12 +126,17 @@ struct OphCascadedPropagationConfig {
 #define DISP_DLL __declspec(dllimport)
 #endif
 
+/**
+* @addtogroup casprop
+//@{
+* @detail
 
+*/
+//! @} casprop
 
 /**
 * @ingroup casprop
 * @brief Cascaded propagation module
-* @detail
 * @author Seunghyup Shin
 */
 class DISP_DLL ophCascadedPropagation : public ophDis {

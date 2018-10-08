@@ -78,10 +78,6 @@ enum PC_DIFF_FLAG {
 * @detail
 * @author
 */
-
-
-
-
 class GEN_DLL ophGen : public Openholo
 {
 public:

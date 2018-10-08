@@ -71,12 +71,17 @@ using namespace std;
 
 
 
+/**
+* @addtogroup waveaberr
+//@{
+* @detail
 
+*/
+//! @} waveaberr
 
 /**
 * @ingroup waveaberr
 * @brief Wave Aberration module
-* @detail
 * @author Minsik Park
 */
 class DISP_DLL ophWaveAberration : public ophDis
