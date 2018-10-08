@@ -231,6 +231,15 @@ public:
 	* @return if works well return 0  or error occurs return -1
 	*/
 	virtual bool readConfig(const char* fname);
+
+	/**
+	* @addtogroup offaxis
+	//@{
+	* @detail
+	
+	*/
+	//! @} offaxis
+
 	/**
 	* @ingroup offaxis
 	* @brief Function for Convert complex hologram to off-axis hologram
@@ -238,6 +247,14 @@ public:
 	* @return if works well return 0  or error occurs return -1
 	*/
 	bool sigConvertOffaxis();
+
+	/**
+	* @addtogroup convHPO
+	//@{
+	* @detail
+
+	*/
+	//! @} convHPO
 	/**
 	* @ingroup convHPO
 	* @brief Function for Convert complex hologram to horizontal parallax only hologram
@@ -245,6 +262,14 @@ public:
 	* @return if works well return 0  or error occurs return -1
 	*/
 	bool sigConvertHPO();
+
+	/**
+	* @addtogroup convCAC
+	//@{
+	* @detail
+
+	*/
+	//! @} convCAC
 	/**
 	* @ingroup convCAC
 	* @brief Function for Chromatic aberration compensation filter
@@ -263,6 +288,15 @@ public:
 	* @return output signal
 	*/
 	matrix<Complex<Real>> propagationHolo(matrix<Complex<Real>> complexH, float depth);
+
+	/**
+	* @addtogroup getAT
+	//@{
+	* @detail
+
+	*/
+	//! @} getAT
+
 	/**
 	* @ingroup getAT 
 	* @brief Extraction of distance parameter using axis transfomation
@@ -270,6 +304,15 @@ public:
 	* @return result distance
 	*/
 	double sigGetParamAT();
+
+	/**
+	* @addtogroup getSF
+	//@{
+	* @detail
+
+	*/
+	//! @} getSF
+
 	/**
 	* @ingroup getSF
 	* @brief Extraction of distance parameter using sharpness functions
