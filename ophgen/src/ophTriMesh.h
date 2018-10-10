@@ -91,55 +91,43 @@ private:
 	const char* meshDataFileName;
 
 private:
-	/**
-	* @param	Real*				triMeshArray		Original triangular mesh array (N*9)
-	* @param	Complex<Real>*		angularSpectrum		Angular spectrum of the hologram
-	* @param	OphMeshData*		meshData			OphMeshData type data structure pointer
-	*/
 
-	Real* triMeshArray;
-	Complex<Real>* angularSpectrum;
-	OphMeshData* meshData;
+	Real* triMeshArray;						/// Original triangular mesh array (N*9)
+	Complex<Real>* angularSpectrum;			/// Angular spectrum of the hologram
+	OphMeshData* meshData;					/// OphMeshData type data structure pointer
 
 private:
-	/**
-	* @param	Real	objSize				Object maximum of width and height / unit :[m]
-	* @param	Real	objShift			Object shift value / Data structure - [shiftX, shiftY, shiftZ] / unit : [m]
-	* @param	Real	carrierWave[3]		Carrier wave direction / default : {0, 0, 1}
-	* @param	vec3	illumination		Position of the light source (for shading effect) / No-illumination : {0, 0, 0}
-	* @param	int		SHADING_TYPE		SHADING_FLAT, SHADING_CONTINUOUS
-	*/
 
-	Real objSize;
-	Real objShift[3];
+	Real objSize;							/// Object maximum of width and height / unit :[m]
+	Real objShift[3];						/// Object shift value / Data structure - [shiftX, shiftY, shiftZ] / unit : [m]
 
-	Real carrierWave[3] = { 0,0,1 };
+	Real carrierWave[3] = { 0,0,1 };		/// Carrier wave direction / default : {0, 0, 1}
 
-	vec3 illumination;
-	int SHADING_TYPE;
+	vec3 illumination;						/// Position of the light source (for shading effect) / No-illumination : {0, 0, 0}
+	int SHADING_TYPE;						/// SHADING_FLAT, SHADING_CONTINUOUS
 
 public:
-	/** \ingroup */
+	/** \ingroup getter/setter */
 	void setObjSize(Real in) { objSize = in; }
-	/** \ingroup */
+	/** \ingroup getter/setter */
 	void setObjShift(Real in[]) { objShift[_X] = in[_X]; objShift[_Y] = in[_Y]; objShift[_Z] = in[_Z]; }
-	/** \ingroup */
+	/** \ingroup getter/setter */
 	void setObjShift(vector<Real> in) { objShift[_X] = in[_X]; objShift[_Y] = in[_Y]; objShift[_Z] = in[_Z]; }
-	/** \ingroup */
+	/** \ingroup getter/setter */
 	void setCarrierWave(Real in1, Real in2, Real in3) { carrierWave[_X] = in1; carrierWave[_Y] = in2; carrierWave[_Z] = in3; }
-	/** \ingroup */
+	/** \ingroup getter/setter */
 	void setIllumination(vec3 in) { illumination = in; }
-	/** \ingroup */
+	/** \ingroup getter/setter */
 	void setIllumination(Real inx, Real iny, Real inz) { illumination = { inx, iny, inz }; }
-	/** \ingroup */
+	/** \ingroup getter/setter */
 	void setShadingType(int in) { SHADING_TYPE = in; }
-	/** \ingroup */
+	/** \ingroup getter/setter */
 	ulonglong getNumMesh() { return meshData->n_faces; }
-	/** \ingroup */
+	/** \ingroup getter/setter */
 	Real* getMeshData() { return triMeshArray; }
-	/** \ingroup */
+	/** \ingroup getter/setter */
 	Complex<Real>* getAngularSpectrum() { return angularSpectrum; }
-	/** \ingroup */
+	/** \ingroup getter/setter */
 	Real* getScaledMeshData() {	return scaledMeshData; }
 
 public:
@@ -154,6 +142,7 @@ public:
 	* @return	objShift
 	*/
 	int readMeshConfig(const char* mesh_config);
+
 	/**
 	* @brief	Mesh data load
 	* @details	Text file data structure : N*9 / Each row = [x1 y1 z1 x2 y2 z2 x3 y3 z3]
@@ -175,6 +164,7 @@ public:
 	void objScaleShift(Real objSize_, Real objShift_[]);
 
 	enum SHADING_FLAG { SHADING_FLAT, SHADING_CONTINUOUS };
+
 	/**
 	* @brief	Hologram generation
 	* @param	SHADING_FLAG : SHADING_FLAT, SHADING_CONTINUOUS
@@ -183,14 +173,18 @@ public:
 	void generateMeshHologram(uint SHADING_FLAG);
 	void generateMeshHologram();
 	
+	/**
+	* @brief	Wave carry
+	* @param	Real	carryingAngleX		Wave carrying angle in horizontal direction
+	* @param	Real	carryingAngleY		Wave carrying angle in vertical direction
+	*/
 	void waveCarry(Real carryingAngleX, Real carryingAngleY);
 
 private:
-	/**
-	* @brief	inner functions
-	* @details	not used for the users
-	*/
-
+	
+	// Inner functions
+	/// not used for users
+	
 	void initializeAS();
 	void objNormCenter();
 	uint checkValidity(Real* mesh, vec3 no);
@@ -206,19 +200,14 @@ private:
 
 	uint loadMeshText(const char* fileName);
 private:
-	/**
-	* @param	Real*	normalizedMeshData	Normalized mesh array / Data structure : N*9
-	* @param	Real*	scaledMeshData		Scaled and shifted mesh array / Data structure : N*9
-	*/
 
-	Real* normalizedMeshData;
-	Real* scaledMeshData;
+	Real* normalizedMeshData;				/// Normalized mesh array / Data structure : N*9
+	Real* scaledMeshData;					/// Scaled and shifted mesh array / Data structure : N*9
 
 private:
-	/**
-	* @brief	inner global parameters
-	* @details	not considered for the users
-	*/
+
+	//	Inner global parameters
+	///	do not need to consider to users
 
 	Real refTri[9] = { 0,0,0,1,1,0,1,0,0 };
 	Real* fx;
@@ -229,10 +218,9 @@ private:
 	vec3* nv;
 
 private:
-	/**
-	* @brief	inner local parameters
-	* @details	not considered for the users
-	*/
+
+	//	Inner local parameters
+	///	do not need to consider to users
 
 	vec3 n;
 	Real shadingFactor;

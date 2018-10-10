@@ -183,6 +183,11 @@ public:
 	void generateMeshHologram(uint SHADING_FLAG);
 	void generateMeshHologram();
 	
+	/**
+	* @brief	Wave carry
+	* @param	Real	carryingAngleX		Wave carrying angle in horizontal direction
+	* @param	Real	carryingAngleY		Wave carrying angle in vertical direction
+	*/
 	void waveCarry(Real carryingAngleX, Real carryingAngleY);
 
 private:

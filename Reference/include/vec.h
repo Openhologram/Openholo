@@ -455,7 +455,7 @@ inline vec2 absolute(const vec2& val)
 }
 
 void store(FILE* fp, const vec2& v);
-int scan(FILE* fp, const vec2& v);
+//int scan(FILE* fp, const vec2& v);
 
 int apx_equal(const vec2& a, const vec2& b);
 int apx_equal(const vec2& a, const vec2& b, Real eps);
@@ -853,7 +853,7 @@ inline vec3 proj(const vec3& axis, const vec3& a)
 }
 
 void store(FILE* fp, const vec3& v);
-int scan(FILE* fp, const vec3& v);
+//int scan(FILE* fp, const vec3& v);
 
 int apx_equal(const vec3& a, const vec3& b);
 int apx_equal(const vec3& a, const vec3& b, Real eps);
@@ -1225,7 +1225,7 @@ inline vec4 proj(const vec4& axis, const vec4& a)
 
 void store(FILE* fp, const vec4& v);
 
-int scan(FILE* fp, const vec4& v);
+//int scan(FILE* fp, const vec4& v);
 
 int apx_equal(const vec4& a, const vec4& b);
 int apx_equal(const vec4& a, const vec4& b, Real eps);

@@ -171,28 +171,22 @@ namespace oph
 		Real* abs = new Real[size];
 		oph::absCplxArr<Real>(src, abs, size);
 
-		Real* max = new Real;
-		*max = oph::maxOfArr(abs, size);
+		Real max = oph::maxOfArr(abs, size);
 		
 		for (int i = 0; i < size; i++) {
-			*(dst + i) = *(src + i) / *max;
+			*(dst + i) = *(src + i) / max;
 		}
 		delete[] abs;
-		delete max;
 	}
 	template<typename T>
 	inline void normalize(const T* src, T* dst, const int& size) {
 		
-		Real* min = new Real;
-		*min = oph::minOfArr(src, size);
-
-		Real* max = new Real;
-		*max = oph::maxOfArr(src, size);
+		Real min = oph::minOfArr(src, size);
+		Real max = oph::maxOfArr(src, size);
 
 		for (int i = 0; i < size; i++) {
-			*(dst + i) = (*(src + i) - *min) / (*max - *min);
+			*(dst + i) = (*(src + i) - min) / (max - min);
 		}
-		delete min, max;
 	}
 
 	/**

@@ -302,3 +302,33 @@ void ophLF::convertLF2ComplexField() {
 	}
 	delete[] complexLF, FFTLF;
 }
+
+void ophLF::waveCarry(Real carryingAngleX, Real carryingAngleY) {
+
+	int Nx = context_.pixel_number[_X];
+	int Ny = context_.pixel_number[_Y];
+
+	Real dfx = 1 / context_.pixel_pitch[_X] / Nx;
+	Real dfy = 1 / context_.pixel_pitch[_Y] / Ny;
+	Real* fx = new Real[Nx*Ny];
+	Real* fy = new Real[Nx*Ny];
+	Real* fz = new Real[Nx*Ny];
+	uint i = 0;
+	for (int idxFy = Ny / 2; idxFy > -Ny / 2; idxFy--) {
+		for (int idxFx = -Nx / 2; idxFx < Nx / 2; idxFx++) {
+			fx[i] = idxFx*dfx;
+			fy[i] = idxFy*dfy;
+			fz[i] = sqrt((1 / context_.lambda)*(1 / context_.lambda) - fx[i] * fx[i] - fy[i] * fy[i]);
+
+			i++;
+		}
+	}
+
+	Complex<Real>* carrier = new Complex<Real>[context_.pixel_number[_X] * context_.pixel_number[_Y]];
+
+	for (int i = 0; i < context_.pixel_number[_X] * context_.pixel_number[_Y]; i++) {
+		carrier[i][_RE] = 0;
+		carrier[i][_IM] = 0.01 * tan(carryingAngleX)*fx[i] + 0.01 * tan(carryingAngleY)*fy[i];
+		holo_gen[i] = holo_gen[i] * exp(carrier[i]);
+	}
+}
