@@ -79,12 +79,12 @@ int ophLF::readLFConfig(const char* LF_config) {
 	(xml_node->FirstChildElement("DistanceRS2Holo"))->QueryDoubleText(&distanceRS2Holo);
 	(xml_node->FirstChildElement("SLMPixelPitchX"))->QueryDoubleText(&context_.pixel_pitch[_X]);
 	(xml_node->FirstChildElement("SLMPixelPitchY"))->QueryDoubleText(&context_.pixel_pitch[_Y]);
-	(xml_node->FirstChildElement("WavelengthofLaser"))->QueryDoubleText(&context_.lambda);
+	(xml_node->FirstChildElement("WavelengthofLaser"))->QueryDoubleText(&context_.wave_length[0]);
 #else
 	(xml_node->FirstChildElement("DistanceRS2Holo"))->QueryFloatText(&distanceRS2Holo);
 	(xml_node->FirstChildElement("SLMPixelPitchX"))->QueryFloatText(&context_.pixel_pitch[_X]);
 	(xml_node->FirstChildElement("SLMPixelPitchY"))->QueryFloatText(&context_.pixel_pitch[_Y]);
-	(xml_node->FirstChildElement("WavelengthofLaser"))->QueryFloatText(&context_.lambda);
+	(xml_node->FirstChildElement("WavelengthofLaser"))->QueryFloatText(&context_.wave_length[0]);
 #endif
 	(xml_node->FirstChildElement("NumberofImagesXofLF"))->QueryIntText(&num_image[_X]);
 	(xml_node->FirstChildElement("NumberofImagesYofLF"))->QueryIntText(&num_image[_Y]);
@@ -96,22 +96,22 @@ int ophLF::readLFConfig(const char* LF_config) {
 	context_.pixel_number[_X] = num_image[_X] * resolution_image[_X];
 	context_.pixel_number[_Y] = num_image[_Y] * resolution_image[_Y];
 
-	context_.k = (2 * M_PI) / context_.lambda;
+	context_.k = (2 * M_PI) / context_.wave_length[0];
 	context_.ss[_X] = context_.pixel_number[_X] * context_.pixel_pitch[_X];
 	context_.ss[_Y] = context_.pixel_number[_Y] * context_.pixel_pitch[_Y];
 	
 	cout << endl;
 	cout << "SLM pixel pitch: " << context_.pixel_pitch[_X] << ", " << context_.pixel_pitch[_Y] << endl;
-	cout << "Wavelength of LASER: " << context_.lambda << endl;
+	cout << "Wavelength of LASER: " << context_.wave_length[0] << endl;
 	cout << "Distance RS plane to Hologram plane: " << distanceRS2Holo << endl;
 	cout << "# of images: " << num_image[_X] << ", " << num_image[_Y] << endl;
 	cout << "Resolution of the images: " << resolution_image[_X] << ", " << resolution_image[_Y] << endl;
 	cout << "Resolution of hologram: " << context_.pixel_number[_X] << ", " << context_.pixel_number[_Y] << endl;
 	cout << endl;
 
-	setPixelNumber(context_.pixel_number[_X], context_.pixel_number[_Y]);
-	setPixelPitch(context_.pixel_pitch[_X], context_.pixel_pitch[_Y]);
-	setWaveLength(context_.lambda);
+	setPixelNumberOHC(context_.pixel_number);
+	setPixelPitchOHC(context_.pixel_pitch);
+	addWaveLengthOHC(context_.wave_length[0]);
 
 	auto end = CUR_TIME;
 
@@ -238,7 +238,7 @@ void ophLF::generateHologram() {
 	cout << "Generating Hologram..." << endl;
 	convertLF2ComplexField();
 	cout << "Convert finished" << endl;
-	fresnelPropagation(RSplane_complex_field, holo_gen, distanceRS2Holo);
+	fresnelPropagation(RSplane_complex_field, (*complex_H), distanceRS2Holo);
 
 	auto end = CUR_TIME;
 	auto during = ((std::chrono::duration<Real>)(end - start)).count();

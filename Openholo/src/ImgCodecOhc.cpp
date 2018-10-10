@@ -118,6 +118,32 @@ void oph::ImgCodecOhc::getFieldInfo(OHCFIELDINFOHEADER &_FieldInfo, std::vector<
 	}
 }
 
+void oph::ImgCodecOhc::getComplexFieldData(Complex<Real>** cmplx_field, uint wavelen_idx)
+{
+	oph::Field2Buffer(field_cmplx[wavelen_idx], cmplx_field);
+}
+
+void oph::ImgCodecOhc::getComplexFieldData(OphComplexField ** cmplx_field)
+{
+	*cmplx_field = new OphComplexField[field_cmplx.size()];
+
+	for (uint i = 0; i < field_cmplx.size(); i++)
+	{
+		(*cmplx_field)[i].resize(Header->fieldInfo.pxNumX, Header->fieldInfo.pxNumY);
+		//(*cmplx_field)[i].zeros();
+		(*cmplx_field)[i] = field_cmplx[i];
+	}
+}
+
+void oph::ImgCodecOhc::getComplexFieldData(Complex<Real>*** cmplx_field)
+{
+	if (*cmplx_field == nullptr)
+		*cmplx_field = new Complex<Real>*[field_cmplx.size()];
+
+	for (uint i = 0; i < field_cmplx.size(); i++)
+		oph::Field2Buffer(field_cmplx[i], cmplx_field[i]);
+}
+
 void oph::ImgCodecOhc::releaseOHCheader() {
 	delete this->Header;
 }
@@ -480,7 +506,7 @@ bool oph::ImgDecoderOhc::decodeFieldData()
 		if (FldInfo.cmplxFldType == DataType::Float32) {
 			this->buf_f32 = new float[n_fields * n_cmplxChnl];
 			for (ulonglong i = 0; i < n_fields * n_cmplxChnl; i++)
-				File >> buf_f64[i];
+				File >> buf_f32[i];
 			//this->File.read((char*)&this->buf_f32, FldInfo.fldSize);
 		}
 		else if (FldInfo.cmplxFldType == DataType::Float64) {

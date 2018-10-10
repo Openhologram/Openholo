@@ -55,11 +55,13 @@
 
 ophGen::ophGen(void)
 	: Openholo()
-	, holo_gen(nullptr)
 	, holo_encoded(nullptr)
 	, holo_normalized(nullptr)
 {
-	context_ = { 0 };
+	uint wavelength_num = 1;
+
+	complex_H = new Complex<Real>*[wavelength_num];
+	context_.wave_length = new Real[wavelength_num];
 }
 
 ophGen::~ophGen(void)
@@ -73,9 +75,9 @@ void ophGen::initialize(void)
 	int n_y = context_.pixel_number[_Y];
 
 	// Memory Location for Result Image
-	if (holo_gen != nullptr) delete[] holo_gen;
-	holo_gen = new oph::Complex<Real>[n_x * n_y];
-	memset(holo_gen, 0, sizeof(Complex<Real>) * n_x * n_y);
+	if ((*complex_H) != nullptr) delete[] (*complex_H);
+	complex_H[0] = new oph::Complex<Real>[n_x * n_y];
+	memset((*complex_H), 0, sizeof(Complex<Real>) * n_x * n_y);
 
 	if (holo_encoded != nullptr) delete[] holo_encoded;
 	holo_encoded = new Real[n_x * n_y];
@@ -140,7 +142,7 @@ bool ophGen::readConfig(const char* fname, OphPointCloudConfig& configdata)
 	(xml_node->FirstChildElement("FocalLengthofInputLens"))->QueryDoubleText(&configdata.focal_length_lens_in);
 	(xml_node->FirstChildElement("FocalLengthofOutputLens"))->QueryDoubleText(&configdata.focal_length_lens_out);
 	(xml_node->FirstChildElement("FocalLengthofEyepieceLens"))->QueryDoubleText(&configdata.focal_length_lens_eye_piece);
-	(xml_node->FirstChildElement("WavelengthofLaser"))->QueryDoubleText(&context_.lambda);
+	(xml_node->FirstChildElement("WavelengthofLaser"))->QueryDoubleText(&context_.wave_length[0]);
 	(xml_node->FirstChildElement("TiltAngleX"))->QueryDoubleText(&configdata.tilt_angle[_X]);
 	(xml_node->FirstChildElement("TiltAngleY"))->QueryDoubleText(&configdata.tilt_angle[_Y]);
 #else
@@ -155,7 +157,7 @@ bool ophGen::readConfig(const char* fname, OphPointCloudConfig& configdata)
 	(xml_node->FirstChildElement("FocalLengthofInputLens"))->QueryFloatText(&configdata.focal_length_lens_in);
 	(xml_node->FirstChildElement("FocalLengthofOutputLens"))->QueryFloatText(&configdata.focal_length_lens_out);
 	(xml_node->FirstChildElement("FocalLengthofEyepieceLens"))->QueryFloatText(&configdata.focal_length_lens_eye_piece);
-	(xml_node->FirstChildElement("WavelengthofLaser"))->QueryFloatText(&context_.lambda);
+	(xml_node->FirstChildElement("WavelengthofLaser"))->QueryFloatText(&context_.wave_length[0]);
 	(xml_node->FirstChildElement("TiltAngleX"))->QueryFloatText(&configdata.tilt_angle[_X]);
 	(xml_node->FirstChildElement("TiltAngleY"))->QueryFloatText(&configdata.tilt_angle[_Y]);
 #endif
@@ -163,13 +165,13 @@ bool ophGen::readConfig(const char* fname, OphPointCloudConfig& configdata)
 	(xml_node->FirstChildElement("SLMpixelNumY"))->QueryIntText(&context_.pixel_number[_Y]);
 	configdata.filter_shape_flag = (int8_t*)(xml_node->FirstChildElement("BandpassFilterShape"))->GetText();
 
-	context_.k = (2 * M_PI) / context_.lambda;
+	context_.k = (2 * M_PI) / context_.wave_length[0];
 	context_.ss[_X] = context_.pixel_number[_X] * context_.pixel_pitch[_X];
 	context_.ss[_Y] = context_.pixel_number[_Y] * context_.pixel_pitch[_Y];
 
-	Openholo::setPixelNumber(context_.pixel_number);
-	Openholo::setPixelPitch(context_.pixel_pitch);
-	Openholo::setWavelength(context_.lambda, LenUnit::m);
+	Openholo::setPixelNumberOHC(context_.pixel_number);
+	Openholo::setPixelPitchOHC(context_.pixel_pitch);
+	Openholo::setWavelengthOHC(context_.wave_length[0], LenUnit::m);
 
 	auto end = CUR_TIME;
 
@@ -246,27 +248,27 @@ bool ophGen::readConfig(const char* fname, OphDepthMapConfig & config)
 	
 #if REAL_IS_DOUBLE & true
 	(xml_node->FirstChildElement("FieldLens"))->QueryDoubleText(&config.field_lens);
-	(xml_node->FirstChildElement("WaveLength"))->QueryDoubleText(&context_.lambda);
+	(xml_node->FirstChildElement("WaveLength"))->QueryDoubleText(&context_.wave_length[0]);
 	(xml_node->FirstChildElement("SLMpixelPitchX"))->QueryDoubleText(&context_.pixel_pitch[_X]);
 	(xml_node->FirstChildElement("SLMpixelPitchY"))->QueryDoubleText(&context_.pixel_pitch[_Y]);
 	(xml_node->FirstChildElement("NearOfDepth"))->QueryDoubleText(&config.near_depthmap);
 	(xml_node->FirstChildElement("FarOfDepth"))->QueryDoubleText(&config.far_depthmap);
 #else
 	(xml_node->FirstChildElement("FieldLens"))->QueryFloatText(&config.field_lens);
-	(xml_node->FirstChildElement("WaveLength"))->QueryFloatText(&context_.lambda);
+	(xml_node->FirstChildElement("WaveLength"))->QueryFloatText(&context_.wave_length[0]);
 	(xml_node->FirstChildElement("SLMpixelPitchX"))->QueryFloatText(&context_.pixel_pitch[_X]);
 	(xml_node->FirstChildElement("SLMpixelPitchY"))->QueryFloatText(&context_.pixel_pitch[_Y]);
 	(xml_node->FirstChildElement("NearOfDepth"))->QueryFloatText(&config.near_depthmap);
 	(xml_node->FirstChildElement("FarOfDepth"))->QueryFloatText(&config.far_depthmap);
 #endif
 
-	context_.k = (2 * M_PI) / context_.lambda;
+	context_.k = (2 * M_PI) / context_.wave_length[0];
 	context_.ss[_X] = context_.pixel_number[_X] * context_.pixel_pitch[_X];
 	context_.ss[_Y] = context_.pixel_number[_Y] * context_.pixel_pitch[_Y];
 
-	Openholo::setPixelNumber(context_.pixel_number);
-	Openholo::setPixelPitch(context_.pixel_pitch);
-	Openholo::setWavelength(context_.lambda, LenUnit::m);
+	Openholo::setPixelNumberOHC(context_.pixel_number);
+	Openholo::setPixelPitchOHC(context_.pixel_pitch);
+	Openholo::setWavelengthOHC(context_.wave_length[0], LenUnit::m);
 
 	auto end = CUR_TIME;
 
@@ -311,7 +313,7 @@ bool ophGen::readConfig(const char* fname, OphWRPConfig& configdata)
 	(xml_node->FirstChildElement("ScalingZofPointCloud"))->QueryDoubleText(&configdata.scale[_Z]);
 	(xml_node->FirstChildElement("SLMpixelPitchX"))->QueryDoubleText(&context_.pixel_pitch[_X]);
 	(xml_node->FirstChildElement("SLMpixelPitchY"))->QueryDoubleText(&context_.pixel_pitch[_Y]);
-	(xml_node->FirstChildElement("Wavelength"))->QueryDoubleText(&context_.lambda);
+	(xml_node->FirstChildElement("Wavelength"))->QueryDoubleText(&context_.wave_length[0]);
 	(xml_node->FirstChildElement("LocationOfWRP"))->QueryDoubleText(&configdata.wrp_location);
 	(xml_node->FirstChildElement("PropagationDistance"))->QueryDoubleText(&configdata.propagation_distance);
 
@@ -321,7 +323,7 @@ bool ophGen::readConfig(const char* fname, OphWRPConfig& configdata)
 	(xml_node->FirstChildElement("ScalingZofPointCloud"))->QueryFloatText(&configdata.scale[_Z]);
 	(xml_node->FirstChildElement("SLMpixelPitchX"))->QueryFloatText(&context_.pixel_pitch[_X]);
 	(xml_node->FirstChildElement("SLMpixelPitchY"))->QueryFloatText(&context_.pixel_pitch[_Y]);
-	(xml_node->FirstChildElement("Wavelength"))->QueryFloatText(&context_.lambda);
+	(xml_node->FirstChildElement("Wavelength"))->QueryFloatText(&context_.wave_length[0]);
 	(xml_node->FirstChildElement("LocationOfWRP"))->QueryFloatText(&configdata.wrp_location);
 	(xml_node->FirstChildElement("PropagationDistance"))->QueryFloatText(&configdata.propagation_distance);
 #endif
@@ -330,13 +332,13 @@ bool ophGen::readConfig(const char* fname, OphWRPConfig& configdata)
 	(xml_node->FirstChildElement("NumberOfWRP"))->QueryIntText(&configdata.num_wrp);
 
 
-	context_.k = (2 * M_PI) / context_.lambda;
+	context_.k = (2 * M_PI) / context_.wave_length[0];
 	context_.ss[_X] = context_.pixel_number[_X] * context_.pixel_pitch[_X];
 	context_.ss[_Y] = context_.pixel_number[_Y] * context_.pixel_pitch[_Y];
 
-	Openholo::setPixelNumber(context_.pixel_number);
-	Openholo::setPixelPitch(context_.pixel_pitch);
-	Openholo::setWavelength(context_.lambda, LenUnit::m);
+	Openholo::setPixelNumberOHC(context_.pixel_number);
+	Openholo::setPixelPitchOHC(context_.pixel_pitch);
+	Openholo::setWavelengthOHC(context_.wave_length[0], LenUnit::m);
 
 	auto end = CUR_TIME;
 
@@ -363,7 +365,7 @@ void ophGen::propagationAngularSpectrum(Complex<Real>* input_u, Real propagation
 	Real ppy = context_.pixel_pitch[1];
 	Real ssx = context_.ss[0];
 	Real ssy = context_.ss[1];
-	Real lambda = context_.lambda;
+	Real lambda = context_.wave_length[0];
 
 	for (int i = 0; i < pnx * pny; i++)
 	{
@@ -384,7 +386,7 @@ void ophGen::propagationAngularSpectrum(Complex<Real>* input_u, Real propagation
 		if (prop_mask == 1)
 			u_frequency = kernel * input_u[i];
 
-		holo_gen[i] = holo_gen[i] + u_frequency;
+		(*complex_H)[i] = (*complex_H)[i] + u_frequency;
 	}
 }
 
@@ -414,13 +416,6 @@ int ophGen::save(const char * fname, uint8_t bitsperpixel, uchar* src, uint px, 
 
 		return Openholo::saveAsImg(buf, bitsperpixel, source, p[_X], p[_Y]);
 	}
-}
-
-int ophGen::saveAsOhc(const char * fname)
-{
-	Openholo::saveAsOhc(fname, holo_gen);
-
-	return 0;
 }
 
 int ophGen::save(const char * fname, uint8_t bitsperpixel, uint px, uint py, uint fnum, uchar* args ...)
@@ -467,22 +462,20 @@ void* ophGen::load(const char * fname)
 
 int ophGen::loadAsOhc(const char * fname)
 {
-	if (Openholo::loadAsOhc(fname, &holo_gen, context_.pixel_number, context_.pixel_pitch, context_.lambda) == -1) return false;
+	if (Openholo::loadAsOhc(fname) == -1) return -1;
 
-	context_.k = (2 * M_PI) / context_.lambda;
-	context_.ss[_X] = context_.pixel_number[_X] * context_.pixel_pitch[_X];
-	context_.ss[_Y] = context_.pixel_number[_Y] * context_.pixel_pitch[_Y];
-
+	if (holo_encoded != nullptr) delete[] holo_encoded;
 	holo_encoded = new Real[context_.pixel_number[_X] * context_.pixel_number[_Y]];
+
+	if (holo_normalized != nullptr) delete[] holo_normalized;
 	holo_normalized = new uchar[context_.pixel_number[_X] * context_.pixel_number[_Y]];
 
-	return true;
+	return 0;
 }
 
 #define for_i(itr, oper) for(int i=0; i<itr; i++){ oper }
 
 void ophGen::loadComplex(char* real_file, char* imag_file, int n_x, int n_y) {
-
 	context_.pixel_number[_X] = n_x;
 	context_.pixel_number[_Y] = n_y;
 
@@ -500,9 +493,9 @@ void ophGen::loadComplex(char* real_file, char* imag_file, int n_x, int n_y) {
 		return;
 	}
 
-	if (holo_gen != nullptr) delete[] holo_gen;
-	holo_gen = new oph::Complex<Real>[n_x * n_y];
-	memset(holo_gen, 0, sizeof(Complex<Real>) * n_x * n_y);
+	if ((*complex_H) != nullptr) delete[] (*complex_H);
+	(*complex_H) = new oph::Complex<Real>[n_x * n_y];
+	memset((*complex_H), 0, sizeof(Complex<Real>) * n_x * n_y);
 
 	Real realVal, imagVal;
 	
@@ -515,7 +508,7 @@ void ophGen::loadComplex(char* real_file, char* imag_file, int n_x, int n_y) {
 		Complex<Real> compVal;
 		compVal(realVal, imagVal);
 
-		holo_gen[i] = compVal;
+		(*complex_H)[i] = compVal;
 		if (realVal == EOF || imagVal == EOF)
 			break;
 	}
@@ -556,27 +549,27 @@ void ophGen::encoding(unsigned int ENCODE_FLAG) {
 	{
 	case ENCODE_SIMPLENI:
 		cout << "Simple Numerical Interference Encoding.." << endl;
-		numericalInterference(holo_gen, holo_encoded, size);
+		numericalInterference((*complex_H), holo_encoded, size);
 		break;
 	case ENCODE_REAL:
 		cout << "Real Part Encoding.." << endl;
-		realPart<Real>(holo_gen, holo_encoded, size);
+		realPart<Real>((*complex_H), holo_encoded, size);
 		break;
 	case ENCODE_BURCKHARDT:
 		cout << "Burckhardt Encoding.." << endl;
-		burckhardt(holo_gen, holo_encoded, size);
+		burckhardt((*complex_H), holo_encoded, size);
 		break;
 	case ENCODE_TWOPHASE:
 		cout << "Two Phase Encoding.." << endl;
-		twoPhaseEncoding(holo_gen, holo_encoded, size);
+		twoPhaseEncoding((*complex_H), holo_encoded, size);
 		break;
 	case ENCODE_PHASE:
 		cout << "Phase Encoding.." << endl;
-		getPhase(holo_gen, holo_encoded, size);
+		getPhase((*complex_H), holo_encoded, size);
 		break;
 	case ENCODE_AMPLITUDE:
 		cout << "Amplitude Encoding.." << endl;
-		getAmplitude(holo_gen, holo_encoded, size);
+		getAmplitude((*complex_H), holo_encoded, size);
 		break;
 	case ENCODE_SSB:
 	case ENCODE_OFFSSB:
@@ -611,12 +604,12 @@ void ophGen::encoding(unsigned int ENCODE_FLAG, unsigned int passband) {
 	{
 	case ENCODE_SSB:
 		cout << "Single Side Band Encoding.." << endl;
-		singleSideBand(holo_gen, holo_encoded, context_.pixel_number, passband);
+		singleSideBand((*complex_H), holo_encoded, context_.pixel_number, passband);
 		break;
 	case ENCODE_OFFSSB:
 		cout << "Off-axis Single Side Band Encoding.." << endl;
-		freqShift(holo_gen, holo_gen, context_.pixel_number, 0, 100);
-		singleSideBand(holo_gen, holo_encoded, context_.pixel_number, passband);
+		freqShift((*complex_H), (*complex_H), context_.pixel_number, 0, 100);
+		singleSideBand((*complex_H), holo_encoded, context_.pixel_number, passband);
 		break;
 	default:
 		cout << "error: WRONG ENCODE_FLAG" << endl;
@@ -656,36 +649,36 @@ void ophGen::encoding() {
 	{
 	case ENCODE_SIMPLENI:
 		cout << "Simple Numerical Interference Encoding.." << endl;
-		numericalInterference(holo_gen, holo_encoded, size);
+		numericalInterference((*complex_H), holo_encoded, size);
 		break;
 	case ENCODE_REAL:
 		cout << "Real Part Encoding.." << endl;
-		realPart<Real>(holo_gen, holo_encoded, size);
+		realPart<Real>((*complex_H), holo_encoded, size);
 		break;
 	case ENCODE_BURCKHARDT:
 		cout << "Burckhardt Encoding.." << endl;
-		burckhardt(holo_gen, holo_encoded, size);
+		burckhardt((*complex_H), holo_encoded, size);
 		break;
 	case ENCODE_TWOPHASE:
 		cout << "Two Phase Encoding.." << endl;
-		twoPhaseEncoding(holo_gen, holo_encoded, size);
+		twoPhaseEncoding((*complex_H), holo_encoded, size);
 		break;
 	case ENCODE_PHASE:
 		cout << "Phase Encoding.." << endl;
-		getPhase(holo_gen, holo_encoded, size);
+		getPhase((*complex_H), holo_encoded, size);
 		break;
 	case ENCODE_AMPLITUDE:
 		cout << "Amplitude Encoding.." << endl;
-		getAmplitude(holo_gen, holo_encoded, size);
+		getAmplitude((*complex_H), holo_encoded, size);
 		break;
 	case ENCODE_SSB:
 		cout << "Single Side Band Encoding.." << endl;
-		singleSideBand(holo_gen, holo_encoded, context_.pixel_number, SSB_PASSBAND);
+		singleSideBand((*complex_H), holo_encoded, context_.pixel_number, SSB_PASSBAND);
 		break;
 	case ENCODE_OFFSSB:
 		cout << "Off-axis Single Side Band Encoding.." << endl;
-		freqShift(holo_gen, holo_gen, context_.pixel_number, 0, 100);
-		singleSideBand(holo_gen, holo_encoded, context_.pixel_number, SSB_PASSBAND);
+		freqShift((*complex_H), (*complex_H), context_.pixel_number, 0, 100);
+		singleSideBand((*complex_H), holo_encoded, context_.pixel_number, SSB_PASSBAND);
 		break;
 	default:
 		cout << "error: WRONG ENCODE_FLAG" << endl;
@@ -869,7 +862,7 @@ void ophGen::freqShift(oph::Complex<Real>* src, Complex<Real>* dst, const ivec2 
 }
 
 
-void ophGen::fresnelPropagation(OphContext context, Complex<Real>* in, Complex<Real>* out, Real distance) {
+void ophGen::fresnelPropagation(OphConfig context, Complex<Real>* in, Complex<Real>* out, Real distance) {
 
 	int Nx = context.pixel_number[_X];
 	int Ny = context.pixel_number[_Y];
@@ -914,7 +907,7 @@ void ophGen::fresnelPropagation(OphContext context, Complex<Real>* in, Complex<R
 	Complex<Real>* temp2 = new Complex<Real>[Nx*Ny * 4];
 
 	for (int i = 0; i < Nx*Ny * 4; i++) {
-		sqrtPart = sqrt(1 / (context.lambda*context.lambda) - fx[i] * fx[i] - fy[i] * fy[i]);
+		sqrtPart = sqrt(1 / (context.wave_length[0]*context.wave_length[0]) - fx[i] * fx[i] - fy[i] * fy[i]);
 		prop[i][_IM] = 2 * M_PI * distance;
 		prop[i][_IM] *= sqrtPart;
 		temp2[i] = temp1[i] * exp(prop[i]);
@@ -988,7 +981,7 @@ void ophGen::fresnelPropagation(Complex<Real>* in, Complex<Real>* out, Real dist
 	Complex<Real>* temp2 = new Complex<Real>[Nx*Ny * 4];
 
 	for (int i = 0; i < Nx*Ny * 4; i++) {
-		sqrtPart = sqrt(1 / (context_.lambda*context_.lambda) - fx[i] * fx[i] - fy[i] * fy[i]);
+		sqrtPart = sqrt(1 / (context_.wave_length[0]*context_.wave_length[0]) - fx[i] * fx[i] - fy[i] * fy[i]);
 		prop[i][_IM] = 2 * M_PI * distance;
 		prop[i][_IM] *= sqrtPart;
 		temp2[i] = temp1[i] * exp(prop[i]);
@@ -1020,7 +1013,7 @@ void ophGen::fresnelPropagation(Complex<Real>* in, Complex<Real>* out, Real dist
 
 void ophGen::encodeSideBand(bool bCPU, ivec2 sig_location)
 {
-	if (holo_gen == nullptr) {
+	if ((*complex_H) == nullptr) {
 		LOG("Not found diffracted data.");
 		return;
 	}
@@ -1075,7 +1068,7 @@ void ophGen::encodeSideBand_CPU(int cropx1, int cropx2, int cropy1, int cropy2, 
 		int x = p % pnx;
 		int y = p / pnx;
 		if (x >= cropx1 && x <= cropx2 && y >= cropy1 && y <= cropy2)
-			h_crop[p] = holo_gen[p];
+			h_crop[p] = (*complex_H)[p];
 	}
 
 	oph::Complex<Real> *in = nullptr;
@@ -1098,10 +1091,6 @@ void ophGen::encodeSideBand_CPU(int cropx1, int cropx2, int cropy1, int cropy2, 
 
 extern "C"
 {
-	/**
-	* \defgroup gpu_model GPU Modules
-	* @{
-	*/
 	/**
 	* @brief Convert data from the spatial domain to the frequency domain using 2D FFT on GPU.
 	* @details call CUDA Kernel - fftShift and CUFFT Library.
@@ -1168,7 +1157,7 @@ void ophGen::encodeSideBand_GPU(int cropx1, int cropx2, int cropy1, int cropy2, 
 
 	cudaMalloc((void**)&u_complex_gpu_, sizeof(cufftDoubleComplex) * pnx * pny);
 	cudaMalloc((void**)&k_temp_d_, sizeof(cufftDoubleComplex) * pnx * pny);
-	cudaMemcpy(u_complex_gpu_, holo_gen, sizeof(cufftDoubleComplex) * pnx * pny, cudaMemcpyHostToDevice);
+	cudaMemcpy(u_complex_gpu_, (*complex_H), sizeof(cufftDoubleComplex) * pnx * pny, cudaMemcpyHostToDevice);
 
 	cudaMemsetAsync(k_temp_d_, 0, sizeof(cufftDoubleComplex)*pnx*pny, stream_);
 	cudaCropFringe(stream_, pnx, pny, u_complex_gpu_, k_temp_d_, cropx1, cropx2, cropy1, cropy2);
@@ -1259,7 +1248,7 @@ void ophGen::getRandPhaseValue(oph::Complex<Real>& rand_phase_val, bool rand_pha
 
 void ophGen::ophFree(void)
 {
-	if (holo_gen) delete[] holo_gen;
 	if (holo_encoded) delete[] holo_encoded;
 	if (holo_normalized) delete[] holo_normalized;
+
 }

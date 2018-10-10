@@ -93,7 +93,7 @@ void ophWRP::encodeHologram(void)
 	int i = 0;
 #pragma omp parallel for private(i)	
 	for (i = 0; i < pnx*pny; i++) {
-		holo_encoded[i] = holo_gen[i].angle();
+		holo_encoded[i] = (*complex_H)[i].angle();
 	}
 
 
@@ -108,7 +108,7 @@ void ophWRP::addPixel2WRP(int x, int y, Complex<Real> temp)
 {
 	long long int Nx = context_.pixel_number.v[0];
 	long long int Ny = context_.pixel_number.v[1];
-//	oph::Complex<double> *p = holo_gen;
+//	oph::Complex<double> *p = (*complex_H);
 
 	if (x >= 0 && x<Nx && y >= 0 && y< Ny) {
 		long long int adr = x + y*Nx;
@@ -134,7 +134,7 @@ oph::Complex<Real>* ophWRP::calSubWRP(double wrp_d, Complex<Real>* wrp, OphPoint
 {
 
 	Real wave_num = context_.k;   // wave_number
-	Real wave_len = context_.lambda;  //wave_length
+	Real wave_len = context_.wave_length[0];  //wave_length
 
 	int Nx = context_.pixel_number.v[0]; //slm_pixelNumberX
 	int Ny = context_.pixel_number.v[1]; //slm_pixelNumberY
@@ -204,7 +204,7 @@ double ophWRP::calculateWRP(void)
 	initialize();
 
 	Real wave_num = context_.k;   // wave_number
-	Real wave_len = context_.lambda;  //wave_length
+	Real wave_len = context_.wave_length[0];  //wave_length
 
 	int Nx = context_.pixel_number.v[0]; //slm_pixelNumberX
 	int Ny = context_.pixel_number.v[1]; //slm_pixelNumberY
@@ -321,16 +321,16 @@ void ophWRP::fresnelPropagation(Complex<Real>* in, Complex<Real>* out, Real dist
 
 	for (int i = 0; i < Nx*Ny; i++) {
 
-		Real kk = M_PI*context_.lambda *distance *(x[i] * x[i] + y[i] * y[i]);
+		Real kk = M_PI*context_.wave_length[0] *distance *(x[i] * x[i] + y[i] * y[i]);
 		part._Val[_RE] = cos(k*distance)*cos(kk);
-		part._Val[_IM] = sin(k*distance)*sin(M_PI*context_.lambda*distance*(x[i] * x[i] + y[i] * y[i]));
+		part._Val[_IM] = sin(k*distance)*sin(M_PI*context_.wave_length[0]*distance*(x[i] * x[i] + y[i] * y[i]));
 
 		temp2[i]._Val[_RE] = prop[i]._Val[_RE] * part._Val[_RE];
 		temp2[i]._Val[_IM] = prop[i]._Val[_IM] * part._Val[_IM];
 	}
 
 	fft2({ Nx, Ny }, temp2, OPH_BACKWARD, OPH_ESTIMATE);
-	fftExecute(holo_gen);
+	fftExecute((*complex_H));
 
 	delete[] x;
 	delete[] y;
@@ -341,7 +341,7 @@ void ophWRP::generateHologram(void)
 {
 	printf("Generating Hologram\n");
 	Real distance = pc_config_.propagation_distance;
-	fresnelPropagation(p_wrp_, holo_gen, distance);
+	fresnelPropagation(p_wrp_, (*complex_H), distance);
 	printf("Hologram Generated!\n");
 
 }
@@ -356,7 +356,7 @@ oph::Complex<Real>** ophWRP::calculateMWRP(void)
 	oph::Complex<Real>** wrp_list = nullptr;
 
 	Real wave_num = context_.k;   // wave_number
-	Real wave_len = context_.lambda;  //wave_length
+	Real wave_len = context_.wave_length[0];  //wave_length
 
 	int Nx = context_.pixel_number.v[0]; //slm_pixelNumberX
 	int Ny = context_.pixel_number.v[1]; //slm_pixelNumberY

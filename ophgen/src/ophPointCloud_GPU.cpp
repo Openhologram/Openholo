@@ -137,13 +137,13 @@ void ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 		break;
 	}
 	case PC_DIFF_RS_NOT_ENCODED: {
-		host_config = new GpuConstNERS(*host_config, this->context_.lambda);
+		host_config = new GpuConstNERS(*host_config, this->context_.wave_length[0]);
 		HANDLE_ERROR(cudaMalloc((void**)&device_config, sizeof(GpuConstNERS)));
 		HANDLE_ERROR(cudaMemcpy(device_config, host_config, sizeof(GpuConstNERS), cudaMemcpyHostToDevice));
 		break;
 	}
 	case PC_DIFF_FRESNEL_NOT_ENCODED: {
-		host_config = new GpuConstNEFR(*host_config, this->context_.lambda);
+		host_config = new GpuConstNEFR(*host_config, this->context_.wave_length[0]);
 		HANDLE_ERROR(cudaMalloc((void**)&device_config, sizeof(GpuConstNEFR)));
 		HANDLE_ERROR(cudaMemcpy(device_config, host_config, sizeof(GpuConstNEFR), cudaMemcpyHostToDevice));
 		break;
@@ -178,8 +178,8 @@ void ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 			HANDLE_ERROR(cudaMemcpy(host_dst, device_dst, bufferSize * 2, cudaMemcpyDeviceToHost));
 			HANDLE_ERROR(cudaMemset(device_dst, 0., bufferSize * 2));
 			for (ulonglong n = 0; n < n_pixels; ++n) {
-				this->holo_gen[n][_RE] += host_dst[n];
-				this->holo_gen[n][_IM] += host_dst[n + n_pixels];
+				(*complex_H)[n][_RE] += host_dst[n];
+				(*complex_H)[n][_IM] += host_dst[n + n_pixels];
 			}
 			break;
 		}
@@ -189,8 +189,8 @@ void ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 			HANDLE_ERROR(cudaMemcpy(host_dst, device_dst, bufferSize * 2, cudaMemcpyDeviceToHost));
 			HANDLE_ERROR(cudaMemset(device_dst, 0., bufferSize * 2));
 			for (ulonglong n = 0; n < n_pixels; ++n) {
-				this->holo_gen[n][_RE] += host_dst[n];
-				this->holo_gen[n][_IM] += host_dst[n + n_pixels];
+				(*complex_H)[n][_RE] += host_dst[n];
+				(*complex_H)[n][_IM] += host_dst[n + n_pixels];
 			}
 			break;
 		}

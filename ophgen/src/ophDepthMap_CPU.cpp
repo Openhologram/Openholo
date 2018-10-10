@@ -156,7 +156,7 @@ void ophDepthMap::calcHoloCPU()
 	int pnx = context_.pixel_number[0];
 	int pny = context_.pixel_number[1];
 
-	memset(holo_gen, 0.0, sizeof(Complex<Real>)*pnx*pny);
+	memset((*complex_H), 0.0, sizeof(Complex<Real>)*pnx*pny);
 	size_t depth_sz = dm_config_.render_depth.size();
 
 	Complex<Real> *in = nullptr, *out = nullptr;

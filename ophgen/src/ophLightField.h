@@ -43,13 +43,6 @@
 //
 //M*/
 
-/**
-* @file		ophLightField.h
-* @brief	Openholo Light Field based CGH generation
-* @author	Yeon-Gyeong Ju, Jae-Hyeung Park
-* @data		2018-08
-* @version	0.0.1
-*/
 #ifndef __ophLightField_h
 #define __ophLightField_h
 
@@ -59,8 +52,19 @@
 
 using namespace oph;
 
+
 /**
-* @brief	Openholo Light Field based CGH generation class
+* @addtogroup lightfield
+//@{
+* @detail
+
+*/
+//! @} lightfield
+
+/**
+* @ingroup lightfield
+* @brief Openholo Light Field based CGH generation
+* @author Yeon-Gyeong Ju, Jae-Hyeung Park
 */
 class GEN_DLL ophLF : public ophGen
 {
@@ -89,25 +93,15 @@ private:
 	const char* ext;
 
 public:
-	/** \ingroup getter/setter */
 	inline void setNumImage(int nx, int ny) { num_image[_X] = nx; num_image[_Y] = ny; }
-	/** \ingroup getter/setter */
 	inline void setNumImage(ivec2 num) { num_image = num; }
-	/** \ingroup getter/setter */
 	inline void setResolImage(int nx, int ny) { resolution_image[_X] = nx; resolution_image[_Y] = ny; }
-	/** \ingroup getter/setter */
 	inline void setResolImage(ivec2 num) { resolution_image = num; }
-	/** \ingroup getter/setter */
 	inline void setDistRS2Holo(Real dist) { distanceRS2Holo = dist; }
-	/** \ingroup getter/setter */
 	inline ivec2 getNumImage() { return num_image; }
-	/** \ingroup getter/setter */
 	inline ivec2 getResolImage() { return resolution_image; }
-	/** \ingroup getter/setter */
 	inline Real getDistRS2Holo() { return distanceRS2Holo; }
-	/** \ingroup getter/setter */
 	inline uchar** getLF() { return LF; }
-	/** \ingroup getter/setter */
 	inline oph::Complex<Real>* getRSPlane() { return RSplane_complex_field; }
 public:
 	/**
@@ -135,7 +129,7 @@ public:
 
 	/**
 	* @brief	Hologram generation
-	* @return	holo_gen
+	* @return	(*complex_H)
 	*/
 	void generateHologram();
 

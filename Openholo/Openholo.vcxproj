@@ -20,6 +20,10 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Base.h" />
+    <ClInclude Include="src\comment.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
     <ClInclude Include="src\complex.h" />
     <ClInclude Include="src\define.h" />
     <ClInclude Include="src\enumerator.h" />

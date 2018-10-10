@@ -154,7 +154,7 @@ int ophTri::readMeshConfig(const char* mesh_config) {
 	(xml_node->FirstChildElement("LampDirectionZ"))->QueryDoubleText(&illumination[_Z]);
 	(xml_node->FirstChildElement("SLMPixelPitchX"))->QueryDoubleText(&context_.pixel_pitch[_X]);
 	(xml_node->FirstChildElement("SLMPixelPitchY"))->QueryDoubleText(&context_.pixel_pitch[_Y]);
-	(xml_node->FirstChildElement("WavelengthofLaser"))->QueryDoubleText(&context_.lambda);
+	(xml_node->FirstChildElement("WavelengthofLaser"))->QueryDoubleText(&context_.wave_length[0]);
 #else
 	(xml_node->FirstChildElement("ObjectSize"))->QueryFloatText(&objSize);
 	(xml_node->FirstChildElement("ObjectShiftX"))->QueryFloatText(&objShift[_X]);
@@ -168,7 +168,7 @@ int ophTri::readMeshConfig(const char* mesh_config) {
 	(xml_node->FirstChildElement("LampDirectionZ"))->QueryFloatText(&illumination[_Z]);
 	(xml_node->FirstChildElement("SLMPixelPitchX"))->QueryFloatText(&context_.pixel_pitch[_X]);
 	(xml_node->FirstChildElement("SLMPixelPitchY"))->QueryFloatText(&context_.pixel_pitch[_Y]);
-	(xml_node->FirstChildElement("WavelengthofLaser"))->QueryFloatText(&context_.lambda);
+	(xml_node->FirstChildElement("WavelengthofLaser"))->QueryFloatText(&context_.wave_length[0]);
 #endif
 	(xml_node->FirstChildElement("SLMPixelNumX"))->QueryIntText(&context_.pixel_number[_X]);
 	(xml_node->FirstChildElement("SLMPixelNumY"))->QueryIntText(&context_.pixel_number[_Y]);
@@ -177,20 +177,20 @@ int ophTri::readMeshConfig(const char* mesh_config) {
 	//if (ENCODE_METHOD == ENCODE_SSB || ENCODE_METHOD == ENCODE_OFFSSB)
 	//	(xml_node->FirstChildElement("SingleSideBandPassBand"))->QueryIntText(&SSB_PASSBAND);
 
-	context_.k = (2 * M_PI) / context_.lambda;
+	context_.k = (2 * M_PI) / context_.wave_length[0];
 	context_.ss[_X] = context_.pixel_number[_X] * context_.pixel_pitch[_X];
 	context_.ss[_Y] = context_.pixel_number[_Y] * context_.pixel_pitch[_Y];
 
 	cout << "pixel num: " << context_.pixel_number[_X] << ", " << context_.pixel_number[_Y] << endl;
 	cout << "pixel pit: " << context_.pixel_pitch[_X] << ", " << context_.pixel_pitch[_Y] << endl;
-	cout << "lambda: " << context_.lambda << endl;
+	cout << "lambda: " << context_.wave_length[0] << endl;
 	cout << "illu: " << illumination[_X] << ", " << illumination[_Y] << ", " << illumination[_Z] << endl;
 	cout << "size: " << objSize << endl;
 	cout << "shift: " << objShift[_X] << ", " << objShift[_Y] << ", " << objShift[_Z] << endl;
 
-	setPixelNumber(context_.pixel_number[_X], context_.pixel_number[_Y]);
-	setPixelPitch(context_.pixel_pitch[_X], context_.pixel_pitch[_Y]);
-	setWaveLength(context_.lambda);
+	setPixelNumberOHC(context_.pixel_number);
+	setPixelPitchOHC(context_.pixel_pitch);
+	setWavelengthOHC(context_.wave_length[0], LenUnit::m);
 
 	auto end = CUR_TIME;
 
@@ -371,10 +371,10 @@ void ophTri::generateMeshHologram(uint SHADING_FLAG) {
 	initializeAS();
 	generateAS(SHADING_FLAG);
 
-	//holo_gen = angularSpectrum;
+	(*complex_H) = angularSpectrum;
 	fft2(context_.pixel_number, angularSpectrum, OPH_BACKWARD, OPH_ESTIMATE);
-	fftwShift(angularSpectrum, holo_gen, context_.pixel_number[_X], context_.pixel_number[_Y], OPH_BACKWARD);
-	/*fftExecute(holo_gen);*/
+	fftwShift(angularSpectrum, (*complex_H), context_.pixel_number[_X], context_.pixel_number[_Y], OPH_BACKWARD);
+	/*fftExecute((*complex_H));*/
 
 	auto end = CUR_TIME;
 	auto during = ((std::chrono::duration<Real>)(end - start)).count();
@@ -391,8 +391,8 @@ void ophTri::generateMeshHologram() {
 	generateAS(SHADING_TYPE);
 
 	fft2(context_.pixel_number, angularSpectrum, OPH_BACKWARD, OPH_ESTIMATE);
-	fftwShift(angularSpectrum, holo_gen, context_.pixel_number[_X], context_.pixel_number[_Y], OPH_BACKWARD);
-	//fftExecute(holo_gen);
+	fftwShift(angularSpectrum, (*complex_H), context_.pixel_number[_X], context_.pixel_number[_Y], OPH_BACKWARD);
+	//fftExecute((*complex_H));
 
 	auto end = CUR_TIME;
 	auto during = ((std::chrono::duration<Real>)(end - start)).count();
@@ -629,7 +629,7 @@ void ophTri::calGlobalFrequency() {
 		for (int idxFx = -Nx / 2; idxFx < Nx / 2; idxFx++) {
 			fx[i] = idxFx*dfx;
 			fy[i] = idxFy*dfy;
-			fz[i] = sqrt((1 / context_.lambda)*(1 / context_.lambda) - fx[i] * fx[i] - fy[i] * fy[i]);
+			fz[i] = sqrt((1 / context_.wave_length[0])*(1 / context_.wave_length[0]) - fx[i] * fx[i] - fy[i] * fy[i]);
 
 			i++;
 		}
@@ -647,10 +647,10 @@ uint ophTri::calFrequencyTerm() {
 	for_i(Nx*Ny,
 		flx[i] = geom.glRot[0] * fx[i] + geom.glRot[1] * fy[i] + geom.glRot[2] * fz[i];
 		fly[i] = geom.glRot[3] * fx[i] + geom.glRot[4] * fy[i] + geom.glRot[5] * fz[i];
-		flz[i] = sqrt((1 / context_.lambda)*(1 / context_.lambda) - flx[i] * flx[i] - fly[i] * fly[i]);
+		flz[i] = sqrt((1 / context_.wave_length[0])*(1 / context_.wave_length[0]) - flx[i] * flx[i] - fly[i] * fly[i]);
 		
-		flxShifted[i] = flx[i] - (1 / context_.lambda)*(geom.glRot[0] * carrierWave[_X] + geom.glRot[1] * carrierWave[_Y] + geom.glRot[2] * carrierWave[_Z]);
-		flyShifted[i] = fly[i] - (1 / context_.lambda)*(geom.glRot[3] * carrierWave[_X] + geom.glRot[4] * carrierWave[_Y] + geom.glRot[5] * carrierWave[_Z]);
+		flxShifted[i] = flx[i] - (1 / context_.wave_length[0])*(geom.glRot[0] * carrierWave[_X] + geom.glRot[1] * carrierWave[_Y] + geom.glRot[2] * carrierWave[_Z]);
+		flyShifted[i] = fly[i] - (1 / context_.wave_length[0])*(geom.glRot[3] * carrierWave[_X] + geom.glRot[4] * carrierWave[_Y] + geom.glRot[5] * carrierWave[_Z]);
 		);
 
 	Real det = geom.loRot[0] * geom.loRot[3] - geom.loRot[1] * geom.loRot[2];
@@ -843,7 +843,7 @@ uint ophTri::refToGlobal() {
 	if (det == 0)
 		return -1;
 
-	term1[_IM] = -2 * M_PI / context_.lambda*(
+	term1[_IM] = -2 * M_PI / context_.wave_length[0]*(
 		carrierWave[_X] * (geom.glRot[0] * geom.glShift[_X] + geom.glRot[3] * geom.glShift[_Y] + geom.glRot[6] * geom.glShift[_Z])
 		+ carrierWave[_Y] * (geom.glRot[1] * geom.glShift[_X] + geom.glRot[4] * geom.glShift[_Y] + geom.glRot[7] * geom.glShift[_Z])
 		+ carrierWave[_Z] * (geom.glRot[2] * geom.glShift[_X] + geom.glRot[5] * geom.glShift[_Y] + geom.glRot[8] * geom.glShift[_Z]));
@@ -861,15 +861,4 @@ uint ophTri::refToGlobal() {
 	}
 
 	return 1;
-}
-
-
-void ophTri::waveCarry(Real carryingAngleX, Real carryingAngleY) {
-	Complex<Real>* carrier = new Complex<Real>[context_.pixel_number[_X] * context_.pixel_number[_Y]];
-
-	for_i(context_.pixel_number[_X] * context_.pixel_number[_Y],
-		carrier[i][_RE] = 0;
-		carrier[i][_IM] = objShift[_Z] * tan(carryingAngleX)*fx[i] + objShift[_Z] * tan(carryingAngleY)*fy[i];
-		holo_gen[i] = holo_gen[i] * exp(carrier[i]);
-		);
 }

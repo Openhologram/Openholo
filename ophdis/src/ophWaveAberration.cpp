@@ -383,7 +383,7 @@ bool ophWaveAberration::readConfig(const char* fname)
 	if (!xml_element || tinyxml2::XML_SUCCESS != xml_element->QueryDoubleText(&waveLength))
 		return false;
 
-	setWavelength(waveLength, oph::LenUnit::m);
+	setWavelengthOHC(waveLength, oph::LenUnit::m);
 
 	xml_element = xml_node->FirstChildElement("PixelPitchHor");
 	if (!xml_element || tinyxml2::XML_SUCCESS != xml_element->QueryDoubleText(&pixelPitchX))
@@ -393,7 +393,7 @@ bool ophWaveAberration::readConfig(const char* fname)
 	if (!xml_element || tinyxml2::XML_SUCCESS != xml_element->QueryDoubleText(&pixelPitchY))
 		return false;
 
-	setPixelPitch(vec2(pixelPitchX, pixelPitchY));
+	setPixelPitchOHC(vec2(pixelPitchX, pixelPitchY));
 
 	xml_element = xml_node->FirstChildElement("ResolutionHor");
 	if (!xml_element || tinyxml2::XML_SUCCESS != xml_element->QueryUnsignedText(&resolutionX))
@@ -403,7 +403,7 @@ bool ophWaveAberration::readConfig(const char* fname)
 	if (!xml_element || tinyxml2::XML_SUCCESS != xml_element->QueryUnsignedText(&resolutionY))
 		return false;
 
-	setPixelNumber(ivec2(resolutionX, resolutionY));
+	setPixelNumberOHC(ivec2(resolutionX, resolutionY));
 
 	xml_element = xml_node->FirstChildElement("ZernikeCoeff");
 	xml_attribute = xml_element->FirstAttribute();

@@ -43,14 +43,6 @@
 //
 //M*/
 
-/**
-* @file		ophTriMesh.h
-* @brief	Openholo Triangular Mesh based CGH generation
-* @author	Yeon-Gyeong Ju, Jae-Hyeung Park
-* @data		2018-08
-* @version	0.0.1
-*/
-
 #ifndef __ophTriMesh_h
 #define __ophTriMesh_h
 
@@ -69,7 +61,17 @@ struct geometric {
 };
 
 /**
-* @brief	Openholo Triangular Mesh based CGH Generation Class
+* @addtogroup mesh
+//@{
+* @detail
+
+*/
+//! @} mesh
+
+/**
+* @ingroup mesh
+* @brief Openholo Triangular Mesh based CGH generation
+* @author Yeon-Gyeong Ju, Jae-Hyeung Park
 */
 class GEN_DLL ophTri : public ophGen
 {
@@ -107,27 +109,16 @@ private:
 	int SHADING_TYPE;						/// SHADING_FLAT, SHADING_CONTINUOUS
 
 public:
-	/** \ingroup getter/setter */
 	void setObjSize(Real in) { objSize = in; }
-	/** \ingroup getter/setter */
 	void setObjShift(Real in[]) { objShift[_X] = in[_X]; objShift[_Y] = in[_Y]; objShift[_Z] = in[_Z]; }
-	/** \ingroup getter/setter */
 	void setObjShift(vector<Real> in) { objShift[_X] = in[_X]; objShift[_Y] = in[_Y]; objShift[_Z] = in[_Z]; }
-	/** \ingroup getter/setter */
 	void setCarrierWave(Real in1, Real in2, Real in3) { carrierWave[_X] = in1; carrierWave[_Y] = in2; carrierWave[_Z] = in3; }
-	/** \ingroup getter/setter */
 	void setIllumination(vec3 in) { illumination = in; }
-	/** \ingroup getter/setter */
 	void setIllumination(Real inx, Real iny, Real inz) { illumination = { inx, iny, inz }; }
-	/** \ingroup getter/setter */
 	void setShadingType(int in) { SHADING_TYPE = in; }
-	/** \ingroup getter/setter */
 	ulonglong getNumMesh() { return meshData->n_faces; }
-	/** \ingroup getter/setter */
 	Real* getMeshData() { return triMeshArray; }
-	/** \ingroup getter/setter */
 	Complex<Real>* getAngularSpectrum() { return angularSpectrum; }
-	/** \ingroup getter/setter */
 	Real* getScaledMeshData() {	return scaledMeshData; }
 
 public:
