@@ -58,7 +58,7 @@
 using namespace oph;
 
 
-struct OphConfig
+struct OPH_DLL OphConfig
 {
 	oph::ivec2		pixel_number;				//< SLM_PIXEL_NUMBER_X & SLM_PIXEL_NUMBER_Y
 	oph::vec2		pixel_pitch;				//< SLM_PIXEL_PITCH_X & SLM_PIXEL_PITCH_Y

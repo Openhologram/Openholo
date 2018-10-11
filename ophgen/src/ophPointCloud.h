@@ -181,7 +181,7 @@ public:
 	* @brief Generate a hologram, main funtion.
 	* @return implement time (sec)
 	*/
-	Real generateHologram(uint diff_flag = PC_DIFF_RS_ENCODED);
+	Real generateHologram(uint diff_flag = PC_DIFF_RS);
 	void encodeHologram(vec2 band_limit = vec2(0.8, 0.5), vec2 spectrum_shift = vec2(0.0, 0.5));
 
 private:
