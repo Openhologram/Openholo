@@ -233,16 +233,16 @@ void ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 
 			switch (diff_flag)
 			{
-			case PC_DIFF_RS_ENCODED:
-				diffractEncodedRS(pn, pp, ss, vec3(pcx, pcy, pcz), k, amplitude, vec2(thetaX, thetaY));
-				break;
-			case PC_DIFF_RS_NOT_ENCODED:
+			//case PC_DIFF_RS_ENCODED:
+			//	diffractEncodedRS(pn, pp, ss, vec3(pcx, pcy, pcz), k, amplitude, vec2(thetaX, thetaY));
+			//	break;
+			case PC_DIFF_RS/*_NOT_ENCODED*/:
 				diffractNotEncodedRS(pn, pp, ss, vec3(pcx, pcy, pcz), k, amplitude, context_.wave_length[0], vec2(thetaX, thetaY));
 				break;
-			case PC_DIFF_FRESNEL_ENCODED:
-				diffractEncodedFrsn();
-				break;
-			case PC_DIFF_FRESNEL_NOT_ENCODED:
+			//case PC_DIFF_FRESNEL_ENCODED:
+			//	diffractEncodedFrsn();
+			//	break;
+			case PC_DIFF_FRESNEL/*_NOT_ENCODED*/:
 				diffractNotEncodedFrsn(pn, pp, vec3(pcx, pcy, pcz), amplitude, context_.wave_length[0], vec2(thetaX, thetaY));
 				break;
 			}

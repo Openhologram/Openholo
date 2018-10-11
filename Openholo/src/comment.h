@@ -64,24 +64,24 @@ Generation Hologram - Point Cloud Example
 @code
 	#include "ophPointCloud.h"
 
-	ophPointCloud* Hologram = new ophPointCloud();								// Create ophPointCloud instance
+	ophPointCloud* Hologram = new ophPointCloud();									// Create ophPointCloud instance
 
-	Hologram->readConfig("config/TestSpecPointCloud.xml");						// Read Config Parameters for Point Cloud CGH
-	Hologram->loadPointCloud("source/PointCloud/TestPointCloud_Plane.ply");		// Load Point Cloud Data(*.PLY)
+	Hologram->readConfig("config/TestSpecPointCloud.xml");							// Read Config Parameters for Point Cloud CGH
+	Hologram->loadPointCloud("source/PointCloud/TestPointCloud_Plane.ply");			// Load Point Cloud Data(*.PLY)
 
-	Hologram->setMode(MODE_GPU);												// Select CPU or GPU Processing
+	Hologram->setMode(MODE_GPU);													// Select CPU or GPU Processing
 
-	Hologram->generateHologram(PC_DIFF_RS_NOT_ENCODED);							// CGH by R-S Diffract
+	Hologram->generateHologram(PC_DIFF_RS);											// CGH by R-S Diffract
 
-	Hologram->encodeHologram();													// Encode Complex Field to Real Field
-	Hologram->normalize();														// Normalize Real Field to unsigned char(0~255) for save to image(*.BMP)
+	Hologram->encodeHologram();														// Encode Complex Field to Real Field
+	Hologram->normalize();															// Normalize Real Field to unsigned char(0~255) for save to image(*.BMP)
 
-	Hologram->save("result/PointCloud/Result_PointCloudSample_Plane.bmp");		// Save to bmp
+	Hologram->save("result/PointCloud/Result_PointCloudSample_Plane.bmp");			// Save to bmp
 
-	Hologram->release();														// Release memory used to Generate Point Cloud
+	Hologram->release();															// Release memory used to Generate Point Cloud
 @endcode
 
-![PointCloud based CGH Example](pics/ophgen/pointcloud/pointcloud_example01.png)
+![PointCloud based CGH Example](pics/ophgen/pointcloud/pointcloud_example01.png)	
 
 
 Generation Hologram - Depth Map Example.
@@ -91,21 +91,21 @@ Generation Hologram - Depth Map Example.
 @code
 	#include "ophDepthMap.h"
 
-	ophDepthMap* Hologram = new ophDepthMap();									// Create ophDepthMap instance
+	ophDepthMap* Hologram = new ophDepthMap();										// Create ophDepthMap instance
 
-	Hologram->readConfig("config/TestSpecDepthMap.xml");						// Read Config Parameters for Depth Map CGH
-	Hologram->readImageDepth("source/DepthMap", "RGB_D", "D_D");				// Load Depth and RGB image
+	Hologram->readConfig("config/TestSpecDepthMap.xml");							// Read Config Parameters for Depth Map CGH
+	Hologram->readImageDepth("source/DepthMap", "RGB_D", "D_D");					// Load Depth and RGB image
 
-	Hologram->setMode(MODE_GPU); //Select CPU or GPU Processing					// Select CPU or GPU Processing
+	Hologram->setMode(MODE_GPU); //Select CPU or GPU Processing						// Select CPU or GPU Processing
 
-	Hologram->generateHologram();												// CGH
+	Hologram->generateHologram();													// CGH by depth map
 
-	Hologram->encodeHologram();													// Encode Complex Field to Real Field
-	Hologram->normalize();														// Normalize Real Field to unsigned char(0~255) for save to image(*.BMP)
+	Hologram->encodeHologram();														// Encode Complex Field to Real Field
+	Hologram->normalize();															// Normalize Real Field to unsigned char(0~255) for save to image(*.BMP)
 
-	Hologram->save("result/DepthMap/Result_DepthmapSample.bmp");				// Save to bmp
+	Hologram->save("result/DepthMap/Result_DepthmapSample.bmp");					// Save to bmp
 
-	Hologram->release();														// Release memory used to Generate DepthMap
+	Hologram->release();															// Release memory used to Generate DepthMap
 @endcode
 
 ![DepthMap based CGH Example](pics/ophgen/depthmap/depthmap_example01.png)
@@ -116,21 +116,30 @@ Generation Hologram - Triangle Mesh Example
 @code
 	#include "ophTriMesh.h"
 
-	ophTri* Hologram = new ophTri();
+		ophTri* Hologram = new ophTri();
 
-	Hologram->readMeshConfig("config/TestSpecMesh.xml");
+		// Load
+		Hologram->readMeshConfig("config/TestSpecMesh.xml");						// Read the Mesh hologram configuration file
+		Hologram->loadMeshData("source/TriMesh/mesh_teapot.ply", "ply");			// Read the Meshed object data
+		Hologram->objScaleShift();													// Object scaling and shifting
 
-	Hologram->loadMeshData("source/TriMesh/mesh_teapot.ply", "ply");
+		// Generate
+		Hologram->generateMeshHologram(Hologram->SHADING_FLAT);						// Generate the hologram
+			/// Put the shading effect type
 
-	Hologram->objScaleShift();
+		// Save as Complex Field Data
+		Hologram->saveAsOhc("result/TriMesh/Mesh_complexField.ohc");				// Save the hologram complex field data
 
-	Hologram->generateMeshHologram(Hologram->SHADING_FLAT);
+		// Encode
+		Hologram->encoding(Hologram->ENCODE_SIMPLENI);								// Encode the hologram
 
-	Hologram->encoding(Hologram->ENCODE_AMPLITUDE);
-	Hologram->normalizeEncoded();
-	ivec2 encode_size = Hologram->getEncodeSize();
+		// Save as Encoded Image
+		Hologram->normalizeEncoded();												// Normalize the encoded hologram to generate image file
+		ivec2 encode_size = Hologram->getEncodeSize();								// Get encoded hologram size
+		Hologram->save("result/TriMesh/Mesh_0.1m_ni_-0.3deg.bmp",
+			8, nullptr, encode_size[_X], encode_size[_Y]);							// Save the encoded hologram image
 
-	Hologram->save("result/TriMesh/Mesh.bmp", 8, nullptr, encode_size[_X], encode_size[_Y]);
+		Hologram->release();														// Release memory used to Generate Triangle Mesh
 @endcode
 
 
@@ -139,17 +148,29 @@ Generation Hologram - Light Field Example
 @code
 	#include "ophLightField.h"
 
-	ophLF* Hologram = new ophLF();
+		ophLF* Hologram = new ophLF();
 
-	Hologram->readLFConfig("config/TestSpecLF.xml");
-	Hologram->loadLF("source/LightField", "bmp");
+		// Load
+		Hologram->readLFConfig("config/TestSpecLF.xml");							// Read the LF hologram configuration file
+		Hologram->loadLF("source/LightField/sample_orthographic_images_5x5", "bmp");// Load the Light field source image files
+			/// Put the directory which has the source files and Put the image file type
 
-	Hologram->generateHologram();
-	Hologram->encoding(Hologram->ENCODE_AMPLITUDE);
-	Hologram->normalizeEncoded();
+		// Generate
+		Hologram->generateHologram();												// Generate the hologram
 
-	ivec2 encode_size = Hologram->getEncodeSize();
-	Hologram->save("result/LightField/Light_Field.bmp", 8, nullptr, encode_size[_X], encode_size[_Y]);
+		// Save as Complex field data
+		Hologram->saveAsOhc("result/LightField/LF_complexField.ohc");				// Save the hologram complex field data
+
+		// Encode
+		Hologram->encoding(Hologram->ENCODE_SIMPLENI);								// Encode the hologram
+
+		// Save as Encoded Image
+		Hologram->normalizeEncoded();												// Normalize the encoded hologram to generate image file
+		ivec2 encode_size = Hologram->getEncodeSize();								// Get encoded hologram size
+		Hologram->save("result/LightField/Light_Field_NI_carrier.bmp",
+			8, nullptr, encode_size[_X], encode_size[_Y]);							// Save the encoded hologram image
+
+		Hologram->release();														// Release memory used to Generate Light Field
 @endcode
 
 
@@ -434,7 +455,7 @@ Hologram signal processing - get parameter using Compressive Holography Example
 /**
 * @defgroup oph Openholo
 
-* @defgroup gen Generate
+* @defgroup gen Generation
 * @ingroup oph
 
 * @defgroup pointcloud Point Cloud
@@ -448,7 +469,7 @@ Hologram signal processing - get parameter using Compressive Holography Example
 * @defgroup wrp WRP
 * @ingroup gen
 
-* @defgroup rec Reconstruct
+* @defgroup rec Reconstruction
 * @ingroup oph
 * @defgroup dis Display
 * @ingroup rec
@@ -460,7 +481,7 @@ Hologram signal processing - get parameter using Compressive Holography Example
 * @defgroup partial Partial Coherence
 * @ingroup dis
 
-* @defgroup sig Signal Process
+* @defgroup sig Signal Processing
 * @ingroup oph
 
 * @defgroup offaxis Off-Axis

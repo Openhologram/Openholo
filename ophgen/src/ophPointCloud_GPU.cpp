@@ -90,11 +90,11 @@ void ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 	Real* host_pc_data = this->pc_data_.vertex;
 	Real* host_amp_data = this->pc_data_.color;
 	Real* host_dst = nullptr;
-	if ((diff_flag == PC_DIFF_RS_ENCODED) || (diff_flag == PC_DIFF_FRESNEL_ENCODED)) {
+/*	if ((diff_flag == PC_DIFF_RS_ENCODED) || (diff_flag == PC_DIFF_FRESNEL_ENCODED)) {
 		host_dst = new Real[n_pixels];
 		std::memset(host_dst, 0., bufferSize);
 	}
-	else if ((diff_flag == PC_DIFF_RS_NOT_ENCODED) || (diff_flag == PC_DIFF_FRESNEL_NOT_ENCODED)) {
+	else*/ if ((diff_flag == PC_DIFF_RS) || (diff_flag == PC_DIFF_FRESNEL)) {
 		host_dst = new Real[n_pixels * 2];
 		std::memset(host_dst, 0., bufferSize * 2);
 	}
@@ -116,33 +116,33 @@ void ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 	HANDLE_ERROR(cudaMalloc((void**)&device_amp_data, this->n_points * n_colors * sizeof(Real)));
 
 	Real* device_dst = nullptr;
-	if ((diff_flag == PC_DIFF_RS_ENCODED) || (diff_flag == PC_DIFF_FRESNEL_ENCODED)) {
+/*	if ((diff_flag == PC_DIFF_RS_ENCODED) || (diff_flag == PC_DIFF_FRESNEL_ENCODED)) {
 		HANDLE_ERROR(cudaMalloc((void**)&device_dst, bufferSize));
 		HANDLE_ERROR(cudaMemset(device_dst, 0., bufferSize));
 	}
-	else if ((diff_flag == PC_DIFF_RS_NOT_ENCODED) || (diff_flag == PC_DIFF_FRESNEL_NOT_ENCODED)) {
+	else */if ((diff_flag == PC_DIFF_RS) || (diff_flag == PC_DIFF_FRESNEL)) {
 		HANDLE_ERROR(cudaMalloc((void**)&device_dst, bufferSize * 2));
 		HANDLE_ERROR(cudaMemset(device_dst, 0., bufferSize * 2));
 	}
 
 	GpuConst* device_config = nullptr;
 	switch (diff_flag) {
-	case PC_DIFF_RS_ENCODED: {
-		host_config = new GpuConstERS(*host_config, this->pc_config_.tilt_angle);
-		HANDLE_ERROR(cudaMalloc((void**)&device_config, sizeof(GpuConstERS)));
-		HANDLE_ERROR(cudaMemcpy(device_config, host_config, sizeof(GpuConstERS), cudaMemcpyHostToDevice));
-		break;
-	}
-	case PC_DIFF_FRESNEL_ENCODED: {
-		break;
-	}
-	case PC_DIFF_RS_NOT_ENCODED: {
+	//case PC_DIFF_RS_ENCODED: {
+	//	host_config = new GpuConstERS(*host_config, this->pc_config_.tilt_angle);
+	//	HANDLE_ERROR(cudaMalloc((void**)&device_config, sizeof(GpuConstERS)));
+	//	HANDLE_ERROR(cudaMemcpy(device_config, host_config, sizeof(GpuConstERS), cudaMemcpyHostToDevice));
+	//	break;
+	//}
+	//case PC_DIFF_FRESNEL_ENCODED: {
+	//	break;
+	//}
+	case PC_DIFF_RS/*_NOT_ENCODED*/: {
 		host_config = new GpuConstNERS(*host_config, this->context_.wave_length[0]);
 		HANDLE_ERROR(cudaMalloc((void**)&device_config, sizeof(GpuConstNERS)));
 		HANDLE_ERROR(cudaMemcpy(device_config, host_config, sizeof(GpuConstNERS), cudaMemcpyHostToDevice));
 		break;
 	}
-	case PC_DIFF_FRESNEL_NOT_ENCODED: {
+	case PC_DIFF_FRESNEL/*_NOT_ENCODED*/: {
 		host_config = new GpuConstNEFR(*host_config, this->context_.wave_length[0]);
 		HANDLE_ERROR(cudaMalloc((void**)&device_config, sizeof(GpuConstNEFR)));
 		HANDLE_ERROR(cudaMemcpy(device_config, host_config, sizeof(GpuConstNEFR), cudaMemcpyHostToDevice));
@@ -159,20 +159,20 @@ void ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 		HANDLE_ERROR(cudaMemcpy(device_amp_data + n_colors * offset, host_amp_data + n_colors * offset, stream_points * sizeof(Real), cudaMemcpyHostToDevice));
 
 		switch (diff_flag) {
-		case PC_DIFF_RS_ENCODED: {
-			cudaGenCghPointCloud_EncodedRS(gridSize, blockSize, stream_points, device_pc_data + 3 * offset, device_amp_data + n_colors * offset, device_dst, (GpuConstERS*)device_config);
+		//case PC_DIFF_RS_ENCODED: {
+		//	cudaGenCghPointCloud_EncodedRS(gridSize, blockSize, stream_points, device_pc_data + 3 * offset, device_amp_data + n_colors * offset, device_dst, (GpuConstERS*)device_config);
 
-			HANDLE_ERROR(cudaMemcpy(host_dst, device_dst, bufferSize, cudaMemcpyDeviceToHost));
-			HANDLE_ERROR(cudaMemset(device_dst, 0., bufferSize));
-			for (ulonglong n = 0; n < n_pixels; ++n) {
-				this->holo_encoded[n] += host_dst[n];
-			}
-			break;
-		}
-		case PC_DIFF_FRESNEL_ENCODED: {
-			break;
-		}
-		case PC_DIFF_RS_NOT_ENCODED: {
+		//	HANDLE_ERROR(cudaMemcpy(host_dst, device_dst, bufferSize, cudaMemcpyDeviceToHost));
+		//	HANDLE_ERROR(cudaMemset(device_dst, 0., bufferSize));
+		//	for (ulonglong n = 0; n < n_pixels; ++n) {
+		//		this->holo_encoded[n] += host_dst[n];
+		//	}
+		//	break;
+		//}
+		//case PC_DIFF_FRESNEL_ENCODED: {
+		//	break;
+		//}
+		case PC_DIFF_RS/*_NOT_ENCODED*/: {
 			cudaGenCghPointCloud_NotEncodedRS(gridSize, blockSize, stream_points, device_pc_data + 3 * offset, device_amp_data + n_colors * offset, device_dst, device_dst + n_pixels, (GpuConstNERS*)device_config);
 
 			HANDLE_ERROR(cudaMemcpy(host_dst, device_dst, bufferSize * 2, cudaMemcpyDeviceToHost));
@@ -183,7 +183,7 @@ void ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 			}
 			break;
 		}
-		case PC_DIFF_FRESNEL_NOT_ENCODED: {
+		case PC_DIFF_FRESNEL/*_NOT_ENCODED*/: {
 			cudaGenCghPointCloud_NotEncodedFrsn(gridSize, blockSize, stream_points, device_pc_data + 3 * offset, device_amp_data + n_colors * offset, device_dst, device_dst + n_pixels, (GpuConstNEFR*)device_config);
 
 			HANDLE_ERROR(cudaMemcpy(host_dst, device_dst, bufferSize * 2, cudaMemcpyDeviceToHost));
