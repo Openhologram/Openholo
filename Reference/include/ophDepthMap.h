@@ -53,6 +53,52 @@
 
 using namespace oph;
 
+
+/**
+* @addtogroup depthmap
+//@{
+* @detail
+This module is related methods which generates CGH based on depth map. It is supported single core
+processing, multi-core processing(with OpenMP) and GPGPU parallel processing(with CUDA).
+
+I. Depth Map Hologram Generation
+
+-   Implement the hologram generation method using depth map data.
+-   Improve the performance of the hologram generation method.
+-   Implemented on CPU and GPU.
+-   The original algorithm is modified in the way that can be easily implemented in parallel.
+
+![](pics/ophgen/depthmap/gen_depthmap01.png)
+
+![](pics/ophgen/depthmap/depth_slice_image01.png)
+
+II. Algorithm
+
+-   Propagate from the previous depth plane to the current depth plane.
+-   At the last plane, back propagate to the hologram plane.
+
+![](pics/ophgen/depthmap/gen_depthmap_flowchart02.png)
+
+![](pics/ophgen/depthmap/depth_slice_image02.png)
+
+III. Modified Algorithm
+
+-   Back propagate each depth plane to the hologram plane.
+-   Accumulate the results of each propagation.
+
+![](pics/ophgen/depthmap/gen_depthmap_flowchart03.png)
+
+![](pics/ophgen/depthmap/depth_slice_image03.png)
+
+
+*/
+//! @} depthmap
+
+/**
+* @ingroup depthmap
+* @brief This class generates CGH based on depth map.
+* @author
+*/
 class GEN_DLL ophDepthMap : public ophGen {
 
 public:
@@ -63,70 +109,43 @@ protected:
 
 public:
 
-	/** \ingroup init_module */
 	void setMode(bool is_CPU);
 	bool readConfig(const char* fname);
 	bool readImageDepth(const char* source_folder, const char* img_prefix, const char* depth_img_prefix);
 
-	/** \ingroup gen_module */
 	Real generateHologram(void);
 
-	/** \ingroup encode_module */
 	void encodeHologram(void);
 
-	/** \ingroup write_module */
 	virtual int save(const char* fname, uint8_t bitsperpixel = 24);
 
 public:
-	/** \ingroup getter/setter */
 	inline void setFieldLens(Real fieldlens) { dm_config_.field_lens = fieldlens; }
-	/** \ingroup getter/setter */
 	inline void setNearDepth(Real neardepth) { dm_config_.near_depthmap = neardepth; }
-	/** \ingroup getter/setter */
 	inline void setFarDepth(Real fardetph) { dm_config_.far_depthmap = fardetph; }
-	/** \ingroup getter/setter */
 	inline void setNumOfDepth(uint numofdepth) { dm_config_.num_of_depth = numofdepth; }
 
-	/** \ingroup getter/setter */
 	inline Real getFieldLens(void) { return dm_config_.field_lens; }
-	/** \ingroup getter/setter */
 	inline Real getNearDepth(void) { return dm_config_.near_depthmap; }
-	/** \ingroup getter/setter */
 	inline Real getFarDepth(void) { return dm_config_.far_depthmap; }
-	/** \ingroup getter/setter */
 	inline uint getNumOfDepth(void) { return dm_config_.num_of_depth; }
-	/** \ingroup getter/setter */
 	inline void getRenderDepth(std::vector<int>& renderdepth) { renderdepth = dm_config_.render_depth; }
 	
 private:
 
-	/** \ingroup init_module
-	* @{ */
 	void initialize();
 	void initCPU();   
 	void initGPU();
-	/** @} */
 
-	/** \ingroup load_module
-	* @{ */
 	bool prepareInputdataCPU(uchar* img, uchar* dimg);
 	bool prepareInputdataGPU(uchar* img, uchar* dimg);
-	/** @} */
 
-	/** \ingroup depth_module
-	* @{ */
 	void getDepthValues();
 	void changeDepthQuanCPU();
 	void changeDepthQuanGPU();
-	/** @} */
 
-	/** \ingroup trans_module
-	* @{ */
 	void transformViewingWindow();
-	/** @} */
 
-	/** \ingroup gen_module 
-	* @{ */
 	void calcHoloByDepth(void);
 	void calcHoloCPU(void);
 	void calcHoloGPU(void);
@@ -157,6 +176,5 @@ private:
 
 	OphDepthMapConfig		dm_config_;							///< structure variable for depthmap hologram configuration.
 };
-
 
 #endif //>__ophDepthMap_h

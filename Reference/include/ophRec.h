@@ -54,6 +54,14 @@
 #define RECON_DLL __declspec(dllimport)
 #endif
 
+
+
+/**
+* @ingroup rec
+* @brief
+* @detail
+* @author
+*/
 class RECON_DLL ophRec : public Openholo
 {
 public:

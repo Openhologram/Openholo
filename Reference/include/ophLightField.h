@@ -43,13 +43,6 @@
 //
 //M*/
 
-/**
-* @file		ophLightField.h
-* @brief	Openholo Light Field based CGH generation
-* @author	Yeon-Gyeong Ju, Jae-Hyeung Park
-* @data		2018-08
-* @version	0.0.1
-*/
 #ifndef __ophLightField_h
 #define __ophLightField_h
 
@@ -59,8 +52,73 @@
 
 using namespace oph;
 
+
 /**
-* @brief	Openholo Light Field based CGH generation class
+* @addtogroup lightfield
+//@{
+* @detail
+
+* @section Introduction
+
+Light field based CGH generates the complex field from the light field.
+
+![](images/LF_1.png)
+
+Light field images are the projection images of 3D object from different view points.
+
+![(images/LF_2.png)
+
+The algorithm gives random phase distribution to each pixel in each projection image.
+Light-ray information of each pixel is conversed to the wavefront in ray-sampling(RS) plane using fourier transform of phase distributed amplitude.
+
+![](images/LF_3.png)
+
+Hologram complex field is obtained after wave propataion from RS planes to CGH plane.
+
+![](images/LF_4.png)
+
+
+* @section Reference
+
+K. Wakunamii, and M. Yamaguchi, "Calculation for computer generated hologram using ray-sampling plane," Optics Express, vol. 19, no. 10, pp. 9086-9101, 2011.
+
+* @section Example
+
+@code
+#include "ophLightField.h"
+
+int main(void)
+{
+	ophLF* Hologram = new ophLF();
+
+	// Load
+	Hologram->readLFConfig("config/TestSpecLF.xml");     // Read the LF hologram configuration file
+	Hologram->loadLF("source/sample_orthographic_images_5x5","bmp");		// Load the Light field source image files
+		/// Put the directory which has the source files and Put the image file type
+
+	// Generate
+	Hologram->generateHologram();		// Generate the hologram
+
+	// Save as Complex field data
+	Hologram->saveAsOhc("result/LF_complexField.ohc");		// Save the hologram complex field data
+
+	// Encode
+	Hologram->encoding(Hologram->ENCODE_SIMPLENI);		// Encode the hologram
+
+	// Save as Encoded Image
+	Hologram->normalizeEncoded();		// Normalize the encoded hologram to generate image file
+	ivec2 encode_size = Hologram->getEncodeSize();		// Encoded hologram size
+	Hologram->save("result/Light_Field_NI_carrier.bmp", 8, nullptr, encode_size[_X], encode_size[_Y]);		// Save the encoded hologram image
+}
+@endcode
+
+*/
+//! @} lightfield
+
+/**
+* @ingroup lightfield
+* @brief Openholo Light Field based CGH generation
+* @author Yeon-Gyeong Ju, Jae-Hyeung Park
 */
 class GEN_DLL ophLF : public ophGen
 {
@@ -77,40 +135,27 @@ protected:
 	virtual ~ophLF(void) {}
 
 private:
-	/**
-	* @param	uchar**			LF						Light Field array / 4-D array
-	* @param	Complex<Real>*	RSplane_complex_field	Complex field in Ray Sampling plane
-	*/
-	uchar** LF;
-	Complex<Real>* RSplane_complex_field;
+
+	uchar** LF;										/// Light Field array / 4-D array
+	Complex<Real>* RSplane_complex_field;			/// Complex field in Ray Sampling plane
 
 private:
-	/**
-	* @brief	Light Field save parameters
-	*/
+	
+	// Light Field save parameters
 
 	const char* LF_directory;
 	const char* ext;
+
 public:
-	/** \ingroup */
 	inline void setNumImage(int nx, int ny) { num_image[_X] = nx; num_image[_Y] = ny; }
-	/** \ingroup */
 	inline void setNumImage(ivec2 num) { num_image = num; }
-	/** \ingroup */
 	inline void setResolImage(int nx, int ny) { resolution_image[_X] = nx; resolution_image[_Y] = ny; }
-	/** \ingroup */
 	inline void setResolImage(ivec2 num) { resolution_image = num; }
-	/** \ingroup */
 	inline void setDistRS2Holo(Real dist) { distanceRS2Holo = dist; }
-	/** \ingroup */
 	inline ivec2 getNumImage() { return num_image; }
-	/** \ingroup */
 	inline ivec2 getResolImage() { return resolution_image; }
-	/** \ingroup */
 	inline Real getDistRS2Holo() { return distanceRS2Holo; }
-	/** \ingroup */
 	inline uchar** getLF() { return LF; }
-	/** \ingroup */
 	inline oph::Complex<Real>* getRSPlane() { return RSplane_complex_field; }
 public:
 	/**
@@ -124,6 +169,7 @@ public:
 	* @return	context_.lambda
 	*/
 	int readLFConfig(const char* LF_config);
+
 	/**
 	* @brief	Light Field images load
 	* @param	directory		Directory which has the Light Field source image files
@@ -137,14 +183,13 @@ public:
 
 	/**
 	* @brief	Hologram generation
-	* @return	holo_gen
+	* @return	(*complex_H)
 	*/
 	void generateHologram();
 
 protected:
-	/**
-	* @brief inner functions
-	*/
+	
+	// Inner functions
 
 	void initializeLF();
 	void convertLF2ComplexField();
@@ -158,15 +203,10 @@ public:
 	void waveCarry(Real carryingAngleX, Real carryingAngleY);
 
 private:
-	/**
-	* @param	ivec2	num_image			The number of LF source images {numX, numY}
-	* @param	ivec2	resolution_image	Resolution of LF source images {resolutionX, resolutionY}
-	* @param	Real	distanceRS2Holo		Distance from Ray Sampling plane to Hologram plane
-	*/
-
-	ivec2 num_image;
-	ivec2 resolution_image;
-	Real distanceRS2Holo;
+	
+	ivec2 num_image;						/// The number of LF source images {numX, numY}
+	ivec2 resolution_image;					/// Resolution of LF source images {resolutionX, resolutionY}
+	Real distanceRS2Holo;					/// Distance from Ray Sampling plane to Hologram plane
 };
 
 
