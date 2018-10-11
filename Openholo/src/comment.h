@@ -71,7 +71,7 @@ Generation Hologram - Point Cloud Example
 
 	Hologram->setMode(MODE_GPU);													// Select CPU or GPU Processing
 
-	Hologram->generateHologram(PC_DIFF_RS_NOT_ENCODED);								// CGH by R-S Diffract
+	Hologram->generateHologram(PC_DIFF_RS);											// CGH by R-S Diffract
 
 	Hologram->encodeHologram();														// Encode Complex Field to Real Field
 	Hologram->normalize();															// Normalize Real Field to unsigned char(0~255) for save to image(*.BMP)
@@ -98,7 +98,7 @@ Generation Hologram - Depth Map Example.
 
 	Hologram->setMode(MODE_GPU); //Select CPU or GPU Processing						// Select CPU or GPU Processing
 
-	Hologram->generateHologram();													// CGH
+	Hologram->generateHologram();													// CGH by depth map
 
 	Hologram->encodeHologram();														// Encode Complex Field to Real Field
 	Hologram->normalize();															// Normalize Real Field to unsigned char(0~255) for save to image(*.BMP)
