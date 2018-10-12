@@ -43,13 +43,6 @@
 //
 //M*/
 
-/**
-* @file		ophPointCloud.h
-* @brief	Openholo Point Cloud based CGH generation
-* @author	Ryeon-Woo Kim
-* @date		2018/08
-*/
-
 #ifndef __ophPointCloud_h
 #define __ophPointCloud_h
 
@@ -72,6 +65,464 @@
 
 using namespace oph;
 
+/**
+* @addtogroup pointcloud
+//@{
+* @detail
+This module is related methods which generates CGH based on 3D point cloud. It is supported single core
+processing, multi-core processing(with OpenMP) and GPGPU parallel processing(with CUDA).
+
+![](pics/ophgen/pointcloud/pointcloud_RS_1.png)
+
+I. Point Cloud Hologram Generation with Rayleigh-Sommerfeld(RS) Integral
+
+Reference wave :
+\f[
+	R
+	\left(
+		\xi,\eta
+	\right)
+	=
+	a_{R} \exp
+	\left\{
+		-jk
+		\left(
+			\xi \sin \theta_{\xi}
+			+
+			\eta \sin \theta_{\eta}
+		\right)
+	\right\}
+\f]
+
+
+Object wave :
+
+\f[
+	O
+	\left(
+		\xi,\eta
+	\right)
+	=
+	\sum_{p=1}^{N}
+	\frac{a_{p}}{r_{p}}
+	\exp
+	\left\{
+		j
+		\left(
+			kr_{p} + \phi_{p}
+		\right)
+	\right\}
+\f]
+
+
+Distance :
+
+\f[
+	r_{p}
+	=
+	\sqrt{
+		\left(
+			\xi - x_{p}
+		\right)^{2}
+		+
+		\left(
+			\eta - y_{p}
+		\right)^{2}
+		+
+		z_{p}^{2}
+	}
+\f]
+
+
+Intensity :
+
+\f[
+	I
+	\left(
+		\xi,\eta
+	\right)
+	=
+	\left|
+		O + R
+	\right|^{2}
+	=
+	\left|
+		O
+	\right|^{2}
+	+
+	\left|
+		R
+	\right|^{2}
+	+
+	R^{*} O + R O^{*}
+\f]
+
+
+Hologram :
+
+\f[
+	I
+	\left(
+		\xi,\eta
+	\right)
+	=
+	\sum_{i=1}^{N} \frac{a_{i}}{r_{i}}
+	\exp
+	\left(
+		kr_{i}
+		+
+		k \xi \sin \theta_{\xi}
+		+
+		k \eta \sin \theta_{\eta}
+	\right)
+\f]
+
+
+II. Point Cloud Hologram Generation with Rayleigh-Sommerfeld(RS) Integral 2
+
+Rayleigh-Sommerfeld solution I :
+
+\f[
+	u
+	\left(
+		x,y
+	\right)
+	=
+	\frac{z}{j \lambda}
+	\int_{}^{} {
+		\int_{\Sigma}^{} {u
+			\left(
+				\xi,\eta
+			\right)
+			\frac{ \exp
+					\left(
+						jkr_{01}
+					\right)
+				}
+			{r_{01}^{2}}
+		} d \xi
+	} d \eta
+\f]
+
+Impulse response
+
+\f[
+	h
+	\left(
+		x,y
+	\right)
+	=
+	\frac{z}{j \lambda}
+	\frac{ \exp
+			\left(
+				jkr
+			\right)
+	}{r^{2}}
+\f]
+
+
+R-S diffraction Anti-alliasing
+
+\f[
+		\frac{1}{2\pi}
+		\left|
+			\frac{\partial \phi}{\partial x}
+		\right|
+		<
+		\frac{1}{2 p_{x}}
+	,\quad
+		\frac{1}{2\pi}
+		\left|
+			\frac{\partial \phi}{\partial y}
+		\right|
+		<
+		\frac{1}{2 p_{y}}
+
+	\qquad \to \qquad
+
+		\frac{1}{2\pi}
+		\left|
+			\frac{x - x_{o}}{r}
+		\right|
+		<
+		\frac{1}{2 p_{x}}
+	,\quad
+		\frac{1}{2\pi}
+		\left|
+			\frac{y - y_{o}}{r}
+		\right|
+		<
+		\frac{1}{2 p_{y}}
+\f]
+
+\f[
+	\to	\qquad
+
+	\begin{matrix}
+		x_{o}
+		-
+		\left|
+			\frac{t_{x}}{\sqrt{1 - t_{x}^{2}}}
+			\sqrt{
+				\left(
+					y - y_{o}^{2}
+				\right)
+				+
+				z_{o}^{2}
+			}
+		\right|
+
+		\quad < \quad
+		x
+		\quad < \quad
+
+		x_{o}
+		+
+		\left|
+			\frac{t_{x}}{\sqrt{1 - t_{x}^{2}}}
+			\sqrt{
+				\left(
+					y - y_{o}^{2}
+				\right)
+				+
+				z_{o}^{2}
+			}
+		\right|
+	,\\
+		y_{o}
+		-
+		\left|
+			\frac{t_{y}}{\sqrt{1 - t_{y}^{2}}}
+			\sqrt{
+				\left(
+					x - x_{o}^{2}
+				\right)
+				+
+				z_{o}^{2}
+			}
+		\right|
+
+		\quad < \quad
+		y
+		\quad < \quad
+
+		y_{o}
+		+
+		\left|
+			\frac{t_{y}}{\sqrt{1 - t_{y}^{2}}}
+			\sqrt{
+				\left(
+					x - x_{o}^{2}
+				\right)
+				+
+				z_{o}^{2}
+			}
+		\right|
+	\end{matrix}
+\f]
+
+\f[
+	where \quad
+		t_{x}
+		=
+		\frac{\lambda}{2p_{x}}
+	,\quad
+		t_{y}
+		=
+		\frac{\lambda}{2p_{y}}
+\f]
+
+
+Search Range : Rectangle
+
+\f[
+		x\ direction
+	\quad \to \quad
+		y
+		=
+		y_{o}
+	\quad \to \quad
+		x_{o}
+		-
+		\left|
+			\frac{t_{x}}{\sqrt{1 - t_{x}^{2}}} z_{o}
+		\right|\
+
+		<\
+		x\
+		<\
+
+		x_{o}
+		+
+		\left|
+			\frac{t_{x}}{\sqrt{1 - t_{x}^{2}}} z_{o}
+		\right|
+\f]
+
+\f[
+		y\ direction
+	\quad \to \quad
+		x
+		=
+		x_{o}
+	\quad \to \quad
+		y_{o}
+		-
+		\left|
+			\frac{t_{y}}{\sqrt{1 - t_{y}^{2}}} z_{o}
+		\right|\
+
+		<\
+		y\
+		<\
+
+		y_{o}
+		+
+		\left|
+			\frac{t_{y}}{\sqrt{1 - t_{y}^{2}}} z_{o}
+		\right|
+\f]
+
+
+III. Point Cloud Hologram Generation with Fresnel Diffraction Integral
+
+Fresnel Diffraction Integral :
+
+\f[
+	u
+	\left(
+		x,y
+	\right)
+
+	=
+	\frac{z}{j \lambda}
+	\int_{}^{} {
+		\int_{}^{} {
+			u
+			\left(
+				\xi,\eta
+			\right)
+			\frac{ \exp
+					\left(
+						jkr_{01}
+					\right)
+				}
+			{r_{01}^{2}}
+		} d \xi
+	} d \eta
+
+	\cong
+	\frac{e^{jkz}}{j \lambda z}
+	\int_{}^{} {
+		\int_{}^{} {
+			u
+			\left(
+				\xi,\eta
+			\right)
+			\exp
+			\left\{
+				j
+				\frac{k}{2z}
+				\left[
+					\left(
+						x - \xi
+					\right)^{2}
+					+
+					\left(
+						y - \eta
+					\right)^{2}
+				\right]
+			\right\}
+		} d \xi
+	} d \eta
+\f]
+
+Impulse response
+
+\f[
+	h
+	\left(
+		x,y
+	\right)
+	\cong
+	\frac{e^{jkz}}{j \lambda z}
+	\exp
+	\left\{
+		j
+		\frac{k}{2z}
+		\left(
+			x^{2}
+			+
+			y^{2}
+		\right)
+	\right\}
+\f]
+
+
+Fresnel diffraction Anti-alliasing
+
+\f[
+	\begin{matrix}
+		\frac{1}{2\pi}
+		\left|
+			\frac{\partial \phi}{\partial x}
+		\right|
+		<
+		\frac{1}{2 p_{x}}
+	,\\
+		\frac{1}{2\pi}
+		\left|
+			\frac{\partial \phi}{\partial y}
+		\right|
+		<
+		\frac{1}{2 p_{y}}
+	\end{matrix}
+
+	\qquad \to \qquad
+
+	\begin{matrix}
+		x_{o}
+		-
+		\left|
+			\frac{\lambda z_{o}}{2 p_{x}}
+		\right|\
+
+		<\
+		x\
+		<\
+
+		x_{o}
+		+
+		\left|
+			\frac{\lambda z_{o}}{2 p_{x}}
+		\right|
+	,\\
+		y_{o}
+		-
+		\left|
+			\frac{\lambda z_{o}}{2 p_{y}}
+		\right|\
+
+		<\
+		y\
+		<\
+
+		y_{o}
+		+
+		\left|
+			\frac{\lambda z_{o}}{2 p_{y}}
+		\right|
+	\end{matrix}
+\f]
+
+*/
+//! @} pointcloud
+
+/**
+* @ingroup pointcloud
+* @brief Openholo Point Cloud based CGH generation
+* @author
+*/
 class GEN_DLL ophPointCloud : public ophGen
 {
 public:
@@ -91,48 +542,31 @@ protected:
 	virtual ~ophPointCloud(void);
 
 public:
-	/** \ingroup getter/setter */
 	inline void setScale(Real sx, Real sy, Real sz) { pc_config_.scale.v[0] = sx; pc_config_.scale.v[1] = sy; pc_config_.scale.v[2] = sz; }
-	/** \ingroup getter/setter */
 	inline void setOffsetDepth(Real offset_depth) { pc_config_.offset_depth = offset_depth; }
-	/** \ingroup getter/setter */
 	inline void setFilterShapeFlag(int8_t* fsf) { pc_config_.filter_shape_flag = fsf; }
-	/** \ingroup getter/setter */
 	inline void setFilterWidth(Real wx, Real wy) { pc_config_.filter_width.v[0] = wx; pc_config_.filter_width.v[1] = wy; }
-	/** \ingroup getter/setter */
 	inline void setFocalLength(Real lens_in, Real lens_out, Real lens_eye_piece) { pc_config_.focal_length_lens_in = lens_in; pc_config_.focal_length_lens_out = lens_out; pc_config_.focal_length_lens_eye_piece = lens_eye_piece; }
-	/** \ingroup getter/setter */
 	inline void setTiltAngle(Real ax, Real ay) { pc_config_.tilt_angle.v[0] = ax; pc_config_.tilt_angle.v[1] = ay; }
 
-	/** \ingroup getter/setter */
 	inline void getScale(vec3& scale) { scale = pc_config_.scale; }
-	/** \ingroup getter/setter */
 	inline Real getOffsetDepth(void) { return pc_config_.offset_depth; }
-	/** \ingroup getter/setter */
 	inline int8_t* getFilterShapeFlag(void) { return pc_config_.filter_shape_flag; }
-	/** \ingroup getter/setter */
 	inline void getFilterWidth(vec2& filterwidth) { filterwidth = pc_config_.filter_width; }
-	/** \ingroup getter/setter */
 	inline void getFocalLength(Real* lens_in, Real* lens_out, Real* lens_eye_piece) {
 		if (lens_in != nullptr) *lens_in = pc_config_.focal_length_lens_in;
 		if (lens_out != nullptr) *lens_out = pc_config_.focal_length_lens_out;
 		if (lens_eye_piece != nullptr) *lens_eye_piece = pc_config_.focal_length_lens_eye_piece;
 	}
-	/** \ingroup getter/setter */
 	inline void getTiltAngle(vec2& tiltangle) { tiltangle = pc_config_.tilt_angle; }
-	/** \ingroup getter/setter */
 	inline Real** getVertex(void) { return &pc_data_.vertex; }
-	/** \ingroup getter/setter */
 	inline Real** getColorPC(void) { return &pc_data_.color; }
-	/** \ingroup getter/setter */
 	inline Real** getPhasePC(void) { return &pc_data_.phase; }
-	/** \ingroup getter/setter */
 	inline void setPointCloudModel(Real* vertex, Real* color, Real *phase) {
 		pc_data_.vertex = vertex;
 		pc_data_.color = color;
 		pc_data_.phase = phase;
 	}
-	/** \ingroup getter/setter */
 	inline void getPointCloudModel(Real *vertex, Real *color, Real *phase) {
 		getModelLocation(vertex);
 		getModelColor(color);
@@ -140,8 +574,6 @@ public:
 	}
 
 	/**
-	\ingroup getter/setter
-	* @{
 	* @brief Directly Set Basic Data
 	*/
 	/**
@@ -168,7 +600,6 @@ public:
 	void setMode(bool is_CPU);
 
 	/**
-	\defgroup PointCloud_Load 
 	* @brief override
 	* @{
 	* @brief Import Point Cloud Data Base File : *.dat file.
@@ -182,7 +613,6 @@ public:
 	int loadPointCloud(const char* pc_file);
 
 	/**
-	\defgroup Import_Configfile
 	* @brief
 	* @{
 	* @brief Import Specification Config File(*.config) file
@@ -196,16 +626,12 @@ public:
 	* @brief Generate a hologram, main funtion.
 	* @return implement time (sec)
 	*/
-	Real generateHologram(uint diff_flag = PC_DIFF_RS_ENCODED);
+	Real generateHologram(uint diff_flag = PC_DIFF_RS);
 	void encodeHologram(vec2 band_limit = vec2(0.8, 0.5), vec2 spectrum_shift = vec2(0.0, 0.5));
 
 private:
 	/**
-	\defgroup PointCloud_Generation
-	* @{
 	* @brief Calculate Integral Fringe Pattern of 3D Point Cloud based Computer Generated Holography
-	*/
-	/**
 	* @param VertexArray Input 3D PointCloud Model Coordinate Array Data
 	* @param AmplitudeArray Input 3D PointCloud Model Amplitude Array Data
 	* @param dst Output Fringe Pattern
@@ -227,11 +653,7 @@ private:
 	/** @}	*/
 
 	/**
-	\defgroup PointCloud_Generation
-	* @{
 	* @brief GPGPU Accelation of genCghPointCloud() using nVidia CUDA
-	*/
-	/**
 	* @param VertexArray Input 3D PointCloud Model Coordinate Array Data
 	* @param AmplitudeArray Input 3D PointCloud Model Amplitude Array Data
 	* @param dst Output Fringe Pattern
