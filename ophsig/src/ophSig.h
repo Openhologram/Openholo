@@ -64,9 +64,10 @@ struct SIG_DLL ophSigConfig {
 	int cols;
 	float width;
 	float height;
-	double lambda;
+	double lambda[3];
 	float NA;
 	float z;
+	int color;
 };
 
 /**
@@ -120,7 +121,8 @@ public:
 	*/
 	bool save(const char *real, const char *imag, uint8_t bitpixel);
 	bool save(const char *real, uint8_t bitpixel);
-
+	int loadAsOhc(const char *fname);
+	int saveAsOhc(const char *fname);
 protected:
 
 	virtual ~ophSig(void) = default;
@@ -300,12 +302,13 @@ public:
 		- [2] E. N. Leith and J. Upatnieks, “Reconstructed wavefronts and communication theory,” J. Opt. Soc. Am. 52, 1123–1130 (1962). 16. 
 		- [3] E. N. Leith and J. Upatnieks, “Wavefront reconstruction with continuous-tone objects,” J. Opt. Soc. Am. 53, 1377–1381 (1963).
 		- [4] Y. S. Kim, T. Kim, T.-C. Poon, and J. T. Kim, “Three-dimensional display of a horizontal-parallax-only hologram,” Applied Optics Vol. 50, Issue 7, pp. B81-B87 (2011)
+	
 	*/
 	//! @} offaxis
 
 	/**
 	* @ingroup offaxis
-	* @brief Function for convert complex hologram to off-axis hologram
+	* @brief Function for Convert complex hologram to off-axis hologram
 	* @detail
 	* @return if works well return 0  or error occurs return -1
 	*/
@@ -412,11 +415,12 @@ public:
 		- [4] T. Kim, Y. S. Kim, W. S. Kim, and T.-C. Poon, “Algorithm for converting full-parallax holograms to horizontal parallax-only holograms,” Opt. Lett. 34, 1231–1233 (2009).
 		- [5] Y. S. Kim, T. Kim, T.-C. Poon, and J. T. Kim, “Three-dimensional display of a horizontal-parallax-only hologram,” Applied Optics Vol. 50, Issue 7, pp. B81-B87 (2011)
 		- [6] T.-C. Poon, T. Kim, G. Indebetouw, M. H. Wu, K. Shinoda, and Y. Suzuki, “Twin-image elimination experiments for three-dimensional images in optical scanning holography,” Opt. Lett. 25, 215 (2000).
+
 	*/
 	//! @} convHPO
 	/**
 	* @ingroup convHPO
-	* @brief Function for Convert complex hologram to horizontal parallax only hologram
+	* @brief Function for convert complex hologram to horizontal parallax only hologram
 	* @detail
 	* @return if works well return 0  or error occurs return -1
 	*/
@@ -493,6 +497,7 @@ public:
 	- [13] M. K. Kim “Full color natural light holographic camera” Opt. Express 21, No. 8, 9636-9642 (2013)
 	- [14] T. Tahara, Y. Ito, Y. Lee, P. Xia, J. Inoue, Y. Awatsuji, K. Nishio, S. Ura, T. Kubota, and O. Matoba “Multiwavelength parallel phase-shifting digital holography using angular multiplexing” Opt. Lett. 38, No. 15, 2789-2791 (2013)
 	- [15] J. Dohet-Eraly, C. Yourassowsky, and F. Dubois “Refocusing based on amplitude analysis in color digital holographic microscopy” Opt. Lett. 39, No. 5, 1109-1112 (2014)
+
 	*/
 	//! @} convCAC
 	/**
@@ -609,7 +614,7 @@ public:
 	/**
 	* @addtogroup getSF
 	//@{
-	* @detail	
+	* @detail
 	This module is related method which extraction of distance parameter using sharpness function maximization method.
 
 1. Introduction
@@ -634,6 +639,7 @@ public:
 	
 3. Reference
 	- [1] J. Brenner et al., "An Automated Microscope for Cytologic Research - A Preliminary Evaluation", Journal of Histochemistry and Cytochemistry, vol. 24, no. 1, pp. 100-111, 1976	
+
 	*/
 	//! @} getSF
 
@@ -667,6 +673,7 @@ protected:
 
 	ophSigConfig _cfgSig;
 	matrix<Complex<Real>> ComplexH[3];
+	Complex<Real>** complex_H;
 	float _angleX;
 	float _angleY;
 	float _redRate;
