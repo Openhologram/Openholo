@@ -318,7 +318,7 @@ void ophLF::waveCarry(Real carryingAngleX, Real carryingAngleY) {
 		for (int idxFx = -Nx / 2; idxFx < Nx / 2; idxFx++) {
 			fx[i] = idxFx*dfx;
 			fy[i] = idxFy*dfy;
-			fz[i] = sqrt((1 / context_.lambda)*(1 / context_.lambda) - fx[i] * fx[i] - fy[i] * fy[i]);
+			fz[i] = sqrt((1 / context_.wave_length[0])*(1 / context_.wave_length[0]) - fx[i] * fx[i] - fy[i] * fy[i]);
 
 			i++;
 		}
@@ -329,6 +329,11 @@ void ophLF::waveCarry(Real carryingAngleX, Real carryingAngleY) {
 	for (int i = 0; i < context_.pixel_number[_X] * context_.pixel_number[_Y]; i++) {
 		carrier[i][_RE] = 0;
 		carrier[i][_IM] = 0.01 * tan(carryingAngleX)*fx[i] + 0.01 * tan(carryingAngleY)*fy[i];
-		holo_gen[i] = holo_gen[i] * exp(carrier[i]);
+		(*complex_H)[i] = (*complex_H)[i] * exp(carrier[i]);
 	}
+
+	delete[] fx;
+	delete[] fy;
+	delete[] fz;
+	delete[] carrier;
 }

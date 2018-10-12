@@ -524,8 +524,8 @@ void Openholo::fftShift(int nx, int ny, Complex<Real>* input, Complex<Real>* out
 
 void Openholo::ophFree(void)
 {
-	if (complex_H) delete[] complex_H;
 	if ((*complex_H)) delete[](*complex_H);
+	if (complex_H) delete[] complex_H;
 	if (context_.wave_length) delete[] context_.wave_length;
 
 	delete OHC_encoder;

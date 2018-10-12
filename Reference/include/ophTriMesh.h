@@ -43,14 +43,6 @@
 //
 //M*/
 
-/**
-* @file		ophTriMesh.h
-* @brief	Openholo Triangular Mesh based CGH generation
-* @author	Yeon-Gyeong Ju, Jae-Hyeung Park
-* @data		2018-08
-* @version	0.0.1
-*/
-
 #ifndef __ophTriMesh_h
 #define __ophTriMesh_h
 
@@ -69,7 +61,66 @@ struct geometric {
 };
 
 /**
-* @brief	Openholo Triangular Mesh based CGH Generation Class
+* @addtogroup mesh
+//@{
+* @detail
+
+* @section Introduction
+
+Triangular mesh based CGH generates the complex field of 3D objects represented as a collection of the triangular meshes.
+The algorithm aggregates the angular spectrums of individual triangular meshes and then performs a Fourier transform to obtain the complex field for entire objects.
+
+![](images/mesh_fig3.png)
+
+The angular spectrum of the individual triangular mesh is obtained using the analytic formula of the Fourier transform of the reference triangular aperture, considering the geometrical relation between the hologram plane and the local mesh plane, and also between the local mesh and the reference triangular aperture.
+
+![](images/mesh_fig1.png)
+![](images/mesh_fig2.png)
+
+The phase distribution on the mesh is determined by the carrier wave is assumed to be a plane wave of a specfic direction in the code.
+The amplitude inside each mesh is determined by the surface shading model and it can be either linearly varying for the continuous shading or uniform for the flat shading.
+
+![continuous shading](images/mesh_ex_continuous.png)
+![flat shading](images/mesh_ex_flat.png)
+
+* @section Example
+
+@code
+#include "ophTriMesh.h"
+
+int main(void)
+{
+	ophTri* Hologram = new ophTri();
+
+	// Load
+	Hologram->readMeshConfig("config/TestSpecMesh.xml");		// Read the Mesh hologram configuration file
+	Hologram->loadMeshData("source/mesh_teapot.ply","ply");		// Read the Meshed object data
+	Hologram->objScaleShift();					// Object scaling and shifting
+
+	// Generate
+	Hologram->generateMeshHologram(Hologram->SHADING_FLAT);		// Generate the hologram
+		/// Put the shading effect type
+
+	// Save as Complex Field Data
+	Hologram->saveAsOhc("result/Mesh_complexField.ohc");		// Save the hologram complex field data
+
+	// Encode
+	Hologram->encoding(Hologram->ENCODE_SIMPLENI);		// Encode the hologram
+
+	// Save as Encoded Image
+	Hologram->normalizeEncoded();		// Normalize the encoded hologram to generate image file
+	ivec2 encode_size = Hologram->getEncodeSize();		// Encoded hologram size
+	Hologram->save("result/Mesh_0.1m_ni_-0.3deg.bmp", 8, nullptr, encode_size[_X], encode_size[_Y]);		// Save the encoded hologram image
+}
+@endcode
+
+*/
+//! @} mesh
+
+/**
+* @ingroup mesh
+* @brief Openholo Triangular Mesh based CGH generation
+* @author Yeon-Gyeong Ju, Jae-Hyeung Park
 */
 class GEN_DLL ophTri : public ophGen
 {
@@ -91,55 +142,32 @@ private:
 	const char* meshDataFileName;
 
 private:
-	/**
-	* @param	Real*				triMeshArray		Original triangular mesh array (N*9)
-	* @param	Complex<Real>*		angularSpectrum		Angular spectrum of the hologram
-	* @param	OphMeshData*		meshData			OphMeshData type data structure pointer
-	*/
 
-	Real* triMeshArray;
-	Complex<Real>* angularSpectrum;
-	OphMeshData* meshData;
+	Real* triMeshArray;						/// Original triangular mesh array (N*9)
+	Complex<Real>* angularSpectrum;			/// Angular spectrum of the hologram
+	OphMeshData* meshData;					/// OphMeshData type data structure pointer
 
 private:
-	/**
-	* @param	Real	objSize				Object maximum of width and height / unit :[m]
-	* @param	Real	objShift			Object shift value / Data structure - [shiftX, shiftY, shiftZ] / unit : [m]
-	* @param	Real	carrierWave[3]		Carrier wave direction / default : {0, 0, 1}
-	* @param	vec3	illumination		Position of the light source (for shading effect) / No-illumination : {0, 0, 0}
-	* @param	int		SHADING_TYPE		SHADING_FLAT, SHADING_CONTINUOUS
-	*/
 
-	Real objSize;
-	Real objShift[3];
+	Real objSize;							/// Object maximum of width and height / unit :[m]
+	Real objShift[3];						/// Object shift value / Data structure - [shiftX, shiftY, shiftZ] / unit : [m]
 
-	Real carrierWave[3] = { 0,0,1 };
+	Real carrierWave[3] = { 0,0,1 };		/// Carrier wave direction / default : {0, 0, 1}
 
-	vec3 illumination;
-	int SHADING_TYPE;
+	vec3 illumination;						/// Position of the light source (for shading effect) / No-illumination : {0, 0, 0}
+	int SHADING_TYPE;						/// SHADING_FLAT, SHADING_CONTINUOUS
 
 public:
-	/** \ingroup */
 	void setObjSize(Real in) { objSize = in; }
-	/** \ingroup */
 	void setObjShift(Real in[]) { objShift[_X] = in[_X]; objShift[_Y] = in[_Y]; objShift[_Z] = in[_Z]; }
-	/** \ingroup */
 	void setObjShift(vector<Real> in) { objShift[_X] = in[_X]; objShift[_Y] = in[_Y]; objShift[_Z] = in[_Z]; }
-	/** \ingroup */
 	void setCarrierWave(Real in1, Real in2, Real in3) { carrierWave[_X] = in1; carrierWave[_Y] = in2; carrierWave[_Z] = in3; }
-	/** \ingroup */
 	void setIllumination(vec3 in) { illumination = in; }
-	/** \ingroup */
 	void setIllumination(Real inx, Real iny, Real inz) { illumination = { inx, iny, inz }; }
-	/** \ingroup */
 	void setShadingType(int in) { SHADING_TYPE = in; }
-	/** \ingroup */
 	ulonglong getNumMesh() { return meshData->n_faces; }
-	/** \ingroup */
 	Real* getMeshData() { return triMeshArray; }
-	/** \ingroup */
 	Complex<Real>* getAngularSpectrum() { return angularSpectrum; }
-	/** \ingroup */
 	Real* getScaledMeshData() {	return scaledMeshData; }
 
 public:
@@ -154,6 +182,7 @@ public:
 	* @return	objShift
 	*/
 	int readMeshConfig(const char* mesh_config);
+
 	/**
 	* @brief	Mesh data load
 	* @details	Text file data structure : N*9 / Each row = [x1 y1 z1 x2 y2 z2 x3 y3 z3]
@@ -175,6 +204,7 @@ public:
 	void objScaleShift(Real objSize_, Real objShift_[]);
 
 	enum SHADING_FLAG { SHADING_FLAT, SHADING_CONTINUOUS };
+
 	/**
 	* @brief	Hologram generation
 	* @param	SHADING_FLAG : SHADING_FLAT, SHADING_CONTINUOUS
@@ -191,11 +221,10 @@ public:
 	void waveCarry(Real carryingAngleX, Real carryingAngleY);
 
 private:
-	/**
-	* @brief	inner functions
-	* @details	not used for the users
-	*/
-
+	
+	// Inner functions
+	/// not used for users
+	
 	void initializeAS();
 	void objNormCenter();
 	uint checkValidity(Real* mesh, vec3 no);
@@ -211,19 +240,14 @@ private:
 
 	uint loadMeshText(const char* fileName);
 private:
-	/**
-	* @param	Real*	normalizedMeshData	Normalized mesh array / Data structure : N*9
-	* @param	Real*	scaledMeshData		Scaled and shifted mesh array / Data structure : N*9
-	*/
 
-	Real* normalizedMeshData;
-	Real* scaledMeshData;
+	Real* normalizedMeshData;				/// Normalized mesh array / Data structure : N*9
+	Real* scaledMeshData;					/// Scaled and shifted mesh array / Data structure : N*9
 
 private:
-	/**
-	* @brief	inner global parameters
-	* @details	not considered for the users
-	*/
+
+	//	Inner global parameters
+	///	do not need to consider to users
 
 	Real refTri[9] = { 0,0,0,1,1,0,1,0,0 };
 	Real* fx;
@@ -234,10 +258,9 @@ private:
 	vec3* nv;
 
 private:
-	/**
-	* @brief	inner local parameters
-	* @details	not considered for the users
-	*/
+
+	//	Inner local parameters
+	///	do not need to consider to users
 
 	vec3 n;
 	Real shadingFactor;

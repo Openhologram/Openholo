@@ -75,7 +75,6 @@ void ophGen::initialize(void)
 	int n_y = context_.pixel_number[_Y];
 
 	// Memory Location for Result Image
-	if ((*complex_H) != nullptr) delete[] (*complex_H);
 	complex_H[0] = new oph::Complex<Real>[n_x * n_y];
 	memset((*complex_H), 0, sizeof(Complex<Real>) * n_x * n_y);
 
