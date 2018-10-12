@@ -1,0 +1,54 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="_1_Waveaberration">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="_2_Cascaded  Propagation">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="_3_Spatial Partial Coherence">
+      <UniqueIdentifier>{b155f6a9-bcd5-421a-a29d-a4f34775eb78}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="_4_Temporal Partial Cohrence">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="_ophDis">
+      <UniqueIdentifier>{321bef61-be16-45ce-91ca-51d6ced06298}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utilities">
+      <UniqueIdentifier>{132ddd1c-b1e0-4a35-a113-d1174dd80d07}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\ophCascadedPropagation.cpp">
+      <Filter>_2_Cascaded  Propagation</Filter>
+    </ClCompile>
+    <ClCompile Include="src\tinyxml2.cpp">
+      <Filter>Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ophDis.cpp">
+      <Filter>_ophDis</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ophWaveAberration.cpp">
+      <Filter>_1_Waveaberration</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\ophCascadedPropagation.h">
+      <Filter>_2_Cascaded  Propagation</Filter>
+    </ClInclude>
+    <ClInclude Include="src\tinyxml2.h">
+      <Filter>Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ophDis.h">
+      <Filter>_ophDis</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ophWaveAberration.h">
+      <Filter>_1_Waveaberration</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

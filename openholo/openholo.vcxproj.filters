@@ -16,6 +16,9 @@
     <Filter Include="__utilities\cpp">
       <UniqueIdentifier>{09329c4c-6be0-4bf8-a59c-6d60a726f8a0}</UniqueIdentifier>
     </Filter>
+    <Filter Include="_2_ImgFmt">
+      <UniqueIdentifier>{0f224b56-4c5b-41f9-9747-64506ed8197e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Base.h">
@@ -66,6 +69,15 @@
     <ClInclude Include="src\PLYparser.h">
       <Filter>__utilities\header</Filter>
     </ClInclude>
+    <ClInclude Include="src\ImgCodecDefine.h">
+      <Filter>_2_ImgFmt</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ImgCodecOhc.h">
+      <Filter>_2_ImgFmt</Filter>
+    </ClInclude>
+    <ClInclude Include="src\comment.h">
+      <Filter>_1_Openholo</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Openholo.cpp">
@@ -82,6 +94,9 @@
     </ClCompile>
     <ClCompile Include="src\PLYparser.cpp">
       <Filter>__utilities\cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ImgCodecOhc.cpp">
+      <Filter>_2_ImgFmt</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
