@@ -339,36 +339,35 @@ void ophSig::linInterp(vector<T> &X, matrix<Complex<T>> &src, vector<T> &Xq, mat
 	}
 
 }
+
 int ophSig::loadAsOhc(const char *fname)
 {
 	std::string fullname = fname;
 	if (checkExtension(fname, ".ohc") == 0) fullname.append(".ohc");
 	OHC_decoder->setFileName(fullname.c_str());
-	
-	if (_cfgSig.color == 0)
+
+	if (!OHC_decoder->load()) return -1;
+	vector<Real> wavelengthArray;
+	OHC_decoder->getWavelength(wavelengthArray);
+
+	if (_cfgSig.colorType == 0)
 	{
-		if (!OHC_decoder->load()) return -1;
-		vector<Real> wavelengthArray;
-		OHC_decoder->getWavelength(wavelengthArray);
-		_cfgSig.lambda[0] = wavelengthArray[0];
+		
+		_cfgSig.lambda = wavelengthArray[0];
 
 		ivec2 pixel_number;
 		pixel_number = OHC_decoder->getNumOfPixel();
 		_cfgSig.rows = pixel_number[0];
 		_cfgSig.cols = pixel_number[1];
+
 		OHC_decoder->getComplexFieldData(&complex_H);
 		Buffer2Field(complex_H[0], ComplexH[0], pixel_number);
 	}
-	else if (_cfgSig.color == 1)
+	else if (_cfgSig.colorType == 1)
 	{
-		if (!OHC_decoder->load()) return -1;
-		vector<Real> wavelengthArray;
-		OHC_decoder->getWavelength(wavelengthArray);
-		
-		for (int i = 0; i < 3; i++)
+		for (int i = 0; i < wavelengthArray.size(); i++)
 		{
-			_cfgSig.lambda[2-i] = wavelengthArray[i];
-			
+			_cfgSig.wavelength[2 - i] = wavelengthArray[i];
 		}
 		ivec2 pixel_number;
 		pixel_number = OHC_decoder->getNumOfPixel();
@@ -376,9 +375,9 @@ int ophSig::loadAsOhc(const char *fname)
 		_cfgSig.cols = pixel_number[1];
 
 		OHC_decoder->getComplexFieldData(&complex_H);
-		for (int i = 0; i < 3; i++)
+		for (int i = 0; i < wavelengthArray.size(); i++)
 		{
-			Buffer2Field(complex_H[i], ComplexH[2-i], pixel_number);
+			Buffer2Field(complex_H[i], ComplexH[2 - i], pixel_number);
 		}
 	}
 	return 0;
@@ -387,44 +386,35 @@ int ophSig::loadAsOhc(const char *fname)
 
 int ophSig::saveAsOhc(const char *fname)
 {
-	if (_cfgSig.color == 0)
-	{
-		std::string fullname = fname;
-		if (checkExtension(fname, ".ohc") == 0) fullname.append(".ohc");
-		OHC_encoder->setFileName(fullname.c_str());
+	std::string fullname = fname;
+	if (checkExtension(fname, ".ohc") == 0) fullname.append(".ohc");
+	OHC_encoder->setFileName(fullname.c_str());
 
-		OHC_encoder->setNumOfPixel(_cfgSig.rows, _cfgSig.cols);
+	OHC_encoder->setNumOfPixel(_cfgSig.rows, _cfgSig.cols);
+
+	OHC_encoder->setFieldEncoding(FldStore::Directly, FldCodeType::RI);
+	if (_cfgSig.colorType == 0)
+	{
 		OHC_encoder->setNumOfWavlen(1);
-		OHC_encoder->setFieldEncoding(FldStore::Directly, FldCodeType::RI);
-		OHC_encoder->setWavelength(_cfgSig.lambda[0], LenUnit::nm);
+		OHC_encoder->setWavelength(_cfgSig.lambda, LenUnit::nm);
 		*&complex_H = new Complex<Real>*[1];
 		Field2Buffer(ComplexH[0], complex_H);
 		OHC_encoder->addComplexFieldData(complex_H[0]);
-		
-		if (!OHC_encoder->save()) return -1;
-		
 	}
-	else if (_cfgSig.color == 1)
+	else if (_cfgSig.colorType == 1)
 	{
-		std::string fullname = fname;
-		if (checkExtension(fname, ".ohc") == 0) fullname.append(".ohc");
-		OHC_encoder->setFileName(fullname.c_str());
-
-		OHC_encoder->setNumOfPixel(_cfgSig.rows, _cfgSig.cols);
 		OHC_encoder->setNumOfWavlen(3);
-		OHC_encoder->setFieldEncoding(FldStore::Directly, FldCodeType::RI);
-		OHC_encoder->setWavelength(_cfgSig.lambda[0], LenUnit::nm);
+		OHC_encoder->setWavelength(_cfgSig.wavelength[0], LenUnit::nm);
 		*&complex_H = new Complex<Real>*[3];
 		for (int i = 0; i < 3; i++)
 		{
-			Field2Buffer(ComplexH[2-i], &complex_H[i]);
+			Field2Buffer(ComplexH[2 - i], &complex_H[i]);
 			OHC_encoder->addComplexFieldData(complex_H[i]);
 		}
-		
-
-		if (!OHC_encoder->save()) return -1;
-
 	}
+
+	if (!OHC_encoder->save()) return -1;
+
 	return 1;
 }
 
@@ -638,8 +628,6 @@ bool ophSig::load(const char *real, const char *imag, uint8_t bitpixel)
 
 	return true;
 }
-
-
 bool ophSig::save(const char *real, const char *imag, uint8_t bitpixel)
 {
 	string realname = real;
@@ -1231,7 +1219,7 @@ bool ophSig::sigConvertOffaxis() {
 		for (int j = 0; j < _cfgSig.cols; j++)
 		{
 			expSource(i, j)._Val[_RE] = 0;
-			expSource(i, j)._Val[_IM] = ((2 * M_PI) / _cfgSig.lambda[0])*((x(i, j) *sin(_angleX)) + (y(i, j) *sin(_angleY)));
+			expSource(i, j)._Val[_IM] = ((2 * M_PI) / _cfgSig.lambda)*((x(i, j) *sin(_angleX)) + (y(i, j) *sin(_angleY)));
 		}
 	}
 	expMat(expSource, exp);
@@ -1287,7 +1275,7 @@ bool ophSig::sigConvertHPO() {
 	}
 
 	meshgrid(X, Y, x, y);
-	double sigmaf = (_cfgSig.z*_cfgSig.lambda[0]) / (4 * M_PI);
+	double sigmaf = (_cfgSig.z*_cfgSig.lambda) / (4 * M_PI);
 	for (int i = 0; i < _cfgSig.rows; i++)
 	{
 		for (int j = 0; j < _cfgSig.cols; j++)
@@ -1302,7 +1290,7 @@ bool ophSig::sigConvertHPO() {
 	{
 		for (int j = 0; j < _cfgSig.cols; j++)
 		{
-			expSource(i, j)._Val[_RE] = ((-M_PI*((_cfgSig.lambda[0] / (2 * M_PI*NA_g))*(_cfgSig.lambda[0] / (2 * M_PI*NA_g))))*((y(i, j)*y(i, j))));
+			expSource(i, j)._Val[_RE] = ((-M_PI*((_cfgSig.lambda / (2 * M_PI*NA_g))*(_cfgSig.lambda / (2 * M_PI*NA_g))))*((y(i, j)*y(i, j))));
 			expSource(i, j)._Val[_IM] = 0;
 		}
 	}
@@ -1387,9 +1375,11 @@ bool ophSig::readConfig(const char* fname)
 	(xml_node->FirstChildElement("cols"))->QueryIntText(&_cfgSig.cols);
 	(xml_node->FirstChildElement("width"))->QueryFloatText(&_cfgSig.width);
 	(xml_node->FirstChildElement("height"))->QueryFloatText(&_cfgSig.height);
-	(xml_node->FirstChildElement("bluewavelength"))->QueryDoubleText(&_cfgSig.lambda[0]);
-	(xml_node->FirstChildElement("greenwavelength"))->QueryDoubleText(&_cfgSig.lambda[1]);
-	(xml_node->FirstChildElement("bluewavelength"))->QueryDoubleText(&_cfgSig.lambda[2]);
+	(xml_node->FirstChildElement("wavelength"))->QueryDoubleText(&_cfgSig.lambda);
+	(xml_node->FirstChildElement("bluewavelength"))->QueryDoubleText(&_cfgSig.wavelength[0]);
+	(xml_node->FirstChildElement("greenwavelength"))->QueryDoubleText(&_cfgSig.wavelength[1]);
+	(xml_node->FirstChildElement("redwavelength"))->QueryDoubleText(&_cfgSig.wavelength[2]);
+	(xml_node->FirstChildElement("colorType"))->QueryIntText(&_cfgSig.colorType);
 	(xml_node->FirstChildElement("NA"))->QueryFloatText(&_cfgSig.NA);
 	(xml_node->FirstChildElement("z"))->QueryFloatText(&_cfgSig.z);
 	(xml_node->FirstChildElement("angle_X"))->QueryFloatText(&_angleX);
@@ -1419,8 +1409,8 @@ bool ophSig::propagationHolo(float depth) {
 
 	FFZP2 * 0;
 
-	sigma = M_PI / (_cfgSig.lambda[0] * depth);
-	sigmaf = (depth * _cfgSig.lambda[0]) / (4 * M_PI);
+	sigma = M_PI / (_cfgSig.lambda * depth);
+	sigmaf = (depth * _cfgSig.lambda) / (4 * M_PI);
 
 	int row, col;
 	row = ComplexH[0].size[_X];
@@ -1490,8 +1480,8 @@ matrix<Complex<Real>> ophSig::propagationHolo(matrix<Complex<Real>> complexH, fl
 
 	FFZP2 * 0;
 
-	sigma = M_PI / (_cfgSig.lambda[0] * depth);
-	sigmaf = (depth * _cfgSig.lambda[0]) / (4 * M_PI);
+	sigma = M_PI / (_cfgSig.lambda * depth);
+	sigmaf = (depth * _cfgSig.lambda) / (4 * M_PI);
 
 	int row, col;
 	row = complexH.size[_X];
@@ -1588,7 +1578,7 @@ double ophSig::sigGetParamAT() {
 	{
 		for (int j = 0; j < temp.size[_Y]; j++)
 		{
-			temp(i, j) = -M_PI * (_cfgSig.lambda[0] / (2 * M_PI * NA_g)) * (_cfgSig.lambda[0] / (2 * M_PI * NA_g)) * (kx(i, j) * kx(i, j) + ky(i, j) * ky(i, j));
+			temp(i, j) = -M_PI * (_cfgSig.lambda / (2 * M_PI * NA_g)) * (_cfgSig.lambda / (2 * M_PI * NA_g)) * (kx(i, j) * kx(i, j) + ky(i, j) * ky(i, j));
 		}
 	}
 
