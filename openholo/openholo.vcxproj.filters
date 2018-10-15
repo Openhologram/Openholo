@@ -1,0 +1,102 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="__Header Files">
+      <UniqueIdentifier>{33b5616a-340a-4262-9499-faf20a9d50b1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="_1_Openholo">
+      <UniqueIdentifier>{9079d193-651a-4406-97ae-72d39b9b4c3e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="__utilities">
+      <UniqueIdentifier>{fc5a12bc-5422-4c35-8143-6312e52f5fd0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="__utilities\header">
+      <UniqueIdentifier>{fce53f13-010a-44ee-8889-ed8ef617be4b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="__utilities\cpp">
+      <UniqueIdentifier>{09329c4c-6be0-4bf8-a59c-6d60a726f8a0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="_2_ImgFmt">
+      <UniqueIdentifier>{0f224b56-4c5b-41f9-9747-64506ed8197e}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\Base.h">
+      <Filter>__Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\define.h">
+      <Filter>__Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\enumerator.h">
+      <Filter>__Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\struct.h">
+      <Filter>__Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Openholo.h">
+      <Filter>_1_Openholo</Filter>
+    </ClInclude>
+    <ClInclude Include="src\typedef.h">
+      <Filter>__Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include.h">
+      <Filter>__Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\complex.h">
+      <Filter>__utilities\header</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ivec.h">
+      <Filter>__utilities\header</Filter>
+    </ClInclude>
+    <ClInclude Include="src\sys.h">
+      <Filter>__utilities\header</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vec.h">
+      <Filter>__utilities\header</Filter>
+    </ClInclude>
+    <ClInclude Include="src\function.h">
+      <Filter>__Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\mat.h">
+      <Filter>__utilities\header</Filter>
+    </ClInclude>
+    <ClInclude Include="src\fftw3.h">
+      <Filter>__utilities\header</Filter>
+    </ClInclude>
+    <ClInclude Include="src\epsilon.h">
+      <Filter>__utilities\header</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PLYparser.h">
+      <Filter>__utilities\header</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ImgCodecDefine.h">
+      <Filter>_2_ImgFmt</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ImgCodecOhc.h">
+      <Filter>_2_ImgFmt</Filter>
+    </ClInclude>
+    <ClInclude Include="src\comment.h">
+      <Filter>_1_Openholo</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Openholo.cpp">
+      <Filter>_1_Openholo</Filter>
+    </ClCompile>
+    <ClCompile Include="src\sys.cpp">
+      <Filter>__utilities\cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="src\vec.cpp">
+      <Filter>__utilities\cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="src\epsilon.cpp">
+      <Filter>__utilities\cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="src\PLYparser.cpp">
+      <Filter>__utilities\cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ImgCodecOhc.cpp">
+      <Filter>_2_ImgFmt</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

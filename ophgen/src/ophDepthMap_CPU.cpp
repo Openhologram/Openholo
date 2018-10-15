@@ -1,3 +1,47 @@
+/*M///////////////////////////////////////////////////////////////////////////////////////
+//
+//  IMPORTANT: READ BEFORE DOWNLOADING, COPYING, INSTALLING OR USING.
+//
+//  By downloading, copying, installing or using the software you agree to this license.
+//  If you do not agree to this license, do not download, install, copy or use the software.
+//
+//
+//                           License Agreement
+//                For Open Source Digital Holographic Library
+//
+// Openholo library is free software;
+// you can redistribute it and/or modify it under the terms of the BSD 2-Clause license.
+//
+// Copyright (C) 2017-2024, Korea Electronics Technology Institute. All rights reserved.
+// E-mail : contact.openholo@gmail.com
+// Web : http://www.openholo.org
+//
+// Redistribution and use in source and binary forms, with or without modification,
+// are permitted provided that the following conditions are met:
+//
+//  1. Redistribution's of source code must retain the above copyright notice,
+//     this list of conditions and the following disclaimer.
+//
+//  2. Redistribution's in binary form must reproduce the above copyright notice,
+//     this list of conditions and the following disclaimer in the documentation
+//     and/or other materials provided with the distribution.
+//
+// This software is provided by the copyright holders and contributors "as is" and
+// any express or implied warranties, including, but not limited to, the implied
+// warranties of merchantability and fitness for a particular purpose are disclaimed.
+// In no event shall the copyright holder or contributors be liable for any direct,
+// indirect, incidental, special, exemplary, or consequential damages
+// (including, but not limited to, procurement of substitute goods or services;
+// loss of use, data, or profits; or business interruption) however caused
+// and on any theory of liability, whether in contract, strict liability,
+// or tort (including negligence or otherwise) arising in any way out of
+// the use of this software, even if advised of the possibility of such damage.
+//
+// This software contains opensource software released under GNU Generic Public License,
+// NVDIA Software License Agreement, or CUDA supplement to Software License Agreement.
+// Check whether software you use contains licensed software.
+//
+//M*/
 
 #include	"ophDepthMap.h"
 #include    "sys.h"
@@ -40,23 +84,23 @@ bool ophDepthMap::prepareInputdataCPU(uchar* imgptr, uchar* dimgptr)
 	int pnx = context_.pixel_number[0];
 	int pny = context_.pixel_number[1];
 
-	memset(img_src, 0, sizeof(double)*pnx * pny);
-	memset(dmap_src, 0, sizeof(double)*pnx * pny);
+	memset(img_src, 0, sizeof(Real)*pnx * pny);
+	memset(dmap_src, 0, sizeof(Real)*pnx * pny);
 	memset(alpha_map, 0, sizeof(int)*pnx * pny);
-	memset(depth_index, 0, sizeof(double)*pnx * pny);
-	memset(dmap, 0, sizeof(double)*pnx * pny);
+	memset(depth_index, 0, sizeof(Real)*pnx * pny);
+	memset(dmap, 0, sizeof(Real)*pnx * pny);
 
 	int k = 0;
 #pragma omp parallel for private(k)
 	for (k = 0; k < pnx*pny; k++)
 	{
-		img_src[k] = double(imgptr[k]) / 255.0;
-		dmap_src[k] = double(dimgptr[k]) / 255.0;
+		img_src[k] = Real(imgptr[k]) / 255.0;
+		dmap_src[k] = Real(dimgptr[k]) / 255.0;
 		alpha_map[k] = (imgptr[k] > 0 ? 1 : 0);
 		dmap[k] = (1 - dmap_src[k])*(dm_config_.far_depthmap - dm_config_.near_depthmap) + dm_config_.near_depthmap;
 
-		if (dm_params_.FLAG_CHANGE_DEPTH_QUANTIZATION == 0)
-			depth_index[k] = dm_params_.DEFAULT_DEPTH_QUANTIZATION - double(dimgptr[k]);
+		if (dm_config_.FLAG_CHANGE_DEPTH_QUANTIZATION == 0)
+			depth_index[k] = dm_config_.DEFAULT_DEPTH_QUANTIZATION - Real(dimgptr[k]);
 	}
 }
 
@@ -70,7 +114,7 @@ void ophDepthMap::changeDepthQuanCPU()
 	int pnx = context_.pixel_number[0];
 	int pny = context_.pixel_number[1];
 
-	double temp_depth, d1, d2;
+	Real temp_depth, d1, d2;
 	int tdepth;
 
 	for (uint dtr = 0; dtr < dm_config_.num_of_depth; dtr++)
@@ -112,7 +156,7 @@ void ophDepthMap::calcHoloCPU()
 	int pnx = context_.pixel_number[0];
 	int pny = context_.pixel_number[1];
 
-	memset(holo_gen, 0.0, sizeof(Complex<Real>)*pnx*pny);
+	memset((*complex_H), 0.0, sizeof(Complex<Real>)*pnx*pny);
 	size_t depth_sz = dm_config_.render_depth.size();
 
 	Complex<Real> *in = nullptr, *out = nullptr;
@@ -123,12 +167,12 @@ void ophDepthMap::calcHoloCPU()
 	for (p = 0; p < depth_sz; ++p)
 	{
 		int dtr = dm_config_.render_depth[p];
-		double temp_depth = dlevel_transform[dtr - 1];
+		Real temp_depth = dlevel_transform[dtr - 1];
 
 		Complex<Real>* u_o = (Complex<Real>*)malloc(sizeof(Complex<Real>)*pnx*pny);
 		memset(u_o, 0.0, sizeof(Complex<Real>)*pnx*pny);
 
-		double sum = 0.0;
+		Real sum = 0.0;
 		for (int i = 0; i < pnx * pny; i++)
 		{
 			u_o[i]._Val[_RE] = img_src[i] * alpha_map[i] * (depth_index[i] == dtr ? 1.0 : 0.0);
@@ -140,7 +184,7 @@ void ophDepthMap::calcHoloCPU()
 			LOG("Depth: %d of %d, z = %f mm\n", dtr, dm_config_.num_of_depth, -temp_depth * 1000);
 
 			Complex<Real> rand_phase_val;
-			getRandPhaseValue(rand_phase_val, dm_params_.RANDOM_PHASE);
+			getRandPhaseValue(rand_phase_val, dm_config_.RANDOM_PHASE);
 
 			Complex<Real> carrier_phase_delay(0, context_.k* temp_depth);
 			carrier_phase_delay.exp();
@@ -148,55 +192,14 @@ void ophDepthMap::calcHoloCPU()
 			for (int i = 0; i < pnx * pny; i++)
 				u_o[i] = u_o[i] * rand_phase_val * carrier_phase_delay;
 
-			if (dm_params_.Propagation_Method_ == 0) {
-				Openholo::fftwShift(u_o, u_o, pnx, pny, OPH_FORWARD, false);
-				propagationAngularSpectrumCPU(u_o, -temp_depth);
-			}
+			//if (dm_params_.Propagation_Method_ == 0) {
+			Openholo::fftwShift(u_o, u_o, pnx, pny, OPH_FORWARD, false);
+			propagationAngularSpectrum(u_o, -temp_depth);
+			//}
 		}
 		else
 			LOG("Depth: %d of %d : Nothing here\n", dtr, dm_config_.num_of_depth);
 
 		free(u_o);
 	}
-}
-
-/**
-* @brief Angular spectrum propagation method for CPU implementation.
-* @details The propagation results of all depth levels are accumulated in the variable 'U_complex_'.
-* @param input_u : each depth plane data.
-* @param propagation_dist : the distance from the object to the hologram plane.
-* @see Calc_Holo_by_Depth, Calc_Holo_CPU, fftwShift
-*/
-void ophDepthMap::propagationAngularSpectrumCPU(Complex<Real>* input_u, double propagation_dist)
-{
-	int pnx = context_.pixel_number[0];
-	int pny = context_.pixel_number[1];
-	double ppx = context_.pixel_pitch[0];
-	double ppy = context_.pixel_pitch[1];
-	double ssx = context_.ss[0];
-	double ssy = context_.ss[1];
-	double lambda = context_.lambda;
-
-	for (int i = 0; i < pnx * pny; i++)
-	{
-		double x = i % pnx;
-		double y = i / pnx;
-
-		double fxx = (-1.0 / (2.0*ppx)) + (1.0 / ssx) * x;
-		double fyy = (1.0 / (2.0*ppy)) - (1.0 / ssy) - (1.0 / ssy) * y;
-
-		double sval = sqrt(1 - (lambda*fxx)*(lambda*fxx) - (lambda*fyy)*(lambda*fyy));
-		sval *= context_.k * propagation_dist;
-		Complex<Real> kernel(0, sval);
-		kernel.exp();
-
-		int prop_mask = ((fxx * fxx + fyy * fyy) < (context_.k *context_.k)) ? 1 : 0;
-
-		Complex<Real> u_frequency;
-		if (prop_mask == 1)
-			u_frequency = kernel * input_u[i];
-
-		holo_gen[i] = holo_gen[i] + u_frequency;
-	}
-
 }

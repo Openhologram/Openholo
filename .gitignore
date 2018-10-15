@@ -290,3 +290,5 @@ __pycache__/
 *.lib
 /ophgen/src/src.zip
 /Reference/include/PLYparser.h
+Reference/dll/ophsig.dll
+Reference/lib/ophsig.lib

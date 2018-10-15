@@ -1,19 +1,64 @@
+/*M///////////////////////////////////////////////////////////////////////////////////////
+//
+//  IMPORTANT: READ BEFORE DOWNLOADING, COPYING, INSTALLING OR USING.
+//
+//  By downloading, copying, installing or using the software you agree to this license.
+//  If you do not agree to this license, do not download, install, copy or use the software.
+//
+//
+//                           License Agreement
+//                For Open Source Digital Holographic Library
+//
+// Openholo library is free software;
+// you can redistribute it and/or modify it under the terms of the BSD 2-Clause license.
+//
+// Copyright (C) 2017-2024, Korea Electronics Technology Institute. All rights reserved.
+// E-mail : contact.openholo@gmail.com
+// Web : http://www.openholo.org
+//
+// Redistribution and use in source and binary forms, with or without modification,
+// are permitted provided that the following conditions are met:
+//
+//  1. Redistribution's of source code must retain the above copyright notice,
+//     this list of conditions and the following disclaimer.
+//
+//  2. Redistribution's in binary form must reproduce the above copyright notice,
+//     this list of conditions and the following disclaimer in the documentation
+//     and/or other materials provided with the distribution.
+//
+// This software is provided by the copyright holders and contributors "as is" and
+// any express or implied warranties, including, but not limited to, the implied
+// warranties of merchantability and fitness for a particular purpose are disclaimed.
+// In no event shall the copyright holder or contributors be liable for any direct,
+// indirect, incidental, special, exemplary, or consequential damages
+// (including, but not limited to, procurement of substitute goods or services;
+// loss of use, data, or profits; or business interruption) however caused
+// and on any theory of liability, whether in contract, strict liability,
+// or tort (including negligence or otherwise) arising in any way out of
+// the use of this software, even if advised of the possibility of such damage.
+//
+// This software contains opensource software released under GNU Generic Public License,
+// NVDIA Software License Agreement, or CUDA supplement to Software License Agreement.
+// Check whether software you use contains licensed software.
+//
+//M*/
+
 #include "ophwrp.h"
 
-ophWRP::ophWRP(void) :ophGen()
+ophWRP::ophWRP(void) 
+	: ophGen()
 {
 	n_points = -1;
 	p_wrp_ = nullptr;
 }
 
-/*ophWRP::~ophWRP(void)
+ophWRP::~ophWRP(void)
 {
-}*/
+}
 
 
 int ophWRP::loadPointCloud(const char* pc_file)
 {
-
 	n_points = ophGen::loadPointCloud(pc_file, &obj_);
 
 	return n_points;
@@ -28,21 +73,19 @@ bool ophWRP::readConfig(const char* cfg_file)
 	return true;
 }
 
-void ophWRP::encodefield(void)
+void ophWRP::encodeHologram(void)
 {
-
 	const int size = context_.pixel_number.v[_X] * context_.pixel_number.v[_Y];
 
 	/*	initialize	*/
 	int encode_size = size;
 	if (holo_encoded != nullptr) delete[] holo_encoded;
-	holo_encoded = new double[size];
+	holo_encoded = new Real[size];
 	memset(holo_encoded, 0, sizeof(double) * size);
 
 	if (holo_normalized != nullptr) delete[] holo_normalized;
 	holo_normalized = new uchar[size];
 	memset(holo_normalized, 0, sizeof(uchar) * size);
-
 
 	int pnx = context_.pixel_number[_X];
 	int pny = context_.pixel_number[_Y];
@@ -50,7 +93,7 @@ void ophWRP::encodefield(void)
 	int i = 0;
 #pragma omp parallel for private(i)	
 	for (i = 0; i < pnx*pny; i++) {
-		holo_encoded[i] = holo_gen[i].angle();
+		holo_encoded[i] = (*complex_H)[i].angle();
 	}
 
 
@@ -61,39 +104,22 @@ void ophWRP::normalize(void)
 	oph::normalize((Real*)holo_encoded, holo_normalized, context_.pixel_number[_X], context_.pixel_number[_Y]);
 }
 
-void ophWRP::initialize()
-{
-
-	if (holo_gen) delete[] holo_gen;
-	holo_gen = new oph::Complex<double>[context_.pixel_number[_X] * context_.pixel_number[_Y]];
-	memset(holo_gen, 0.0, sizeof(oph::Complex<double>) * context_.pixel_number[_X] * context_.pixel_number[_Y]);
-
-	if (holo_encoded) delete[] holo_encoded;
-	holo_encoded = new Real[context_.pixel_number[_X] * context_.pixel_number[_Y]];
-	memset(holo_encoded, 0.0, sizeof(Real) * context_.pixel_number[_X] * context_.pixel_number[_Y]);
-
-	if (holo_normalized) delete[] holo_normalized;
-	holo_normalized = new uchar[context_.pixel_number[_X] * context_.pixel_number[_Y]];
-	memset(holo_normalized, 0.0, sizeof(uchar) * context_.pixel_number[_X] * context_.pixel_number[_Y]);
-
-}
-
-void ophWRP::AddPixel2WRP(int x, int y, Complex<Real> temp)
+void ophWRP::addPixel2WRP(int x, int y, Complex<Real> temp)
 {
 	long long int Nx = context_.pixel_number.v[0];
 	long long int Ny = context_.pixel_number.v[1];
-	oph::Complex<double> *p = holo_gen;
+//	oph::Complex<double> *p = (*complex_H);
 
 	if (x >= 0 && x<Nx && y >= 0 && y< Ny) {
 		long long int adr = x + y*Nx;
 		if (adr == 0) std::cout << ".0";
-		p[adr] = p[adr] + temp;
+//		p[adr] = p[adr] + temp;
 		p_wrp_[adr] = p_wrp_[adr] + temp;
 	}
 
 }
 
-void ophWRP::AddPixel2WRP(int x, int y, oph::Complex<Real> temp, oph::Complex<Real>* wrp)
+void ophWRP::addPixel2WRP(int x, int y, oph::Complex<Real> temp, oph::Complex<Real>* wrp)
 {
 	long long int Nx = context_.pixel_number.v[0];
 	long long int Ny = context_.pixel_number.v[1];
@@ -101,16 +127,14 @@ void ophWRP::AddPixel2WRP(int x, int y, oph::Complex<Real> temp, oph::Complex<Re
 	if (x >= 0 && x<Nx && y >= 0 && y< Ny) {
 		long long int adr = x + y*Nx;
 		wrp[adr] += temp[adr];
-
 	}
-
 }
 
 oph::Complex<Real>* ophWRP::calSubWRP(double wrp_d, Complex<Real>* wrp, OphPointCloudData* pc)
 {
 
 	Real wave_num = context_.k;   // wave_number
-	Real wave_len = context_.lambda;  //wave_length
+	Real wave_len = context_.wave_length[0];  //wave_length
 
 	int Nx = context_.pixel_number.v[0]; //slm_pixelNumberX
 	int Ny = context_.pixel_number.v[1]; //slm_pixelNumberY
@@ -166,7 +190,7 @@ oph::Complex<Real>* ophWRP::calSubWRP(double wrp_d, Complex<Real>* wrp, OphPoint
 
 				if (tx + wx >= 0 && tx + wx < Nx && ty + wy >= 0 && ty + wy < Ny)
 				{
-					AddPixel2WRP(wx + tx, wy + ty, tmp, wrp);
+					addPixel2WRP(wx + tx, wy + ty, tmp, wrp);
 				}
 			}
 		}
@@ -175,12 +199,12 @@ oph::Complex<Real>* ophWRP::calSubWRP(double wrp_d, Complex<Real>* wrp, OphPoint
 	return wrp;
 }
 
-double ophWRP::calculateWRP(double wrp_d)
+double ophWRP::calculateWRP(void)
 {
 	initialize();
 
 	Real wave_num = context_.k;   // wave_number
-	Real wave_len = context_.lambda;  //wave_length
+	Real wave_len = context_.wave_length[0];  //wave_length
 
 	int Nx = context_.pixel_number.v[0]; //slm_pixelNumberX
 	int Ny = context_.pixel_number.v[1]; //slm_pixelNumberY
@@ -193,6 +217,7 @@ double ophWRP::calculateWRP(double wrp_d)
 	int Ny_h = Ny >> 1;
 
 	OphPointCloudData pc = obj_;
+	Real wrp_d = pc_config_.wrp_location;
 
 	// Memory Location for Result Image
 
@@ -201,7 +226,7 @@ double ophWRP::calculateWRP(double wrp_d)
 	memset(p_wrp_, 0.0, sizeof(oph::Complex<Real>) * context_.pixel_number[_X] * context_.pixel_number[_Y]);
 
 	int num = n_points;
-	std::chrono::system_clock::time_point time_start = std::chrono::system_clock::now();
+	auto time_start = CUR_TIME;
 
 #ifdef _OPENMP
 	omp_set_num_threads(omp_get_num_threads());
@@ -241,27 +266,97 @@ double ophWRP::calculateWRP(double wrp_d)
 				tmp._Val[_IM] = sinf(wave_num*r) / (r + 0.05);
 
 				if (tx + wx >= 0 && tx + wx < Nx && ty + wy >= 0 && ty + wy < Ny)
-					AddPixel2WRP(wx + tx, wy + ty, tmp);
+					addPixel2WRP(wx + tx, wy + ty, tmp);
 
 			}
 		}
 	}
 
-	std::chrono::system_clock::time_point time_finish = std::chrono::system_clock::now();
+	auto time_finish = CUR_TIME;
 	return ((std::chrono::duration<Real>)(time_finish - time_start)).count();
 
 }
 
-oph::Complex<Real>** ophWRP::calculateMWRP(int wrp_num)
+void ophWRP::fresnelPropagation(Complex<Real>* in, Complex<Real>* out, Real distance) {
+
+	int Nx = context_.pixel_number[_X];
+	int Ny = context_.pixel_number[_Y];
+
+	Real dx = context_.pixel_pitch[_X];
+	Real dy = context_.pixel_pitch[_Y];
+
+	Real k = context_.k;
+
+	Real fx = 1 / (Nx*dx);
+	Real fy = 1 / (Ny*dy);
+
+	Complex<Real>* in2x = new Complex<Real>[Nx*Ny];
+	Complex<Real> zero(0, 0);
+	oph::memsetArr<Complex<Real>>(in2x, zero, 0, Nx*Ny);
+
+	int idxIn = 0;
+
+	for (idxIn = 0; idxIn<Nx*Ny; idxIn++)
+		in2x[idxIn] = in[idxIn];
+
+	Real* x = new Real[Nx*Ny];
+	Real* y = new Real[Nx*Ny];
+
+	int i = 0;
+	for (int idy = (1 - Ny / 2); idy < (1 + Ny / 2); idy++) {
+		for (int idx = (1 - Nx / 2); idx < (1 + Nx / 2); idx++) {
+			x[i] = idx;
+			y[i] = idy;
+			i++;
+		}
+	}
+
+	Complex<Real>* prop = new Complex<Real>[Nx*Ny];
+	fft2({ Nx, Ny }, in2x, OPH_FORWARD, OPH_ESTIMATE);
+	fftExecute(prop);
+
+	Complex<Real> part;
+
+	Complex<Real>* temp2 = new Complex<Real>[Nx*Ny];
+
+	for (int i = 0; i < Nx*Ny; i++) {
+
+		Real kk = M_PI*context_.wave_length[0] *distance *(x[i] * x[i] + y[i] * y[i]);
+		part._Val[_RE] = cos(k*distance)*cos(kk);
+		part._Val[_IM] = sin(k*distance)*sin(M_PI*context_.wave_length[0]*distance*(x[i] * x[i] + y[i] * y[i]));
+
+		temp2[i]._Val[_RE] = prop[i]._Val[_RE] * part._Val[_RE];
+		temp2[i]._Val[_IM] = prop[i]._Val[_IM] * part._Val[_IM];
+	}
+
+	fft2({ Nx, Ny }, temp2, OPH_BACKWARD, OPH_ESTIMATE);
+	fftExecute((*complex_H));
+
+	delete[] x;
+	delete[] y;
+	delete[] temp2;
+}
+
+void ophWRP::generateHologram(void)
 {
+	printf("Generating Hologram\n");
+	Real distance = pc_config_.propagation_distance;
+	fresnelPropagation(p_wrp_, (*complex_H), distance);
+	printf("Hologram Generated!\n");
+
+}
+
+oph::Complex<Real>** ophWRP::calculateMWRP(void)
+{
+	int wrp_num = pc_config_.num_wrp;
 
 	if (wrp_num < 1)
 		return nullptr;
 
-	oph::Complex<Real>** wrp_list;
+	oph::Complex<Real>** wrp_list = nullptr;
 
 	Real wave_num = context_.k;   // wave_number
-	Real wave_len = context_.lambda;  //wave_length
+	Real wave_len = context_.wave_length[0];  //wave_length
 
 	int Nx = context_.pixel_number.v[0]; //slm_pixelNumberX
 	int Ny = context_.pixel_number.v[1]; //slm_pixelNumberY
@@ -273,19 +368,19 @@ oph::Complex<Real>** ophWRP::calculateMWRP(int wrp_num)
 	int Nx_h = Nx >> 1;
 	int Ny_h = Ny >> 1;
 
-	oph::Complex<Real>* wrp;
+	oph::Complex<Real>* wrp = nullptr;
 
 	// Memory Location for Result Image
 	if (wrp != nullptr) free(wrp);
 	wrp = (oph::Complex<Real>*)calloc(1, sizeof(oph::Complex<Real>) * Nx * Ny);
 
-	double wrp_d = pc_config_.offset_depth / wrp_num;
+//	double wrp_d = pc_config_.offset_depth / wrp_num;
 
 	OphPointCloudData pc = obj_;
 
 	for (int i = 0; i<wrp_num; i++)
 	{
-		wrp = calSubWRP(wrp_d, wrp, &pc);
+//		wrp = calSubWRP(wrp_d, wrp, &pc);
 		wrp_list[i] = wrp;
 	}
 

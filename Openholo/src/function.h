@@ -1,10 +1,54 @@
+/*M///////////////////////////////////////////////////////////////////////////////////////
+//
+//  IMPORTANT: READ BEFORE DOWNLOADING, COPYING, INSTALLING OR USING.
+//
+//  By downloading, copying, installing or using the software you agree to this license.
+//  If you do not agree to this license, do not download, install, copy or use the software.
+//
+//
+//                           License Agreement
+//                For Open Source Digital Holographic Library
+//
+// Openholo library is free software;
+// you can redistribute it and/or modify it under the terms of the BSD 2-Clause license.
+//
+// Copyright (C) 2017-2024, Korea Electronics Technology Institute. All rights reserved.
+// E-mail : contact.openholo@gmail.com
+// Web : http://www.openholo.org
+//
+// Redistribution and use in source and binary forms, with or without modification,
+// are permitted provided that the following conditions are met:
+//
+//  1. Redistribution's of source code must retain the above copyright notice,
+//     this list of conditions and the following disclaimer.
+//
+//  2. Redistribution's in binary form must reproduce the above copyright notice,
+//     this list of conditions and the following disclaimer in the documentation
+//     and/or other materials provided with the distribution.
+//
+// This software is provided by the copyright holders and contributors "as is" and
+// any express or implied warranties, including, but not limited to, the implied
+// warranties of merchantability and fitness for a particular purpose are disclaimed.
+// In no event shall the copyright holder or contributors be liable for any direct,
+// indirect, incidental, special, exemplary, or consequential damages
+// (including, but not limited to, procurement of substitute goods or services;
+// loss of use, data, or profits; or business interruption) however caused
+// and on any theory of liability, whether in contract, strict liability,
+// or tort (including negligence or otherwise) arising in any way out of
+// the use of this software, even if advised of the possibility of such damage.
+//
+// This software contains opensource software released under GNU Generic Public License,
+// NVDIA Software License Agreement, or CUDA supplement to Software License Agreement.
+// Check whether software you use contains licensed software.
+//
+//M*/
+
 #ifndef __function_h
 #define __function_h
 
 #include "complex.h"
 #include "mat.h"
 #include "vec.h"
-#include "include.h"
 
 #include <chrono>
 #include <random>
@@ -25,13 +69,13 @@ namespace oph
 		return type(p);
 	}
 
-	inline const Real minOfArr(const std::vector<Real>& arr) {
+	inline Real minOfArr(const std::vector<Real>& arr) {
 		Real min = MAX_DOUBLE;
 		for (auto item : arr) { if (item < min) min = item; }
 		return min;
 	}
 
-	inline const Real minOfArr(const Real* src, const int& size) {
+	inline Real minOfArr(const Real* src, const int& size) {
 		Real min = MAX_DOUBLE;
 		for (int i = 0; i < size; i++) {
 			if (*(src + i) < min) min = *(src + i);
@@ -39,13 +83,13 @@ namespace oph
 		return min;
 	}
 
-	inline const Real maxOfArr(const std::vector<Real>& arr) {
+	inline Real maxOfArr(const std::vector<Real>& arr) {
 		Real max = MIN_DOUBLE;
 		for (auto item : arr) { if (item > max) max = item; }
 		return max;
 	}
 
-	inline const Real maxOfArr(const Real* src, const int& size) {
+	inline Real maxOfArr(const Real* src, const int& size) {
 		Real max = MIN_DOUBLE;
 		for (int i = 0; i < size; i++) {
 			if (*(src + i) > max) max = *(src + i);
@@ -53,7 +97,7 @@ namespace oph
 		return max;
 	}
 
-	inline const Real average(const Real* src, const int& size) {
+	inline Real average(const Real* src, const int& size) {
 		Real ave;
 		Real sum = 0;
 		for (int i = 0; i < size; i++) {
@@ -127,28 +171,22 @@ namespace oph
 		Real* abs = new Real[size];
 		oph::absCplxArr<Real>(src, abs, size);
 
-		Real* max = new Real;
-		*max = oph::maxOfArr(abs, size);
+		Real max = oph::maxOfArr(abs, size);
 		
 		for (int i = 0; i < size; i++) {
-			*(dst + i) = *(src + i) / *max;
+			*(dst + i) = *(src + i) / max;
 		}
 		delete[] abs;
-		delete max;
 	}
 	template<typename T>
 	inline void normalize(const T* src, T* dst, const int& size) {
 		
-		Real* min = new Real;
-		*min = oph::minOfArr(src, size);
-
-		Real* max = new Real;
-		*max = oph::maxOfArr(src, size);
+		Real min = oph::minOfArr(src, size);
+		Real max = oph::maxOfArr(src, size);
 
 		for (int i = 0; i < size; i++) {
-			*(dst + i) = (*(src + i) - *min) / (*max - *min);
+			*(dst + i) = (*(src + i) - min) / (max - min);
 		}
-		delete min, max;
 	}
 
 	/**
@@ -270,12 +308,41 @@ namespace oph
 	inline void getPhase(oph::Complex<Real>* src, Real* dst, const int& size)
 	{
 		for (int i = 0; i < size; i++) {
-			*(dst + i) = angle<Real>(*(src + i));
+			*(dst + i) = angle<Real>(*(src + i)) + M_PI;
 		}
 	
 	}
+
 	inline void getAmplitude(oph::Complex<Real>* src, Real* dst, const int& size) {
 		absCplxArr<Real>(src, dst, size);
+	}
+
+	template<typename T>
+	inline void Field2Buffer(matrix<T>& src, T** dst) {
+		ivec2 bufferSize = src.getSize();
+
+		*dst = new oph::Complex<Real>[bufferSize[_X] * bufferSize[_Y]];
+
+		int idx = 0;
+		for (int x = 0; x < bufferSize[_X]; x++) {
+			for (int y = 0; y < bufferSize[_Y]; y++) {
+				(*dst)[idx] = src[x][y];
+				idx++;
+			}
+		}
+	}
+
+	template<typename T>
+	inline void Buffer2Field(const T* src, matrix<T>& dst, const ivec2 buffer_size) {
+		ivec2 matSize = buffer_size;
+
+		int idx = 0;
+		for (int x = 0; x < matSize[_X]; x++) {
+			for (int y = 0; y < matSize[_Y]; y++) {
+				dst[x][y] = src[idx];
+				idx++;
+			}
+		}
 	}
 
 

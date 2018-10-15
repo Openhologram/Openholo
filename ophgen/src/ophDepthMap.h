@@ -1,80 +1,47 @@
-/** @mainpage
-@tableofcontents
-@section intro Introduction
-This library implements the hologram generation method using depth map data. <br>
-It is implemented on the CPU and the GPU to improve the performance of the hologram generation method.
-Thus, user can compare the performance between the CPU and GPU implementation. 
-<br>
-@image html doc_intro.png
-@image latex doc_intro.png
-
-@section algo Algorithm Reference
-The original algorithm is modified in the way that can be easily implemented in parallel. <br>
-Back propagate each depth plane to the hologram plane and accumulate the results of each propagation.
-<br>
-@image html doc_algo.png "Depth Map Hologram Generation Algorithm"
-@image latex doc_algo.png "Depth Map Hologram Generation Algorithm"
-
-@section swcom Software Components
-The library consists a main hologram generation module(Hologram folder) and its sample program(HologramDepthmap folder).
-<br>The following shows the list of files with the directory structure.
-<br>
-@image html doc_swfolders.png
-@image latex doc_swfolders.png
-
-@section proc Main Procedure
-The main function of the library is a  \c \b GenerateHologram() of \c ophDepthMap class.
-The following is the procedure of it and functions called form it..
-<br><br>
-@image html doc_proc.png "GenerateHologram Function Procedure"
-@image latex doc_proc.png "GenerateHologram Function Procedure"
-
-@section env Environment
- - Microsoft Visual Studio 2015 C++
- - Qt 5.6.2
- - CUDA 8.0
- - FFTW 3.3.5
-
-@section build How to Build Source Codes
-Before building an execution file, you need to install MS Visual Studio 2015 C++ and Qt, also CUDA for the GPU execution. 
- 1. Download the source code from <a href="https://github.com/Openhologram/OpenHologram/tree/master/OpenHolo_DepthMap">here</a>.
- 2. Go to the directory 'HologramDepthmap'.
- 3. Open the Visual Studio soulution file, 'HologramDepthmap.sln'. 
- 4. Check the configuation of the Qt & CUDA to work with the Visual Studio. 
- 5. For Qt, you may need to set QTDIR environment variable -> System Properties->Advanced->Environment Variable.
- 6. To use FFTW, copy 'libfftw3-3.dll' into the 'bin' directory and copy 'libfftw3-3.lib' into the 'lib' directory.
- 7. Visual Studio Build Menu -> Configuration Menu, set "Release" for the Active solution configuration, "x64" for the Active solution platform.
- 8. Set 'HologramDepthmap' as a StartUp Project.
- 9. Build a Solution.
- 10. After building, you can find the execution file, 'HologramDepthmap.exe' under the 'bin' directory.
- 11. Execute 'HologramDepthmap.exe', then you can see the following GUI of the sample program. <br><br>
-  @image html doc_exe.png "the Sample Program & its Execution"
-  @image latex doc_exe.png "the Sample Program & its Execution"
-
-  */
-
-/*
-  @section setup How to Install a sample program
-  After installing, user can execute the sample program without building the sources and installing Qt & Visual Studio.
-  1. Download 'Setup.zip' file from the directory, 'Setup' - setup.exe & Setup.msi
-  2. Upzip the zip file.
-  3. Execute 'setup.exe'.
-  4. Then, the setup process installs a sample program.
-  5. User can specify the position that the program is installed.
-  6. After finishing the installation, user can find an execution file, 'HologramDepthmap.exe' under the installed directory.
-  7. To reinstall the program, first remove the installed program using control panel.
-*/
-
- /**
- * \defgroup init_module Initialize
- * \defgroup load_module Loading Data
- * \defgroup depth_module Computing Depth Value
- * \defgroup trans_module Transform 
- * \defgroup gen_module Generation Hologram
- * \defgroup encode_modulel Encoding
- * \defgroup write_module Writing Image
- * \defgroup recon_module Reconstruction
- */
+/*M///////////////////////////////////////////////////////////////////////////////////////
+//
+//  IMPORTANT: READ BEFORE DOWNLOADING, COPYING, INSTALLING OR USING.
+//
+//  By downloading, copying, installing or using the software you agree to this license.
+//  If you do not agree to this license, do not download, install, copy or use the software.
+//
+//
+//                           License Agreement
+//                For Open Source Digital Holographic Library
+//
+// Openholo library is free software;
+// you can redistribute it and/or modify it under the terms of the BSD 2-Clause license.
+//
+// Copyright (C) 2017-2024, Korea Electronics Technology Institute. All rights reserved.
+// E-mail : contact.openholo@gmail.com
+// Web : http://www.openholo.org
+//
+// Redistribution and use in source and binary forms, with or without modification,
+// are permitted provided that the following conditions are met:
+//
+//  1. Redistribution's of source code must retain the above copyright notice,
+//     this list of conditions and the following disclaimer.
+//
+//  2. Redistribution's in binary form must reproduce the above copyright notice,
+//     this list of conditions and the following disclaimer in the documentation
+//     and/or other materials provided with the distribution.
+//
+// This software is provided by the copyright holders and contributors "as is" and
+// any express or implied warranties, including, but not limited to, the implied
+// warranties of merchantability and fitness for a particular purpose are disclaimed.
+// In no event shall the copyright holder or contributors be liable for any direct,
+// indirect, incidental, special, exemplary, or consequential damages
+// (including, but not limited to, procurement of substitute goods or services;
+// loss of use, data, or profits; or business interruption) however caused
+// and on any theory of liability, whether in contract, strict liability,
+// or tort (including negligence or otherwise) arising in any way out of
+// the use of this software, even if advised of the possibility of such damage.
+//
+// This software contains opensource software released under GNU Generic Public License,
+// NVDIA Software License Agreement, or CUDA supplement to Software License Agreement.
+// Check whether software you use contains licensed software.
+//
+//M*/
 
 #ifndef __ophDepthMap_h
 #define __ophDepthMap_h
@@ -86,6 +53,57 @@ Before building an execution file, you need to install MS Visual Studio 2015 C++
 
 using namespace oph;
 
+
+/**
+* @addtogroup depthmap
+//@{
+* @detail
+
+* @section Introduction
+
+This module is related methods which generates CGH based on depth map. It is supported single core
+processing, multi-core processing(with OpenMP) and GPGPU parallel processing(with CUDA).
+
+I. Depth Map Hologram Generation
+
+-   Implement the hologram generation method using depth map data.
+-   Improve the performance of the hologram generation method.
+-   Implemented on CPU and GPU.
+-   The original algorithm is modified in the way that can be easily implemented in parallel.
+
+![](pics/ophgen/depthmap/gen_depthmap01.png)
+
+![](pics/ophgen/depthmap/depth_slice_image01.png)
+
+II. Algorithm
+
+-   Propagate from the previous depth plane to the current depth plane.
+-   At the last plane, back propagate to the hologram plane.
+
+![](pics/ophgen/depthmap/gen_depthmap_flowchart02.png)
+
+![](pics/ophgen/depthmap/depth_slice_image02.png)
+
+III. Modified Algorithm
+
+-   Back propagate each depth plane to the hologram plane.
+-   Accumulate the results of each propagation.
+
+![](pics/ophgen/depthmap/gen_depthmap_flowchart03.png)
+
+![](pics/ophgen/depthmap/depth_slice_image03.png)
+
+
+*/
+//! @} depthmap
+
+
+
+/**
+* @ingroup depthmap
+* @brief This class generates CGH based on depth map.
+* @author
+*/
 class GEN_DLL ophDepthMap : public ophGen {
 
 public:
@@ -97,75 +115,46 @@ protected:
 public:
 
 	void setMode(bool is_CPU);
-
-	/** \ingroup init_module */
 	bool readConfig(const char* fname);
+	bool readImageDepth(const char* source_folder, const char* img_prefix, const char* depth_img_prefix);
 
-	/** \ingroup gen_module */
-	double generateHologram(void);
+	Real generateHologram(void);
 
-	/** \ingroup encode_module */
 	void encodeHologram(void);
 
-	/** \ingroup write_module */
-	virtual int save(const char* fname = nullptr, uint8_t bitsperpixel = 24);
+	virtual int save(const char* fname, uint8_t bitsperpixel = 24);
 
 public:
-	/** \ingroup getter/setter */
 	inline void setFieldLens(Real fieldlens) { dm_config_.field_lens = fieldlens; }
-	/** \ingroup getter/setter */
 	inline void setNearDepth(Real neardepth) { dm_config_.near_depthmap = neardepth; }
-	/** \ingroup getter/setter */
 	inline void setFarDepth(Real fardetph) { dm_config_.far_depthmap = fardetph; }
-	/** \ingroup getter/setter */
 	inline void setNumOfDepth(uint numofdepth) { dm_config_.num_of_depth = numofdepth; }
 
-	/** \ingroup getter/setter */
 	inline Real getFieldLens(void) { return dm_config_.field_lens; }
-	/** \ingroup getter/setter */
 	inline Real getNearDepth(void) { return dm_config_.near_depthmap; }
-	/** \ingroup getter/setter */
 	inline Real getFarDepth(void) { return dm_config_.far_depthmap; }
-	/** \ingroup getter/setter */
 	inline uint getNumOfDepth(void) { return dm_config_.num_of_depth; }
-	/** \ingroup getter/setter */
 	inline void getRenderDepth(std::vector<int>& renderdepth) { renderdepth = dm_config_.render_depth; }
 	
 private:
 
-	/** \ingroup init_module
-	* @{ */
 	void initialize();
 	void initCPU();   
 	void initGPU();
-	/** @} */
 
-	/** \ingroup load_module
-	* @{ */
-	bool readImageDepth(void);
 	bool prepareInputdataCPU(uchar* img, uchar* dimg);
 	bool prepareInputdataGPU(uchar* img, uchar* dimg);
-	/** @} */
 
-	/** \ingroup depth_module
-	* @{ */
 	void getDepthValues();
 	void changeDepthQuanCPU();
 	void changeDepthQuanGPU();
-	/** @} */
 
-	/** \ingroup trans_module
-	* @{ */
 	void transformViewingWindow();
-	/** @} */
 
-	/** \ingroup gen_module 
-	* @{ */
 	void calcHoloByDepth(void);
 	void calcHoloCPU(void);
 	void calcHoloGPU(void);
-	void propagationAngularSpectrumCPU(Complex<Real>* input_u, double propagation_dist);
-	void propagationAngularSpectrumGPU(cufftDoubleComplex* input_u, double propagation_dist);
+	void propagationAngularSpectrumGPU(cufftDoubleComplex* input_u, Real propagation_dist);
 
 protected:
 	void free_gpu(void);
@@ -187,14 +176,10 @@ private:
 	Real*					dmap;								///< CPU variable - physical distances of depth map.
 
 	Real					dstep;								///< the physical increment of each depth map layer.
-	std::vector<Real>		dlevel;							///< the physical value of all depth map layer.
+	std::vector<Real>		dlevel;								///< the physical value of all depth map layer.
 	std::vector<Real>		dlevel_transform;					///< transfomed dlevel variable
 
 	OphDepthMapConfig		dm_config_;							///< structure variable for depthmap hologram configuration.
-	OphDepthMapParams		dm_params_;							///< structure variable for depthmap hologram parameters.
-																//OphDepthMapSimul		dm_simuls_;							///< structure variable for depthmap simulation parameters.
-
 };
-
 
 #endif //>__ophDepthMap_h

@@ -1,7 +1,60 @@
+/*M///////////////////////////////////////////////////////////////////////////////////////
+//
+//  IMPORTANT: READ BEFORE DOWNLOADING, COPYING, INSTALLING OR USING.
+//
+//  By downloading, copying, installing or using the software you agree to this license.
+//  If you do not agree to this license, do not download, install, copy or use the software.
+//
+//
+//                           License Agreement
+//                For Open Source Digital Holographic Library
+//
+// Openholo library is free software;
+// you can redistribute it and/or modify it under the terms of the BSD 2-Clause license.
+//
+// Copyright (C) 2017-2024, Korea Electronics Technology Institute. All rights reserved.
+// E-mail : contact.openholo@gmail.com
+// Web : http://www.openholo.org
+//
+// Redistribution and use in source and binary forms, with or without modification,
+// are permitted provided that the following conditions are met:
+//
+//  1. Redistribution's of source code must retain the above copyright notice,
+//     this list of conditions and the following disclaimer.
+//
+//  2. Redistribution's in binary form must reproduce the above copyright notice,
+//     this list of conditions and the following disclaimer in the documentation
+//     and/or other materials provided with the distribution.
+//
+// This software is provided by the copyright holders and contributors "as is" and
+// any express or implied warranties, including, but not limited to, the implied
+// warranties of merchantability and fitness for a particular purpose are disclaimed.
+// In no event shall the copyright holder or contributors be liable for any direct,
+// indirect, incidental, special, exemplary, or consequential damages
+// (including, but not limited to, procurement of substitute goods or services;
+// loss of use, data, or profits; or business interruption) however caused
+// and on any theory of liability, whether in contract, strict liability,
+// or tort (including negligence or otherwise) arising in any way out of
+// the use of this software, even if advised of the possibility of such damage.
+//
+// This software contains opensource software released under GNU Generic Public License,
+// NVDIA Software License Agreement, or CUDA supplement to Software License Agreement.
+// Check whether software you use contains licensed software.
+//
+//M*/
+
+#ifndef __ophWRP_h
+#define __ophWRP_h
 
 #define _USE_MATH_DEFINES
 
 #include "ophGen.h"
+
+#ifdef RECON_EXPORT
+#define RECON_DLL __declspec(dllexport)
+#else
+#define RECON_DLL __declspec(dllimport)
+#endif
 
 //Build Option : Multi Core Processing (OpenMP)
 #ifdef _OPENMP
@@ -22,7 +75,22 @@
 
 using namespace oph;
 
-class ophWRP : public ophGen
+
+
+/**
+* @addtogroup wrp
+//@{
+* @detail
+
+*/
+//! @} wrp
+
+/**
+* @ingroup wrp
+* @brief
+* @author
+*/
+class GEN_DLL ophWRP : public ophGen
 {
 
 public:
@@ -36,12 +104,11 @@ protected:
 	/**
 	* @brief Destructor
 	*/
-	//	virtual ~ophWRP(void);
+	virtual ~ophWRP(void);
 
 public:
 
 	/**
-	\defgroup PointCloud_Load
 	* @brief override
 	* @{
 	* @brief Import Point Cloud Data Base File : *.PYL file.
@@ -53,18 +120,18 @@ public:
 	* @return number of Pointcloud (if it failed loading, it returned -1)
 	*/
 	virtual int loadPointCloud(const char* pc_file);
-
 	virtual bool readConfig(const char* cfg_file);
-
 	virtual void normalize(void);
 
-	void initialize();
+	void encodeHologram(void);
 
-	void encodefield(void);
+	double calculateWRP(void);
 
-	double calculateWRP(double wrp_d);
+	virtual void fresnelPropagation(Complex<Real>* in, Complex<Real>* out, Real distance);
 
-	oph::Complex<Real>** calculateMWRP(int n);
+	void generateHologram(void);
+
+	oph::Complex<Real>** calculateMWRP(void);
 
 	inline oph::Complex<Real>* getWRPBuff(void) { return p_wrp_; };
 
@@ -73,9 +140,8 @@ private:
 
 	Complex<Real>* ophWRP::calSubWRP(double d, oph::Complex<Real>* wrp, OphPointCloudData* sobj);
 
-	void AddPixel2WRP(int x, int y, oph::Complex<Real> temp);
-
-	void AddPixel2WRP(int x, int y, oph::Complex<Real> temp, oph::Complex<Real>* wrp);
+	void addPixel2WRP(int x, int y, oph::Complex<Real> temp);
+	void addPixel2WRP(int x, int y, oph::Complex<Real> temp, oph::Complex<Real>* wrp);
 
 	virtual void ophFree(void);
 
@@ -88,7 +154,7 @@ protected:
 
 	OphPointCloudData obj_;
 
-	OphPointCloudConfig pc_config_;
+	OphWRPConfig pc_config_;
 
 };
-
+#endif

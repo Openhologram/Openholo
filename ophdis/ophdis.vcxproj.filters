@@ -33,6 +33,9 @@
     <ClCompile Include="src\ophDis.cpp">
       <Filter>_ophDis</Filter>
     </ClCompile>
+    <ClCompile Include="src\ophWaveAberration.cpp">
+      <Filter>_1_Waveaberration</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\ophCascadedPropagation.h">
@@ -43,6 +46,9 @@
     </ClInclude>
     <ClInclude Include="src\ophDis.h">
       <Filter>_ophDis</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ophWaveAberration.h">
+      <Filter>_1_Waveaberration</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
