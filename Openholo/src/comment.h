@@ -71,7 +71,7 @@ Generation Hologram - Point Cloud Example
 
 	Hologram->setMode(MODE_GPU);													// Select CPU or GPU Processing
 
-	Hologram->generateHologram(PC_DIFF_RS);											// CGH by R-S Diffract
+	Hologram->generateHologram(PC_DIFF_RS);											// Select R-S diffraction or Fresnel diffraction
 
 	Hologram->encodeHologram();														// Encode Complex Field to Real Field
 	Hologram->normalize();															// Normalize Real Field to unsigned char(0~255) for save to image(*.BMP)
@@ -142,6 +142,8 @@ Generation Hologram - Triangle Mesh Example
 		Hologram->release();														// Release memory used to Generate Triangle Mesh
 @endcode
 
+![Triangle Mesh based CGH Example](pics/ophgen/mesh/result_mesh_01.png)
+
 
 Generation Hologram - Light Field Example
 
@@ -172,6 +174,8 @@ Generation Hologram - Light Field Example
 
 		Hologram->release();														// Release memory used to Generate Light Field
 @endcode
+
+![LightField based CGH Example](pics/ophgen/lightfield/result_lightfield_01.png)
 
 
 Generation Hologram - Wavefront Recording Plane(WRP) Example
