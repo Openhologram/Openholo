@@ -81,7 +81,7 @@ Generation Hologram - Point Cloud Example
 	Hologram->release();															// Release memory used to Generate Point Cloud
 @endcode
 
-![PointCloud based CGH Example](pics/ophgen/pointcloud/pointcloud_example01.png)	
+![PointCloud based CGH Example](@ref pics/ophgen/pointcloud/pointcloud_example01.png)	
 
 
 Generation Hologram - Depth Map Example.
@@ -108,7 +108,7 @@ Generation Hologram - Depth Map Example.
 	Hologram->release();															// Release memory used to Generate DepthMap
 @endcode
 
-![DepthMap based CGH Example](pics/ophgen/depthmap/depthmap_example01.png)
+![DepthMap based CGH Example](@ref pics/ophgen/depthmap/depthmap_example01.png)
 
 
 Generation Hologram - Triangle Mesh Example
@@ -142,7 +142,7 @@ Generation Hologram - Triangle Mesh Example
 		Hologram->release();														// Release memory used to Generate Triangle Mesh
 @endcode
 
-![Triangle Mesh based CGH Example](pics/ophgen/mesh/result_mesh_01.png)
+![Triangle Mesh based CGH Example](@ref pics/ophgen/mesh/result_mesh_01.png)
 
 
 Generation Hologram - Light Field Example
@@ -175,7 +175,7 @@ Generation Hologram - Light Field Example
 		Hologram->release();														// Release memory used to Generate Light Field
 @endcode
 
-![LightField based CGH Example](pics/ophgen/lightfield/result_lightfield_01.png)
+![LightField based CGH Example](@ref pics/ophgen/lightfield/result_lightfield_01.png)
 
 
 Generation Hologram - Wavefront Recording Plane(WRP) Example
