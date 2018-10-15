@@ -88,6 +88,9 @@ I. Holographic core processing
 		-   using sharpness function maximization method
 		-   using axis transformation method
 
+	3. Phase-shifting digital holography
+		-	Convert 4 interference patterns with 90 degree reference wave phase shift to complex field
+
 ![](pics/ophsig/flowchart.png)
 
 */
@@ -658,13 +661,14 @@ public:
 
 	/**
 	* @ingroup PSDH
-	* @brief
+	* @brief Extraction of complex field from 4 phase shifted interference patterns
 	* @detail
-	* @param
-	* @param
-	* @param
-	* @param
-	* @return
+	Extract complex field from 4 interference patterns with 90 degree phase shifts of the reference wave
+	Store the result complex field to the member variable ComplexH
+	![](pics/ophsig/PSDH_concept.png)
+
+	* @param fname0, fname90, fname180, fname270 Input image files for 4 interference patterns
+	* @return if works well return 0  or error occurs return -1
 	*/
 	bool getComplexHFromPSDH(const char* fname0, const char* fname90, const char* fname180, const char* fname270);
 	
