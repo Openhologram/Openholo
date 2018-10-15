@@ -869,7 +869,7 @@ void oph::ImgEncoderOhc::initOHCheader() {
 
 	//Set Initial Complex Field Information for Encoder
 	FldInfo.headerSize = 0;
-	FldInfo.pitchUnit = LenUnit::m;
+	FldInfo.pitchUnit = LenUnit::Null;
 	FldInfo.wavlenNum = 0;
 	FldInfo.clrType = ColorType::MLT;
 	FldInfo.clrArrange = ColorArran::EachChanl;
