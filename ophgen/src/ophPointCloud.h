@@ -75,8 +75,7 @@ using namespace oph;
 This module is related methods which generates CGH based on 3D point cloud. It is supported single core
 processing, multi-core processing(with OpenMP) and GPGPU parallel processing(with CUDA).
 
-![Fig1.Hologram generation by object beam and reference beam](pics/ophgen/pointcloud/pointcloud_RS_1.png)
-	-Fig1.Hologram generation by object beam and reference beam
+![Fig1.Hologram generation by object beam and reference beam](@ref pics/ophgen/pointcloud/pointcloud_RS_1.png)
 
 I. Point Cloud Hologram Generation with Rayleigh-Sommerfeld(RS) Integral
 

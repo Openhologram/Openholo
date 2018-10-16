@@ -58,6 +58,9 @@ using namespace oph;
 * @addtogroup depthmap
 //@{
 * @detail
+
+* @section Introduction
+
 This module is related methods which generates CGH based on depth map. It is supported single core
 processing, multi-core processing(with OpenMP) and GPGPU parallel processing(with CUDA).
 
@@ -93,6 +96,8 @@ III. Modified Algorithm
 
 */
 //! @} depthmap
+
+
 
 /**
 * @ingroup depthmap
