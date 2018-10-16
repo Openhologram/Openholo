@@ -802,6 +802,25 @@ bool ophSigCH::loadCHtemp(const char * real, const char * imag, uint8_t bitpixel
 	return true;
 }
 
+bool ophSigCH::loadCH(const char *fname) {
+	if (loadAsOhc(fname)!=1)
+		return false;
+
+	cout << *(complex_H)[0] << endl;
+
+	for (int i = 0; i < _cfgSig.rows; i++)
+	{
+		for (int j = 0; j < _cfgSig.cols; j++)
+		{
+			ComplexH[0](i, j)._Val[_RE] = (*(complex_H))[i + j*_cfgSig.rows][_RE];
+			ComplexH[0](i, j)._Val[_IM] = (*(complex_H))[i + j*_cfgSig.rows][_RE];
+		}
+	}
+
+	return true;
+}
+
+
 matrix<Complex<Real>> ophSigCH::propagationHoloAS(matrix<Complex<Real>> complexH, float depth) {
 	int nr = _cfgSig.rows;
 	int nc = _cfgSig.cols;

@@ -327,12 +327,12 @@ public:
 
 	/**
 	* @ingroup PSDH
-	* @brief
+	* @brief Function to obtain complex field from 4-phase shifted interference patterns
 	* @detail
-	* @param
-	* @param
-	* @param
-	* @param
+	* @param	fname0		0 degree phase shifted image file name
+	* @param	fname90		90 degree phase shifted image file name
+	* @param	fname180	180 degree phase shifted image file name
+	* @param	fname270	270 degree phase shifted image file name
 	* @return
 	*/
 	bool getComplexHFromPSDH(const char* fname0, const char* fname90, const char* fname180, const char* fname270);
