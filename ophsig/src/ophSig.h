@@ -270,7 +270,7 @@ public:
 		lex hologram using the phase-only SLM, the reconstructed 3D image is distorted by amplitude flattening.
 		- Convert complex holograms into off-axis holograms, which can reconstruct 3D images of objects without distor
 		tion due to twin image noise, background noise, and amplitude flattening [4].
-![Figure 2. Concept of convet to off-axis hologram.](pics/ophsig/offaxis.png)
+![Figure 2. Concept of convet to off-axis hologram.](@ref pics/ophsig/offaxis.png)
 
 2. Algorithm
 		-  In the off-axis hologram, the optical axis of the reference wave is tilted to that of the object wave. 

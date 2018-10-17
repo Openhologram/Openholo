@@ -258,23 +258,24 @@ Hologram signal processing - Off-axis hologram transform Example
 @code
 	#include "ophSig.h"
 
-	ophSig *holo = new ophSig();
+	ophSig *holo = new ophSig();								//Declaration ophSig class
 
-	if (!holo->readConfig("config/holoParam.xml")) {
+	if (!holo->readConfig("config/holoParam.xml")) {			//Read parameter
 		// no file
 		return false;
 	}
 
-	if (!holo->load("source/OffAxis/3_point_re.bmp", "source/OffAxis/3_point_im.bmp", 8)) {
+	if (!holo->load("source/OffAxis/3_point_re.bmp",			//Load hologram data
+		"source/OffAxis/3_point_im.bmp", 8)) {
 		// no file
 		return false;
 	}
 
-	holo->sigConvertOffaxis();
+	holo->sigConvertOffaxis();									//Run Convert Offaxis function
 
-	holo->save("result/OffAxis/Off_axis.bmp", 8);
+	holo->save("result/OffAxis/Off_axis.bmp", 8);				//Save hologram data for bmp file
 
-	holo->release();
+	holo->release();											//Release memory
 @endcode
 
 
@@ -283,23 +284,27 @@ Hologram signal processing - CAC transform Example
 @code
 	#include "ophSig.h"
 
-	ophSig *holo = new ophSig();
+	ophSig *holo = new ophSig();								//Declaration ophSig class
 
-	if (!holo->readConfig("config/holoParam.xml")) {
+
+	if (!holo->readConfig("config/holoParam.xml")) {			//Read parameter
 		// no file
 		return false;
 	}
 
-	if (!holo->load("source/CAC/ColorPoint_re.bmp", "source/CAC/ColorPoint_im.bmp", 24)) {
+
+	if (!holo->load("source/CAC/ColorPoint_re.bmp",				//Load hologram data
+		"source/CAC/ColorPoint_im.bmp", 24)) {
 		// no file
 		return false;
 	}
 
-	holo->sigConvertCAC(0.000000633, 0.000000532, 0.000000473);
+	holo->sigConvertCAC(0.000000633, 0.000000532, 0.000000473);	//Run convert chromatic aberration compensation
 
-	holo->save("result/CAC/CAC_re_C.bin", "result/CAC/CAC_im_C.bin", 24);
+	holo->save("result/CAC/CAC_re_C.bin",						//Save hologram data for bmp file
+		"result/CAC/CAC_im_C.bin", 24);
 
-	holo->release();
+	holo->release();											//Release memory
 @endcode
 
 
@@ -308,23 +313,25 @@ Hologram signal processing - HPO transform Example
 @code
 	#include "ophSig.h"
 
-	ophSig *holo = new ophSig();
+	ophSig *holo = new ophSig();								//Declaration ophSig class
 
-	if (!holo->readConfig("config/holoParam.xml")) {
+	if (!holo->readConfig("config/holoParam.xml")) {			//Read hologram parameter
 		// no file
 		return false;
 	}
 
-	if (!holo->load("source/HPO/3_point_re.bmp", "source/HPO/3_point_im.bmp", 8)) {
+	if (!holo->load("source/HPO/3_point_re.bmp",				//Load hologram data
+		"source/HPO/3_point_im.bmp", 8)) {
 		// no file
 		return false;
 	}
 
-	holo->sigConvertHPO();
+	holo->sigConvertHPO();										//Run convert horizontal parallax only hologram
 
-	holo->save("result/HPO/HPO_re_C.bmp", "result/HPO/HPO_im_C.bmp", 8);
+	holo->save("result/HPO/HPO_re.bmp",							//Save hologram data for bmp file
+		"result/HPO/HPO_im.bmp", 8);
 
-	holo->release();
+	holo->release();											//Release memory
 @endcode
 
 
@@ -333,28 +340,30 @@ Hologram signal processing - get parameter using axis transformation Example
 @code
 	#include "ophSig.h"
 
-	ophSig* holo = new ophSig();
+	ophSig* holo = new ophSig();								//Declaration ophSig class
 
 	float depth = 0;
 
-	if (!holo->readConfig("config/holoParam.xml")) {
+	if (!holo->readConfig("config/holoParam.xml")) {			//Read hologram parameter
 		// no file
 		return false;
 	}
 
-	if (!holo->load("source/AT/0.1point_re.bmp", "source/AT/0.1point_im.bmp", 8)) {
+	if (!holo->load("source/AT/0.1point_re.bmp",				//Load hologram data
+		"source/AT/0.1point_im.bmp", 8)) {
 		// no file
 		return false;
 	}
 
-	depth = holo->sigGetParamAT();
+	depth = holo->sigGetParamAT();								//Get parameter using axis transformation
+
 	std::cout << depth << endl;
-	// backpropagation
-	holo->propagationHolo(-depth);
+	holo->propagationHolo(-depth);								//Backpropagation
 
-	holo->save("result/AT/AT_re.bmp", "result/AT/AT_im.bmp", 8);
+	holo->save("result/AT/AT_re.bmp",							//Save hologram data for bmp file
+		"result/AT/AT_im.bmp", 8);
 
-	holo->release();
+	holo->release();											//Release memory
 @endcode
 
 
@@ -363,27 +372,30 @@ Hologram signal processing - get parameter using SF Example
 @code
 	#include "ophSig.h"
 
-	ophSig* holo = new ophSig();
+	ophSig* holo = new ophSig();								//Declaration ophSig class
 
 	float depth = 0;
 
-	if (!holo->readConfig("config/holoParam.xml")) {
+	if (!holo->readConfig("config/holoParam.xml")) {			//Read hologram parameter
 		// no file
 		return false;
 	}
 
-	if (!holo->load("source/SF/3_point_re.bmp", "source/SF/3_point_im.bmp", 8)) {
+	if (!holo->load("source/SF/3_point_re.bmp",					//Load hologram data
+		"source/SF/3_point_im.bmp", 8)) {
 		// no file
 		return false;
 	}
 
-	depth = holo->sigGetParamSF(10, -10, 100, 0.3);
+	depth = holo->sigGetParamSF(10, -10, 100, 0.3);				//Get parameter using sharpness function
 	std::cout << depth << endl;
-	// backpropagation
-	holo->propagationHolo(depth);
 
-	holo->save("result/SF/SF_re.bmp", "result/SF/SF_im.bmp", 8);
-	holo->release();
+	holo->propagationHolo(depth);								//Backpropagation
+
+	holo->save("result/SF/SF_re.bmp",							//Save hologram data for bmp file
+		"result/SF/SF_im.bmp", 8);
+
+	holo->release();											//Release memory
 @endcode
 
 
