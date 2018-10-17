@@ -406,17 +406,18 @@ Hologram signal processing - get parameter using Phase Shift Digital Hologram Ex
 
 	ophSig *holo = new ophSig();
 
-	const char *f0 = "source/PhaseShiftedHolograms/0930_005_gray.bmp";
-	const char *f90 = "source/PhaseShiftedHolograms/0930_006_gray.bmp";
-	const char *f180 = "source/PhaseShiftedHolograms/0930_007_gray.bmp";
-	const char *f270 = "source/PhaseShiftedHolograms/0930_008_gray.bmp";
+	const char *f0 = "source/PhaseShiftedHolograms/0930_005_gray.bmp";		// image file name of interference pattern with reference wave phase 0 degree
+	const char *f90 = "source/PhaseShiftedHolograms/0930_006_gray.bmp";		// image file name of interference pattern with reference wave phase 90 degree
+	const char *f180 = "source/PhaseShiftedHolograms/0930_007_gray.bmp";	// image file name of interference pattern with reference wave phase 180 degree
+	const char *f270 = "source/PhaseShiftedHolograms/0930_008_gray.bmp";	// image file name of interference pattern with reference wave phase 270 degree
 
-	holo->getComplexHFromPSDH(f0, f90, f180, f270);
+	holo->getComplexHFromPSDH(f0, f90, f180, f270);							// extract complex field from 4 interference patterns
 
-	holo->save("result/PhaseShift/PSDH_re_C.bmp", "result/PhaseShift/PSDH_im_C.bmp", 8);
+	holo->save("result/PhaseShift/PSDH_re_C.bmp", "result/PhaseShift/PSDH_im_C.bmp", 8);	// save real and imaginary part of the complex field
 
 	holo->release();
 @endcode
+![Phase shifting digital hologram Example](pics/ophsig/psdh_input_output_example.png)
 
 
 Hologram signal processing - get parameter using Phase Unwrapping Example
@@ -426,18 +427,19 @@ Hologram signal processing - get parameter using Phase Unwrapping Example
 
 	ophSigPU *holo = new ophSigPU;
 
-	if (!holo->loadPhaseOriginal("source/PhaseUnwrapping/phase_unwrapping_example.bmp", 8)) {
+	if (!holo->loadPhaseOriginal("source/PhaseUnwrapping/phase_unwrapping_example.bmp", 8)) {  // load wrapped phase image file
 		return false;
 	}
-	int maxBoxRadius = 4;
+	int maxBoxRadius = 4;				// set parameter for Goldstein phase unwrapping 
 	holo->setPUparam(maxBoxRadius);
 
-	holo->runPU();
+	holo->runPU();						// Unwrap phase
 
-	holo->savePhaseUnwrapped("result/PhaseUnwrapping/PU_Test.bmp");
+	holo->savePhaseUnwrapped("result/PhaseUnwrapping/PU_Test.bmp");		// save unwrapped phase to image file
 
 	holo->release();
 @endcode
+![Phase Unwrapping Example](pics/ophsig/pu/pu_input_output_example.png)
 
 
 Hologram signal processing - get parameter using Compressive Holography Example
@@ -447,20 +449,22 @@ Hologram signal processing - get parameter using Compressive Holography Example
 
 	ophSigCH *holo = new ophSigCH;
 
-	if (!holo->readConfig("config/TestSpecCH.xml")) {
+	if (!holo->readConfig("config/TestSpecCH.xml")) {		// read configure file for compressed holography
 		return false;
 	}
 
+	// load complex field data (real part and imaginary part)
 	if (!holo->loadCHtemp("source/CompressiveHolo/sampleComplexH_re.bmp", "source/CompressiveHolo/sampleComplexH_im.bmp", 8)) {
 		return false;
 	}
 
-	holo->runCH(0);
+	holo->runCH(0);		// do compressive holographic reconstruction
 
-	holo->saveNumRec("result/CompressiveHolo/CH_Test.bmp");
+	holo->saveNumRec("result/CompressiveHolo/CH_Test.bmp");		// save numerical reconstructions after compressive holography to image files. Index will be appended for each reconstruction distance.
 
 	holo->release();
 @endcode
+![Compressive Holography Example](pics/ophsig/ch/ch_input_output_example.png)
 
 
 
