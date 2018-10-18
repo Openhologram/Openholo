@@ -665,7 +665,7 @@ public:
 	* @detail
 	Extract complex field from 4 interference patterns with 90 degree phase shifts of the reference wave
 	Store the result complex field to the member variable ComplexH
-	![](pics/ophsig/PSDH_concept.png)
+	![](pics/ophsig/PSDH/PSDH_concept.png)
 
 	* @param fname0, fname90, fname180, fname270 Input image files for 4 interference patterns
 	* @return if works well return 0  or error occurs return -1

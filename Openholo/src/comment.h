@@ -413,11 +413,12 @@ Hologram signal processing - get parameter using Phase Shift Digital Hologram Ex
 
 	holo->getComplexHFromPSDH(f0, f90, f180, f270);							// extract complex field from 4 interference patterns
 
-	holo->save("result/PhaseShift/PSDH_re_C.bmp", "result/PhaseShift/PSDH_im_C.bmp", 8);	// save real and imaginary part of the complex field
+	holo->save("result/PhaseShift/PSDH_re_C.bmp",							// save real and imaginary part of the complex field
+	"result/PhaseShift/PSDH_im_C.bmp", 8);	
 
 	holo->release();
 @endcode
-![Phase shifting digital hologram Example](pics/ophsig/psdh_input_output_example.png)
+![Phase shifting digital hologram Example](@ref pics/ophsig/PSDH/psdh_input_output_example.png)
 
 
 Hologram signal processing - get parameter using Phase Unwrapping Example
@@ -439,7 +440,7 @@ Hologram signal processing - get parameter using Phase Unwrapping Example
 
 	holo->release();
 @endcode
-![Phase Unwrapping Example](pics/ophsig/pu/pu_input_output_example.png)
+![Phase Unwrapping Example](@ref pics/ophsig/pu/pu_input_output_example.png)
 
 
 Hologram signal processing - get parameter using Compressive Holography Example
@@ -464,7 +465,7 @@ Hologram signal processing - get parameter using Compressive Holography Example
 
 	holo->release();
 @endcode
-![Compressive Holography Example](pics/ophsig/ch/ch_input_output_example.png)
+![Compressive Holography Example](@ref pics/ophsig/ch/ch_input_output_example.png)
 
 
 
