@@ -475,14 +475,12 @@ int ophGen::loadAsOhc(const char * fname)
 #define for_i(itr, oper) for(int i=0; i<itr; i++){ oper }
 
 void ophGen::loadComplex(char* real_file, char* imag_file, int n_x, int n_y) {
-	
 	context_.pixel_number[_X] = n_x;
 	context_.pixel_number[_Y] = n_y;
 
 	ifstream freal, fimag;
 	freal.open(real_file);
 	fimag.open(imag_file);
-
 	if (!freal) {
 		cout << "open failed - real" << endl;
 		cin.get();
@@ -495,7 +493,6 @@ void ophGen::loadComplex(char* real_file, char* imag_file, int n_x, int n_y) {
 	}
 
 	if ((*complex_H) != nullptr) delete[] (*complex_H);
-
 	(*complex_H) = new oph::Complex<Real>[n_x * n_y];
 	memset((*complex_H), 0, sizeof(Complex<Real>) * n_x * n_y);
 
@@ -514,59 +511,6 @@ void ophGen::loadComplex(char* real_file, char* imag_file, int n_x, int n_y) {
 		if (realVal == EOF || imagVal == EOF)
 			break;
 	}
-}
-
-void ophGen::saveOhcFromRealImag(char* ohcfname, char* real_file, char* imag_file, int n_x, int n_y, Real p_x, Real p_y, Real w) {
-
-	cout << n_x << ", " << n_y << endl;
-
-	context_.pixel_number[_X] = n_x;
-	context_.pixel_number[_Y] = n_y;
-
-	context_.pixel_pitch[_X] = p_x;
-	context_.pixel_pitch[_Y] = p_y;
-
-	setPixelNumberOHC(context_.pixel_number);
-	setPixelPitchOHC(context_.pixel_pitch);
-	setWavelengthOHC(w, LenUnit::m);
-
-	ifstream freal, fimag;
-	freal.open(real_file);
-	fimag.open(imag_file);
-
-	if (!freal) {
-		cout << "open failed - real" << endl;
-		cin.get();
-		return;
-	}
-	if (!fimag) {
-		cout << "open failed - imag" << endl;
-		cin.get();
-		return;
-	}
-
-	if ((*complex_H) != nullptr) delete[] (*complex_H);
-
-	(*complex_H) = new oph::Complex<Real>[n_x * n_y];
-	memset((*complex_H), 0, sizeof(Complex<Real>) * n_x * n_y);
-
-	Real realVal, imagVal;
-
-	int i;
-	i = 0;
-	for (int i = 0; i < n_x * n_y; i++) {
-		freal >> realVal;
-		fimag >> imagVal;
-
-		Complex<Real> compVal;
-		compVal(realVal, imagVal);
-
-		(*complex_H)[i] = compVal;
-		if (realVal == EOF || imagVal == EOF)
-			break;
-	}
-
-	saveAsOhc(ohcfname);
 }
 
 void ophGen::normalizeEncoded() {
