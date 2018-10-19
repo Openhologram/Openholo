@@ -70,18 +70,20 @@ struct geometric {
 Triangular mesh based CGH generates the complex field of 3D objects represented as a collection of the triangular meshes.
 The algorithm aggregates the angular spectrums of individual triangular meshes and then performs a Fourier transform to obtain the complex field for entire objects.
 
-![](@ref pics/ophgen/mesh/mesh_fig3.png)
+![](pics/ophgen/mesh/mesh_fig3.png)
 
 The angular spectrum of the individual triangular mesh is obtained using the analytic formula of the Fourier transform of the reference triangular aperture, considering the geometrical relation between the hologram plane and the local mesh plane, and also between the local mesh and the reference triangular aperture.
 
-![](@ref pics/ophgen/mesh/mesh_fig1.png)
-![](@ref pics/ophgen/mesh/mesh_fig2.png)
+![](pics/ophgen/mesh/mesh_fig1.png)
+![](pics/ophgen/mesh/mesh_fig2.png)
 
 The phase distribution on the mesh is determined by the carrier wave is assumed to be a plane wave of a specfic direction in the code.
 The amplitude inside each mesh is determined by the surface shading model and it can be either linearly varying for the continuous shading or uniform for the flat shading.
 
-![continuous shading](@ref pics/ophgen/mesh/mesh_ex_continuous.png)
-![flat shading](@ref pics/ophgen/mesh/mesh_ex_flat.png)
+![continuous shading](pics/ophgen/mesh/mesh_ex_continuous.png)
+	-Fig.continuous shading
+![flat shading](pics/ophgen/mesh/mesh_ex_flat.png)
+	-Fig.flat shading
 
 */
 //! @} mesh

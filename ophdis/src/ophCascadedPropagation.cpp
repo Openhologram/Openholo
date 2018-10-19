@@ -75,7 +75,7 @@ void ophCascadedPropagation::ophFree()
 
 bool ophCascadedPropagation::propagate()
 {
-	if (!ready_to_propagate)
+	if (!isReadyToPropagate())
 	{
 		PRINT_ERROR("module not initialized");
 		return false;
