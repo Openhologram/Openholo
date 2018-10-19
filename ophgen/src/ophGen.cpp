@@ -694,10 +694,9 @@ void ophGen::numericalInterference(oph::Complex<Real>* holo, Real* encoded, cons
 	Real* ref = new Real;
 	*ref = oph::maxOfArr(temp1, size);
 
-	oph::Complex<Real>* temp2 = new Complex<Real>[size];
-	temp2 = holo;
+	oph::Complex<Real>* temp2 = new oph::Complex<Real>[size];
 	for_i(size,
-		temp2[i][_RE] += *ref;
+		temp2[i] = holo[i] + *ref;
 	);
 
 	Real* temp3 = new Real[size];

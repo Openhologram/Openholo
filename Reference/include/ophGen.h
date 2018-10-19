@@ -219,13 +219,6 @@ public:
 	* @details	Just used for the reference
 	*/
 	void loadComplex(char* real_file, char* imag_file, int n_x, int n_y);
-
-	/**
-	* @brief	Complex field OHC file save from real and imaginary data
-	* @details	Just used for the reference
-	*/
-	void saveOhcFromRealImag(char* ohcfname, char* real_file, char* imag_file, int n_x, int n_y, Real p_x, Real p_y, Real w);
-
 	/**
 	* @brief	Normalize the encoded hologram
 	* @details	Considering the encoded hologram size
