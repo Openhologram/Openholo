@@ -10,14 +10,30 @@
 * @addtogroup CH
 //@{
 * @detail
+* @section Introduction
+
+This module is related methods which perform compressed holography algorithm.
+Compressed holography algorithm is based on a paper D.Brady et al., Opt. Express 18, pp. 13040 (2009). 
+The methods in this module (except twist) has been created based on the original code included in the supplement material of S.Lim, D. Marks, and D. Brady, ¡°Sampling and processing for compressive holography,¡± Applied Optics, vol. 50, no. 34, pp. H75-H86, 2011.
+
+This module also uses a TwIST algorithm (J.M. Bioucas-Dias et al., IEEE Trans. Image Proc. 16, pp.2992 (2007)).
+The 'twist' method in this module is based on the optimization algorithm (TwIST) code created and distributed by Jose Bioucas-Dias and Mario Figueiredo, October, 2007
+J. Bioucas-Dias and M. Figueiredo, "A New TwIST: Two-Step Iterative Shrinkage/Thresholding Algorithms for Image Restoration",  IEEE Transactions on Image processing, 2007.
+www.lx.it.pt/~bioucas/TwIST
+
+Compressed holography finds 3D object from complex field data by maximizing sparisity in 3D object space.
+![](pics/ophsig/CH/CH_concept.png)
+
+Comparison with usual numerical reconstruction.
+![](pics/ophsig/CH/CH_result.png)
 
 */
 //! @} CH
 
 /**
 * @ingroup CH
-* @brief Openholo Compressed Holography
-* @author Jae-Hyeung Park
+* @brief
+* @author
 */
 class SIG_DLL ophSigCH : public ophSig
 {
@@ -28,66 +44,43 @@ public:
 	explicit ophSigCH(void);
 	
 	/**
-	* @ingroup CH
-	* @brief	Setting Compressed Holography Parameters
-	* @detail
-	* @param	z			Depth plane distances
-	* @param	maxIter		Maximum number of iteration
-	* @param	tau			
-	* @param	tolA
-	* @return	tvIter
+	* @brief Set Compressed Holography parameters
+	* @param z : vector containing depth values for numerical reconstruction
+	* @param maxIter : maximum number of iteration for TwIST optimization
+	* @param tau : regularization parameter ('lambda in the picture above)
+	* @param tolA : stopping threshold
+	* @param tvIter : the number of iterations in denoising based on total variation
 	*/
 	bool setCHparam(vector<Real> &z, int maxIter, double tau, double tolA, int tvIter);
 
 	/**
-	* @ingroup CH
-	* @brief	Main funtcion to reconstruct 3D scene with compressed holography
-	* @detail
-	* @param	complexHidx
-	* @return
+	* @brief Run compressed holography algorithm
+	* @param complexHidx : index (0, 1, 2) to monochromatic complex field data in the member variable complexH[3] 
 	*/
 	bool runCH(int complexHidx);
 
 	/**
-	* @ingroup CH
-	* @brief	Function to save the image file of reconstruction by compressed holography
-	* @detail
-	* @param	fname	file name
-	* @return
+	* @brief Save numerical reconstruction results for z vector after compressed holography
+	* @param fname : image file name where the numerical reconstruction results are stored. Image index will be appened to fname for each depth in the vector z.
 	*/
 	bool saveNumRec(const char *fname);
 
 	/**
-	* @ingroup CH
-	* @brief	CH configuration file load
-	* @detail
-	* @param	fname	Configuration file name(.xml)
-	* @return
+	* @brief Read configure file (xml)
+	* @param fname : configure file name
 	*/
 	bool readConfig(const char * fname);
 
 	/**
-	* @ingroup CH
-	* @brief	Load complex field from the real and imaginary image files
-	* @detail	
-	* @param	real		complex field real part image file name	
-	* @param	imag		complex field imaginary part image file name
-	* @param	bitpixel	bit per pixel
-	* @return
+	* @brief Load complex field from image files
+	* @param real : image file name of real data,  imag: image file name of imaginary data,  bitpixel : pixel depth of image file
 	*/
 	bool loadCHtemp(const char *real, const char *imag, uint8_t bitpixel);
 
-	bool loadCH(const char *fname);
-
 	/**
-	* @ingroup CH
-	* @brief	Numerical propagation
-	* @detail
-	* @param
-	* @param
-	* @param
-	* @param
-	* @return
+	* @brief Numerical propagation of complex field using angular spectrum method
+	* @param complexH : complex field
+	* @param depth: distance to be propagated (positive or negative)
 	*/
 	matrix<Complex<Real>> propagationHoloAS(matrix<Complex<Real>> complexH, float depth);
 

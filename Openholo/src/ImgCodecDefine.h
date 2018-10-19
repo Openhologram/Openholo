@@ -54,80 +54,87 @@ namespace oph
 #define LINK_IMG_PATH_SIZE 4*1024*sizeof(BYTE) // 4KB
 
 	/************************ Enumerator Class for OHC *****************************/
-
+	
 	/* Unit of Length */
 	enum class LenUnit : uint8_t {
-		m = 0,	/* Meter */
-		cm = 1,	/* Centi Meter */
-		mm = 2,	/* Milli Meter */
-		um = 3,	/* Micro Meter */
-		nm = 4,	/* Nano Meter */
+		Null= 0,	/* Null Data */
+		m	= 1,	/* Meter */
+		cm	= 2,	/* Centi Meter */
+		mm	= 3,	/* Milli Meter */
+		um	= 4,	/* Micro Meter */
+		nm	= 5,	/* Nano Meter */
 	};
 
 	/* Color Channel Type */
 	enum class ColorType : uint8_t {
-		RGB = 0,	/* RGB 3-channel */
-		MLT = 1,	/* Multiple Colors : Grayscale color is the one case of MLT. */
-		//GRY = 2,	/* Grayscale 1-channel */
+		Null= 0,	/* Null Data */
+		RGB	= 1,	/* RGB 3-channel */
+		MLT	= 2,	/* Multiple Colors : Grayscale color is the one case of MLT. */
+		//GRY = 3,	/* Grayscale 1-channel */
 	};
 
 	/* Color Arrangement */
 	enum class ColorArran : uint8_t {
-		SequentialRGB = 0,
-		EachChannel = 1,
+		Null	  = 0,	/* Null Data */
+		SeqtChanl = 1,	/* Sequential RGB Color channels */
+		EachChanl = 2,	/* Each Color channels */
 	};
 
 	/* Complex Field Data Type */
 	enum class DataType : uint8_t {
-		Int8 = 0,		/* char */
-		Int16 = 1,		/* short */
-		Int32 = 2,		/* long */
-		Int64 = 3,		/* longlong */
-		Uint8 = 4,		/* uchar */
-		Uint16 = 5,		/* ushort */
-		Uint32 = 6,		/* ulong */
-		Uint64 = 7,		/* ulonglong */
-		Float32 = 8,	/* Single precision floating */
-		Float64 = 9,	/* Double precision floating */
-		CmprFmt = 10,	/* Compressed Image File */
+		Null	= 0,	/* Null Data */
+		Int8	= 1,	/* char */
+		Int16	= 2,	/* short */
+		Int32	= 3,	/* long */
+		Int64	= 4,	/* longlong */
+		Uint8	= 5,	/* uchar */
+		Uint16	= 6,	/* ushort */
+		Uint32	= 7,	/* ulong */
+		Uint64	= 8,	/* ulonglong */
+		Float32 = 9,	/* Single precision floating */
+		Float64 = 10,	/* Double precision floating */
+		CmprFmt = 11,	/* Compressed Image File */
 	};
 
 	/* Field Store Type */
 	enum class FldStore : uint8_t {
-		Directly = 0,	/* Field data is directly stored at the 'Field Data' region. */
-		LinkFile = 1,	/* Field data is stored at separate files and they are referred by path. 'Field Data' region stores those file paths. */
+		Null	 = 0,	/* Null Data */
+		Directly = 1,	/* Field data is directly stored at the 'Field Data' region. */
+		LinkFile = 2,	/* Field data is stored at separate files and they are referred by path. 'Field Data' region stores those file paths. */
 	};
 
 	/* Encoding Type of Field Data Domain */
 	enum class FldCodeType : uint8_t {
-		AP = 0,		/* Amplitude & Phase */
-		RI = 1,		/* Real & Imaginary */
-		AE = 2,		/* Amplitude-only Encoded */
-		PE = 3,		/* Phase-only Encoded */
+		Null = 0,	/* Null Data */
+		AP	 = 1,	/* Amplitude & Phase */
+		RI	 = 2,	/* Real & Imaginary */
+		AE	 = 3,	/* Amplitude-only Encoded */
+		PE	 = 4,	/* Phase-only Encoded */
 	};
 
 	/* Phase Encoded Type : Boolean */
 	enum class BPhaseCode : uint8_t {
+		Null = 0,
 		NotEncoded = 0,
 		Encoded = 1,
 	};
 
 	/* Compressed Image Type File Format */
 	enum class CompresType : uint8_t {
-		RAW = 0,	/* No Image Format, Directly store raw data. */
-		BMP = 1,	/* Bitmap (bmp, dib) */
-		JPG = 2,	/* JPEG (jpg, jpeg, jpe) */
-		J2K = 3,	/* JPEG-2000 (jpf, jpx, jp2, j2c, j2k, jpc) */
-		PNG = 4,	/* PNG (png, pns) */
-		GIF = 5,	/* GIF (gif) */
-		TIF = 6,	/* TIFF (tif, tiff) */
+		Null = 0,	/* No Image Format, Directly store raw data. */
+		BMP  = 1,	/* Bitmap (bmp, dib) */
+		JPG  = 2,	/* JPEG (jpg, jpeg, jpe) */
+		J2K  = 3,	/* JPEG-2000 (jpf, jpx, jp2, j2c, j2k, jpc) */
+		PNG  = 4,	/* PNG (png, pns) */
+		GIF  = 5,	/* GIF (gif) */
+		TIF  = 6,	/* TIFF (tif, tiff) */
 	};
 
 
 	/************************ File Header Struct for OHC *****************************/
 
 	/* Openholo Complex Field File Format(*.ohc) Definition */
-	typedef struct ohcFileHeader {
+	struct ohcFileHeader {
 		int8_t		fileSignature[2];	/* File Type(2 Byte) : 'OH' 0x484F */
 		uint64_t	fileSize;			/* Entire file size(in byte) */
 		uint8_t		fileVersionMajor;	/* Major version of file format */
@@ -147,9 +154,9 @@ namespace oph
 			this->fileReserved2 = 0;
 			this->fileOffBytes = -1;
 		}
-	} OHCFILEHEADER;
+	};
 
-	typedef struct ohcFieldInfoHeader {
+	struct ohcFieldInfoHeader {
 		uint32_t	headerSize;		/* Size of Field Info Header(in byte) : InfoHeader + WaveLengthTable */
 		uint32_t	pxNumX;			/* Number of pixels of field data in x-direction */
 		uint32_t	pxNumY;			/* Number of pixels of field data in y-direction */
@@ -176,27 +183,27 @@ namespace oph
 			this->pxNumY = (uint32_t)-1;
 			this->pxPitchX = (double_t)-1;
 			this->pxPitchY = (double_t)-1;
-			this->pitchUnit = (LenUnit)-1;
+			this->pitchUnit = LenUnit::Null;
 			this->wavlenNum = 0;
-			this->clrType = (ColorType)-1;
-			this->clrArrange = (ColorArran)-1;
-			this->wavlenUnit = (LenUnit)-1;
-			this->cmplxFldType = (DataType)-1;
-			this->fldStore = (FldStore)-1;
-			this->fldCodeType = (FldCodeType)-1;
-			this->bPhaseCode = (BPhaseCode)-1;
+			this->clrType = ColorType::Null;
+			this->clrArrange = ColorArran::Null;
+			this->wavlenUnit = LenUnit::Null;
+			this->cmplxFldType = DataType::Null;
+			this->fldStore = FldStore::Null;
+			this->fldCodeType = FldCodeType::Null;
+			this->bPhaseCode = BPhaseCode::Null;
 			this->phaseCodeMin = -1.0;
 			this->phaseCodeMax = 1.0;
 			this->fldSize = 0;
-			this->comprsType = (CompresType)-1;
+			this->comprsType = CompresType::Null;
 		}
-	} OHCFIELDINFOHEADER;
+	};
 
-	typedef struct ophComplexFile {
-		OHCFILEHEADER			fileHeader;
-		OHCFIELDINFOHEADER		fieldInfo;
+	struct ohcHeader {
+		ohcFileHeader			fileHeader;
+		ohcFieldInfoHeader		fieldInfo;
 		std::vector<double_t>	wavlenTable; /* Wavelength : Scalable Data Size(8/24/8n). When 'clrType' is RGB, wavelengths of red, green, and blue are stored sequentially; When 'clrType' is MLT, size of this field is 8*n bytes, where 'n' is the 'wavlenNum'. */
-	} OHCheader;
+	};
 }
 
 #endif
