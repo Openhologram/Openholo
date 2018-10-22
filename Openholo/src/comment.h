@@ -199,24 +199,6 @@ Generation Hologram - Wavefront Recording Plane(WRP) Example
 	Hologram->release();
 @endcode
 
-
-Encoding Example
-
-@code
-	#include "ophPointCloud.h"
-
-	ophPointCloud* Hologram = new ophPointCloud();
-
-	Hologram->loadComplex("source/Encoding/teapot_real_1920,1080.txt", "source/Encoding/teapot_imag_1920,1080.txt", 1920, 1080);
-
-	Hologram->encoding(ophGen::ENCODE_AMPLITUDE);
-	Hologram->normalizeEncoded();
-
-	ivec2 encode_size = Hologram->getEncodeSize();
-	Hologram->save("result/Encoding/Encoding.bmp", 8, nullptr, encode_size[_X], encode_size[_Y]);
-@endcode
-
-
 Wave Aberration Example
 
 @code
@@ -245,9 +227,13 @@ Cascaded Propagation Example
 @code
 	#include "ophCascadedPropagation.h"
 
-	ophCascadedPropagation* pCp = new ophCascadedPropagation(L"config/TestSpecCascadedPropagation.xml");
-	if (pCp->propagate())
-		pCp->saveIntensityAsImg(L"result/CascadedPropagation/intensityRGB.bmp", pCp->getNumColors() * 8);
+	ophCascadedPropagation* pCp =
+		new ophCascadedPropagation(L"config/TestSpecCascadedPropagation.xml");		// ophCascadedPropagation instance generation and parameter setup
+	if (pCp->isReadyToPropagate()													// check if all the input are ready
+		&& pCp->propagateSlmToPupil()												// 1st propagation: from SLM to pupil
+		&& pCp->propagatePupilToRetina())											// 2nd propagation: from pupil to retina
+		pCp->save(L"result/CascadedPropagation/intensityRGB.bmp",					// save numerical reconstruction result in BMP format
+		pCp->getNumColors() * 8);	
 
 	pCp->release();
 @endcode
