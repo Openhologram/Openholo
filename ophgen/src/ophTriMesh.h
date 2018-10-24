@@ -119,7 +119,7 @@ private:
 private:
 
 	Real objSize;							/// Object maximum of width and height / unit :[m]
-	Real objShift[3];						/// Object shift value / Data structure - [shiftX, shiftY, shiftZ] / unit : [m]
+	vec3 objShift;							/// Object shift value / Data structure - [shiftX, shiftY, shiftZ] / unit : [m]
 
 	Real carrierWave[3] = { 0,0,1 };		/// Carrier wave direction / default : {0, 0, 1}
 
@@ -128,6 +128,7 @@ private:
 
 public:
 	void setObjSize(Real in) { objSize = in; }
+	void setObjShift(vec3 in) { objShift[_X] = in[_X]; objShift[_Y] = in[_Y]; objShift[_Z] = in[_Z]; }
 	void setObjShift(Real in[]) { objShift[_X] = in[_X]; objShift[_Y] = in[_Y]; objShift[_Z] = in[_Z]; }
 	void setObjShift(vector<Real> in) { objShift[_X] = in[_X]; objShift[_Y] = in[_Y]; objShift[_Z] = in[_Z]; }
 	void setCarrierWave(Real in1, Real in2, Real in3) { carrierWave[_X] = in1; carrierWave[_Y] = in2; carrierWave[_Z] = in3; }
@@ -138,6 +139,11 @@ public:
 	Real* getMeshData() { return triMeshArray; }
 	Complex<Real>* getAngularSpectrum() { return angularSpectrum; }
 	Real* getScaledMeshData() {	return scaledMeshData; }
+
+	const Real& getObjSize(void) { return objSize; }
+	const vec3& getObjShift(void) { return objShift; }
+	const vec3&	getIllumination(void) { return illumination; }
+
 
 public:
 	/**
@@ -159,7 +165,7 @@ public:
 	* @param	ext				File extension
 	* @return	triMeshArray
 	*/
-	void loadMeshData(const char* fileName, const char* ext);
+	bool loadMeshData(const char* fileName, const char* ext);
 
 	/**
 	* @brief	Mesh object data scaling and shifting
