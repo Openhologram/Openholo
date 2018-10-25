@@ -47,7 +47,6 @@
 #include "include.h"
 
 #include <sys.h>
-#include <cufft.h>
 
 ophPointCloud::ophPointCloud(void)
 	: ophGen()

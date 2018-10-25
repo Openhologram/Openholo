@@ -178,7 +178,7 @@ int Openholo::saveAsOhc(const char * fname)
 	if (checkExtension(fname, ".ohc") == 0) fullname.append(".ohc");
 	OHC_encoder->setFileName(fullname.c_str());
 
-	ohcHeader header;
+	OHCheader header;
 	OHC_encoder->getOHCheader(header);
 	auto wavelength_num = header.fieldInfo.wavlenNum;
 

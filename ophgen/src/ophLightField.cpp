@@ -50,13 +50,6 @@
 
 #define for_i(itr, oper) for(int i=0; i<itr; i++){ oper }
 
-ophLF::ophLF(void)
-	: num_image(ivec2(0, 0))
-	, resolution_image(ivec2(0, 0))
-	, distanceRS2Holo(0.0)
-{
-}
-
 int ophLF::readLFConfig(const char* LF_config) {
 	LOG("Reading....%s...\n", LF_config);
 
@@ -83,56 +76,20 @@ int ophLF::readLFConfig(const char* LF_config) {
 	//LF_directory = (xml_node->FirstChildElement("LightFieldImageDirectory"))->GetText();
 	//ext = (xml_node->FirstChildElement("LightFieldImageExtention"))->GetText();
 #if REAL_IS_DOUBLE & true
-	auto next = xml_node->FirstChildElement("DistanceRS2Holo");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&distanceRS2Holo))
-		return false;
-	next = xml_node->FirstChildElement("SLMPixelPitchX");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&context_.pixel_pitch[_X]))
-		return false;
-	next = xml_node->FirstChildElement("SLMPixelPitchY");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&context_.pixel_pitch[_Y]))
-		return false;
-	next = xml_node->FirstChildElement("WavelengthofLaser");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&context_.wave_length[0]))
-		return false;
-	//(xml_node->FirstChildElement("DistanceRS2Holo"))->QueryDoubleText(&distanceRS2Holo);
-	//(xml_node->FirstChildElement("SLMPixelPitchX"))->QueryDoubleText(&context_.pixel_pitch[_X]);
-	//(xml_node->FirstChildElement("SLMPixelPitchY"))->QueryDoubleText(&context_.pixel_pitch[_Y]);
-	//(xml_node->FirstChildElement("WavelengthofLaser"))->QueryDoubleText(&context_.wave_length[0]);
+	(xml_node->FirstChildElement("DistanceRS2Holo"))->QueryDoubleText(&distanceRS2Holo);
+	(xml_node->FirstChildElement("SLMPixelPitchX"))->QueryDoubleText(&context_.pixel_pitch[_X]);
+	(xml_node->FirstChildElement("SLMPixelPitchY"))->QueryDoubleText(&context_.pixel_pitch[_Y]);
+	(xml_node->FirstChildElement("WavelengthofLaser"))->QueryDoubleText(&context_.wave_length[0]);
 #else
-	auto next = xml_node->FirstChildElement("DistanceRS2Holo");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryFloatText(&distanceRS2Holo))
-		return false;
-	next = xml_node->FirstChildElement("SLMPixelPitchX");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryFloatText(&context_.pixel_pitch[_X]))
-		return false;
-	next = xml_node->FirstChildElement("SLMPixelPitchY");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryFloatText(&context_.pixel_pitch[_Y]))
-		return false;
-	next = xml_node->FirstChildElement("WavelengthofLaser");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryFloatText(&context_.wave_length[0]))
-		return false;
-	//(xml_node->FirstChildElement("DistanceRS2Holo"))->QueryFloatText(&distanceRS2Holo);
-	//(xml_node->FirstChildElement("SLMPixelPitchX"))->QueryFloatText(&context_.pixel_pitch[_X]);
-	//(xml_node->FirstChildElement("SLMPixelPitchY"))->QueryFloatText(&context_.pixel_pitch[_Y]);
-	//(xml_node->FirstChildElement("WavelengthofLaser"))->QueryFloatText(&context_.wave_length[0]);
+	(xml_node->FirstChildElement("DistanceRS2Holo"))->QueryFloatText(&distanceRS2Holo);
+	(xml_node->FirstChildElement("SLMPixelPitchX"))->QueryFloatText(&context_.pixel_pitch[_X]);
+	(xml_node->FirstChildElement("SLMPixelPitchY"))->QueryFloatText(&context_.pixel_pitch[_Y]);
+	(xml_node->FirstChildElement("WavelengthofLaser"))->QueryFloatText(&context_.wave_length[0]);
 #endif
-	next = xml_node->FirstChildElement("NumberofImagesXofLF");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryIntText(&num_image[_X]))
-		return false;
-	next = xml_node->FirstChildElement("NumberofImagesYofLF");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryIntText(&num_image[_Y]))
-		return false;
-	next = xml_node->FirstChildElement("NumberofPixelXofLF");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryIntText(&resolution_image[_X]))
-		return false;
-	next = xml_node->FirstChildElement("NumberofPixelYofLF");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryIntText(&resolution_image[_Y]))
-		return false;
-	//(xml_node->FirstChildElement("NumberofImagesXofLF"))->QueryIntText(&num_image[_X]);
-	//(xml_node->FirstChildElement("NumberofImagesYofLF"))->QueryIntText(&num_image[_Y]);
-	//(xml_node->FirstChildElement("NumberofPixelXofLF"))->QueryIntText(&resolution_image[_X]);
-	//(xml_node->FirstChildElement("NumberofPixelYofLF"))->QueryIntText(&resolution_image[_Y]);
+	(xml_node->FirstChildElement("NumberofImagesXofLF"))->QueryIntText(&num_image[_X]);
+	(xml_node->FirstChildElement("NumberofImagesYofLF"))->QueryIntText(&num_image[_Y]);
+	(xml_node->FirstChildElement("NumberofPixelXofLF"))->QueryIntText(&resolution_image[_X]);
+	(xml_node->FirstChildElement("NumberofPixelYofLF"))->QueryIntText(&resolution_image[_Y]);
 	//(xml_node->FirstChildElement("EncodingMethod"))->QueryIntText(&ENCODE_METHOD);
 	//(xml_node->FirstChildElement("SingleSideBandPassBand"))->QueryIntText(&SSB_PASSBAND);
 
@@ -173,7 +130,7 @@ int ophLF::loadLF(const char* directory, const char* exten)
 
 	_finddata_t data;
 
-	string sdir = std::string(LF_directory).append("\\").append("*.").append(ext);
+	string sdir = std::string("./").append(LF_directory).append("/").append("*.").append(ext);
 	intptr_t ff = _findfirst(sdir.c_str(), &data);
 	if (ff != -1)
 	{
@@ -184,7 +141,7 @@ int ophLF::loadLF(const char* directory, const char* exten)
 
 		while (1)
 		{
-			string imgfullname = std::string(LF_directory).append("\\").append(data.name);
+			string imgfullname = std::string(LF_directory).append("/").append(data.name);
 
 			getImgSize(sizeOut[_X], sizeOut[_Y], bytesperpixel, imgfullname.c_str());
 
@@ -192,6 +149,7 @@ int ophLF::loadLF(const char* directory, const char* exten)
 
 			if (rgbOut == 0) {
 				cout << "LF load was failed." << endl;
+				cin.get();
 				return -1;
 			}
 
@@ -208,12 +166,14 @@ int ophLF::loadLF(const char* directory, const char* exten)
 
 		if (num_image[_X]*num_image[_Y] != num) {
 			cout << "num_image is not matched." << endl;
+			cin.get();
 		}
 		return 1;
 	}
 	else
 	{
 		cout << "LF load was failed." << endl;
+		cin.get();
 		return -1;
 	}
 }

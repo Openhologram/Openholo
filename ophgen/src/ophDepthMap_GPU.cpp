@@ -223,8 +223,7 @@ void ophDepthMap::changeDepthQuanGPU()
 
 	Real temp_depth, d1, d2;
 
-	auto error = (cudaMemsetAsync(depth_index_gpu, 0, sizeof(Real)*pnx*pny, stream_));
-	cout << error << endl;
+	HANDLE_ERROR(cudaMemsetAsync(depth_index_gpu, 0, sizeof(Real)*pnx*pny, stream_));
 
 	for (oph::uint dtr = 0; dtr < dm_config_.num_of_depth; dtr++)
 	{
