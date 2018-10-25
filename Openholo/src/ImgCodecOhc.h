@@ -65,7 +65,7 @@ namespace oph
 	public: /* method */
 		ImgCodecOhc();
 		ImgCodecOhc(const std::string &_fname);
-		ImgCodecOhc(const std::string &_fname, const OHCheader &_Header);
+		ImgCodecOhc(const std::string &_fname, const ohcHeader &_Header);
 		virtual ~ImgCodecOhc() = 0;
 		virtual void initOHCheader();
 		virtual void releaseFldData();
@@ -73,10 +73,10 @@ namespace oph
 		void releaseCodeBuffer();
 
 		bool setFileName(const std::string &_fname);
-		bool setOHCheader(const OHCheader &_Header);
+		bool setOHCheader(const ohcHeader &_Header);
 
-		void getOHCheader(OHCheader &_Header);
-		void getFieldInfo(OHCFIELDINFOHEADER &_FieldInfo, std::vector<double_t> &_wavlenTable);
+		void getOHCheader(ohcHeader &_Header);
+		void getFieldInfo(ohcFieldInfoHeader &_FieldInfo, std::vector<double_t> &_wavlenTable);
 
 		void getComplexFieldData(OphComplexField& cmplx_field, uint wavelen_idx) { cmplx_field = field_cmplx[wavelen_idx]; }
 		void getComplexFieldData(Complex<Real>** cmplx_field, uint wavelen_idx);
@@ -92,7 +92,7 @@ namespace oph
 		std::vector<OphComplexField> field_cmplx; //Real & Imagine data
 		std::vector<std::string> linkFilePath;
 
-		OHCheader* Header = nullptr;
+		ohcHeader* Header = nullptr;
 	};
 
 
@@ -101,7 +101,7 @@ namespace oph
 	public:
 		ImgDecoderOhc();
 		ImgDecoderOhc(const std::string &_fname);
-		ImgDecoderOhc(const std::string &_fname, const OHCheader &_Header);
+		ImgDecoderOhc(const std::string &_fname, const ohcHeader &_Header);
 		virtual ~ImgDecoderOhc();
 		virtual void releaseFldData();
 
@@ -137,7 +137,7 @@ namespace oph
 	public:
 		ImgEncoderOhc();
 		ImgEncoderOhc(const std::string &_fname);
-		ImgEncoderOhc(const std::string &_fname, const OHCheader &_Header);
+		ImgEncoderOhc(const std::string &_fname, const ohcHeader &_Header);
 		virtual ~ImgEncoderOhc();
 		void initOHCheader();
 
