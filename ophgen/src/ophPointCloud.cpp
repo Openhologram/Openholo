@@ -1,7 +1,53 @@
+/*M///////////////////////////////////////////////////////////////////////////////////////
+//
+//  IMPORTANT: READ BEFORE DOWNLOADING, COPYING, INSTALLING OR USING.
+//
+//  By downloading, copying, installing or using the software you agree to this license.
+//  If you do not agree to this license, do not download, install, copy or use the software.
+//
+//
+//                           License Agreement
+//                For Open Source Digital Holographic Library
+//
+// Openholo library is free software;
+// you can redistribute it and/or modify it under the terms of the BSD 2-Clause license.
+//
+// Copyright (C) 2017-2024, Korea Electronics Technology Institute. All rights reserved.
+// E-mail : contact.openholo@gmail.com
+// Web : http://www.openholo.org
+//
+// Redistribution and use in source and binary forms, with or without modification,
+// are permitted provided that the following conditions are met:
+//
+//  1. Redistribution's of source code must retain the above copyright notice,
+//     this list of conditions and the following disclaimer.
+//
+//  2. Redistribution's in binary form must reproduce the above copyright notice,
+//     this list of conditions and the following disclaimer in the documentation
+//     and/or other materials provided with the distribution.
+//
+// This software is provided by the copyright holders and contributors "as is" and
+// any express or implied warranties, including, but not limited to, the implied
+// warranties of merchantability and fitness for a particular purpose are disclaimed.
+// In no event shall the copyright holder or contributors be liable for any direct,
+// indirect, incidental, special, exemplary, or consequential damages
+// (including, but not limited to, procurement of substitute goods or services;
+// loss of use, data, or profits; or business interruption) however caused
+// and on any theory of liability, whether in contract, strict liability,
+// or tort (including negligence or otherwise) arising in any way out of
+// the use of this software, even if advised of the possibility of such damage.
+//
+// This software contains opensource software released under GNU Generic Public License,
+// NVDIA Software License Agreement, or CUDA supplement to Software License Agreement.
+// Check whether software you use contains licensed software.
+//
+//M*/
+
 #include "ophPointCloud.h"
 #include "include.h"
 
 #include <sys.h>
+#include <cufft.h>
 
 ophPointCloud::ophPointCloud(void)
 	: ophGen()
@@ -58,13 +104,12 @@ Real ophPointCloud::generateHologram(uint diff_flag)
 #else
 		std::cout << "Generate Hologram with Single Core CPU" << std::endl;
 #endif
-		genCghPointCloudCPU(diff_flag); /// 홀로그램 데이터 Complex data로 변경 시 holo_gen으로
+		genCghPointCloudCPU(diff_flag); /// 홀로그램 데이터 Complex data로 변경 시 (*complex_H)으로
 	}
 	else { //Run GPU
 		std::cout << "Generate Hologram with GPU" << std::endl;
 
 		genCghPointCloudGPU(diff_flag);
-		std::cout << ">>> CUDA GPGPU" << std::endl;
 	}
 
 	auto end_time = CUR_TIME;
@@ -76,9 +121,75 @@ Real ophPointCloud::generateHologram(uint diff_flag)
 	return during_time;
 }
 
-void ophPointCloud::encodeHologram(void)
+void ophPointCloud::encodeHologram(const vec2 band_limit, const vec2 spectrum_shift)
 {
-	encodeSideBand(is_CPU, ivec2(0, 1));
+	if ((*complex_H) == nullptr) {
+		LOG("Not found diffracted data.");
+		return;
+	}
+
+	ivec2 pn = context_.pixel_number;
+	vec2 pp = context_.pixel_pitch;
+	vec2 ss = context_.ss;
+
+	Real cropx = floor(pn[_X] * band_limit[_X]);
+	Real cropx1 = cropx - floor(cropx / 2);
+	Real cropx2 = cropx1 + cropx - 1;
+
+	Real cropy = floor(pn[_Y] * band_limit[_Y]);
+	Real cropy1 = cropy - floor(cropy / 2);
+	Real cropy2 = cropy1 + cropy - 1;
+
+	Real* x_o = new Real[pn[_X]];
+	Real* y_o = new Real[pn[_Y]];
+
+	for (int i = 0; i < pn[_X]; i++)
+		x_o[i] = (-ss[_X] / 2) + (pp[_X] * i) + (pp[_X] / 2);
+
+	for (int i = 0; i < pn[_Y]; i++)
+		y_o[i] = (ss[_Y] - pp[_Y]) - (pp[_Y] * i);
+
+	Real* xx_o = new Real[pn[_X] * pn[_Y]];
+	Real* yy_o = new Real[pn[_X] * pn[_Y]];
+
+	for (int i = 0; i < pn[_X] * pn[_Y]; i++)
+		xx_o[i] = x_o[i % pn[_X]];
+
+
+	for (int i = 0; i < pn[_X]; i++)
+		for (int j = 0; j < pn[_Y]; j++)
+			yy_o[i + j * pn[_X]] = y_o[j];
+
+	Complex<Real>* h = new Complex<Real>[pn[_X] * pn[_Y]];
+
+	fftwShift((*complex_H), h, pn[_X], pn[_Y], OPH_FORWARD);
+	fft2(pn, h, OPH_FORWARD);
+	fftExecute(h);
+	fftwShift(h, h, pn[_X], pn[_Y], OPH_BACKWARD);
+
+	fftwShift(h, h, pn[_X], pn[_Y], OPH_FORWARD);
+	fft2(pn, h, OPH_BACKWARD);
+	fftExecute(h);
+	fftwShift(h, h, pn[_X], pn[_Y], OPH_BACKWARD);
+
+	for (int i = 0; i < pn[_X] * pn[_Y]; i++) {
+		Complex<Real> shift_phase(1.0, 0.0);
+		int r = i / pn[_X];
+		int c = i % pn[_X];
+
+		Real X = (M_PI * xx_o[i] * spectrum_shift[_X]) / pp[_X];
+		Real Y = (M_PI * yy_o[i] * spectrum_shift[_Y]) / pp[_Y];
+
+		shift_phase._Val[_RE] = shift_phase._Val[_RE] * (cos(X) * cos(Y) - sin(X) * sin(Y));
+
+		holo_encoded[i] = (h[i] * shift_phase).real();
+	}
+
+	delete[] h;
+	delete[] x_o;
+	delete[] xx_o;
+	delete[] y_o;
+	delete[] yy_o;
 }
 
 void ophPointCloud::genCghPointCloudCPU(uint diff_flag)
@@ -109,84 +220,97 @@ void ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 #ifdef _OPENMP
 	int num_threads = 0;
 #pragma omp parallel
-{
-	num_threads = omp_get_num_threads(); // get number of Multi Threading
+	{
+		num_threads = omp_get_num_threads(); // get number of Multi Threading
 #pragma omp for private(j)
 #endif
-	for (j = 0; j < n_points; ++j) { //Create Fringe Pattern
-		uint idx = 3 * j;
-		uint color_idx = pc_data_.n_colors * j;
-		Real pcx = pc_data_.vertex[idx + _X] * pc_config_.scale[_X];
-		Real pcy = pc_data_.vertex[idx + _Y] * pc_config_.scale[_Y];
-		Real pcz = pc_data_.vertex[idx + _Z] * pc_config_.scale[_Z] + pc_config_.offset_depth;
-		Real amplitude = pc_data_.color[color_idx];
+		for (j = 0; j < n_points; ++j) { //Create Fringe Pattern
+			uint idx = 3 * j;
+			uint color_idx = pc_data_.n_colors * j;
+			Real pcx = pc_data_.vertex[idx + _X] * pc_config_.scale[_X];
+			Real pcy = pc_data_.vertex[idx + _Y] * pc_config_.scale[_Y];
+			Real pcz = pc_data_.vertex[idx + _Z] * pc_config_.scale[_Z] + pc_config_.offset_depth;
+			Real amplitude = pc_data_.color[color_idx];
 
-		switch (diff_flag)
-		{
-		case PC_DIFF_RS_ENCODED:
-			diffractEncodedRS(pn, pp, ss, vec3(pcx, pcy, pcz), k, amplitude, vec2(thetaX, thetaY));
-			break;
-		case PC_DIFF_RS_NOT_ENCODED:
-			diffractNotEncodedRS(pn, pp, ss, vec3(pcx, pcy, pcz), k, amplitude, context_.lambda, vec2(thetaX, thetaY));
-			break;
-		case PC_DIFF_FRESNEL_ENCODED:
-			diffractEncodedFrsn();
-			break;
-		case PC_DIFF_FRESNEL_NOT_ENCODED:
-			diffractNotEncodedFrsn(pn, pp, vec3(pcx, pcy, pcz), amplitude, context_.lambda, vec2(thetaX, thetaY));
-			break;
+			switch (diff_flag)
+			{
+			//case PC_DIFF_RS_ENCODED:
+			//	diffractEncodedRS(pn, pp, ss, vec3(pcx, pcy, pcz), k, amplitude, vec2(thetaX, thetaY));
+			//	break;
+			case PC_DIFF_RS/*_NOT_ENCODED*/:
+				diffractNotEncodedRS(pn, pp, ss, vec3(pcx, pcy, pcz), k, amplitude, context_.wave_length[0], vec2(thetaX, thetaY));
+				break;
+			//case PC_DIFF_FRESNEL_ENCODED:
+			//	diffractEncodedFrsn();
+			//	break;
+			case PC_DIFF_FRESNEL/*_NOT_ENCODED*/:
+				diffractNotEncodedFrsn(pn, pp, vec3(pcx, pcy, pcz), amplitude, context_.wave_length[0], vec2(thetaX, thetaY));
+				break;
+			}
 		}
-	}
 #ifdef _OPENMP
 	}
 	std::cout << ">>> All " << num_threads << " threads" << std::endl;
 #endif
 }
 
-void ophPointCloud::diffractEncodedRS(ivec2 pn, vec2 pp, vec2 ss, vec3 vertex, Real k, Real amplitude, vec2 theta)
+void ophPointCloud::diffractEncodedRS(ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Real k, Real amplitude, vec2 theta)
 {
-	for (int row = 0; row < pn[_Y]; ++row) {
-		// Y coordinate of the current pixel : Note that pcy index is reversed order
-		Real SLM_y = (ss[_Y] / 2) - ((Real)row + 0.5) * pp[_Y];
+	for (int yytr = 0; yytr < pn[_Y]; ++yytr)
+	{
+		for (int xxtr = 0; xxtr < pn[_X]; ++xxtr)
+		{
+			Real xxx = ((Real)xxtr + 0.5) * pp[_X] - (ss[_X] / 2);
+			Real yyy = (ss[_Y] / 2) - ((Real)yytr + 0.5) * pp[_Y];
 
-		for (int col = 0; col < pn[_X]; ++col) {
-			// X coordinate of the current pixel
-			Real SLM_x = ((Real)col + 0.5) * pp[_X] - (ss[_X] / 2);
+			Real r = sqrt((xxx - pc[_X]) * (xxx - pc[_X]) + (yyy - pc[_Y]) * (yyy - pc[_Y]) + (pc[_Z] * pc[_Z]));
+			Real p = k * (r - xxx * sin(theta[_X]) - yyy * sin(theta[_Y]));
+			Real res = amplitude * cos(p);
 
-			Real r = sqrt((SLM_x - vertex[_X])*(SLM_x - vertex[_X]) + (SLM_y - vertex[_Y])*(SLM_y - vertex[_Y]) + vertex[_Z] * vertex[_Z]);
-			Real phi = (k * r) - (k * SLM_x*sin(theta[_X])) - (k * SLM_y*sin(theta[_Y])); // Phase for printer
-			Real result = amplitude * cos(phi);
+			holo_encoded[xxtr + yytr * pn[_X]] += res;
 
-			holo_encoded[col + row * pn[_X]] += result; //R-S Integral
-
-			//LOG("(%3d, %3d) [%7d] : ", col, row, col + row * pn[_X]);
-			//LOG("holo=(%15.5lf)\n", holo_encoded[col + row * pn[_X]]);
+			//LOG("(%3d, %3d) [%7d] : ", xxtr, yytr, xxtr + yytr * pn[_X]);
+			//LOG("holo=(%15.5lf)\n", holo_encoded[xxtr + yytr * pn[_X]]);
 		}
 	}
 }
 
 void ophPointCloud::diffractNotEncodedRS(ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Real k, Real amplitude, Real lambda, vec2 theta)
 {
-	Real tx = context_.lambda / (2 * pp[_X]);
-	Real ty = context_.lambda / (2 * pp[_Y]);
+	Real tx = context_.wave_length[0] / (2 * pp[_X]);
+	Real ty = context_.wave_length[0] / (2 * pp[_Y]);
 
-	Real xbound[2] = { pc[_X] + abs(tx / sqrt(1 - (tx * tx)) * pc[_Z]), pc[_X] - abs(tx / sqrt(1 - (tx * tx)) * pc[_Z]) };
-	Real ybound[2] = { pc[_Y] + abs(ty / sqrt(1 - (ty * ty)) * pc[_Z]), pc[_Y] - abs(ty / sqrt(1 - (ty * ty)) * pc[_Z]) };
+	Real _xbound[2] = {
+		pc[_X] + abs(tx / sqrt(1 - (tx * tx)) * pc[_Z]),
+		pc[_X] - abs(tx / sqrt(1 - (tx * tx)) * pc[_Z])
+	};
 
-	Real Xbound[2] = { floor((xbound[0] + ss[_X] / 2) / pp[_X]) + 1, floor((xbound[1] + ss[_X] / 2) / pp[_X]) + 1 };
-	Real Ybound[2] = { pn[_Y] - floor((ybound[1] + ss[_Y] / 2) / pp[_Y]), pn[_Y] - floor((ybound[0] + ss[_Y] / 2) / pp[_Y]) };
+	Real _ybound[2] = {
+		pc[_Y] + abs(ty / sqrt(1 - (ty * ty)) * pc[_Z]),
+		pc[_Y] - abs(ty / sqrt(1 - (ty * ty)) * pc[_Z])
+	};
+
+	Real Xbound[2] = {
+		floor((_xbound[0] + ss[_X] / 2) / pp[_X]) + 1,
+		floor((_xbound[1] + ss[_X] / 2) / pp[_X]) + 1
+	};
+
+	Real Ybound[2] = {
+		pn[_Y] - floor((_ybound[1] + ss[_Y] / 2) / pp[_Y]),
+		pn[_Y] - floor((_ybound[0] + ss[_Y] / 2) / pp[_Y])
+	};
 
 	if (Xbound[0] > pn[_X])	Xbound[0] = pn[_X];
 	if (Xbound[1] < 0)		Xbound[1] = 0;
 	if (Ybound[0] > pn[_Y]) Ybound[0] = pn[_Y];
 	if (Ybound[1] < 0)		Ybound[1] = 0;
 
-	for (int yytr = Ybound[1]; yytr < Ybound[0]; yytr++)
+	for (int xxtr = Xbound[1]; xxtr < Xbound[0]; xxtr++)
 	{
-		for (int xxtr = Xbound[1]; xxtr < Xbound[0]; xxtr++)
+		for (int yytr = Ybound[1]; yytr < Ybound[0]; yytr++)
 		{
-			Real xxx = (-ss[_X]) / 2 + (xxtr - 1) * pp[_X];
-			Real yyy = (-ss[_Y]) / 2 + (pn[_Y] - yytr) * pp[_Y];
+			Real xxx = (-ss[_X] / 2) + ((xxtr - 1) * pp[_X]);
+			Real yyy = (-ss[_Y] / 2) + ((pn[_Y] - yytr) * pp[_Y]);
 
 			Real r = sqrt((xxx - pc[_X]) * (xxx - pc[_X]) + (yyy - pc[_Y]) * (yyy - pc[_Y]) + (pc[_Z] * pc[_Z]));
 
@@ -197,20 +321,20 @@ void ophPointCloud::diffractNotEncodedRS(ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Re
 
 			Real range_y[2] = {
 				pc[_Y] + abs(ty / sqrt(1 - (ty * ty)) * sqrt((xxx - pc[_X]) * (xxx - pc[_X]) + (pc[_Z] * pc[_Z]))),
-				pc[_X] - abs(ty / sqrt(1 - (ty * ty)) * sqrt((xxx - pc[_X]) * (xxx - pc[_X]) + (pc[_Z] * pc[_Z])))
+				pc[_Y] - abs(ty / sqrt(1 - (ty * ty)) * sqrt((xxx - pc[_X]) * (xxx - pc[_X]) + (pc[_Z] * pc[_Z])))
 			};
 
-			if ((xxx < range_x[0] && xxx > range_x[1]) && (yyy < range_y[0] && yyy > range_y[1])) {
+			if (((xxx < range_x[0]) && (xxx > range_x[1])) && ((yyy < range_y[0]) && (yyy > range_y[1]))) {
 				Real kr = k * r;
 
 				Real res_real = (amplitude * pc[_Z] * sin(kr)) / (lambda * r * r);
-				Real res_imag = (amplitude * pc[_Z] * cos(kr)) / (lambda * r * r);
+				Real res_imag = (-amplitude * pc[_Z] * cos(kr)) / (lambda * r * r);
 
-				holo_gen[xxtr + yytr * pn[_X]][_RE] += res_real;
-				holo_gen[xxtr + yytr * pn[_X]][_IM] += res_imag;
+				(*complex_H)[xxtr + yytr * pn[_X]][_RE] += res_real;
+				(*complex_H)[xxtr + yytr * pn[_X]][_IM] += res_imag;
 
 				//LOG("(%3d, %3d) [%7d] : ", xxtr, yytr, xxtr + yytr * pn[_X]);
-				//LOG("holo=(%15.5lf + %20.10lf * i )\n", holo_gen[xxtr + yytr * pn[_X]][_RE], holo_gen[xxtr + yytr * pn[_X]][_IM]);
+				//LOG("holo=(%15.5lf + %20.10lf * i )\n", (*complex_H)[xxtr + yytr * pn[_X]][_RE], (*complex_H)[xxtr + yytr * pn[_X]][_IM]);
 			}
 		}
 	}
@@ -225,11 +349,25 @@ void ophPointCloud::diffractNotEncodedFrsn(ivec2 pn, vec2 pp, vec3 pc, Real ampl
 	Real k = context_.k;
 	vec2 ss = context_.ss;
 
-	Real xbound[2] = { pc[_X] + abs(lambda * pc[_Z] / (2 * pp[_X])), pc[_X] - abs(lambda * pc[_Z] / (2 * pp[_X])) };
-	Real ybound[2] = { pc[_Y] + abs(lambda * pc[_Z] / (2 * pp[_Y])), pc[_Y] - abs(lambda * pc[_Z] / (2 * pp[_Y])) };
+	Real _xbound[2] = {
+		pc[_X] + abs(lambda * pc[_Z] / (2 * pp[_X])),
+		pc[_X] - abs(lambda * pc[_Z] / (2 * pp[_X]))
+	};
 
-	Real Xbound[2] = { floor((xbound[0] + ss[_X] / 2) / pp[_X]) + 1, floor((xbound[1] + ss[_X] / 2) / pp[_X]) + 1 };
-	Real Ybound[2] = { pn[_Y] - floor((ybound[1] + ss[_Y] / 2) / pp[_Y]), pn[_Y] - floor((ybound[0] + ss[_Y] / 2) / pp[_Y]) };
+	Real _ybound[2] = {
+		pc[_Y] + abs(lambda * pc[_Z] / (2 * pp[_Y])),
+		pc[_Y] - abs(lambda * pc[_Z] / (2 * pp[_Y]))
+	};
+
+	Real Xbound[2] = {
+		floor((_xbound[0] + ss[_X] / 2) / pp[_X]) + 1,
+		floor((_xbound[1] + ss[_X] / 2) / pp[_X]) + 1
+	};
+
+	Real Ybound[2] = {
+		pn[_Y] - floor((_ybound[1] + ss[_Y] / 2) / pp[_Y]),
+		pn[_Y] - floor((_ybound[0] + ss[_Y] / 2) / pp[_Y])
+	};
 
 	if (Xbound[0] > pn[_X])	Xbound[0] = pn[_X];
 	if (Xbound[1] < 0)		Xbound[1] = 0;
@@ -247,11 +385,11 @@ void ophPointCloud::diffractNotEncodedFrsn(ivec2 pn, vec2 pp, vec3 pc, Real ampl
 			Real res_real = amplitude * sin(p) / (lambda * pc[_Z]);
 			Real res_imag = amplitude * (-cos(p)) / (lambda * pc[_Z]);
 
-			holo_gen[xxtr + yytr * pn[_X]][_RE] += res_real;
-			holo_gen[xxtr + yytr * pn[_X]][_IM] += res_imag;
+			(*complex_H)[xxtr + yytr * pn[_X]][_RE] += res_real;
+			(*complex_H)[xxtr + yytr * pn[_X]][_IM] += res_imag;
 
 			//LOG("(%3d, %3d) [%7d] : ", xxtr, yytr, xxtr + yytr * pn[_X]);
-			//LOG("holo=(%15.5lf + %20.10lf * i )\n", holo_gen[xxtr + yytr * pn[_X]][_RE], holo_gen[xxtr + yytr * pn[_X]][_IM]);
+			//LOG("holo=(%15.5lf + %20.10lf * i )\n", (*complex_H)[xxtr + yytr * pn[_X]][_RE], (*complex_H)[xxtr + yytr * pn[_X]][_IM]);
 		}
 	}
 }

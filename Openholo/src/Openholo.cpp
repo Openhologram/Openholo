@@ -1,10 +1,56 @@
+/*M///////////////////////////////////////////////////////////////////////////////////////
+//
+//  IMPORTANT: READ BEFORE DOWNLOADING, COPYING, INSTALLING OR USING.
+//
+//  By downloading, copying, installing or using the software you agree to this license.
+//  If you do not agree to this license, do not download, install, copy or use the software.
+//
+//
+//                           License Agreement
+//                For Open Source Digital Holographic Library
+//
+// Openholo library is free software;
+// you can redistribute it and/or modify it under the terms of the BSD 2-Clause license.
+//
+// Copyright (C) 2017-2024, Korea Electronics Technology Institute. All rights reserved.
+// E-mail : contact.openholo@gmail.com
+// Web : http://www.openholo.org
+//
+// Redistribution and use in source and binary forms, with or without modification,
+// are permitted provided that the following conditions are met:
+//
+//  1. Redistribution's of source code must retain the above copyright notice,
+//     this list of conditions and the following disclaimer.
+//
+//  2. Redistribution's in binary form must reproduce the above copyright notice,
+//     this list of conditions and the following disclaimer in the documentation
+//     and/or other materials provided with the distribution.
+//
+// This software is provided by the copyright holders and contributors "as is" and
+// any express or implied warranties, including, but not limited to, the implied
+// warranties of merchantability and fitness for a particular purpose are disclaimed.
+// In no event shall the copyright holder or contributors be liable for any direct,
+// indirect, incidental, special, exemplary, or consequential damages
+// (including, but not limited to, procurement of substitute goods or services;
+// loss of use, data, or profits; or business interruption) however caused
+// and on any theory of liability, whether in contract, strict liability,
+// or tort (including negligence or otherwise) arising in any way out of
+// the use of this software, even if advised of the possibility of such damage.
+//
+// This software contains opensource software released under GNU Generic Public License,
+// NVDIA Software License Agreement, or CUDA supplement to Software License Agreement.
+// Check whether software you use contains licensed software.
+//
+//M*/
+
 #include "Openholo.h"
 
 #include <windows.h>
 #include <fileapi.h>
 
 #include "sys.h"
-#include "include.h"
+
+#include "ImgCodecOhc.h"
 
 Openholo::Openholo(void)
 	: Base()
@@ -16,7 +62,14 @@ Openholo::Openholo(void)
 	, pny(1)
 	, pnz(1)
 	, fft_sign(OPH_FORWARD)
+	, OHC_encoder(nullptr)
+	, OHC_decoder(nullptr)
+	, complex_H(nullptr)
 {
+	context_ = { 0 };
+
+	OHC_encoder = new oph::ImgEncoderOhc;
+	OHC_decoder = new oph::ImgDecoderOhc;
 }
 
 Openholo::~Openholo(void)
@@ -119,6 +172,49 @@ uchar * Openholo::loadAsImg(const char * fname)
 	return img_tmp;
 }
 
+int Openholo::saveAsOhc(const char * fname)
+{
+	std::string fullname = fname;
+	if (checkExtension(fname, ".ohc") == 0) fullname.append(".ohc");
+	OHC_encoder->setFileName(fullname.c_str());
+
+	ohcHeader header;
+	OHC_encoder->getOHCheader(header);
+	auto wavelength_num = header.fieldInfo.wavlenNum;
+
+	for (int i = 0; i < wavelength_num; i++)
+		OHC_encoder->addComplexFieldData(complex_H[i]);
+
+	if (!OHC_encoder->save()) return -1;
+
+	return 1;
+}
+
+int Openholo::loadAsOhc(const char * fname)
+{
+	std::string fullname = fname;
+	if (checkExtension(fname, ".ohc") == 0) fullname.append(".ohc");
+	OHC_decoder->setFileName(fullname.c_str());
+	if (!OHC_decoder->load()) return -1;
+
+	context_.pixel_number = OHC_decoder->getNumOfPixel();
+	context_.pixel_pitch = OHC_decoder->getPixelPitch();
+
+	vector<Real> wavelengthArray;
+	OHC_decoder->getWavelength(wavelengthArray);
+	context_.wave_length = new Real[wavelengthArray.size()];
+	for (int i = 0; i < wavelengthArray.size(); i++)
+		context_.wave_length[i] = wavelengthArray[i];
+	
+	OHC_decoder->getComplexFieldData(&complex_H);
+
+	context_.k = (2 * M_PI) / context_.wave_length[0];
+	context_.ss[_X] = context_.pixel_number[_X] * context_.pixel_pitch[_X];
+	context_.ss[_Y] = context_.pixel_number[_Y] * context_.pixel_pitch[_Y];
+
+	return 1;
+}
+
 int Openholo::loadAsImgUpSideDown(const char * fname, uchar* dst)
 {
 	FILE *infile;
@@ -136,11 +232,11 @@ int Openholo::loadAsImgUpSideDown(const char * fname, uchar* dst)
 
 	oph::uchar* img_tmp;
 	if (hInfo.imagesize == 0) {
-		img_tmp = (oph::uchar*)malloc(sizeof(oph::uchar)*hInfo.width*hInfo.height*(hInfo.bitsperpixel / 8));
+		img_tmp = new oph::uchar[hInfo.width*hInfo.height*(hInfo.bitsperpixel / 8)];
 		fread(img_tmp, sizeof(oph::uchar), hInfo.width*hInfo.height*(hInfo.bitsperpixel / 8), infile);
 	}
 	else {
-		img_tmp = (oph::uchar*)malloc(hInfo.imagesize);
+		img_tmp = new oph::uchar[hInfo.imagesize];
 		fread(img_tmp, sizeof(oph::uchar), hInfo.imagesize, infile);
 	}
 	fclose(infile);
@@ -228,12 +324,15 @@ void Openholo::convertToFormatGray8(unsigned char * src, unsigned char * dst, in
 void Openholo::fft1(int n, Complex<Real>* in, int sign, uint flag)
 {
 	pnx = n;
+	bool bIn = true;
 
 	fft_in = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * n);
 	fft_out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * n);
 
-	if (!in)
+	if (!in){
 		in = new Complex<Real>[pnx];
+		bIn = false;
+	}
 
 	for (int i = 0; i < n; i++) {
 		fft_in[i][_RE] = in[i].real();
@@ -241,6 +340,8 @@ void Openholo::fft1(int n, Complex<Real>* in, int sign, uint flag)
 	}
 
 	fft_sign = sign;
+
+	if (!bIn) delete[] in;
 
 	if (sign == OPH_FORWARD)
 		plan_fwd = fftw_plan_dft_1d(n, fft_in, fft_out, sign, flag);
@@ -256,12 +357,15 @@ void Openholo::fft1(int n, Complex<Real>* in, int sign, uint flag)
 void Openholo::fft2(oph::ivec2 n, Complex<Real>* in, int sign, uint flag)
 {
 	pnx = n[_X], pny = n[_Y];
+	bool bIn = true;
 
 	fft_in = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * pnx * pny);
 	fft_out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * pnx * pny);
 
-	if (!in)
+	if (!in) {
 		in = new Complex<Real>[pnx * pny];
+		bIn = false;
+	}
 
 	for (int i = 0; i < pnx * pny; i++) {
 		fft_in[i][_RE] = in[i].real();
@@ -269,6 +373,8 @@ void Openholo::fft2(oph::ivec2 n, Complex<Real>* in, int sign, uint flag)
 	}
 
 	fft_sign = sign;
+
+	if (!bIn) delete[] in;
 
 	if (sign == OPH_FORWARD)
 		plan_fwd = fftw_plan_dft_2d(pny, pnx, fft_in, fft_out, sign, flag);
@@ -284,12 +390,15 @@ void Openholo::fft2(oph::ivec2 n, Complex<Real>* in, int sign, uint flag)
 void Openholo::fft3(oph::ivec3 n, Complex<Real>* in, int sign, uint flag)
 {
 	pnx = n[_X], pny = n[_Y], pnz = n[_Z];
+	bool bIn = true;
 
 	fft_in = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * pnx * pny * pnz);
 	fft_out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * pnx * pny * pnz);
 
-	if (!in)
+	if (!in) {
 		in = new Complex<Real>[pnx * pny * pnz];
+		bIn = false;
+	}
 
 	for (int i = 0; i < pnx * pny * pnz; i++) {
 		fft_in[i][_RE] = in[i].real();
@@ -297,6 +406,8 @@ void Openholo::fft3(oph::ivec3 n, Complex<Real>* in, int sign, uint flag)
 	}
 
 	fft_sign = sign;
+
+	if (!bIn) delete[] in;
 
 	if (sign == OPH_FORWARD)
 		plan_fwd = fftw_plan_dft_3d(pnz, pny, pnx, fft_in, fft_out, sign, flag);
@@ -354,7 +465,7 @@ void Openholo::fftFree(void)
 
 void Openholo::fftwShift(Complex<Real>* src, Complex<Real>* dst, int nx, int ny, int type, bool bNormalized)
 {
-	Complex<Real>* tmp = (Complex<Real>*)malloc(sizeof(Complex<Real>)*nx*ny);
+	Complex<Real>* tmp = new Complex<Real>[nx*ny];
 	memset(tmp, 0, sizeof(Complex<Real>)*nx*ny);
 	fftShift(nx, ny, src, tmp);
 
@@ -413,5 +524,10 @@ void Openholo::fftShift(int nx, int ny, Complex<Real>* input, Complex<Real>* out
 
 void Openholo::ophFree(void)
 {
-	//fftFree();
+	if ((*complex_H)) delete[](*complex_H);
+	if (complex_H) delete[] complex_H;
+	if (context_.wave_length) delete[] context_.wave_length;
+
+	delete OHC_encoder;
+	delete OHC_decoder;
 }

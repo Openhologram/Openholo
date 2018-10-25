@@ -1,7 +1,58 @@
+/*M///////////////////////////////////////////////////////////////////////////////////////
+//
+//  IMPORTANT: READ BEFORE DOWNLOADING, COPYING, INSTALLING OR USING.
+//
+//  By downloading, copying, installing or using the software you agree to this license.
+//  If you do not agree to this license, do not download, install, copy or use the software.
+//
+//
+//                           License Agreement
+//                For Open Source Digital Holographic Library
+//
+// Openholo library is free software;
+// you can redistribute it and/or modify it under the terms of the BSD 2-Clause license.
+//
+// Copyright (C) 2017-2024, Korea Electronics Technology Institute. All rights reserved.
+// E-mail : contact.openholo@gmail.com
+// Web : http://www.openholo.org
+//
+// Redistribution and use in source and binary forms, with or without modification,
+// are permitted provided that the following conditions are met:
+//
+//  1. Redistribution's of source code must retain the above copyright notice,
+//     this list of conditions and the following disclaimer.
+//
+//  2. Redistribution's in binary form must reproduce the above copyright notice,
+//     this list of conditions and the following disclaimer in the documentation
+//     and/or other materials provided with the distribution.
+//
+// This software is provided by the copyright holders and contributors "as is" and
+// any express or implied warranties, including, but not limited to, the implied
+// warranties of merchantability and fitness for a particular purpose are disclaimed.
+// In no event shall the copyright holder or contributors be liable for any direct,
+// indirect, incidental, special, exemplary, or consequential damages
+// (including, but not limited to, procurement of substitute goods or services;
+// loss of use, data, or profits; or business interruption) however caused
+// and on any theory of liability, whether in contract, strict liability,
+// or tort (including negligence or otherwise) arising in any way out of
+// the use of this software, even if advised of the possibility of such damage.
+//
+// This software contains opensource software released under GNU Generic Public License,
+// NVDIA Software License Agreement, or CUDA supplement to Software License Agreement.
+// Check whether software you use contains licensed software.
+//
+//M*/
+
 #include "ophSig.h"
 
-ophSig::ophSig(void) {
-
+ophSig::ophSig(void) 
+	: _cfgSig()
+	, _angleX(0)
+	, _angleY(0)
+	, _redRate(0)
+	, _radius(0)
+{
+	memset(_foc, 0, sizeof(float) * 3);
 }
 
 
@@ -289,6 +340,83 @@ void ophSig::linInterp(vector<T> &X, matrix<Complex<T>> &src, vector<T> &Xq, mat
 
 }
 
+int ophSig::loadAsOhc(const char *fname)
+{
+	std::string fullname = fname;
+	if (checkExtension(fname, ".ohc") == 0) fullname.append(".ohc");
+	OHC_decoder->setFileName(fullname.c_str());
+
+	if (!OHC_decoder->load()) return -1;
+	vector<Real> wavelengthArray;
+	OHC_decoder->getWavelength(wavelengthArray);
+
+	if (_cfgSig.colorType == 0)
+	{
+		
+		_cfgSig.lambda = wavelengthArray[0];
+
+		ivec2 pixel_number;
+		pixel_number = OHC_decoder->getNumOfPixel();
+		_cfgSig.rows = pixel_number[0];
+		_cfgSig.cols = pixel_number[1];
+
+		OHC_decoder->getComplexFieldData(&complex_H);
+		Buffer2Field(complex_H[0], ComplexH[0], pixel_number);
+	}
+	else if (_cfgSig.colorType == 1)
+	{
+		for (int i = 0; i < wavelengthArray.size(); i++)
+		{
+			_cfgSig.wavelength[2 - i] = wavelengthArray[i];
+		}
+		ivec2 pixel_number;
+		pixel_number = OHC_decoder->getNumOfPixel();
+		_cfgSig.rows = pixel_number[0];
+		_cfgSig.cols = pixel_number[1];
+
+		OHC_decoder->getComplexFieldData(&complex_H);
+		for (int i = 0; i < wavelengthArray.size(); i++)
+		{
+			Buffer2Field(complex_H[i], ComplexH[2 - i], pixel_number);
+		}
+	}
+	return 0;
+
+}
+
+int ophSig::saveAsOhc(const char *fname)
+{
+	std::string fullname = fname;
+	if (checkExtension(fname, ".ohc") == 0) fullname.append(".ohc");
+	OHC_encoder->setFileName(fullname.c_str());
+
+	OHC_encoder->setNumOfPixel(_cfgSig.rows, _cfgSig.cols);
+
+	OHC_encoder->setFieldEncoding(FldStore::Directly, FldCodeType::RI);
+	if (_cfgSig.colorType == 0)
+	{
+		OHC_encoder->setNumOfWavlen(1);
+		OHC_encoder->setWavelength(_cfgSig.lambda, LenUnit::nm);
+		*&complex_H = new Complex<Real>*[1];
+		Field2Buffer(ComplexH[0], complex_H);
+		OHC_encoder->addComplexFieldData(complex_H[0]);
+	}
+	else if (_cfgSig.colorType == 1)
+	{
+		OHC_encoder->setNumOfWavlen(3);
+		OHC_encoder->setWavelength(_cfgSig.wavelength[0], LenUnit::nm);
+		*&complex_H = new Complex<Real>*[3];
+		for (int i = 0; i < 3; i++)
+		{
+			Field2Buffer(ComplexH[2 - i], &complex_H[i]);
+			OHC_encoder->addComplexFieldData(complex_H[i]);
+		}
+	}
+
+	if (!OHC_encoder->save()) return -1;
+
+	return 1;
+}
 
 bool ophSig::load(const char *real, const char *imag, uint8_t bitpixel)
 {
@@ -785,12 +913,16 @@ bool ophSig::save(const char *real, const char *imag, uint8_t bitpixel)
 				if (!cos.is_open()) {
 					LOG("real file not found.\n");
 					cos.close();
+					delete[] realdata;
+					delete[] imagdata;
 					return FALSE;
 				}
 
 				if (!sin.is_open()) {
 					LOG("imag file not found.\n");
 					sin.close();
+					delete[] realdata;
+					delete[] imagdata;
 					return FALSE;
 				}
 
@@ -815,6 +947,248 @@ bool ophSig::save(const char *real, const char *imag, uint8_t bitpixel)
 	}
 	return TRUE;
 }
+
+
+bool ophSig::save(const char *real, uint8_t bitpixel)
+{
+	string realname = real;
+
+	int checktype = static_cast<int>(realname.rfind("."));
+
+	if (realname.substr(checktype + 1, realname.size()) == "bmp")
+	{
+		oph::uchar* realdata;
+		int _pixelbytesize = 0;
+		int _width = _cfgSig.cols, _height = _cfgSig.rows;
+
+		if (bitpixel == 8)
+		{
+			_pixelbytesize = _height * _width;
+		}
+		else
+		{
+			_pixelbytesize = _height * _width * 3;
+		}
+		int _filesize = 0;
+
+
+		FILE *freal = nullptr, *fimag = nullptr;
+		fopen_s(&freal, realname.c_str(), "wb");
+
+		if ((freal == nullptr) || (fimag == nullptr))
+		{
+			LOG("file not found\n");
+			return FALSE;
+		}
+
+		if (bitpixel == 8)
+		{
+			realdata = (oph::uchar*)malloc(sizeof(oph::uchar) * _cfgSig.rows * _cfgSig.cols);
+			_filesize = _pixelbytesize + sizeof(bitmap);
+
+			bitmap *pbitmap = (bitmap*)calloc(1, sizeof(bitmap));
+			memset(pbitmap, 0x00, sizeof(bitmap));
+
+			pbitmap->fileheader.signature[0] = 'B';
+			pbitmap->fileheader.signature[1] = 'M';
+			pbitmap->fileheader.filesize = _filesize;
+			pbitmap->fileheader.fileoffset_to_pixelarray = sizeof(bitmap);
+
+			for (int i = 0; i < 256; i++) {
+				pbitmap->rgbquad[i].rgbBlue = i;
+				pbitmap->rgbquad[i].rgbGreen = i;
+				pbitmap->rgbquad[i].rgbRed = i;
+			}
+
+
+			//// denormalization
+			for (int i = _height - 1; i >= 0; i--)
+			{
+				for (int j = 0; j < _width; j++)
+				{
+					if (ComplexH[0].mat[_height - i - 1][j]._Val[_RE] < 0)
+					{
+						ComplexH[0].mat[_height - i - 1][j]._Val[_RE] = 0;
+					}
+				}
+			}
+
+			double minVal, maxVal;
+			for (int j = 0; j < ComplexH[0].size[_Y]; j++) {
+				for (int i = 0; i < ComplexH[0].size[_X]; i++) {
+					if ((i == 0) && (j == 0))
+					{
+						minVal = ComplexH[0](i, j)._Val[_RE];
+						maxVal = ComplexH[0](i, j)._Val[_RE];
+					}
+					else {
+						if (ComplexH[0](i, j)._Val[_RE] < minVal)
+						{
+							minVal = ComplexH[0](i, j).real();
+						}
+						if (ComplexH[0](i, j)._Val[_RE] > maxVal)
+						{
+							maxVal = ComplexH[0](i, j).real();
+						}
+					}
+				}
+			}
+			for (int i = _height - 1; i >= 0; i--)
+			{
+				for (int j = 0; j < _width; j++)
+				{
+					realdata[i*_width + j] = (uchar)((ComplexH[0](_height - i - 1, j)._Val[_RE] - minVal) / (maxVal - minVal) * 255 + 0.5);
+				}
+			}
+
+			pbitmap->bitmapinfoheader.dibheadersize = sizeof(bitmapinfoheader);
+			pbitmap->bitmapinfoheader.width = _width;
+			pbitmap->bitmapinfoheader.height = _height;
+			pbitmap->bitmapinfoheader.planes = OPH_PLANES;
+			pbitmap->bitmapinfoheader.bitsperpixel = bitpixel;
+			pbitmap->bitmapinfoheader.compression = OPH_COMPRESSION;
+			pbitmap->bitmapinfoheader.imagesize = _pixelbytesize;
+			pbitmap->bitmapinfoheader.ypixelpermeter = 0;
+			pbitmap->bitmapinfoheader.xpixelpermeter = 0;
+			pbitmap->bitmapinfoheader.numcolorspallette = 256;
+
+			fwrite(pbitmap, 1, sizeof(bitmap), freal);
+			fwrite(realdata, 1, _pixelbytesize, freal);
+
+			fclose(freal);
+			free(pbitmap);
+		}
+		else
+		{
+			realdata = (oph::uchar*)malloc(sizeof(oph::uchar) * _cfgSig.rows * _cfgSig.cols * bitpixel / 3);
+			_filesize = _pixelbytesize + sizeof(fileheader) + sizeof(bitmapinfoheader);
+
+			fileheader *hf = (fileheader*)calloc(1, sizeof(fileheader));
+			bitmapinfoheader *hInfo = (bitmapinfoheader*)calloc(1, sizeof(bitmapinfoheader));
+
+			hf->signature[0] = 'B';
+			hf->signature[1] = 'M';
+			hf->filesize = _filesize;
+			hf->fileoffset_to_pixelarray = sizeof(fileheader) + sizeof(bitmapinfoheader);
+
+			double minVal, maxVal;
+			for (int z = 0; z < 3; z++)
+			{
+				for (int j = 0; j < ComplexH[0].size[_Y]; j++) {
+					for (int i = 0; i < ComplexH[0].size[_X]; i++) {
+						if ((i == 0) && (j == 0))
+						{
+							minVal = ComplexH[z](i, j)._Val[_RE];
+							maxVal = ComplexH[z](i, j)._Val[_RE];
+						}
+						else {
+							if (ComplexH[z](i, j)._Val[_RE] < minVal)
+							{
+								minVal = ComplexH[z](i, j)._Val[_RE];
+							}
+							if (ComplexH[z](i, j)._Val[_RE] > maxVal)
+							{
+								maxVal = ComplexH[z](i, j)._Val[_RE];
+							}
+						}
+					}
+				}
+
+				for (int i = _height - 1; i >= 0; i--)
+				{
+					for (int j = 0; j < _width; j++)
+					{
+						realdata[3 * j + 3 * i * _width + z] = (uchar)((ComplexH[z](_height - i - 1, j)._Val[_RE] - minVal) / (maxVal - minVal) * 255);
+
+					}
+				}
+			}
+			hInfo->dibheadersize = sizeof(bitmapinfoheader);
+			hInfo->width = _width;
+			hInfo->height = _height;
+			hInfo->planes = OPH_PLANES;
+			hInfo->bitsperpixel = bitpixel;
+			hInfo->compression = OPH_COMPRESSION;
+			hInfo->imagesize = _pixelbytesize;
+			hInfo->ypixelpermeter = 0;
+			hInfo->xpixelpermeter = 0;
+
+			fwrite(hf, 1, sizeof(fileheader), freal);
+			fwrite(hInfo, 1, sizeof(bitmapinfoheader), freal);
+			fwrite(realdata, 1, _pixelbytesize, freal);
+
+			fclose(freal);
+			free(hf);
+			free(hInfo);
+		}
+
+		free(realdata);
+		std::cout << "file save bmp complete" << endl;
+		return TRUE;
+	}
+	else if (realname.substr(checktype + 1, realname.size()) == "bin")
+	{
+
+		if (bitpixel == 8)
+		{
+			std::ofstream cos(realname, std::ios::binary);
+
+			if (!cos.is_open()) {
+				printf("real file not found.\n");
+				cos.close();
+				return FALSE;
+			}
+
+			double *realdata = new  double[ComplexH[0].size[_X] * ComplexH[0].size[_Y]];
+
+			for (int col = 0; col < ComplexH[0].size[_Y]; col++)
+			{
+				for (int row = 0; row < ComplexH[0].size[_X]; row++)
+				{
+					realdata[_cfgSig.rows*col + row] = ComplexH[0].mat[row][col]._Val[_RE];
+				}
+			}
+
+			cos.write(reinterpret_cast<const char*>(realdata), sizeof(double) * ComplexH[0].size[_X] * ComplexH[0].size[_Y]);
+
+			cos.close();
+			delete[]realdata;
+		}
+		else if (bitpixel == 24)
+		{
+			std::string RGB_name[] = { "_B.", "_G.", "_R." };
+
+			double *realdata = new  double[_cfgSig.rows * _cfgSig.cols];
+
+			for (int z = 0; z < 3; z++)
+			{
+				std::ofstream cos(strtok((char*)realname.c_str(), ".") + RGB_name[z] + "bin", std::ios::binary);
+
+				if (!cos.is_open()) {
+					LOG("real file not found.\n");
+					cos.close();
+					delete[] realdata;
+					return FALSE;
+				}
+
+				for (int col = 0; col < ComplexH[0].size[_Y]; col++)
+				{
+					for (int row = 0; row < ComplexH[0].size[_X]; row++)
+					{
+						realdata[_cfgSig.rows*col + row] = ComplexH[z].mat[row][col]._Val[_RE];
+					}
+				}
+				cos.write(reinterpret_cast<const char*>(realdata), sizeof(double) * _cfgSig.rows * _cfgSig.cols);
+
+				cos.close();
+			}
+			delete[]realdata;
+		}
+		std::cout << "file save binary complete" << endl;
+	}
+	return TRUE;
+}
+
 
 
 bool ophSig::sigConvertOffaxis() {
@@ -1002,6 +1376,10 @@ bool ophSig::readConfig(const char* fname)
 	(xml_node->FirstChildElement("width"))->QueryFloatText(&_cfgSig.width);
 	(xml_node->FirstChildElement("height"))->QueryFloatText(&_cfgSig.height);
 	(xml_node->FirstChildElement("wavelength"))->QueryDoubleText(&_cfgSig.lambda);
+	(xml_node->FirstChildElement("bluewavelength"))->QueryDoubleText(&_cfgSig.wavelength[0]);
+	(xml_node->FirstChildElement("greenwavelength"))->QueryDoubleText(&_cfgSig.wavelength[1]);
+	(xml_node->FirstChildElement("redwavelength"))->QueryDoubleText(&_cfgSig.wavelength[2]);
+	(xml_node->FirstChildElement("colorType"))->QueryIntText(&_cfgSig.colorType);
 	(xml_node->FirstChildElement("NA"))->QueryFloatText(&_cfgSig.NA);
 	(xml_node->FirstChildElement("z"))->QueryFloatText(&_cfgSig.z);
 	(xml_node->FirstChildElement("angle_X"))->QueryFloatText(&_angleX);
@@ -1359,6 +1737,162 @@ double ophSig::sigGetParamSF(float zMax, float zMin, int sampN, float th) {
 	}
 
 	return -z.at(index);
+}
+
+bool ophSig::getComplexHFromPSDH(const char * fname0, const char * fname90, const char * fname180, const char * fname270)
+{
+	string fname0str = fname0;
+	string fname90str = fname90;
+	string fname180str = fname180;
+	string fname270str = fname270;
+	int checktype = static_cast<int>(fname0str.rfind("."));
+	matrix<Real> f0Mat[3], f90Mat[3], f180Mat[3], f270Mat[3];
+
+	std::string f0type = fname0str.substr(checktype + 1, fname0str.size());
+
+	uint8_t bitsperpixel;
+
+	if (f0type == "bmp")
+	{
+		FILE *f0, *f90, *f180, *f270;
+		fileheader hf;
+		bitmapinfoheader hInfo;
+		fopen_s(&f0, fname0str.c_str(), "rb"); fopen_s(&f90, fname90str.c_str(), "rb");
+		fopen_s(&f180, fname180str.c_str(), "rb"); fopen_s(&f270, fname270str.c_str(), "rb");
+		if (!f0)
+		{
+			LOG("bmp file open fail! (phase shift = 0)\n");
+			return false;
+		}
+		if (!f90)
+		{
+			LOG("bmp file open fail! (phase shift = 90)\n");
+			return false;
+		}
+		if (!f180)
+		{
+			LOG("bmp file open fail! (phase shift = 180)\n");
+			return false;
+		}
+		if (!f270)
+		{
+			LOG("bmp file open fail! (phase shift = 270)\n");
+			return false;
+		}
+		fread(&hf, sizeof(fileheader), 1, f0);
+		fread(&hInfo, sizeof(bitmapinfoheader), 1, f0);
+
+		if (hf.signature[0] != 'B' || hf.signature[1] != 'M') { LOG("Not BMP File!\n"); }
+		if ((hInfo.height == 0) || (hInfo.width == 0))
+		{
+			LOG("bmp header is empty!\n");
+			hInfo.height = _cfgSig.rows;
+			hInfo.width = _cfgSig.cols;
+			if (_cfgSig.rows == 0 || _cfgSig.cols == 0)
+			{
+				LOG("check your parameter file!\n");
+				return false;
+			}
+		}
+		if ((_cfgSig.rows != hInfo.height) || (_cfgSig.cols != hInfo.width)) {
+			LOG("image size is different!\n");
+			_cfgSig.rows = hInfo.height;
+			_cfgSig.cols = hInfo.width;
+			LOG("changed parameter of size %d x %d\n", _cfgSig.cols, _cfgSig.rows);
+		}
+		bitsperpixel = hInfo.bitsperpixel;
+		if (hInfo.bitsperpixel == 8)
+		{
+			rgbquad palette[256];
+			fread(palette, sizeof(rgbquad), 256, f0);
+			fread(palette, sizeof(rgbquad), 256, f90);
+			fread(palette, sizeof(rgbquad), 256, f180);
+			fread(palette, sizeof(rgbquad), 256, f270);
+
+			f0Mat[0].resize(hInfo.height, hInfo.width);
+			f90Mat[0].resize(hInfo.height, hInfo.width);
+			f180Mat[0].resize(hInfo.height, hInfo.width);
+			f270Mat[0].resize(hInfo.height, hInfo.width);
+			ComplexH[0].resize(hInfo.height, hInfo.width);
+		}
+		else
+		{
+			f0Mat[0].resize(hInfo.height, hInfo.width);
+			f90Mat[0].resize(hInfo.height, hInfo.width);
+			f180Mat[0].resize(hInfo.height, hInfo.width);
+			f270Mat[0].resize(hInfo.height, hInfo.width);
+			ComplexH[0].resize(hInfo.height, hInfo.width);
+
+			f0Mat[1].resize(hInfo.height, hInfo.width);
+			f90Mat[1].resize(hInfo.height, hInfo.width);
+			f180Mat[1].resize(hInfo.height, hInfo.width);
+			f270Mat[1].resize(hInfo.height, hInfo.width);
+			ComplexH[1].resize(hInfo.height, hInfo.width);
+
+			f0Mat[2].resize(hInfo.height, hInfo.width);
+			f90Mat[2].resize(hInfo.height, hInfo.width);
+			f180Mat[2].resize(hInfo.height, hInfo.width);
+			f270Mat[2].resize(hInfo.height, hInfo.width);
+			ComplexH[2].resize(hInfo.height, hInfo.width);
+		}
+
+		uchar* f0data = (uchar*)malloc(sizeof(uchar)*hInfo.width*hInfo.height*(hInfo.bitsperpixel / 8));
+		uchar* f90data = (uchar*)malloc(sizeof(uchar)*hInfo.width*hInfo.height*(hInfo.bitsperpixel / 8));
+		uchar* f180data = (uchar*)malloc(sizeof(uchar)*hInfo.width*hInfo.height*(hInfo.bitsperpixel / 8));
+		uchar* f270data = (uchar*)malloc(sizeof(uchar)*hInfo.width*hInfo.height*(hInfo.bitsperpixel / 8));
+
+		fread(f0data, sizeof(uchar), hInfo.width*hInfo.height*(hInfo.bitsperpixel / 8), f0);
+		fread(f90data, sizeof(uchar), hInfo.width*hInfo.height*(hInfo.bitsperpixel / 8), f90);
+		fread(f180data, sizeof(uchar), hInfo.width*hInfo.height*(hInfo.bitsperpixel / 8), f180);
+		fread(f270data, sizeof(uchar), hInfo.width*hInfo.height*(hInfo.bitsperpixel / 8), f270);
+
+		fclose(f0);
+		fclose(f90);
+		fclose(f180);
+		fclose(f270);
+
+		for (int i = hInfo.height - 1; i >= 0; i--)
+		{
+			for (int j = 0; j < static_cast<int>(hInfo.width); j++)
+			{
+				for (int z = 0; z < (hInfo.bitsperpixel / 8); z++)
+				{
+					f0Mat[z](hInfo.height - i - 1, j) = (double)f0data[i*hInfo.width*(hInfo.bitsperpixel / 8) + (hInfo.bitsperpixel / 8)*j + z];
+					f90Mat[z](hInfo.height - i - 1, j) = (double)f90data[i*hInfo.width*(hInfo.bitsperpixel / 8) + (hInfo.bitsperpixel / 8)*j + z];
+					f180Mat[z](hInfo.height - i - 1, j) = (double)f180data[i*hInfo.width*(hInfo.bitsperpixel / 8) + (hInfo.bitsperpixel / 8)*j + z];
+					f270Mat[z](hInfo.height - i - 1, j) = (double)f270data[i*hInfo.width*(hInfo.bitsperpixel / 8) + (hInfo.bitsperpixel / 8)*j + z];
+				}
+			}
+		}
+		LOG("PSDH file load complete!\n");
+
+		free(f0data);
+		free(f90data);
+		free(f180data);
+		free(f270data);
+		
+	}
+	else
+	{
+		LOG("wrong type (only BMP supported)\n");
+	}
+
+	// calculation complexH from 4 psdh and then normalize
+	double normalizefactor = 1. / 256.;
+	for (int z = 0; z < (bitsperpixel / 8); z++)
+	{
+		for (int i = 0; i < _cfgSig.rows; i++)
+		{
+			for (int j = 0; j < _cfgSig.cols; j++)
+			{
+				ComplexH[z](i, j)._Val[_RE] = (f0Mat[z](i, j) - f180Mat[z](i,j))*normalizefactor;
+				ComplexH[z](i, j)._Val[_IM] = (f90Mat[z](i, j) - f270Mat[z](i, j))*normalizefactor;
+
+			}
+		}
+	}
+	LOG("complex field obtained from 4 psdh\n");
+	return true;
 }
 
 void ophSig::ophFree(void) {
