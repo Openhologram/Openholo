@@ -82,8 +82,37 @@ using namespace oph;
 //@{
 * @detail
 
+* @section Introduction
+
+CGH generation with WRP methods is supported in this module, including single WRP method, 
+multiple WRP method.
+
+I. WRP based hologram generation
+
+-   Implement the hologram generation with point cloud and RGB-Depth data
+-   Reduce the hologram generation time 
+
+II. Single WRP method
+
+-   Wavefront Recording Plane(WRP) is a visual plane between the object plane and the hologram plane
+-   calculate each active area which is the wavefront from object to hologram plane passing through a small area on WRP
+-   And then propagate to the hologram by Fast Fourier Transform(FFT)
+
+![](pics/ophgen/wrp/wrp01.jpg)
+
+III. Multiple WRP method
+
+-   In this Multiple WRP method, each WRPs are supporting to each corresponding depth layer 
+    which means the WRPs have uniformed quantizing distance between the object points and WRP
+-   The location of each WRPs is calculated by a constant dimension of the active area
+-   and then calculate each corresponding WRP of depth layer
+-   finally, the diffraction of every WRP to hologram plane by Fresnel propagation
+
+![](pics/ophgen/wrp/wrp02.jpg)
+
 */
 //! @} wrp
+
 
 /**
 * @ingroup wrp
@@ -107,6 +136,12 @@ protected:
 	virtual ~ophWRP(void);
 
 public:
+	const vec3& getScale() { return pc_config_.scale; }
+	const Real& getLocation() { return pc_config_.wrp_location; }
+	const Real& getDistance() { return pc_config_.propagation_distance; }
+	void setScale(vec3 scale) { pc_config_.scale = scale; }
+	void setLocation(Real location) { pc_config_.wrp_location = location; }
+	void setDistance(Real distance) { pc_config_.propagation_distance; }
 
 	/**
 	* @brief override
@@ -120,17 +155,37 @@ public:
 	* @return number of Pointcloud (if it failed loading, it returned -1)
 	*/
 	virtual int loadPointCloud(const char* pc_file);
+	/**
+	* @brief
+	* @{
+	* @brief Import Specification Config File(*.config) file
+	*/
+	/**
+	* @param InputConfigFile Specification Config(*.config) file path
+	*/
 	virtual bool readConfig(const char* cfg_file);
+
+
 	virtual void normalize(void);
 
 	void encodeHologram(void);
-
+	/**
+	* @brief Generate a WRP, main funtion.
+	* @return implement time (sec)
+	*/
 	double calculateWRP(void);
 
 	virtual void fresnelPropagation(Complex<Real>* in, Complex<Real>* out, Real distance);
 
+	/**
+	* @brief Generate a hologram, main funtion.
+	* @return implement time (sec)
+	*/
 	void generateHologram(void);
-
+	/**
+	* @brief Generate multiple wavefront recording planes, main funtion.
+	* @return multiple WRP (sec)
+	*/
 	oph::Complex<Real>** calculateMWRP(void);
 
 	inline oph::Complex<Real>* getWRPBuff(void) { return p_wrp_; };
@@ -147,14 +202,13 @@ private:
 
 protected:
 
-	int n_points;   //number of points
+	int n_points;                 ///< numbers of points
 
+	oph::Complex<Real>* p_wrp_;   ///< wrp buffer - complex type
 
-	oph::Complex<Real>* p_wrp_;   //wrp buffer
-
-	OphPointCloudData obj_;
-
-	OphWRPConfig pc_config_;
+	OphPointCloudData obj_;       ///< Input Pointcloud Data
+	 
+	OphWRPConfig pc_config_;      ///< structure variable for WRP hologram configuration
 
 };
 #endif
