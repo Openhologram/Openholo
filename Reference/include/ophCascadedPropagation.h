@@ -206,12 +206,27 @@ class DISP_DLL ophCascadedPropagation : public ophDis {
 		*/
 		wstring hologram_path;
 
+	private:
 		/**
 		* @brief Reads configurations from XML file
 		* @return true if successful
 		* @return false when failed
 		*/
 		bool readConfig(const wchar_t* fname);
+
+		/**
+		* @brief Calculates 1st propagation (from SLM plane to pupil plane)
+		* @return true if successful
+		* @return false when failed
+		*/
+		bool propagateSlmToPupil();
+
+		/**
+		* @brief Calculates 2nd propagation (from pupil plane to retina plane)
+		* @return true if successful
+		* @return false when failed
+		*/
+		bool propagatePupilToRetina();
 
 		/**
 		* @brief Allocates memory according to configuration setup
@@ -243,11 +258,6 @@ class DISP_DLL ophCascadedPropagation : public ophDis {
 
 
 	public:
-		/**
-		* @brief Returns if all data are prepared
-		*/
-		bool isReadyToPropagate() { return ready_to_propagate; }
-
 		/**
 		* @brief Returns number of colors
 		*/
@@ -328,20 +338,6 @@ class DISP_DLL ophCascadedPropagation : public ophDis {
 		// setters
 		//virtual bool SetSlmWavefield(Complex<Real>* srcHologram) = 0; // set input wavefield (for later use)
 		//virtual bool SetSlmWavefield(ophGen& srcHologram) = 0; // set input wavefield (for later use)
-
-		/**
-		* @brief Calculates 1st propagation (from SLM plane to pupil plane)
-		* @return true if successful
-		* @return false when failed
-		*/
-		bool propagateSlmToPupil();
-
-		/**
-		* @brief Calculates 2nd propagation (from pupil plane to retina plane)
-		* @return true if successful
-		* @return false when failed
-		*/
-		bool propagatePupilToRetina();
 
 
 	protected:
