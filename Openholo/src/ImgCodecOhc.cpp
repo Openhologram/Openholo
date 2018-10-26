@@ -141,7 +141,7 @@ void oph::ImgCodecOhc::getComplexFieldData(Complex<Real>*** cmplx_field)
 		*cmplx_field = new Complex<Real>*[field_cmplx.size()];
 
 	for (uint i = 0; i < field_cmplx.size(); i++)
-		oph::Field2Buffer(field_cmplx[i], cmplx_field[i]);
+		oph::Field2Buffer(field_cmplx[i], *cmplx_field + i);
 }
 
 void oph::ImgCodecOhc::releaseOHCheader() {
