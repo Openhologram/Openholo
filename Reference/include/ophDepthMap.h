@@ -130,6 +130,7 @@ public:
 	inline Real getFarDepth(void) { return dm_config_.far_depthmap; }
 	inline uint getNumOfDepth(void) { return dm_config_.num_of_depth; }
 	inline void getRenderDepth(std::vector<int>& renderdepth) { renderdepth = dm_config_.render_depth; }
+	inline const OphDepthMapConfig& getConfig(void) { return dm_config_; }
 	
 private:
 
@@ -158,6 +159,9 @@ protected:
 
 private:
 	bool					is_CPU;								///< if true, it is implemented on the CPU, otherwise on the GPU.
+
+	unsigned char*			depth_img;
+	unsigned char*			rgb_img;
 
 	unsigned char*			img_src_gpu;						///< GPU variable - image source data, values are from 0 to 255.
 	unsigned char*			dimg_src_gpu;						///< GPU variable - depth map data, values are from 0 to 255.

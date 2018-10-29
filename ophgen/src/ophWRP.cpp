@@ -44,6 +44,7 @@
 //M*/
 
 #include "ophwrp.h"
+#include "sys.h"
 
 ophWRP::ophWRP(void) 
 	: ophGen()
@@ -228,52 +229,65 @@ double ophWRP::calculateWRP(void)
 	int num = n_points;
 	auto time_start = CUR_TIME;
 
+	int k;
 #ifdef _OPENMP
-	omp_set_num_threads(omp_get_num_threads());
-#pragma omp parallel for
+	int num_threads = 0;
+	//omp_set_num_threads(omp_get_num_threads());
+#pragma omp parallel
+	{
+		num_threads = omp_get_num_threads();
+#pragma omp for private(k)
 #endif
 
-	for (int k = 0; k < num; ++k) {
-		uint idx = 3 * k;
-		Real x = pc.vertex[idx + _X];
-		Real y = pc.vertex[idx + _Y];
-		Real z = pc.vertex[idx + _Z];
+		for (k = 0; k < num; ++k) {
+			uint idx = 3 * k;
+			Real x = pc.vertex[idx + _X];
+			Real y = pc.vertex[idx + _Y];
+			Real z = pc.vertex[idx + _Z];
 
-		float dz = wrp_d - z;
-		float tw = (int)fabs(wave_len*dz / wpx / wpx / 2 + 0.5) * 2 - 1;
-		//	float tw = fabs(dz)*wave_len / wpx / wpx / 2;
+			float dz = wrp_d - z;
+			float tw = (int)fabs(wave_len*dz / wpx / wpx / 2 + 0.5) * 2 - 1;
+			//	float tw = fabs(dz)*wave_len / wpx / wpx / 2;
 
-		int w = (int)tw;
+			int w = (int)tw;
 
-		int tx = (int)(x / wpx) + Nx_h;
-		int ty = (int)(y / wpy) + Ny_h;
+			int tx = (int)(x / wpx) + Nx_h;
+			int ty = (int)(y / wpy) + Ny_h;
 
-		printf("num=%d, tx=%d, ty=%d, w=%d\n", k, tx, ty, w);
+			cout << "num = " << k << ", tx = " << tx << ", ty = " << ty << ", w = " << w << endl;
 
-		for (int wy = -w; wy < w; wy++) {
-			for (int wx = -w; wx<w; wx++) {//WRP coordinate
+			for (int wy = -w; wy < w; wy++) {
+				for (int wx = -w; wx < w; wx++) {//WRP coordinate
 
-				double dx = wx*wpx;
-				double dy = wy*wpy;
-				double dz = wrp_d - z;
+					double dx = wx * wpx;
+					double dy = wy * wpy;
+					double dz = wrp_d - z;
 
-				double sign = (dz>0.0) ? (1.0) : (-1.0);
-				double r = sign*sqrt(dx*dx + dy*dy + dz*dz);
+					double sign = (dz > 0.0) ? (1.0) : (-1.0);
+					double r = sign * sqrt(dx*dx + dy * dy + dz * dz);
 
-				//double tmp_re,tmp_im;
-				oph::Complex<Real> tmp;
-				tmp._Val[_RE] = cosf(wave_num*r) / (r + 0.05);
-				tmp._Val[_IM] = sinf(wave_num*r) / (r + 0.05);
+					//double tmp_re,tmp_im;
+					oph::Complex<Real> tmp;
+					tmp._Val[_RE] = cosf(wave_num*r) / (r + 0.05);
+					tmp._Val[_IM] = sinf(wave_num*r) / (r + 0.05);
 
-				if (tx + wx >= 0 && tx + wx < Nx && ty + wy >= 0 && ty + wy < Ny)
-					addPixel2WRP(wx + tx, wy + ty, tmp);
+					if (tx + wx >= 0 && tx + wx < Nx && ty + wy >= 0 && ty + wy < Ny)
+						addPixel2WRP(wx + tx, wy + ty, tmp);
 
+				}
 			}
 		}
+#ifdef _OPENMP
 	}
+	std::cout << ">>> All " << num_threads << " threads" << std::endl;
+#endif
 
 	auto time_finish = CUR_TIME;
-	return ((std::chrono::duration<Real>)(time_finish - time_start)).count();
+
+	auto during = ((std::chrono::duration<Real>)(time_finish - time_start)).count();
+
+	LOG("%.5lfsec...hologram generated..\n", during);
+	return during;
 
 }
 

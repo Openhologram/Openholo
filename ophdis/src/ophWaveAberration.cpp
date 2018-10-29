@@ -60,6 +60,10 @@ ophWaveAberration::ophWaveAberration() : nOrder(0), mFrequency(0)
 {
 	
 	cout << "ophWaveAberration Constructor" << endl;
+	uint wavelength_num = 1;
+
+	complex_H = new Complex<Real>*[wavelength_num];
+	context_.wave_length = new Real[wavelength_num];
 }
 
 ophWaveAberration::~ophWaveAberration()
@@ -176,17 +180,17 @@ void ophWaveAberration::accumulateZernikePolynomial()
 {
 	const oph::Complex<Real> j(0,1);
 
-	double wave_lambda = waveLength; // wavelength
+	double wave_lambda = context_.wave_length[0]; // wavelength
 	int z_max = sizeof(zernikeCoefficent)/sizeof(zernikeCoefficent[0]);
 	double *ZC;
 	ZC = zernikeCoefficent;
 
 
 	double n, m;
-	double dxa = pixelPitchX;  // Sampling interval in x axis of exit pupil
-	double dya = pixelPitchY;  // Sampling interval in y axis of exit pupil
-    unsigned int xr = resolutionX; 
-	unsigned int yr = resolutionY; // Resolution in x, y axis of exit pupil
+	double dxa = context_.pixel_pitch[_X];  // Sampling interval in x axis of exit pupil
+	double dya = context_.pixel_pitch[_Y];  // Sampling interval in y axis of exit pupil
+    unsigned int xr = context_.pixel_number[_X]; 
+	unsigned int yr = context_.pixel_number[_Y]; // Resolution in x, y axis of exit pupil
 
 	double DE = max(dxa*xr, dya*yr);    // Diameter of exit pupil
 	double scale = 1.3;
@@ -309,7 +313,7 @@ void ophWaveAberration::accumulateZernikePolynomial()
 			WD[ii][jj]= exp(-j * (oph::Complex<Real>)2 * M_PI*WS[ii][jj] / wave_lambda);   // Wave Aberration Complex Field
 		}
 	}
-	
+	//WD[x][y]
 
 	for (int i = 0; i < (int)length_xn; i++)
 	{
@@ -333,7 +337,11 @@ void ophWaveAberration::accumulateZernikePolynomial()
 
 	complex_W = WD;
 
-
+	for (int x = 0; x < xr; x++) {
+		for (int y = 0; y < yr; y++) {
+			complex_H[0][x + y * xr] = complex_W[x][y];
+		}
+	}
 
 //	return WD;
 }
@@ -341,7 +349,7 @@ void ophWaveAberration::accumulateZernikePolynomial()
 
 void ophWaveAberration::Free2D(oph::Complex<Real> ** doublePtr)
 {
-	for (int i = 0; i < (int)resolutionX; i++)
+	for (int i = 0; i < (int)context_.pixel_number[_X]; i++)
 	{
 		delete[] doublePtr[i];
 	}
@@ -380,30 +388,25 @@ bool ophWaveAberration::readConfig(const char* fname)
 
 	xml_node = xml_doc.FirstChild();
 	xml_element = xml_node->FirstChildElement("Wavelength");
-	if (!xml_element || tinyxml2::XML_SUCCESS != xml_element->QueryDoubleText(&waveLength))
+	if (!xml_element || tinyxml2::XML_SUCCESS != xml_element->QueryDoubleText(&context_.wave_length[0]))
 		return false;
 
-	setWavelengthOHC(waveLength, oph::LenUnit::m);
 
 	xml_element = xml_node->FirstChildElement("PixelPitchHor");
-	if (!xml_element || tinyxml2::XML_SUCCESS != xml_element->QueryDoubleText(&pixelPitchX))
+	if (!xml_element || tinyxml2::XML_SUCCESS != xml_element->QueryDoubleText(&context_.pixel_pitch[_X]))
 		return false;
 
 	xml_element = xml_node->FirstChildElement("PixelPitchVer");
-	if (!xml_element || tinyxml2::XML_SUCCESS != xml_element->QueryDoubleText(&pixelPitchY))
+	if (!xml_element || tinyxml2::XML_SUCCESS != xml_element->QueryDoubleText(&context_.pixel_pitch[_Y]))
 		return false;
 
-	setPixelPitchOHC(vec2(pixelPitchX, pixelPitchY));
-
 	xml_element = xml_node->FirstChildElement("ResolutionHor");
-	if (!xml_element || tinyxml2::XML_SUCCESS != xml_element->QueryUnsignedText(&resolutionX))
+	if (!xml_element || tinyxml2::XML_SUCCESS != xml_element->QueryIntText(&context_.pixel_number[_X]))
 		return false;
 
 	xml_element = xml_node->FirstChildElement("ResolutionVer");
-	if (!xml_element || tinyxml2::XML_SUCCESS != xml_element->QueryUnsignedText(&resolutionY))
+	if (!xml_element || tinyxml2::XML_SUCCESS != xml_element->QueryIntText(&context_.pixel_number[_Y]))
 		return false;
-
-	setPixelNumberOHC(ivec2(resolutionX, resolutionY));
 
 	xml_element = xml_node->FirstChildElement("ZernikeCoeff");
 	xml_attribute = xml_element->FirstAttribute();
@@ -415,12 +418,24 @@ bool ophWaveAberration::readConfig(const char* fname)
 		xml_attribute=xml_attribute->Next();
 		
 	}
+
+	pixelPitchX = context_.pixel_pitch[_X];
+	pixelPitchY = context_.pixel_pitch[_Y];
+
+	resolutionX = context_.pixel_number[_X];
+	resolutionY = context_.pixel_number[_Y];
+
+	waveLength = *context_.wave_length;
+
+	Openholo::setPixelPitchOHC(vec2(context_.pixel_pitch[_X], context_.pixel_pitch[_Y]));
+	Openholo::setPixelNumberOHC(ivec2(context_.pixel_number[_X], context_.pixel_number[_Y]));
+	Openholo::setWavelengthOHC(context_.wave_length[0], oph::LenUnit::m);
 	
-	cout << "Wavelength:             " << waveLength << endl;
-	cout << "PixelPitch(Horizontal): " << pixelPitchX << endl;
-	cout << "PixelPitch(Vertical):   " << pixelPitchY << endl;
-	cout << "Resolution(Horizontal): " << resolutionX << endl;
-	cout << "Resolution(Vertical):   " << resolutionY << endl;
+	cout << "Wavelength:             " << context_.wave_length[0] << endl;
+	cout << "PixelPitch(Horizontal): " << context_.pixel_pitch[_X] << endl;
+	cout << "PixelPitch(Vertical):   " << context_.pixel_pitch[_Y] << endl;
+	cout << "Resolution(Horizontal): " << context_.pixel_number[_X] << endl;
+	cout << "Resolution(Vertical):   " << context_.pixel_number[_Y] << endl;
 	cout << "Zernike Coefficient:    " << endl;
 	for(int i=0; i<45; i++)
 	{ 
@@ -428,8 +443,12 @@ bool ophWaveAberration::readConfig(const char* fname)
 			cout << "z["<<i<<"]="<< zernikeCoefficent[i]<<endl;
 		else
 			cout << "z[" << i << "]=" << zernikeCoefficent[i] <<"	";
-		zernikeCoefficent[i] = zernikeCoefficent[i] * waveLength;
+		zernikeCoefficent[i] = zernikeCoefficent[i] * context_.wave_length[0];
 	}
+	int xr = context_.pixel_number[_X];
+	int yr = context_.pixel_number[_Y];
+
+	complex_H[0] = new Complex<Real>[xr * yr];
 	
 	return true;
 
@@ -438,19 +457,19 @@ bool ophWaveAberration::readConfig(const char* fname)
 void ophWaveAberration::saveAberration(const char* fname)
 {
 	ofstream fout(fname, ios_base::out | ios_base::binary);
-	fout.write((char *)complex_W, resolutionX * resolutionY * sizeof(oph::Complex<Real>));
+	fout.write((char *)complex_W, context_.pixel_number[_X] * context_.pixel_number[_Y] * sizeof(oph::Complex<Real>));
 	fout.close();
 }
 
 void ophWaveAberration::readAberration(const char* fname)
 {
 
-	complex_W = new oph::Complex<Real>*[resolutionX];
-	for (int i = 0; i < (int)resolutionX; i++)
-	complex_W[i] = new oph::Complex<Real>[resolutionY];
+	complex_W = new oph::Complex<Real>*[context_.pixel_number[_X]];
+	for (int i = 0; i < (int)context_.pixel_number[_X]; i++)
+	complex_W[i] = new oph::Complex<Real>[context_.pixel_number[_Y]];
 
 	ifstream fin(fname, ios_base::in | ios_base::binary);
-	fin.read((char *)complex_W, resolutionX*resolutionY);
+	fin.read((char *)complex_W, context_.pixel_number[_X]*context_.pixel_number[_Y]);
 	fin.close();
 }
 
