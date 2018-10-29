@@ -419,6 +419,14 @@ bool ophWaveAberration::readConfig(const char* fname)
 		
 	}
 
+	pixelPitchX = context_.pixel_pitch[_X];
+	pixelPitchY = context_.pixel_pitch[_Y];
+
+	resolutionX = context_.pixel_number[_X];
+	resolutionY = context_.pixel_number[_Y];
+
+	waveLength = *context_.wave_length;
+
 	Openholo::setPixelPitchOHC(vec2(context_.pixel_pitch[_X], context_.pixel_pitch[_Y]));
 	Openholo::setPixelNumberOHC(ivec2(context_.pixel_number[_X], context_.pixel_number[_Y]));
 	Openholo::setWavelengthOHC(context_.wave_length[0], oph::LenUnit::m);
