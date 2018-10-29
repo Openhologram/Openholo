@@ -108,6 +108,8 @@ bool ophDepthMap::readConfig(const char * fname)
 	if (!ophGen::readConfig(fname, dm_config_))
 		return false;
 
+	initialize();
+
 	return true;
 }
 
@@ -121,8 +123,7 @@ bool ophDepthMap::readConfig(const char * fname)
 */
 bool ophDepthMap::readImageDepth(const char* source_folder, const char* img_prefix, const char* depth_img_prefix)
 {
-	std::string sdir = source_folder;
-	sdir = sdir.append("\\").append(img_prefix).append("*.bmp");
+	std::string sdir = std::string("./").append(source_folder).append("/").append(img_prefix).append("*.bmp");
 
 	_finddatai64_t fd;
 	intptr_t handle;
@@ -133,8 +134,7 @@ bool ophDepthMap::readImageDepth(const char* source_folder, const char* img_pref
 		return false;
 	}
 
-	std::string imgfullname;
-	imgfullname = std::string(source_folder).append("\\").append(fd.name);
+	std::string imgfullname = std::string("./").append(source_folder).append("/").append(fd.name);
 
 	int w, h, bytesperpixel;
 	int ret = getImgSize(w, h, bytesperpixel, imgfullname.c_str());
@@ -154,7 +154,7 @@ bool ophDepthMap::readImageDepth(const char* source_folder, const char* img_pref
 
 
 	//=================================================================================
-	std::string sddir = std::string(source_folder).append("\\").append(depth_img_prefix).append("*.bmp");
+	std::string sddir = std::string("./").append(source_folder).append("/").append(depth_img_prefix).append("*.bmp");
 	handle = _findfirst64(sddir.c_str(), &fd);
 	if (handle == -1)
 	{
@@ -162,7 +162,7 @@ bool ophDepthMap::readImageDepth(const char* source_folder, const char* img_pref
 		return false;
 	}
 
-	std::string dimgfullname = std::string(source_folder).append("\\").append(fd.name);
+	std::string dimgfullname = std::string("./").append(source_folder).append("/").append(fd.name);
 
 	int dw, dh, dbytesperpixel;
 	ret = getImgSize(dw, dh, dbytesperpixel, dimgfullname.c_str());
@@ -184,23 +184,28 @@ bool ophDepthMap::readImageDepth(const char* source_folder, const char* img_pref
 	int pnx = context_.pixel_number[0];
 	int pny = context_.pixel_number[1];
 
-	rgb_img = new uchar[pnx*pny];
-	memset(rgb_img, 0, sizeof(char)*pnx*pny);
+	uchar* newimg = new uchar[pnx*pny];
+	memset(newimg, 0, sizeof(char)*pnx*pny);
 
 	if (w != pnx || h != pny)
-		imgScaleBilnear(img, rgb_img, w, h, pnx, pny);
+		imgScaleBilnear(img, newimg, w, h, pnx, pny);
 	else
-		memcpy(rgb_img, img, sizeof(char)*pnx*pny);
+		memcpy(newimg, img, sizeof(char)*pnx*pny);
 
 	//ret = creatBitmapFile(newimg, pnx, pny, 8, "stest");
 
-	depth_img = new uchar[pnx*pny];
-	memset(depth_img, 0, sizeof(char)*pnx*pny);
+	uchar* newdimg = new uchar[pnx*pny];
+	memset(newdimg, 0, sizeof(char)*pnx*pny);
 
 	if (dw != pnx || dh != pny)
-		imgScaleBilnear(dimg, depth_img, dw, dh, pnx, pny);
+		imgScaleBilnear(dimg, newdimg, dw, dh, pnx, pny);
 	else
-		memcpy(depth_img, dimg, sizeof(char)*pnx*pny);
+		memcpy(newdimg, dimg, sizeof(char)*pnx*pny);
+
+	if (is_CPU)
+		ret = prepareInputdataCPU(newimg, newdimg);
+	else
+		ret = prepareInputdataGPU(newimg, newdimg);
 
 	delete[] img;
 	delete[] dimg;
@@ -210,14 +215,7 @@ bool ophDepthMap::readImageDepth(const char* source_folder, const char* img_pref
 
 Real ophDepthMap::generateHologram(void)
 {
-	initialize();
-
 	auto start_time = CUR_TIME;
-
-	if (is_CPU)
-		prepareInputdataCPU(rgb_img, depth_img);
-	else
-		prepareInputdataGPU(rgb_img, depth_img);
 
 	getDepthValues();
 	transformViewingWindow();

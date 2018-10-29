@@ -70,18 +70,49 @@ struct geometric {
 Triangular mesh based CGH generates the complex field of 3D objects represented as a collection of the triangular meshes.
 The algorithm aggregates the angular spectrums of individual triangular meshes and then performs a Fourier transform to obtain the complex field for entire objects.
 
-![](@ref pics/ophgen/mesh/mesh_fig3.png)
+![](images/mesh_fig3.png)
 
 The angular spectrum of the individual triangular mesh is obtained using the analytic formula of the Fourier transform of the reference triangular aperture, considering the geometrical relation between the hologram plane and the local mesh plane, and also between the local mesh and the reference triangular aperture.
 
-![](@ref pics/ophgen/mesh/mesh_fig1.png)
-![](@ref pics/ophgen/mesh/mesh_fig2.png)
+![](images/mesh_fig1.png)
+![](images/mesh_fig2.png)
 
 The phase distribution on the mesh is determined by the carrier wave is assumed to be a plane wave of a specfic direction in the code.
 The amplitude inside each mesh is determined by the surface shading model and it can be either linearly varying for the continuous shading or uniform for the flat shading.
 
-![continuous shading](@ref pics/ophgen/mesh/mesh_ex_continuous.png)
-![flat shading](@ref pics/ophgen/mesh/mesh_ex_flat.png)
+![continuous shading](images/mesh_ex_continuous.png)
+![flat shading](images/mesh_ex_flat.png)
+
+* @section Example
+
+@code
+#include "ophTriMesh.h"
+
+int main(void)
+{
+	ophTri* Hologram = new ophTri();
+
+	// Load
+	Hologram->readMeshConfig("config/TestSpecMesh.xml");		// Read the Mesh hologram configuration file
+	Hologram->loadMeshData("source/mesh_teapot.ply","ply");		// Read the Meshed object data
+	Hologram->objScaleShift();					// Object scaling and shifting
+
+	// Generate
+	Hologram->generateMeshHologram(Hologram->SHADING_FLAT);		// Generate the hologram
+		/// Put the shading effect type
+
+	// Save as Complex Field Data
+	Hologram->saveAsOhc("result/Mesh_complexField.ohc");		// Save the hologram complex field data
+
+	// Encode
+	Hologram->encoding(Hologram->ENCODE_SIMPLENI);		// Encode the hologram
+
+	// Save as Encoded Image
+	Hologram->normalizeEncoded();		// Normalize the encoded hologram to generate image file
+	ivec2 encode_size = Hologram->getEncodeSize();		// Encoded hologram size
+	Hologram->save("result/Mesh_0.1m_ni_-0.3deg.bmp", 8, nullptr, encode_size[_X], encode_size[_Y]);		// Save the encoded hologram image
+}
+@endcode
 
 */
 //! @} mesh

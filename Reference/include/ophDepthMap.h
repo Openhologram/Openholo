@@ -58,9 +58,6 @@ using namespace oph;
 * @addtogroup depthmap
 //@{
 * @detail
-
-* @section Introduction
-
 This module is related methods which generates CGH based on depth map. It is supported single core
 processing, multi-core processing(with OpenMP) and GPGPU parallel processing(with CUDA).
 
@@ -71,33 +68,31 @@ I. Depth Map Hologram Generation
 -   Implemented on CPU and GPU.
 -   The original algorithm is modified in the way that can be easily implemented in parallel.
 
-![](@ref pics/ophgen/depthmap/gen_depthmap01.png)
+![](pics/ophgen/depthmap/gen_depthmap01.png)
 
-![](@ref pics/ophgen/depthmap/depth_slice_image01.png)
+![](pics/ophgen/depthmap/depth_slice_image01.png)
 
 II. Algorithm
 
 -   Propagate from the previous depth plane to the current depth plane.
 -   At the last plane, back propagate to the hologram plane.
 
-![](@ref pics/ophgen/depthmap/gen_depthmap_flowchart02.png)
+![](pics/ophgen/depthmap/gen_depthmap_flowchart02.png)
 
-![](@ref pics/ophgen/depthmap/depth_slice_image02.png)
+![](pics/ophgen/depthmap/depth_slice_image02.png)
 
 III. Modified Algorithm
 
 -   Back propagate each depth plane to the hologram plane.
 -   Accumulate the results of each propagation.
 
-![](@ref pics/ophgen/depthmap/gen_depthmap_flowchart03.png)
+![](pics/ophgen/depthmap/gen_depthmap_flowchart03.png)
 
-![](@ref pics/ophgen/depthmap/depth_slice_image03.png)
+![](pics/ophgen/depthmap/depth_slice_image03.png)
 
 
 */
 //! @} depthmap
-
-
 
 /**
 * @ingroup depthmap

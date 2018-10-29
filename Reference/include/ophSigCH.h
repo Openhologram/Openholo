@@ -14,7 +14,7 @@
 
 This module is related methods which perform compressed holography algorithm.
 Compressed holography algorithm is based on a paper D.Brady et al., Opt. Express 18, pp. 13040 (2009). 
-The methods in this module (except twist) has been created based on the original code included in the supplement material of S.Lim, D. Marks, and D. Brady, ¡°Sampling and processing for compressive holography,¡± Applied Optics, vol. 50, no. 34, pp. H75-H86, 2011.
+The methods in this module (except twist) has been created based on the original code included in the supplement material of S.Lim, D. Marks, and D. Brady, ï¿½ï¿½Sampling and processing for compressive holography,ï¿½ï¿½ Applied Optics, vol. 50, no. 34, pp. H75-H86, 2011.
 
 This module also uses a TwIST algorithm (J.M. Bioucas-Dias et al., IEEE Trans. Image Proc. 16, pp.2992 (2007)).
 The 'twist' method in this module is based on the optimization algorithm (TwIST) code created and distributed by Jose Bioucas-Dias and Mario Figueiredo, October, 2007
@@ -43,6 +43,12 @@ public:
 	*/
 	explicit ophSigCH(void);
 	
+	bool setCHparam(vector<Real> &z, int maxIter, double tau, double tolA, int tvIter);
+	bool runCH(int complexHidx);
+	bool saveNumRec(const char *fname);
+	bool readConfig(const char * fname);
+	bool loadCHtemp(const char *real, const char *imag, uint8_t bitpixel);
+
 	/**
 	* @brief Set Compressed Holography parameters
 	* @param z : vector containing depth values for numerical reconstruction

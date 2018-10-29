@@ -48,6 +48,8 @@
 
 #include "ophDis.h"
 
+enum SourceType {IMG, OHC};
+
 struct OphCascadedPropagationConfig {
 	OphCascadedPropagationConfig()
 		: num_colors(0),
@@ -174,8 +176,23 @@ class DISP_DLL ophCascadedPropagation : public ophDis {
 		*/
 		bool save(const wchar_t* pathname, uint8_t bitsperpixel);
 
+		/**
+		* @brief Function to write OHC file
+		*/
+		virtual int saveAsOhc(const char *fname);
+
+		/**
+		* @brief Function to read OHC file
+		*/
+		virtual int loadAsOhc(const char *fname);
+
 
 	private:
+		/**
+		* @param config_: configuration parameters for cascaded propagation
+		*/
+		SourceType sourcetype_;
+
 		/**
 		* @param config_: configuration parameters for cascaded propagation
 		*/
@@ -230,7 +247,7 @@ class DISP_DLL ophCascadedPropagation : public ophDis {
 		* @return true if successful
 		* @return false when failed
 		*/
-		bool loadInput();
+		bool loadInputImg(string hologram_path_str);
 
 		/**
 		* @brief Generates intensity fields from complex wavefields
