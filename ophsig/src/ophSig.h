@@ -64,11 +64,10 @@ struct SIG_DLL ophSigConfig {
 	int cols;
 	float width;
 	float height;
-	double lambda;
-	double wavelength[3];
+	double lambda[3];
 	float NA;
 	float z;
-	int colorType;
+	int color;
 };
 
 /**
@@ -678,6 +677,7 @@ protected:
 
 	ophSigConfig _cfgSig;
 	matrix<Complex<Real>> ComplexH[3];
+	Complex<Real>** complex_H;
 	float _angleX;
 	float _angleY;
 	float _redRate;
