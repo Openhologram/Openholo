@@ -112,7 +112,7 @@ public:
 	* @param bitpixel bit per pixel
 	* @return         if works well return 0  or error occurs return -1
 	*/
-	bool load(const char *real, const char *imag, uint8_t bitpixel);
+	bool load(const char *real, const char *imag);
 	/**
 	* @brief          Save data as bmp or bin file
 	* @param real     real data file name
@@ -120,8 +120,8 @@ public:
 	* @param bitpixel bit per pixel
 	* @return         if works well return 0  or error occurs return -1
 	*/
-	bool save(const char *real, const char *imag, uint8_t bitpixel);
-	bool save(const char *real, uint8_t bitpixel);
+	bool save(const char *real, const char *imag);
+	bool save(const char *real);
 	int loadAsOhc(const char *fname);
 	int saveAsOhc(const char *fname);
 protected:
@@ -518,7 +518,7 @@ public:
 	* @param depth position from hologram plane to propagation hologram plane
 	* @return output signal
 	*/
-	matrix<Complex<Real>> propagationHolo(matrix<Complex<Real>> complexH, float depth);
+	OphComplexField propagationHolo(OphComplexField complexH, float depth);
 
 	/**
 	* @addtogroup getAT
@@ -673,15 +673,12 @@ protected:
 	virtual void ophFree(void);
 
 	ophSigConfig _cfgSig;
-	matrix<Complex<Real>> ComplexH[3];
+	OphComplexField ComplexH[3];
 	float _angleX;
 	float _angleY;
 	float _redRate;
 	float _radius;
 	float _foc[3];
-
-
-
 };
 
 #endif // !__ophSig_h

@@ -337,7 +337,6 @@ void ophSig::linInterp(vector<T> &X, matrix<Complex<T>> &src, vector<T> &Xq, mat
 		dst(0, j)._Val[_RE] = src(0, i).real() + (src(0, i + 1).real() - src(0, i).real()) / (X[i + 1] - X[i]) * (Xq[j] - X[i]);
 		dst(0, j)._Val[_IM] = src(0, i).imag() + (src(0, i + 1).imag() - src(0, i).imag()) / (X[i + 1] - X[i]) * (Xq[j] - X[i]);
 	}
-
 }
 
 int ophSig::loadAsOhc(const char *fname)
@@ -418,12 +417,23 @@ int ophSig::saveAsOhc(const char *fname)
 	return 1;
 }
 
-bool ophSig::load(const char *real, const char *imag, uint8_t bitpixel)
+bool ophSig::load(const char *real, const char *imag)
 {
 	string realname = real;
 	string imagname = imag;
+
+	int nz = 1;
+	char* RGB_name[3] = { "","","" };
+
+	if (_cfgSig.colorType) {
+		nz = 3;
+		RGB_name[0] = "_B";
+		RGB_name[1] = "_G";
+		RGB_name[2] = "_R";
+	}
+
 	int checktype = static_cast<int>(realname.rfind("."));
-	matrix<Real> realMat[3], imagMat[3];
+	OphRealField realMat[3], imagMat[3];
 
 	std::string realtype = realname.substr(checktype + 1, realname.size());
 	std::string imgtype = imagname.substr(checktype + 1, realname.size());
@@ -434,107 +444,56 @@ bool ophSig::load(const char *real, const char *imag, uint8_t bitpixel)
 	}
 	if (realtype == "bmp")
 	{
-		FILE *freal, *fimag;
-		fileheader hf;
-		bitmapinfoheader hInfo;
-		fopen_s(&freal, realname.c_str(), "rb"); fopen_s(&fimag, imagname.c_str(), "rb");
-		if (!freal)
-		{
-			LOG("real bmp file open fail!\n");
+		realname = real;
+		imagname = imag;
+		//realname.insert(checktype, RGB_name[z]);
+		//imagname.insert(checktype, RGB_name[z]);
+
+		uchar* realdata = loadAsImg(realname.c_str());
+		uchar* imagdata = loadAsImg(imagname.c_str());
+		
+		if (realdata == 0 && imagdata == 0) {
+			cout << "failed : hologram data load was failed." << endl;
 			return false;
 		}
-		if (!fimag)
-		{
-			LOG("imaginary bmp file open fail!\n");
-			return false;
-		}
-		fread(&hf, sizeof(fileheader), 1, freal);
-		fread(&hInfo, sizeof(bitmapinfoheader), 1, freal);
-		fread(&hf, sizeof(fileheader), 1, fimag);
-		fread(&hInfo, sizeof(bitmapinfoheader), 1, fimag);
 
-		if (hf.signature[0] != 'B' || hf.signature[1] != 'M') { LOG("Not BMP File!\n"); }
-		if ((hInfo.height == 0) || (hInfo.width == 0))
+		for (int z = 0; z < nz; z++)
 		{
-			LOG("bmp header is empty!\n");
-			hInfo.height = _cfgSig.rows;
-			hInfo.width = _cfgSig.cols;
-			if (_cfgSig.rows == 0 || _cfgSig.cols == 0)
+			realMat[z].resize(_cfgSig.rows, _cfgSig.cols);
+			imagMat[z].resize(_cfgSig.rows, _cfgSig.cols);
+		
+			for (int i = _cfgSig.rows - 1; i >= 0; i--)
 			{
-				LOG("check your parameter file!\n");
-				return false;
-			}
-		}
-		if ((_cfgSig.rows != hInfo.height) || (_cfgSig.cols != hInfo.width)) {
-			LOG("image size is different!\n");
-			_cfgSig.rows = hInfo.height;
-			_cfgSig.cols = hInfo.width;
-			LOG("changed parameter of size %d x %d\n", _cfgSig.cols, _cfgSig.rows);
-		}
-		hInfo.bitsperpixel = bitpixel;
-		if (bitpixel == 8)
-		{
-			rgbquad palette[256];
-			fread(palette, sizeof(rgbquad), 256, freal);
-			fread(palette, sizeof(rgbquad), 256, fimag);
-
-			realMat[0].resize(hInfo.height, hInfo.width);
-			imagMat[0].resize(hInfo.height, hInfo.width);
-			ComplexH[0].resize(hInfo.height, hInfo.width);
-		}
-		else
-		{
-			realMat[0].resize(hInfo.height, hInfo.width);
-			imagMat[0].resize(hInfo.height, hInfo.width);
-			ComplexH[0].resize(hInfo.height, hInfo.width);
-
-			realMat[1].resize(hInfo.height, hInfo.width);
-			imagMat[1].resize(hInfo.height, hInfo.width);
-			ComplexH[1].resize(hInfo.height, hInfo.width);
-
-			realMat[2].resize(hInfo.height, hInfo.width);
-			imagMat[2].resize(hInfo.height, hInfo.width);
-			ComplexH[2].resize(hInfo.height, hInfo.width);
-		}
-
-		uchar* realdata = (uchar*)malloc(sizeof(uchar)*hInfo.width*hInfo.height*(hInfo.bitsperpixel / 8));
-		uchar* imagdata = (uchar*)malloc(sizeof(uchar)*hInfo.width*hInfo.height*(hInfo.bitsperpixel / 8));
-
-		fread(realdata, sizeof(uchar), hInfo.width*hInfo.height*(hInfo.bitsperpixel / 8), freal);
-		fread(imagdata, sizeof(uchar), hInfo.width*hInfo.height*(hInfo.bitsperpixel / 8), fimag);
-
-		fclose(freal);
-		fclose(fimag);
-
-		for (int i = hInfo.height - 1; i >= 0; i--)
-		{
-			for (int j = 0; j < static_cast<int>(hInfo.width); j++)
-			{
-				for (int z = 0; z < (hInfo.bitsperpixel / 8); z++)
+				for (int j = 0; j < _cfgSig.cols; j++)
 				{
-					realMat[z](hInfo.height - i - 1, j) = (double)realdata[i*hInfo.width*(hInfo.bitsperpixel / 8) + (hInfo.bitsperpixel / 8)*j + z];
-					imagMat[z](hInfo.height - i - 1, j) = (double)imagdata[i*hInfo.width*(hInfo.bitsperpixel / 8) + (hInfo.bitsperpixel / 8)*j + z];
+					realMat[z](_cfgSig.rows - i - 1, j) = (double)realdata[(i * _cfgSig.cols + j)*nz + z];
+					imagMat[z](_cfgSig.rows - i - 1, j) = (double)imagdata[(i * _cfgSig.cols + j)*nz + z];
 				}
 			}
 		}
-		LOG("file load complete!\n");
+		delete[] realdata;
+		delete[] imagdata;
 
-		free(realdata);
-		free(imagdata);
+		LOG("file load complete!\n");
 	}
 	else if (realtype == "bin")
 	{
-		if (bitpixel == 8)
-		{
+		int total = _cfgSig.rows*_cfgSig.cols;
 
-			ifstream freal(realname, ifstream::binary);
-			ifstream fimag(imagname, ifstream::binary);
-			realMat[0].resize(_cfgSig.rows, _cfgSig.cols); imagMat[0].resize(_cfgSig.rows, _cfgSig.cols);
-			ComplexH[0].resize(_cfgSig.rows, _cfgSig.cols);
-			int total = _cfgSig.rows*_cfgSig.cols;
-			double *realdata = new double[total];
-			double *imagdata = new double[total];
-			int i = 0;
+		double *realdata = new  double[total];
+		double *imagdata = new  double[total];
+
+		for (int z = 0; z < nz; z++)
+		{
+			realname = real;
+			imagname = imag;
+
+			realname.insert(checktype, RGB_name[z]);
+			imagname.insert(checktype, RGB_name[z]);
+
+			ifstream freal(realname.c_str(), ifstream::binary);
+			ifstream fimag(imagname.c_str(), ifstream::binary);
+
 			freal.read(reinterpret_cast<char*>(realdata), sizeof(double) * total);
 			fimag.read(reinterpret_cast<char*>(imagdata), sizeof(double) * total);
 
@@ -542,60 +501,19 @@ bool ophSig::load(const char *real, const char *imag, uint8_t bitpixel)
 			{
 				for (int row = 0; row < _cfgSig.rows; row++)
 				{
-					realMat[0](row, col) = realdata[_cfgSig.rows*col + row];
-					imagMat[0](row, col) = imagdata[_cfgSig.rows*col + row];
+					realMat[z].resize(_cfgSig.rows, _cfgSig.cols);
+					imagMat[z].resize(_cfgSig.rows, _cfgSig.cols);
+
+					realMat[z](row, col) = realdata[_cfgSig.rows*col + row];
+					imagMat[z](row, col) = imagdata[_cfgSig.rows*col + row];
 				}
 			}
-
 			freal.close();
 			fimag.close();
-			delete[]realdata;
-			delete[]imagdata;
 		}
-		else if (bitpixel == 24)
-		{
-			realMat[0].resize(_cfgSig.rows, _cfgSig.cols);
-			imagMat[0].resize(_cfgSig.rows, _cfgSig.cols);
-			ComplexH[0].resize(_cfgSig.rows, _cfgSig.cols);
-
-			realMat[1].resize(_cfgSig.rows, _cfgSig.cols);
-			imagMat[1].resize(_cfgSig.rows, _cfgSig.cols);
-			ComplexH[1].resize(_cfgSig.rows, _cfgSig.cols);
-
-			realMat[2].resize(_cfgSig.rows, _cfgSig.cols);
-			imagMat[2].resize(_cfgSig.rows, _cfgSig.cols);
-			ComplexH[2].resize(_cfgSig.rows, _cfgSig.cols);
-
-			int total = _cfgSig.rows*_cfgSig.cols;
-
-
-			string RGB_name[] = { "_B","_G","_R" };
-			double *realdata = new  double[total];
-			double *imagdata = new  double[total];
-
-			for (int z = 0; z < (bitpixel / 8); z++)
-			{
-				ifstream freal(strtok((char*)realname.c_str(), ".") + RGB_name[z] + "bin", ifstream::binary);
-				ifstream fimag(strtok((char*)imagname.c_str(), ".") + RGB_name[z] + "bin", ifstream::binary);
-
-				freal.read(reinterpret_cast<char*>(realdata), sizeof(double) * total);
-				fimag.read(reinterpret_cast<char*>(imagdata), sizeof(double) * total);
-
-				for (int col = 0; col < _cfgSig.cols; col++)
-				{
-					for (int row = 0; row < _cfgSig.rows; row++)
-					{
-						realMat[z](row, col) = realdata[_cfgSig.rows*col + row];
-						imagMat[z](row, col) = imagdata[_cfgSig.rows*col + row];
-					}
-				}
-				freal.close();
-				fimag.close();
-			}
-			delete[] realdata;
-			delete[] imagdata;
-		}
-	}
+		delete[] realdata;
+		delete[] imagdata;
+	}	
 	else
 	{
 		LOG("wrong type\n");
@@ -603,7 +521,7 @@ bool ophSig::load(const char *real, const char *imag, uint8_t bitpixel)
 
 	//nomalization
 	double realout, imagout;
-	for (int z = 0; z < (bitpixel) / 8; z++)
+	for (int z = 0; z < nz; z++)
 	{
 		meanOfMat(realMat[z], realout); meanOfMat(imagMat[z], imagout);
 		realMat[z] / realout; imagMat[z] / imagout;
@@ -613,6 +531,8 @@ bool ophSig::load(const char *real, const char *imag, uint8_t bitpixel)
 		realMat[z] / realout; imagMat[z] / imagout;
 		realout = minOfMat(realMat[z]); imagout = minOfMat(imagMat[z]);
 		realMat[z] - realout; imagMat[z] - imagout;
+
+		ComplexH[z].resize(_cfgSig.rows, _cfgSig.cols);
 
 		for (int i = 0; i < _cfgSig.rows; i++)
 		{
@@ -628,573 +548,176 @@ bool ophSig::load(const char *real, const char *imag, uint8_t bitpixel)
 
 	return true;
 }
-bool ophSig::save(const char *real, const char *imag, uint8_t bitpixel)
+
+bool ophSig::save(const char *real, const char *imag)
 {
 	string realname = real;
 	string imagname = imag;
 
-	int checktype = static_cast<int>(realname.rfind("."));
 
-	if (realname.substr(checktype + 1, realname.size()) == "bmp")
-	{
-		oph::uchar* realdata;
-		oph::uchar* imagdata;
-		int _pixelbytesize = 0;
-		int _width = _cfgSig.cols, _height = _cfgSig.rows;
+	int nz = 1;
+	char* RGB_name[3] = { "","","" };
 
-		if (bitpixel == 8)
-		{
-			_pixelbytesize = _height * _width;
-		}
-		else
-		{
-			_pixelbytesize = _height * _width * 3;
-		}
-		int _filesize = 0;
-
-
-		FILE *freal, *fimag;
-		fopen_s(&freal, realname.c_str(), "wb");
-		fopen_s(&fimag, imagname.c_str(), "wb");
-
-		if ((freal == nullptr) || (fimag == nullptr))
-		{
-			LOG("file not found\n");
-			return FALSE;
-		}
-
-		if (bitpixel == 8)
-		{
-			realdata = (oph::uchar*)malloc(sizeof(oph::uchar) * _cfgSig.rows * _cfgSig.cols);
-			imagdata = (oph::uchar*)malloc(sizeof(oph::uchar) * _cfgSig.rows * _cfgSig.cols);
-			_filesize = _pixelbytesize + sizeof(bitmap);
-
-			bitmap *pbitmap = (bitmap*)calloc(1, sizeof(bitmap));
-			memset(pbitmap, 0x00, sizeof(bitmap));
-
-			pbitmap->fileheader.signature[0] = 'B';
-			pbitmap->fileheader.signature[1] = 'M';
-			pbitmap->fileheader.filesize = _filesize;
-			pbitmap->fileheader.fileoffset_to_pixelarray = sizeof(bitmap);
-
-			for (int i = 0; i < 256; i++) {
-				pbitmap->rgbquad[i].rgbBlue = i;
-				pbitmap->rgbquad[i].rgbGreen = i;
-				pbitmap->rgbquad[i].rgbRed = i;
-			}
-
-
-			//// denormalization
-			for (int i = _height - 1; i >= 0; i--)
-			{
-				for (int j = 0; j < _width; j++)
-				{
-					if (ComplexH[0].mat[_height - i - 1][j]._Val[_RE] < 0)
-					{
-						ComplexH[0].mat[_height - i - 1][j]._Val[_RE] = 0;
-					}
-					
-					if (ComplexH[0].mat[_height - i - 1][j]._Val[_IM] < 0)
-					{
-						ComplexH[0].mat[_height - i - 1][j]._Val[_IM] = 0;
-					}
-				}
-			}
-
-			double minVal, iminVal, maxVal, imaxVal;
-			for (int j = 0; j < ComplexH[0].size[_Y]; j++) {
-				for (int i = 0; i < ComplexH[0].size[_X]; i++) {
-					if ((i == 0) && (j == 0))
-					{
-						minVal = ComplexH[0](i, j)._Val[_RE];
-						maxVal = ComplexH[0](i, j)._Val[_RE];
-					}
-					else {
-						if (ComplexH[0](i, j)._Val[_RE] < minVal)
-						{
-							minVal = ComplexH[0](i, j).real();
-						}
-						if (ComplexH[0](i, j)._Val[_RE] > maxVal)
-						{
-							maxVal = ComplexH[0](i, j).real();
-						}
-					}
-					if ((i == 0) && (j == 0)) {
-						iminVal = ComplexH[0](i, j)._Val[_IM];
-						imaxVal = ComplexH[0](i, j)._Val[_IM];
-					}
-					else {
-						if (ComplexH[0](i, j)._Val[_IM] < iminVal)
-						{
-							iminVal = ComplexH[0](i, j)._Val[_IM];
-						}
-						if (ComplexH[0](i, j)._Val[_IM] > imaxVal)
-						{
-							imaxVal = ComplexH[0](i, j)._Val[_IM];
-						}
-					}
-				}
-			}
-			for (int i = _height - 1; i >= 0; i--)
-			{
-				for (int j = 0; j < _width; j++)
-				{
-					realdata[i*_width + j] = (uchar)((ComplexH[0](_height - i - 1, j)._Val[_RE] - minVal) / (maxVal - minVal) * 255 + 0.5);
-					imagdata[i*_width + j] = (uchar)((ComplexH[0](_height - i - 1, j)._Val[_IM] - iminVal) / (imaxVal - iminVal) * 255 + 0.5);
-				}
-			}
-
-			
-
-
-
-			pbitmap->bitmapinfoheader.dibheadersize = sizeof(bitmapinfoheader);
-			pbitmap->bitmapinfoheader.width = _width;
-			pbitmap->bitmapinfoheader.height = _height;
-			pbitmap->bitmapinfoheader.planes = OPH_PLANES;
-			pbitmap->bitmapinfoheader.bitsperpixel = bitpixel;
-			pbitmap->bitmapinfoheader.compression = OPH_COMPRESSION;
-			pbitmap->bitmapinfoheader.imagesize = _pixelbytesize;
-			pbitmap->bitmapinfoheader.ypixelpermeter = 0;
-			pbitmap->bitmapinfoheader.xpixelpermeter = 0;
-			pbitmap->bitmapinfoheader.numcolorspallette = 256;
-
-			fwrite(pbitmap, 1, sizeof(bitmap), freal);
-			fwrite(realdata, 1, _pixelbytesize, freal);
-
-			fwrite(pbitmap, 1, sizeof(bitmap), fimag);
-			fwrite(imagdata, 1, _pixelbytesize, fimag);
-
-			fclose(freal);
-			fclose(fimag);
-			free(pbitmap);
-		}
-		else
-		{
-			realdata = (oph::uchar*)malloc(sizeof(oph::uchar) * _cfgSig.rows * _cfgSig.cols * bitpixel / 3);
-			imagdata = (oph::uchar*)malloc(sizeof(oph::uchar) * _cfgSig.rows * _cfgSig.cols * bitpixel / 3);
-			_filesize = _pixelbytesize + sizeof(fileheader) + sizeof(bitmapinfoheader);
-
-			fileheader *hf = (fileheader*)calloc(1, sizeof(fileheader));
-			bitmapinfoheader *hInfo = (bitmapinfoheader*)calloc(1, sizeof(bitmapinfoheader));
-
-			hf->signature[0] = 'B';
-			hf->signature[1] = 'M';
-			hf->filesize = _filesize;
-			hf->fileoffset_to_pixelarray = sizeof(fileheader) + sizeof(bitmapinfoheader);
-
-			double minVal, iminVal, maxVal, imaxVal;
-			for (int z = 0; z < 3; z++)
-			{
-				for (int j = 0; j < ComplexH[0].size[_Y]; j++) {
-					for (int i = 0; i < ComplexH[0].size[_X]; i++) {
-						if ((i == 0) && (j == 0))
-						{
-							minVal = ComplexH[z](i, j)._Val[_RE];
-							maxVal = ComplexH[z](i, j)._Val[_RE];
-						}
-						else {
-							if (ComplexH[z](i, j)._Val[_RE] < minVal)
-							{
-								minVal = ComplexH[z](i, j)._Val[_RE];
-							}
-							if (ComplexH[z](i, j)._Val[_RE] > maxVal)
-							{
-								maxVal = ComplexH[z](i, j)._Val[_RE];
-							}
-						}
-						if ((i == 0) && (j == 0)) {
-							iminVal = ComplexH[z](i, j)._Val[_IM];
-							imaxVal = ComplexH[z](i, j)._Val[_IM];
-						}
-						else {
-							if (ComplexH[z](i, j)._Val[_IM] < iminVal)
-							{
-								iminVal = ComplexH[z](i, j)._Val[_IM];
-							}
-							if (ComplexH[z](i, j)._Val[_IM] > imaxVal)
-							{
-								imaxVal = ComplexH[z](i, j)._Val[_IM];
-							}
-						}
-					}
-				}
-
-				for (int i = _height - 1; i >= 0; i--)
-				{
-					for (int j = 0; j < _width; j++)
-					{
-						realdata[3 * j + 3 * i * _width + z] = (uchar)((ComplexH[z](_height - i - 1, j)._Val[_RE] - minVal) / (maxVal - minVal) * 255);
-						imagdata[3 * j + 3 * i * _width + z] = (uchar)((ComplexH[z](_height - i - 1, j)._Val[_IM] - iminVal) / (imaxVal - iminVal) * 255);
-
-					}
-				}
-			}
-			hInfo->dibheadersize = sizeof(bitmapinfoheader);
-			hInfo->width = _width;
-			hInfo->height = _height;
-			hInfo->planes = OPH_PLANES;
-			hInfo->bitsperpixel = bitpixel;
-			hInfo->compression = OPH_COMPRESSION;
-			hInfo->imagesize = _pixelbytesize;
-			hInfo->ypixelpermeter = 0;
-			hInfo->xpixelpermeter = 0;
-
-			fwrite(hf, 1, sizeof(fileheader), freal);
-			fwrite(hInfo, 1, sizeof(bitmapinfoheader), freal);
-			fwrite(realdata, 1, _pixelbytesize, freal);
-
-			fwrite(hf, 1, sizeof(fileheader), fimag);
-			fwrite(hInfo, 1, sizeof(bitmapinfoheader), fimag);
-			fwrite(imagdata, 1, _pixelbytesize, fimag);
-
-			fclose(freal);
-			fclose(fimag);
-			free(hf);
-			free(hInfo);
-		}
-
-		free(realdata);
-		free(imagdata);
-		std::cout << "file save bmp complete" << endl;
-		return TRUE;
+	if (_cfgSig.colorType) {
+		nz = 3; 
+		RGB_name[0] = "_B";
+		RGB_name[1] = "_G";
+		RGB_name[2] = "_R";
 	}
-	else if (realname.substr(checktype + 1, realname.size()) == "bin")
-	{
 
-		if (bitpixel == 8)
+	int checktype = static_cast<int>(realname.rfind("."));
+	string type = realname.substr(checktype + 1, realname.size());
+	if (type == "bin")
+	{
+		double *realdata = new  double[_cfgSig.rows * _cfgSig.cols];
+		double *imagdata = new  double[_cfgSig.rows * _cfgSig.cols];
+
+		for (int z = 0; z < nz; z++)
 		{
-			std::ofstream cos(realname, std::ios::binary);
-			std::ofstream sin(imagname, std::ios::binary);
+			realname = real;
+			imagname = imag;
+			realname.insert(checktype, RGB_name[z]);
+			imagname.insert(checktype, RGB_name[z]);
+			std::ofstream cos(realname.c_str(), std::ios::binary);
+			std::ofstream sin(imagname.c_str(), std::ios::binary);
 
 			if (!cos.is_open()) {
-				printf("real file not found.\n");
+				LOG("real file not found.\n");
 				cos.close();
+				delete[] realdata;
+				delete[] imagdata;
 				return FALSE;
 			}
+
 			if (!sin.is_open()) {
-				printf("imag file not found.\n");
+				LOG("imag file not found.\n");
 				sin.close();
+				delete[] realdata;
+				delete[] imagdata;
 				return FALSE;
 			}
 
-			double *realdata = new  double[ComplexH[0].size[_X] * ComplexH[0].size[_Y]];
-			double *imagdata = new  double[ComplexH[0].size[_X] * ComplexH[0].size[_Y]];
-
-			for (int col = 0; col < ComplexH[0].size[_Y]; col++)
+			for (int col = 0; col < _cfgSig.cols; col++)
 			{
-				for (int row = 0; row < ComplexH[0].size[_X]; row++)
+				for (int row = 0; row < _cfgSig.rows; row++)
 				{
-					realdata[_cfgSig.rows*col + row] = ComplexH[0].mat[row][col]._Val[_RE];
-					imagdata[_cfgSig.rows*col + row] = ComplexH[0].mat[row][col]._Val[_IM];
+					realdata[_cfgSig.rows*col + row] = ComplexH[z].mat[row][col]._Val[_RE];
+					imagdata[_cfgSig.rows*col + row] = ComplexH[z].mat[row][col]._Val[_IM];
 				}
 			}
-
-			cos.write(reinterpret_cast<const char*>(realdata), sizeof(double) * ComplexH[0].size[_X] * ComplexH[0].size[_Y]);
-			sin.write(reinterpret_cast<const char*>(imagdata), sizeof(double) * ComplexH[0].size[_X] * ComplexH[0].size[_Y]);
-
+			cos.write(reinterpret_cast<const char*>(realdata), sizeof(double) * _cfgSig.rows * _cfgSig.cols);
+			sin.write(reinterpret_cast<const char*>(imagdata), sizeof(double) * _cfgSig.rows * _cfgSig.cols);
+			
 			cos.close();
 			sin.close();
-			delete[]realdata;
-			delete[]imagdata;
 		}
-		else if (bitpixel == 24)
-		{
-			std::string RGB_name[] = { "_B.", "_G.", "_R." };
-
-			double *realdata = new  double[_cfgSig.rows * _cfgSig.cols];
-			double *imagdata = new  double[_cfgSig.rows * _cfgSig.cols];
-
-			for (int z = 0; z < 3; z++)
-			{
-				std::ofstream cos(strtok((char*)realname.c_str(), ".") + RGB_name[z] + "bin", std::ios::binary);
-				std::ofstream sin(strtok((char*)imagname.c_str(), ".") + RGB_name[z] + "bin", std::ios::binary);
-
-				if (!cos.is_open()) {
-					LOG("real file not found.\n");
-					cos.close();
-					delete[] realdata;
-					delete[] imagdata;
-					return FALSE;
-				}
-
-				if (!sin.is_open()) {
-					LOG("imag file not found.\n");
-					sin.close();
-					delete[] realdata;
-					delete[] imagdata;
-					return FALSE;
-				}
-
-				for (int col = 0; col < ComplexH[0].size[_Y]; col++)
-				{
-					for (int row = 0; row < ComplexH[0].size[_X]; row++)
-					{
-						realdata[_cfgSig.rows*col + row] = ComplexH[z].mat[row][col]._Val[_RE];
-						imagdata[_cfgSig.rows*col + row] = ComplexH[z].mat[row][col]._Val[_IM];
-					}
-				}
-				cos.write(reinterpret_cast<const char*>(realdata), sizeof(double) * _cfgSig.rows * _cfgSig.cols);
-				sin.write(reinterpret_cast<const char*>(imagdata), sizeof(double) * _cfgSig.rows * _cfgSig.cols);
-
-				cos.close();
-				sin.close();
-			}
-			delete[]realdata;
-			delete[]imagdata;
-		}
+		delete[]realdata;
+		delete[]imagdata;
+	
 		std::cout << "file save binary complete" << endl;
+	}
+	else {
+		LOG("failed : The Invalid data type! - %s\n", type);
 	}
 	return TRUE;
 }
 
-
-bool ophSig::save(const char *real, uint8_t bitpixel)
+bool ophSig::save(const char *real)
 {
 	string realname = real;
+	string fname;
+	int nz = 1;
+	char* RGB_name[3] = {"","",""};
 
+	if (_cfgSig.colorType) {
+		nz = 3;
+		RGB_name[0] = "_B";
+		RGB_name[1] = "_G";
+		RGB_name[2] = "_R";
+	}
 	int checktype = static_cast<int>(realname.rfind("."));
 
 	if (realname.substr(checktype + 1, realname.size()) == "bmp")
 	{
 		oph::uchar* realdata;
-		int _pixelbytesize = 0;
-		int _width = _cfgSig.cols, _height = _cfgSig.rows;
+		realdata = (oph::uchar*)malloc(sizeof(oph::uchar) * _cfgSig.rows * _cfgSig.cols * nz);
+		
+		double gamma = 0.5;
+		double maxIntensity = 0.0;
+		double realVal = 0.0;
+		double imagVal = 0.0;
+		double intensityVal = 0.0;
 
-		if (bitpixel == 8)
+		for (int z = 0; z < nz; z++)
 		{
-			_pixelbytesize = _height * _width;
-		}
-		else
-		{
-			_pixelbytesize = _height * _width * 3;
-		}
-		int _filesize = 0;
-
-
-		FILE *freal = nullptr, *fimag = nullptr;
-		fopen_s(&freal, realname.c_str(), "wb");
-
-		if ((freal == nullptr) || (fimag == nullptr))
-		{
-			LOG("file not found\n");
-			return FALSE;
-		}
-
-		if (bitpixel == 8)
-		{
-			realdata = (oph::uchar*)malloc(sizeof(oph::uchar) * _cfgSig.rows * _cfgSig.cols);
-			_filesize = _pixelbytesize + sizeof(bitmap);
-
-			bitmap *pbitmap = (bitmap*)calloc(1, sizeof(bitmap));
-			memset(pbitmap, 0x00, sizeof(bitmap));
-
-			pbitmap->fileheader.signature[0] = 'B';
-			pbitmap->fileheader.signature[1] = 'M';
-			pbitmap->fileheader.filesize = _filesize;
-			pbitmap->fileheader.fileoffset_to_pixelarray = sizeof(bitmap);
-
-			for (int i = 0; i < 256; i++) {
-				pbitmap->rgbquad[i].rgbBlue = i;
-				pbitmap->rgbquad[i].rgbGreen = i;
-				pbitmap->rgbquad[i].rgbRed = i;
+			for (int j = 0; j < ComplexH[z].size[_Y]; j++) {
+				for (int i = 0; i < ComplexH[z].size[_X]; i++) {
+					realVal = ComplexH[z](i, j)._Val[_RE];
+					imagVal = ComplexH[z](i, j)._Val[_RE];
+					intensityVal = realVal*realVal + imagVal*imagVal;
+					if (intensityVal > maxIntensity) {
+						maxIntensity = intensityVal;
+					}
+				}
 			}
-
-
-			//// denormalization
-			for (int i = _height - 1; i >= 0; i--)
+			for (int i = _cfgSig.rows - 1; i >= 0; i--)
 			{
-				for (int j = 0; j < _width; j++)
+				for (int j = 0; j <  _cfgSig.cols; j++)
 				{
-					if (ComplexH[0].mat[_height - i - 1][j]._Val[_RE] < 0)
-					{
-						ComplexH[0].mat[_height - i - 1][j]._Val[_RE] = 0;
-					}
+					realVal = ComplexH[z](_cfgSig.rows - i - 1, j)._Val[_RE];
+					imagVal = ComplexH[z](_cfgSig.rows - i - 1, j)._Val[_IM];
+					intensityVal = realVal*realVal + imagVal*imagVal;
+					realdata[(i*_cfgSig.cols + j)* nz + z] = (uchar)(pow(intensityVal / maxIntensity, gamma)*255.0);
 				}
 			}
-
-			double minVal, maxVal;
-			for (int j = 0; j < ComplexH[0].size[_Y]; j++) {
-				for (int i = 0; i < ComplexH[0].size[_X]; i++) {
-					if ((i == 0) && (j == 0))
-					{
-						minVal = ComplexH[0](i, j)._Val[_RE];
-						maxVal = ComplexH[0](i, j)._Val[_RE];
-					}
-					else {
-						if (ComplexH[0](i, j)._Val[_RE] < minVal)
-						{
-							minVal = ComplexH[0](i, j).real();
-						}
-						if (ComplexH[0](i, j)._Val[_RE] > maxVal)
-						{
-							maxVal = ComplexH[0](i, j).real();
-						}
-					}
-				}
-			}
-			for (int i = _height - 1; i >= 0; i--)
-			{
-				for (int j = 0; j < _width; j++)
-				{
-					realdata[i*_width + j] = (uchar)((ComplexH[0](_height - i - 1, j)._Val[_RE] - minVal) / (maxVal - minVal) * 255 + 0.5);
-				}
-			}
-
-			pbitmap->bitmapinfoheader.dibheadersize = sizeof(bitmapinfoheader);
-			pbitmap->bitmapinfoheader.width = _width;
-			pbitmap->bitmapinfoheader.height = _height;
-			pbitmap->bitmapinfoheader.planes = OPH_PLANES;
-			pbitmap->bitmapinfoheader.bitsperpixel = bitpixel;
-			pbitmap->bitmapinfoheader.compression = OPH_COMPRESSION;
-			pbitmap->bitmapinfoheader.imagesize = _pixelbytesize;
-			pbitmap->bitmapinfoheader.ypixelpermeter = 0;
-			pbitmap->bitmapinfoheader.xpixelpermeter = 0;
-			pbitmap->bitmapinfoheader.numcolorspallette = 256;
-
-			fwrite(pbitmap, 1, sizeof(bitmap), freal);
-			fwrite(realdata, 1, _pixelbytesize, freal);
-
-			fclose(freal);
-			free(pbitmap);
+			//sprintf(str, "_%.2u", z);
+			//realname.insert(checktype, RGB_name[z]);
 		}
-		else
-		{
-			realdata = (oph::uchar*)malloc(sizeof(oph::uchar) * _cfgSig.rows * _cfgSig.cols * bitpixel / 3);
-			_filesize = _pixelbytesize + sizeof(fileheader) + sizeof(bitmapinfoheader);
+		saveAsImg(realname.c_str(), nz * 8, realdata, _cfgSig.cols, _cfgSig.rows);
 
-			fileheader *hf = (fileheader*)calloc(1, sizeof(fileheader));
-			bitmapinfoheader *hInfo = (bitmapinfoheader*)calloc(1, sizeof(bitmapinfoheader));
-
-			hf->signature[0] = 'B';
-			hf->signature[1] = 'M';
-			hf->filesize = _filesize;
-			hf->fileoffset_to_pixelarray = sizeof(fileheader) + sizeof(bitmapinfoheader);
-
-			double minVal, maxVal;
-			for (int z = 0; z < 3; z++)
-			{
-				for (int j = 0; j < ComplexH[0].size[_Y]; j++) {
-					for (int i = 0; i < ComplexH[0].size[_X]; i++) {
-						if ((i == 0) && (j == 0))
-						{
-							minVal = ComplexH[z](i, j)._Val[_RE];
-							maxVal = ComplexH[z](i, j)._Val[_RE];
-						}
-						else {
-							if (ComplexH[z](i, j)._Val[_RE] < minVal)
-							{
-								minVal = ComplexH[z](i, j)._Val[_RE];
-							}
-							if (ComplexH[z](i, j)._Val[_RE] > maxVal)
-							{
-								maxVal = ComplexH[z](i, j)._Val[_RE];
-							}
-						}
-					}
-				}
-
-				for (int i = _height - 1; i >= 0; i--)
-				{
-					for (int j = 0; j < _width; j++)
-					{
-						realdata[3 * j + 3 * i * _width + z] = (uchar)((ComplexH[z](_height - i - 1, j)._Val[_RE] - minVal) / (maxVal - minVal) * 255);
-
-					}
-				}
-			}
-			hInfo->dibheadersize = sizeof(bitmapinfoheader);
-			hInfo->width = _width;
-			hInfo->height = _height;
-			hInfo->planes = OPH_PLANES;
-			hInfo->bitsperpixel = bitpixel;
-			hInfo->compression = OPH_COMPRESSION;
-			hInfo->imagesize = _pixelbytesize;
-			hInfo->ypixelpermeter = 0;
-			hInfo->xpixelpermeter = 0;
-
-			fwrite(hf, 1, sizeof(fileheader), freal);
-			fwrite(hInfo, 1, sizeof(bitmapinfoheader), freal);
-			fwrite(realdata, 1, _pixelbytesize, freal);
-
-			fclose(freal);
-			free(hf);
-			free(hInfo);
-		}
-
-		free(realdata);
+		delete[] realdata;
 		std::cout << "file save bmp complete" << endl;
 		return TRUE;
 	}
 	else if (realname.substr(checktype + 1, realname.size()) == "bin")
 	{
+		double *realdata = new  double[_cfgSig.rows * _cfgSig.cols];
 
-		if (bitpixel == 8)
+		for (int z = 0; z < nz; z++)
 		{
-			std::ofstream cos(realname, std::ios::binary);
+			realname = real;
+			realname.insert(checktype, RGB_name[z]);
+			std::ofstream cos(realname.c_str(), std::ios::binary);
 
 			if (!cos.is_open()) {
-				printf("real file not found.\n");
+				LOG("real file not found.\n");
 				cos.close();
+				delete[] realdata;
 				return FALSE;
 			}
 
-			double *realdata = new  double[ComplexH[0].size[_X] * ComplexH[0].size[_Y]];
-
-			for (int col = 0; col < ComplexH[0].size[_Y]; col++)
+			for (int col = 0; col < _cfgSig.cols; col++)
 			{
-				for (int row = 0; row < ComplexH[0].size[_X]; row++)
+				for (int row = 0; row < _cfgSig.rows; row++)
 				{
-					realdata[_cfgSig.rows*col + row] = ComplexH[0].mat[row][col]._Val[_RE];
+					realdata[_cfgSig.rows*col + row] = ComplexH[z].mat[row][col]._Val[_RE];
 				}
 			}
-
-			cos.write(reinterpret_cast<const char*>(realdata), sizeof(double) * ComplexH[0].size[_X] * ComplexH[0].size[_Y]);
+			cos.write(reinterpret_cast<const char*>(realdata), sizeof(double) * _cfgSig.rows * _cfgSig.cols);
 
 			cos.close();
-			delete[]realdata;
 		}
-		else if (bitpixel == 24)
-		{
-			std::string RGB_name[] = { "_B.", "_G.", "_R." };
-
-			double *realdata = new  double[_cfgSig.rows * _cfgSig.cols];
-
-			for (int z = 0; z < 3; z++)
-			{
-				std::ofstream cos(strtok((char*)realname.c_str(), ".") + RGB_name[z] + "bin", std::ios::binary);
-
-				if (!cos.is_open()) {
-					LOG("real file not found.\n");
-					cos.close();
-					delete[] realdata;
-					return FALSE;
-				}
-
-				for (int col = 0; col < ComplexH[0].size[_Y]; col++)
-				{
-					for (int row = 0; row < ComplexH[0].size[_X]; row++)
-					{
-						realdata[_cfgSig.rows*col + row] = ComplexH[z].mat[row][col]._Val[_RE];
-					}
-				}
-				cos.write(reinterpret_cast<const char*>(realdata), sizeof(double) * _cfgSig.rows * _cfgSig.cols);
-
-				cos.close();
-			}
-			delete[]realdata;
-		}
+		delete[]realdata;
 		std::cout << "file save binary complete" << endl;
 	}
+	
 	return TRUE;
 }
 
-
-
 bool ophSig::sigConvertOffaxis() {
-	matrix<Real> x, y, H1;
+	OphRealField x, y, H1;
 	vector<Real> X, Y;
-	matrix<Complex<Real>> expSource, exp, offh;
+	OphComplexField expSource, exp, offh;
 	x.resize(_cfgSig.rows, _cfgSig.cols);
 	y.resize(_cfgSig.rows, _cfgSig.cols);
 	expSource.resize(_cfgSig.rows, _cfgSig.cols);
@@ -1249,7 +772,7 @@ bool ophSig::sigConvertOffaxis() {
 }
 
 bool ophSig::sigConvertHPO() {
-	matrix<Real> x, y; matrix<Complex<Real>> expSource, exp, F1, G1, OUT_H, HPO;
+	OphRealField x, y; OphComplexField expSource, exp, F1, G1, OUT_H, HPO;
 	vector<Real> X, Y;
 	x.resize(_cfgSig.rows, _cfgSig.cols);
 	y.resize(_cfgSig.rows, _cfgSig.cols);
@@ -1303,13 +826,12 @@ bool ophSig::sigConvertHPO() {
 }
 
 bool ophSig::sigConvertCAC(double red, double green, double blue) {
-	double lambda[3];
-	matrix<Real> x, y;
-	matrix<Complex<Real>> FFZP, exp, FH, conj, FH_CAC;
+	OphRealField x, y;
+	OphComplexField FFZP, exp, FH, conj, FH_CAC;
 	vector<Real> X, Y;
-	lambda[0] = blue;
-	lambda[1] = green;
-	lambda[2] = red;
+	_cfgSig.wavelength[0] = blue;
+	_cfgSig.wavelength[1] = green;
+	_cfgSig.wavelength[2] = red;
 	x.resize(_cfgSig.rows, _cfgSig.cols);
 	y.resize(_cfgSig.rows, _cfgSig.cols);
 	FFZP.resize(_cfgSig.rows, _cfgSig.cols);
@@ -1319,7 +841,7 @@ bool ophSig::sigConvertCAC(double red, double green, double blue) {
 	FH_CAC.resize(_cfgSig.rows, _cfgSig.cols);
 	for (int z = 0; z < 3; z++)
 	{
-		double sigmaf = ((_foc[2] - _foc[z])*lambda[z]) / (4 * M_PI);
+		double sigmaf = ((_foc[2] - _foc[z])*_cfgSig.wavelength[z]) / (4 * M_PI);
 		vector<Real> r = linspace(1, _cfgSig.cols, _cfgSig.cols);
 		vector<Real> c = linspace(1, _cfgSig.rows, _cfgSig.rows);
 		for (int i = 0; i < ophSig::_cfgSig.cols; i++)
@@ -1376,9 +898,6 @@ bool ophSig::readConfig(const char* fname)
 	(xml_node->FirstChildElement("width"))->QueryFloatText(&_cfgSig.width);
 	(xml_node->FirstChildElement("height"))->QueryFloatText(&_cfgSig.height);
 	(xml_node->FirstChildElement("wavelength"))->QueryDoubleText(&_cfgSig.lambda);
-	(xml_node->FirstChildElement("bluewavelength"))->QueryDoubleText(&_cfgSig.wavelength[0]);
-	(xml_node->FirstChildElement("greenwavelength"))->QueryDoubleText(&_cfgSig.wavelength[1]);
-	(xml_node->FirstChildElement("redwavelength"))->QueryDoubleText(&_cfgSig.wavelength[2]);
 	(xml_node->FirstChildElement("colorType"))->QueryIntText(&_cfgSig.colorType);
 	(xml_node->FirstChildElement("NA"))->QueryFloatText(&_cfgSig.NA);
 	(xml_node->FirstChildElement("z"))->QueryFloatText(&_cfgSig.z);
@@ -1390,168 +909,99 @@ bool ophSig::readConfig(const char* fname)
 	(xml_node->FirstChildElement("focal_length_G"))->QueryFloatText(&_foc[1]);
 	(xml_node->FirstChildElement("focal_length_B"))->QueryFloatText(&_foc[0]);
 
-
 	return true;
 }
 
 
 bool ophSig::propagationHolo(float depth) {
-	int index = 0;
-	int Z = 0;
-	double sigma;
-	double sigmaf;
-	oph::matrix<Real> kx, ky;
-	oph::matrix<oph::Complex<Real>> dst3;
-	oph::matrix<oph::Complex<Real>>FH, FHI;
+	int i, j, nx = 0, ny = 0, nz = 1;
+	Real x, y, sigmaf;
 
-	oph::matrix<oph::Complex<Real>> FFZP(ComplexH[0].size[_X], ComplexH[0].size[_Y]);
-	oph::matrix<oph::Complex<Real>> FFZP2(ComplexH[0].size[_X], ComplexH[0].size[_Y]);
+	OphComplexField FH;
+	OphComplexField FFZP;
 
-	FFZP2 * 0;
+	if (_cfgSig.colorType)		nz = 3;	
+	else 	_cfgSig.wavelength[0] = _cfgSig.lambda;	
 
-	sigma = M_PI / (_cfgSig.lambda * depth);
-	sigmaf = (depth * _cfgSig.lambda) / (4 * M_PI);
+	for (int z = 0; z < nz; z++) {
+		nx = ComplexH[z].size[_X];
+		ny = ComplexH[z].size[_Y];
 
-	int row, col;
-	row = ComplexH[0].size[_X];
-	col = ComplexH[0].size[_Y];
+		sigmaf = (depth * _cfgSig.wavelength[z]) / (4 * M_PI);
+		
+		FH.resize(nx, ny);
+		FFZP.resize(nx, ny);
 
-	int size1[] = { ComplexH[0].size[_X] };
-	int size2[] = { ComplexH[0].size[_Y] };
+		fft2(ComplexH[z], FH);
 
-	vector<Real> r(ComplexH[0].size[_X]);
-	vector<Real> c(ComplexH[0].size[_Y]);
-
-	r = this->linspace(1, row, row);
-	c = this->linspace(1, col, col);
-
-	for (int i = 0; i < r.size(); i++)
-	{
-		r.at(i) = (2 * M_PI * (r.at(i) - 1) / _cfgSig.height - M_PI*(row - 1) / _cfgSig.height);
-	}
-
-	for (int i = 0; i < c.size(); i++)
-	{
-		c.at(i) = ((2 * M_PI * (c.at(i) - 1)) / _cfgSig.width - M_PI*(col - 1) / (_cfgSig.width));
-	}
-
-
-	this->meshgrid(c, r, kx, ky);
-
-	dst3.resize(kx.size[_X], kx.size[_Y]);
-
-	for (int i = 0; i < dst3.size[_X]; i++)
-	{
-		for (int j = 0; j < dst3.size[_Y]; j++)
+		for (i = 0; i < nx; i++)
 		{
-			dst3(i, j)._Val[_RE] = 0;
-			dst3(i, j)._Val[_IM] = sigmaf * ((kx(i, j) * kx(i, j) + ky(i, j) * ky(i, j)));
-		}
+			int ii = (i + ny / 2) % ny;
+			for (j = 0; j < ny; j++)
+			{
+				x = (2 * M_PI * (i)) / _cfgSig.width - M_PI*(nx - 1) / (_cfgSig.width);
+				y = (2 * M_PI * (j)) / _cfgSig.height - M_PI*(ny - 1) / (_cfgSig.height);
+				int jj = (j + nx / 2) % nx;
+				double temp = sigmaf * ((x * x + y * y));
+				FFZP(ii, jj)._Val[_RE] = cos(temp) * FH(ii, jj)._Val[_RE] - sin(temp) * FH(ii, jj)._Val[_IM];
+				FFZP(ii, jj)._Val[_IM] = sin(temp) * FH(ii, jj)._Val[_RE] + cos(temp) * FH(ii, jj)._Val[_IM];
+			}
+		}	
+
+		this->fft2(FFZP, ComplexH[z], OPH_BACKWARD);
 	}
-
-	expMat(dst3, FFZP);
-
-	fftShift(FFZP, FFZP2);
-
-	FH.resize(ComplexH[0].size[_X], ComplexH[0].size[_Y]);
-
-	fft2(ComplexH[0], FH, OPH_FORWARD);
-
-	FHI.resize(ComplexH[0].size[_X], ComplexH[0].size[_Y]);
-
-	FHI = FH.mulElem(FFZP2);
-
-	fft2(FHI, ComplexH[0], OPH_BACKWARD);
-
 	return true;
 }
 
-matrix<Complex<Real>> ophSig::propagationHolo(matrix<Complex<Real>> complexH, float depth) {
-	int index = 0;
-	int Z = 0;
-	double sigma;
-	double sigmaf;
-	oph::matrix<Real> kx, ky;
-	oph::matrix<oph::Complex<Real>> dst3;
-	oph::matrix<oph::Complex<Real>>FH, FHI;
+OphComplexField ophSig::propagationHolo(OphComplexField complexH, float depth) {
+	int i, j, nx = 0, ny = 0;
+	Real x, y, sigmaf;
 
-	oph::matrix<oph::Complex<Real>> FFZP(complexH.size[_X], complexH.size[_Y]);
-	oph::matrix<oph::Complex<Real>> FFZP2(complexH.size[_X], complexH.size[_Y]);
+	OphComplexField FH;
+	OphComplexField FFZP;
+	
+	nx = complexH.size[_X];
+	ny = complexH.size[_Y];
 
-	FFZP2 * 0;
-
-	sigma = M_PI / (_cfgSig.lambda * depth);
 	sigmaf = (depth * _cfgSig.lambda) / (4 * M_PI);
 
-	int row, col;
-	row = complexH.size[_X];
-	col = complexH.size[_Y];
-
-	int size1[] = { complexH.size[_X] };
-	int size2[] = { complexH.size[_Y] };
-
-	vector<Real> r(complexH.size[_X]);
-	vector<Real> c(complexH.size[_Y]);
-
-	r = this->linspace(1, row, row);
-	c = this->linspace(1, col, col);
-
-	for (int i = 0; i < r.size(); i++)
-	{
-		r.at(i) = (2 * M_PI * (r.at(i) - 1) / _cfgSig.height - M_PI*(row - 1) / _cfgSig.height);
-	}
-
-	for (int i = 0; i < c.size(); i++)
-	{
-		c.at(i) = ((2 * M_PI * (c.at(i) - 1)) / _cfgSig.width - M_PI*(col - 1) / (_cfgSig.width));
-	}
-
-
-	this->meshgrid(c, r, kx, ky);
-
-	dst3.resize(kx.size[_X], kx.size[_Y]);
-
-	for (int i = 0; i < dst3.size[_X]; i++)
-	{
-		for (int j = 0; j < dst3.size[_Y]; j++)
-		{
-			dst3(i, j)._Val[_RE] = 0;
-			dst3(i, j)._Val[_IM] = sigmaf * ((kx(i, j) * kx(i, j) + ky(i, j) * ky(i, j)));
-		}
-	}
-
-	expMat(dst3, FFZP);
-
-	fftShift(FFZP, FFZP2);
-
-	FH.resize(complexH.size[_X], complexH.size[_Y]);
-
+	FH.resize(nx, ny);
+	FFZP.resize(nx, ny);
 	fft2(complexH, FH);
 
-	FHI.resize(complexH.size[_X], complexH.size[_Y]);
-
-	FHI = FH.mulElem(FFZP2);
-
-	this->fft2(FHI, complexH, OPH_BACKWARD);
-
+	for (i = 0; i < nx; i++)
+	{
+		int ii = (i + ny / 2) % ny;
+		for (j = 0; j < ny; j++)
+		{
+			x = (2 * M_PI * (i)) / _cfgSig.width - M_PI*(nx - 1) / (_cfgSig.width);
+			y = (2 * M_PI * (j)) / _cfgSig.height - M_PI*(ny - 1) / (_cfgSig.height);
+			int jj = (j + nx / 2) % nx;
+			double temp = sigmaf * ((x * x + y * y));
+			FFZP(ii, jj)._Val[_RE] = cos(temp) * FH(ii, jj)._Val[_RE] - sin(temp) * FH(ii, jj)._Val[_IM];
+			FFZP(ii, jj)._Val[_IM] = sin(temp) * FH(ii, jj)._Val[_RE] + cos(temp) * FH(ii, jj)._Val[_IM];
+		}
+	}
+	fft2(FFZP, complexH, OPH_BACKWARD);
+	
 	return complexH;
 }
 
 double ophSig::sigGetParamAT() {
 
 	Real max = 0;	double index = 0;
-	matrix<Complex<Real>> Flr(ComplexH[0].size[_X], ComplexH[0].size[_Y]);
-	matrix<Complex<Real>> Fli(ComplexH[0].size[_X], ComplexH[0].size[_Y]);
-	matrix<Complex<Real>> Hsyn(ComplexH[0].size[_X], ComplexH[0].size[_Y]);
-	matrix<Complex<Real>> Hsyn_copy1(ComplexH[0].size[_X], ComplexH[0].size[_Y]);
-	matrix<Complex<Real>> Hsyn_copy2(ComplexH[0].size[_X], ComplexH[0].size[_Y]);
-	matrix<Real> Hsyn_copy3(ComplexH[0].size[_X], ComplexH[0].size[_Y]);
+	OphComplexField Flr(ComplexH[0].size[_X], ComplexH[0].size[_Y]);
+	OphComplexField Fli(ComplexH[0].size[_X], ComplexH[0].size[_Y]);
+	OphComplexField Hsyn(ComplexH[0].size[_X], ComplexH[0].size[_Y]);
+	OphComplexField Hsyn_copy1(ComplexH[0].size[_X], ComplexH[0].size[_Y]);
+	OphComplexField Hsyn_copy2(ComplexH[0].size[_X], ComplexH[0].size[_Y]);
+	OphRealField Hsyn_copy3(ComplexH[0].size[_X], ComplexH[0].size[_Y]);
 
-	matrix<Complex<Real>> Fo(ComplexH[0].size[_X], ComplexH[0].size[_Y]);
-	matrix<Complex<Real>> Fo1(ComplexH[0].size[_X], ComplexH[0].size[_Y]);
-	matrix<Complex<Real>> Fon, yn, Ab_yn;
+	OphComplexField Fo(ComplexH[0].size[_X], ComplexH[0].size[_Y]);
+	OphComplexField Fo1(ComplexH[0].size[_X], ComplexH[0].size[_Y]);
+	OphComplexField Fon, yn, Ab_yn;
 
-	matrix<Real> Ab_yn_half, kx, ky, temp, G;
+	OphRealField Ab_yn_half, kx, ky, temp, G; 
 	vector<Real> r, c;
 	vector<Real> t, tn;
 
@@ -1684,59 +1134,48 @@ double ophSig::sigGetParamAT() {
 
 
 double ophSig::sigGetParamSF(float zMax, float zMin, int sampN, float th) {
+	
+	int nx, ny;
 
-	matrix<Complex<Real>> I(ComplexH[0].size[_X], ComplexH[0].size[_Y]);
-	vector<Real> F, z;
-	F = linspace(1, sampN, sampN + 1);
-	z = linspace(1, sampN, sampN + 1);
-	float dz = (zMax - zMin) / sampN;
+	nx = ComplexH[0].size[_X];
+	ny = ComplexH[0].size[_Y];
+
+	OphComplexField I(nx, ny);
+	vector<Real> F;
+	Real dz = (zMax - zMin) / sampN;
+	Real f;
+	Real_t z = 0;
+	Real depth = 0;
 	Real max = MIN_DOUBLE;
-	int index = 0;
+	int i, j, n = 0;
+	Real ret1;
+	Real ret2;
 
-	for (int n = 0; n < sampN + 1; n++)
+	for (n = 0; n < sampN + 1; n++)
 	{
-		matrix<Complex<Real>> F_I(ComplexH[0].size[_X], ComplexH[0].size[_Y]);
+		z = ((n)* dz + zMin);
+		f = 0;
+		I = propagationHolo(ComplexH[0], -z);
 
-		for (int i = 0; i < F_I.size[_X]; i++)
+		for (i = 0; i < nx - 2; i++)
 		{
-			for (int j = 0; j < F_I.size[_Y]; j++)
+			for (j = 0; j < ny - 2; j++)
 			{
-				F_I(i, j) = 0;
-			}
-		}
-
-		F.at(n) = 0;
-		z.at(n) = -((n)* dz + zMin);
-
-		I = propagationHolo(ComplexH[0], static_cast<float>(z.at(n)));
-
-		for (int i = 0; i < I.size[_X] - 2; i++)
-		{
-			for (int j = 0; j < I.size[_Y] - 2; j++)
-			{
-				if (abs(I(i + 2, j)._Val[0] - I(i, j)._Val[0]) >= th)
-				{
-					F_I(i, j)._Val[0] = abs(I(i + 2, j)._Val[0] - I(i, j)._Val[0]) * abs(I(i + 2, j)._Val[0] - I(i, j)._Val[0]);
-				}
-				else if (abs(I(i, j + 2)._Val[0] - I(i, j)._Val[0]) >= th)
-				{
-					F_I(i, j)._Val[0] = abs(I(i, j + 2)._Val[0] - I(i, j)._Val[0]) * abs(I(i, j + 2)._Val[0] - I(i, j)._Val[0]);
-				}
-				F.at(n) += F_I(i, j)._Val[0];
+				ret1 = abs(I(i + 2, j)._Val[0] - I(i, j)._Val[0]);
+				ret2 = abs(I(i, j + 2)._Val[0] - I(i, j)._Val[0]);
+				if (ret1 >= th) { f += ret1 * ret1; }
+				else if (ret2 >= th) { f += ret2 * ret2; }
 			}
 		}
 		cout << (float)n / sampN * 100 << " %" << endl;
-	}
 
-	max = F.at(0);
-	for (int i = 0; i < F.size(); i++) {
-		if (F.at(i) > max) {
-			max = F.at(i);
-			index = i;
+		if (f > max) {
+			max = f;
+			depth = z;
 		}
 	}
 
-	return -z.at(index);
+	return depth;
 }
 
 bool ophSig::getComplexHFromPSDH(const char * fname0, const char * fname90, const char * fname180, const char * fname270)
@@ -1746,7 +1185,7 @@ bool ophSig::getComplexHFromPSDH(const char * fname0, const char * fname90, cons
 	string fname180str = fname180;
 	string fname270str = fname270;
 	int checktype = static_cast<int>(fname0str.rfind("."));
-	matrix<Real> f0Mat[3], f90Mat[3], f180Mat[3], f270Mat[3];
+	OphRealField f0Mat[3], f90Mat[3], f180Mat[3], f270Mat[3];
 
 	std::string f0type = fname0str.substr(checktype + 1, fname0str.size());
 
