@@ -195,24 +195,6 @@ Generation Hologram - Wavefront Recording Plane(WRP) Example
 	Hologram->release();
 @endcode
 
-
-Encoding Example
-
-@code
-	#include "ophPointCloud.h"
-
-	ophPointCloud* Hologram = new ophPointCloud();
-
-	Hologram->loadComplex("source/Encoding/teapot_real_1920,1080.txt", "source/Encoding/teapot_imag_1920,1080.txt", 1920, 1080);
-
-	Hologram->encoding(ophGen::ENCODE_AMPLITUDE);
-	Hologram->normalizeEncoded();
-
-	ivec2 encode_size = Hologram->getEncodeSize();
-	Hologram->save("result/Encoding/Encoding.bmp", 8, nullptr, encode_size[_X], encode_size[_Y]);
-@endcode
-
-
 Wave Aberration Example
 
 @code
@@ -241,9 +223,13 @@ Cascaded Propagation Example
 @code
 	#include "ophCascadedPropagation.h"
 
-	ophCascadedPropagation* pCp = new ophCascadedPropagation(L"config/TestSpecCascadedPropagation.xml");
-	if (pCp->propagate())
-		pCp->saveIntensityAsImg(L"result/CascadedPropagation/intensityRGB.bmp", pCp->getNumColors() * 8);
+	ophCascadedPropagation* pCp =
+		new ophCascadedPropagation(L"config/TestSpecCascadedPropagation.xml");		// ophCascadedPropagation instance generation and parameter setup
+	if (pCp->isReadyToPropagate()													// check if all the input are ready
+		&& pCp->propagateSlmToPupil()												// 1st propagation: from SLM to pupil
+		&& pCp->propagatePupilToRetina())											// 2nd propagation: from pupil to retina
+		pCp->save(L"result/CascadedPropagation/intensityRGB.bmp",					// save numerical reconstruction result in BMP format
+		pCp->getNumColors() * 8);	
 
 	pCp->release();
 @endcode
@@ -254,23 +240,24 @@ Hologram signal processing - Off-axis hologram transform Example
 @code
 	#include "ophSig.h"
 
-	ophSig *holo = new ophSig();
+	ophSig *holo = new ophSig();								//Declaration ophSig class
 
-	if (!holo->readConfig("config/holoParam.xml")) {
+	if (!holo->readConfig("config/holoParam.xml")) {			//Read parameter
 		// no file
 		return false;
 	}
 
-	if (!holo->load("source/OffAxis/3_point_re.bmp", "source/OffAxis/3_point_im.bmp", 8)) {
+	if (!holo->load("source/OffAxis/3_point_re.bmp",			//Load hologram data
+		"source/OffAxis/3_point_im.bmp", 8)) {
 		// no file
 		return false;
 	}
 
-	holo->sigConvertOffaxis();
+	holo->sigConvertOffaxis();									//Run Convert Offaxis function
 
-	holo->save("result/OffAxis/Off_axis.bmp", 8);
+	holo->save("result/OffAxis/Off_axis.bmp", 8);				//Save hologram data for bmp file
 
-	holo->release();
+	holo->release();											//Release memory
 @endcode
 
 
@@ -279,23 +266,27 @@ Hologram signal processing - CAC transform Example
 @code
 	#include "ophSig.h"
 
-	ophSig *holo = new ophSig();
+	ophSig *holo = new ophSig();								//Declaration ophSig class
 
-	if (!holo->readConfig("config/holoParam.xml")) {
+
+	if (!holo->readConfig("config/holoParam.xml")) {			//Read parameter
 		// no file
 		return false;
 	}
 
-	if (!holo->load("source/CAC/ColorPoint_re.bmp", "source/CAC/ColorPoint_im.bmp", 24)) {
+
+	if (!holo->load("source/CAC/ColorPoint_re.bmp",				//Load hologram data
+		"source/CAC/ColorPoint_im.bmp", 24)) {
 		// no file
 		return false;
 	}
 
-	holo->sigConvertCAC(0.000000633, 0.000000532, 0.000000473);
+	holo->sigConvertCAC(0.000000633, 0.000000532, 0.000000473);	//Run convert chromatic aberration compensation
 
-	holo->save("result/CAC/CAC_re_C.bin", "result/CAC/CAC_im_C.bin", 24);
+	holo->save("result/CAC/CAC_re_C.bin",						//Save hologram data for bmp file
+		"result/CAC/CAC_im_C.bin", 24);
 
-	holo->release();
+	holo->release();											//Release memory
 @endcode
 
 
@@ -304,23 +295,25 @@ Hologram signal processing - HPO transform Example
 @code
 	#include "ophSig.h"
 
-	ophSig *holo = new ophSig();
+	ophSig *holo = new ophSig();								//Declaration ophSig class
 
-	if (!holo->readConfig("config/holoParam.xml")) {
+	if (!holo->readConfig("config/holoParam.xml")) {			//Read hologram parameter
 		// no file
 		return false;
 	}
 
-	if (!holo->load("source/HPO/3_point_re.bmp", "source/HPO/3_point_im.bmp", 8)) {
+	if (!holo->load("source/HPO/3_point_re.bmp",				//Load hologram data
+		"source/HPO/3_point_im.bmp", 8)) {
 		// no file
 		return false;
 	}
 
-	holo->sigConvertHPO();
+	holo->sigConvertHPO();										//Run convert horizontal parallax only hologram
 
-	holo->save("result/HPO/HPO_re_C.bmp", "result/HPO/HPO_im_C.bmp", 8);
+	holo->save("result/HPO/HPO_re.bmp",							//Save hologram data for bmp file
+		"result/HPO/HPO_im.bmp", 8);
 
-	holo->release();
+	holo->release();											//Release memory
 @endcode
 
 
@@ -329,28 +322,30 @@ Hologram signal processing - get parameter using axis transformation Example
 @code
 	#include "ophSig.h"
 
-	ophSig* holo = new ophSig();
+	ophSig* holo = new ophSig();								//Declaration ophSig class
 
 	float depth = 0;
 
-	if (!holo->readConfig("config/holoParam.xml")) {
+	if (!holo->readConfig("config/holoParam.xml")) {			//Read hologram parameter
 		// no file
 		return false;
 	}
 
-	if (!holo->load("source/AT/0.1point_re.bmp", "source/AT/0.1point_im.bmp", 8)) {
+	if (!holo->load("source/AT/0.1point_re.bmp",				//Load hologram data
+		"source/AT/0.1point_im.bmp", 8)) {
 		// no file
 		return false;
 	}
 
-	depth = holo->sigGetParamAT();
+	depth = holo->sigGetParamAT();								//Get parameter using axis transformation
+
 	std::cout << depth << endl;
-	// backpropagation
-	holo->propagationHolo(-depth);
+	holo->propagationHolo(-depth);								//Backpropagation
 
-	holo->save("result/AT/AT_re.bmp", "result/AT/AT_im.bmp", 8);
+	holo->save("result/AT/AT_re.bmp",							//Save hologram data for bmp file
+		"result/AT/AT_im.bmp", 8);
 
-	holo->release();
+	holo->release();											//Release memory
 @endcode
 
 
@@ -359,27 +354,30 @@ Hologram signal processing - get parameter using SF Example
 @code
 	#include "ophSig.h"
 
-	ophSig* holo = new ophSig();
+	ophSig* holo = new ophSig();								//Declaration ophSig class
 
 	float depth = 0;
 
-	if (!holo->readConfig("config/holoParam.xml")) {
+	if (!holo->readConfig("config/holoParam.xml")) {			//Read hologram parameter
 		// no file
 		return false;
 	}
 
-	if (!holo->load("source/SF/3_point_re.bmp", "source/SF/3_point_im.bmp", 8)) {
+	if (!holo->load("source/SF/3_point_re.bmp",					//Load hologram data
+		"source/SF/3_point_im.bmp", 8)) {
 		// no file
 		return false;
 	}
 
-	depth = holo->sigGetParamSF(10, -10, 100, 0.3);
+	depth = holo->sigGetParamSF(10, -10, 100, 0.3);				//Get parameter using sharpness function
 	std::cout << depth << endl;
-	// backpropagation
-	holo->propagationHolo(depth);
 
-	holo->save("result/SF/SF_re.bmp", "result/SF/SF_im.bmp", 8);
-	holo->release();
+	holo->propagationHolo(depth);								//Backpropagation
+
+	holo->save("result/SF/SF_re.bmp",							//Save hologram data for bmp file
+		"result/SF/SF_im.bmp", 8);
+
+	holo->release();											//Release memory
 @endcode
 
 
@@ -390,17 +388,19 @@ Hologram signal processing - get parameter using Phase Shift Digital Hologram Ex
 
 	ophSig *holo = new ophSig();
 
-	const char *f0 = "source/PhaseShiftedHolograms/0930_005_gray.bmp";
-	const char *f90 = "source/PhaseShiftedHolograms/0930_006_gray.bmp";
-	const char *f180 = "source/PhaseShiftedHolograms/0930_007_gray.bmp";
-	const char *f270 = "source/PhaseShiftedHolograms/0930_008_gray.bmp";
+	const char *f0 = "source/PhaseShiftedHolograms/0930_005_gray.bmp";		// image file name of interference pattern with reference wave phase 0 degree
+	const char *f90 = "source/PhaseShiftedHolograms/0930_006_gray.bmp";		// image file name of interference pattern with reference wave phase 90 degree
+	const char *f180 = "source/PhaseShiftedHolograms/0930_007_gray.bmp";	// image file name of interference pattern with reference wave phase 180 degree
+	const char *f270 = "source/PhaseShiftedHolograms/0930_008_gray.bmp";	// image file name of interference pattern with reference wave phase 270 degree
 
-	holo->getComplexHFromPSDH(f0, f90, f180, f270);
+	holo->getComplexHFromPSDH(f0, f90, f180, f270);							// extract complex field from 4 interference patterns
 
-	holo->save("result/PhaseShift/PSDH_re_C.bmp", "result/PhaseShift/PSDH_im_C.bmp", 8);
+	holo->save("result/PhaseShift/PSDH_re_C.bmp",							// save real and imaginary part of the complex field
+	"result/PhaseShift/PSDH_im_C.bmp", 8);	
 
 	holo->release();
 @endcode
+![Phase shifting digital hologram Example](@ref pics/ophsig/PSDH/psdh_input_output_example.png)
 
 
 Hologram signal processing - get parameter using Phase Unwrapping Example
@@ -410,18 +410,19 @@ Hologram signal processing - get parameter using Phase Unwrapping Example
 
 	ophSigPU *holo = new ophSigPU;
 
-	if (!holo->loadPhaseOriginal("source/PhaseUnwrapping/phase_unwrapping_example.bmp", 8)) {
+	if (!holo->loadPhaseOriginal("source/PhaseUnwrapping/phase_unwrapping_example.bmp", 8)) {  // load wrapped phase image file
 		return false;
 	}
-	int maxBoxRadius = 4;
+	int maxBoxRadius = 4;				// set parameter for Goldstein phase unwrapping 
 	holo->setPUparam(maxBoxRadius);
 
-	holo->runPU();
+	holo->runPU();						// Unwrap phase
 
-	holo->savePhaseUnwrapped("result/PhaseUnwrapping/PU_Test.bmp");
+	holo->savePhaseUnwrapped("result/PhaseUnwrapping/PU_Test.bmp");		// save unwrapped phase to image file
 
 	holo->release();
 @endcode
+![Phase Unwrapping Example](@ref pics/ophsig/pu/pu_input_output_example.png)
 
 
 Hologram signal processing - get parameter using Compressive Holography Example
@@ -431,20 +432,22 @@ Hologram signal processing - get parameter using Compressive Holography Example
 
 	ophSigCH *holo = new ophSigCH;
 
-	if (!holo->readConfig("config/TestSpecCH.xml")) {
+	if (!holo->readConfig("config/TestSpecCH.xml")) {		// read configure file for compressed holography
 		return false;
 	}
 
+	// load complex field data (real part and imaginary part)
 	if (!holo->loadCHtemp("source/CompressiveHolo/sampleComplexH_re.bmp", "source/CompressiveHolo/sampleComplexH_im.bmp", 8)) {
 		return false;
 	}
 
-	holo->runCH(0);
+	holo->runCH(0);		// do compressive holographic reconstruction
 
-	holo->saveNumRec("result/CompressiveHolo/CH_Test.bmp");
+	holo->saveNumRec("result/CompressiveHolo/CH_Test.bmp");		// save numerical reconstructions after compressive holography to image files. Index will be appended for each reconstruction distance.
 
 	holo->release();
 @endcode
+![Compressive Holography Example](@ref pics/ophsig/ch/ch_input_output_example.png)
 
 
 

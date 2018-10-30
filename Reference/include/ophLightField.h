@@ -126,7 +126,7 @@ public:
 	/**
 	* @brief Constructor
 	*/
-	explicit ophLF(void) {}
+	explicit ophLF(void);
 
 protected:
 	/**

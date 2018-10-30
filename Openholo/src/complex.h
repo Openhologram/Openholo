@@ -50,6 +50,13 @@
 #include <cmath>
 #include <complex>
 
+#ifndef _RE
+#define _RE 0
+#endif
+#ifndef _IM
+#define _IM 1
+#endif
+
 //#include "typedef.h"
 
 namespace oph {

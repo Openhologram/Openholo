@@ -107,6 +107,13 @@ protected:
 	virtual ~ophWRP(void);
 
 public:
+	const vec3& getScale() { return pc_config_.scale; }
+	const Real& getLocation() { return pc_config_.wrp_location; }
+	const Real& getDistance() { return pc_config_.propagation_distance; }
+	const int& getNumOfWRP() { return pc_config_.num_wrp; }
+	void setScale(vec3 scale) { pc_config_.scale = scale; }
+	void setLocation(Real location) { pc_config_.wrp_location = location; }
+	void setDistance(Real distance) { pc_config_.propagation_distance; }
 
 	/**
 	* @brief override
