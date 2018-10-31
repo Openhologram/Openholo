@@ -133,6 +133,28 @@ struct OphCascadedPropagationConfig {
 //@{
 * @detail
 
+* @section Introduction
+Cascaded propagation calculates a reconstructed complex wavefield at the retina plane given a source hologram in two steps:
+In the 1st step, the complex wave field is defined at the location of spatial light modulator and propagates to the viewing window taking account of a field lens.
+Then, to simulate the pupil, the wavefield at the viewing window is clipped by the aperture.
+Finally it passes through the eye lens and reaches the retina by the 2nd forward propagation.
+The eye lens can vary its shape to focus the perceived image on the retina.
+
+![](@ref pics/ophdis/cascadedpropagation/cp01.png)
+
+* @section Reference
+
+Joseph W. Goodman, "Introduction to Fourier Optics 3rd Edition"
+
+A. Schwerdtner, R. Haussler, and N. Leister, "Large holographic displays for real-time applications," in Proc. SPIE, 2008, vol. 6912, p. 69120T
+
+Here, the source wavefield is:
+![](@ref pics/ophdis/cascadedpropagation/DMDG_RGB_CP.png)
+\n
+
+And the resulting wavefield at the retina is:
+![](@ref pics/ophdis/cascadedpropagation/intensityRGB.png)
+
 */
 //! @} casprop
 
