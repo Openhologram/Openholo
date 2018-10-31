@@ -62,55 +62,25 @@ using namespace oph;
 
 Light field based CGH generates the complex field from the light field.
 
-![](images/LF_1.png)
+![](@ref pics/ophgen/lightfield/LF_1.png)
 
 Light field images are the projection images of 3D object from different view points.
 
-![(images/LF_2.png)
+![(@ref pics/ophgen/lightfield/LF_2.png)
 
 The algorithm gives random phase distribution to each pixel in each projection image.
 Light-ray information of each pixel is conversed to the wavefront in ray-sampling(RS) plane using fourier transform of phase distributed amplitude.
 
-![](images/LF_3.png)
+![](@ref pics/ophgen/lightfield/LF_3.png)
 
 Hologram complex field is obtained after wave propataion from RS planes to CGH plane.
 
-![](images/LF_4.png)
+![](@ref pics/ophgen/lightfield/LF_4.png)
 
 
 * @section Reference
 
 K. Wakunamii, and M. Yamaguchi, "Calculation for computer generated hologram using ray-sampling plane," Optics Express, vol. 19, no. 10, pp. 9086-9101, 2011.
-
-* @section Example
-
-@code
-#include "ophLightField.h"
-
-int main(void)
-{
-	ophLF* Hologram = new ophLF();
-
-	// Load
-	Hologram->readLFConfig("config/TestSpecLF.xml");     // Read the LF hologram configuration file
-	Hologram->loadLF("source/sample_orthographic_images_5x5","bmp");		// Load the Light field source image files
-		/// Put the directory which has the source files and Put the image file type
-
-	// Generate
-	Hologram->generateHologram();		// Generate the hologram
-
-	// Save as Complex field data
-	Hologram->saveAsOhc("result/LF_complexField.ohc");		// Save the hologram complex field data
-
-	// Encode
-	Hologram->encoding(Hologram->ENCODE_SIMPLENI);		// Encode the hologram
-
-	// Save as Encoded Image
-	Hologram->normalizeEncoded();		// Normalize the encoded hologram to generate image file
-	ivec2 encode_size = Hologram->getEncodeSize();		// Encoded hologram size
-	Hologram->save("result/Light_Field_NI_carrier.bmp", 8, nullptr, encode_size[_X], encode_size[_Y]);		// Save the encoded hologram image
-}
-@endcode
 
 */
 //! @} lightfield
@@ -186,6 +156,8 @@ public:
 	* @return	(*complex_H)
 	*/
 	void generateHologram();
+
+	//virtual int saveAsOhc(const char* fname);
 
 protected:
 	

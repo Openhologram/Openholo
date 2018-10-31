@@ -71,7 +71,7 @@ Generation Hologram - Point Cloud Example
 
 	Hologram->setMode(MODE_GPU);													// Select CPU or GPU Processing
 
-	Hologram->generateHologram(PC_DIFF_RS);											// CGH by R-S Diffract
+	Hologram->generateHologram(PC_DIFF_RS);											// Select R-S diffraction or Fresnel diffraction
 
 	Hologram->encodeHologram();														// Encode Complex Field to Real Field
 	Hologram->normalize();															// Normalize Real Field to unsigned char(0~255) for save to image(*.BMP)
@@ -81,7 +81,7 @@ Generation Hologram - Point Cloud Example
 	Hologram->release();															// Release memory used to Generate Point Cloud
 @endcode
 
-![PointCloud based CGH Example](pics/ophgen/pointcloud/pointcloud_example01.png)	
+![PointCloud based CGH Example](@ref pics/ophgen/pointcloud/pointcloud_example01.png)	
 
 
 Generation Hologram - Depth Map Example.
@@ -108,7 +108,7 @@ Generation Hologram - Depth Map Example.
 	Hologram->release();															// Release memory used to Generate DepthMap
 @endcode
 
-![DepthMap based CGH Example](pics/ophgen/depthmap/depthmap_example01.png)
+![DepthMap based CGH Example](@ref pics/ophgen/depthmap/depthmap_example01.png)
 
 
 Generation Hologram - Triangle Mesh Example
@@ -142,6 +142,8 @@ Generation Hologram - Triangle Mesh Example
 		Hologram->release();														// Release memory used to Generate Triangle Mesh
 @endcode
 
+![Triangle Mesh based CGH Example](@ref pics/ophgen/mesh/result_mesh_01.png)
+
 
 Generation Hologram - Light Field Example
 
@@ -173,6 +175,8 @@ Generation Hologram - Light Field Example
 		Hologram->release();														// Release memory used to Generate Light Field
 @endcode
 
+![LightField based CGH Example](@ref pics/ophgen/lightfield/result_lightfield_01.png)
+
 
 Generation Hologram - Wavefront Recording Plane(WRP) Example
 
@@ -194,6 +198,24 @@ Generation Hologram - Wavefront Recording Plane(WRP) Example
 
 	Hologram->release();
 @endcode
+
+
+Encoding Example
+
+@code
+	#include "ophPointCloud.h"
+
+	ophPointCloud* Hologram = new ophPointCloud();
+
+	Hologram->loadComplex("source/Encoding/teapot_real_1920,1080.txt", "source/Encoding/teapot_imag_1920,1080.txt", 1920, 1080);
+
+	Hologram->encoding(ophGen::ENCODE_AMPLITUDE);
+	Hologram->normalizeEncoded();
+
+	ivec2 encode_size = Hologram->getEncodeSize();
+	Hologram->save("result/Encoding/Encoding.bmp", 8, nullptr, encode_size[_X], encode_size[_Y]);
+@endcode
+
 
 Wave Aberration Example
 
@@ -223,13 +245,9 @@ Cascaded Propagation Example
 @code
 	#include "ophCascadedPropagation.h"
 
-	ophCascadedPropagation* pCp =
-		new ophCascadedPropagation(L"config/TestSpecCascadedPropagation.xml");		// ophCascadedPropagation instance generation and parameter setup
-	if (pCp->isReadyToPropagate()													// check if all the input are ready
-		&& pCp->propagateSlmToPupil()												// 1st propagation: from SLM to pupil
-		&& pCp->propagatePupilToRetina())											// 2nd propagation: from pupil to retina
-		pCp->save(L"result/CascadedPropagation/intensityRGB.bmp",					// save numerical reconstruction result in BMP format
-		pCp->getNumColors() * 8);	
+	ophCascadedPropagation* pCp = new ophCascadedPropagation(L"config/TestSpecCascadedPropagation.xml");
+	if (pCp->propagate())
+		pCp->saveIntensityAsImg(L"result/CascadedPropagation/intensityRGB.bmp", pCp->getNumColors() * 8);
 
 	pCp->release();
 @endcode
@@ -395,12 +413,11 @@ Hologram signal processing - get parameter using Phase Shift Digital Hologram Ex
 
 	holo->getComplexHFromPSDH(f0, f90, f180, f270);							// extract complex field from 4 interference patterns
 
-	holo->save("result/PhaseShift/PSDH_re_C.bmp",							// save real and imaginary part of the complex field
-	"result/PhaseShift/PSDH_im_C.bmp", 8);	
+	holo->save("result/PhaseShift/PSDH_re_C.bmp", "result/PhaseShift/PSDH_im_C.bmp", 8);	// save real and imaginary part of the complex field
 
 	holo->release();
 @endcode
-![Phase shifting digital hologram Example](@ref pics/ophsig/PSDH/psdh_input_output_example.png)
+![Phase shifting digital hologram Example](pics/ophsig/psdh_input_output_example.png)
 
 
 Hologram signal processing - get parameter using Phase Unwrapping Example
@@ -422,7 +439,7 @@ Hologram signal processing - get parameter using Phase Unwrapping Example
 
 	holo->release();
 @endcode
-![Phase Unwrapping Example](@ref pics/ophsig/pu/pu_input_output_example.png)
+![Phase Unwrapping Example](pics/ophsig/pu/pu_input_output_example.png)
 
 
 Hologram signal processing - get parameter using Compressive Holography Example
@@ -447,7 +464,7 @@ Hologram signal processing - get parameter using Compressive Holography Example
 
 	holo->release();
 @endcode
-![Compressive Holography Example](@ref pics/ophsig/ch/ch_input_output_example.png)
+![Compressive Holography Example](pics/ophsig/ch/ch_input_output_example.png)
 
 
 

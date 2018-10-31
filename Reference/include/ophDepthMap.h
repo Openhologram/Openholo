@@ -58,6 +58,9 @@ using namespace oph;
 * @addtogroup depthmap
 //@{
 * @detail
+
+* @section Introduction
+
 This module is related methods which generates CGH based on depth map. It is supported single core
 processing, multi-core processing(with OpenMP) and GPGPU parallel processing(with CUDA).
 
@@ -93,6 +96,8 @@ III. Modified Algorithm
 
 */
 //! @} depthmap
+
+
 
 /**
 * @ingroup depthmap
@@ -130,7 +135,8 @@ public:
 	inline Real getFarDepth(void) { return dm_config_.far_depthmap; }
 	inline uint getNumOfDepth(void) { return dm_config_.num_of_depth; }
 	inline void getRenderDepth(std::vector<int>& renderdepth) { renderdepth = dm_config_.render_depth; }
-	inline const OphDepthMapConfig& getConfig(void) { return dm_config_; }
+
+	inline const OphDepthMapConfig& getConfig() { return dm_config_; }
 	
 private:
 

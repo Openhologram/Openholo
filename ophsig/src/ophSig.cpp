@@ -394,9 +394,8 @@ int ophSig::saveAsOhc(const char *fname)
 		OHC_encoder->setFileName(fullname.c_str());
 
 		OHC_encoder->setNumOfPixel(_cfgSig.rows, _cfgSig.cols);
-		OHC_encoder->setNumOfWavlen(1);
 		OHC_encoder->setFieldEncoding(FldStore::Directly, FldCodeType::RI);
-		OHC_encoder->setWavelength(_cfgSig.lambda[0], LenUnit::nm);
+		OHC_encoder->setWavelength(_cfgSig.lambda[0], LenUnit::m);
 		*&complex_H = new Complex<Real>*[1];
 		Field2Buffer(ComplexH[0], complex_H);
 		OHC_encoder->addComplexFieldData(complex_H[0]);
@@ -413,10 +412,10 @@ int ophSig::saveAsOhc(const char *fname)
 		OHC_encoder->setNumOfPixel(_cfgSig.rows, _cfgSig.cols);
 		OHC_encoder->setNumOfWavlen(3);
 		OHC_encoder->setFieldEncoding(FldStore::Directly, FldCodeType::RI);
-		OHC_encoder->setWavelength(_cfgSig.lambda[0], LenUnit::nm);
 		*&complex_H = new Complex<Real>*[3];
 		for (int i = 0; i < 3; i++)
 		{
+			OHC_encoder->setWavelength(_cfgSig.lambda[i], LenUnit::m);
 			Field2Buffer(ComplexH[2-i], &complex_H[i]);
 			OHC_encoder->addComplexFieldData(complex_H[i]);
 		}
@@ -984,10 +983,10 @@ bool ophSig::save(const char *real, uint8_t bitpixel)
 		int _filesize = 0;
 
 
-		FILE *freal = nullptr, *fimag = nullptr;
+		FILE *freal = nullptr;
 		fopen_s(&freal, realname.c_str(), "wb");
 
-		if ((freal == nullptr) || (fimag == nullptr))
+		if ((freal == nullptr))
 		{
 			LOG("file not found\n");
 			return FALSE;
@@ -1389,7 +1388,7 @@ bool ophSig::readConfig(const char* fname)
 	(xml_node->FirstChildElement("height"))->QueryFloatText(&_cfgSig.height);
 	(xml_node->FirstChildElement("bluewavelength"))->QueryDoubleText(&_cfgSig.lambda[0]);
 	(xml_node->FirstChildElement("greenwavelength"))->QueryDoubleText(&_cfgSig.lambda[1]);
-	(xml_node->FirstChildElement("bluewavelength"))->QueryDoubleText(&_cfgSig.lambda[2]);
+	(xml_node->FirstChildElement("redwavelength"))->QueryDoubleText(&_cfgSig.lambda[2]);
 	(xml_node->FirstChildElement("NA"))->QueryFloatText(&_cfgSig.NA);
 	(xml_node->FirstChildElement("z"))->QueryFloatText(&_cfgSig.z);
 	(xml_node->FirstChildElement("angle_X"))->QueryFloatText(&_angleX);

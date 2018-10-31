@@ -1066,6 +1066,8 @@ bool oph::ImgEncoderOhc::save() {
 	//fopen_s(&fp, this->fname.c_str(), "w");
 	//if (fp == nullptr) return false;
 
+	LOG("Saving...%s...", fname.c_str());
+	auto start = CUR_TIME;
 	//if (fp) {
 	if (this->File.is_open()) {
 		if (this->Header == nullptr) {
@@ -1222,6 +1224,12 @@ bool oph::ImgEncoderOhc::save() {
 
 		//fclose(fp);
 		this->File.close();
+
+		auto end = CUR_TIME;
+
+		auto during = ((std::chrono::duration<Real>)(end - start)).count();
+
+		LOG("%.5lfsec...done\n", during);
 		return true;
 	}
 	else {
