@@ -23,6 +23,7 @@ www.lx.it.pt/~bioucas/TwIST
 
 
 ![Compressed holography finds 3D object from complex field data by maximizing sparisity in 3D object space.](@ref pics/ophsig/CH/CH_concept.png)\n
+\n
 
 ![Comparison with usual numerical reconstruction.](@ref pics/ophsig/CH/CH_result.png)
 
