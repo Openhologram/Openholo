@@ -148,28 +148,9 @@ Joseph W. Goodman, "Introduction to Fourier Optics 3rd Edition"
 
 A. Schwerdtner, R. Haussler, and N. Leister, "Large holographic displays for real-time applications," in Proc. SPIE, 2008, vol. 6912, p. 69120T
 
-* @section Example
-
-@code
-	#include "ophCascadedPropagation.h"
-
-	int main()
-	{
-		ophCascadedPropagation* pCp = new ophCascadedPropagation(L"config/TestSpecCascadedPropagation.xml");	// ophCascadedPropagation instance generation and parameter setup
-
-		if (pCp->isReadyToPropagate()																			// check if all the input are ready
-			&& pCp->propagateSlmToPupil()																		// 1st propagation: from SLM to pupil
-			&& pCp->propagatePupilToRetina())																	// 2nd propagation: from pupil to retina
-			pCp->save(L"result/CascadedPropagation/intensityRGB.bmp", pCp->getNumColors() * 8);					// save numerical reconstruction result in BMP format
-
-		pCp->release();
-
-		return 0;
-	}
-@endcode
-
 Here, the source wavefield is:
 ![](@ref pics/ophdis/cascadedpropagation/DMDG_RGB_CP.png)
+\n
 
 And the resulting wavefield at the retina is:
 ![](@ref pics/ophdis/cascadedpropagation/intensityRGB.png)
