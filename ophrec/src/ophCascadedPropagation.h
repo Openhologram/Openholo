@@ -46,7 +46,7 @@
 #ifndef _OphCascadedPropagation_h
 #define _OphCascadedPropagation_h
 
-#include "ophDis.h"
+#include "ophRec.h"
 
 enum SourceType {IMG, OHC};
 
@@ -121,13 +121,6 @@ struct OphCascadedPropagationConfig {
 	Real nor;
 };
 
-
-#ifdef DISP_EXPORT
-#define DISP_DLL __declspec(dllexport)
-#else
-#define DISP_DLL __declspec(dllimport)
-#endif
-
 /**
 * @addtogroup casprop
 //@{
@@ -163,7 +156,7 @@ And the resulting wavefield at the retina is:
 * @brief Cascaded propagation module
 * @author Seunghyup Shin
 */
-class DISP_DLL ophCascadedPropagation : public ophDis {
+class RECON_DLL ophCascadedPropagation : public ophRec {
 	private:
 		/**
 		* @brief Constructor (later use)

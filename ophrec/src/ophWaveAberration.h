@@ -49,7 +49,7 @@
 #ifndef __OphWaveAberration_h
 #define __OphWaveAberration_h
 
-#include "ophDis.h"
+#include "ophRec.h"
 #include <iostream>
 #include <fstream>
 #include <complex>
@@ -61,14 +61,6 @@
 #include "sys.h"
 
 using namespace std;
-
-
-#ifdef DISP_EXPORT
-#define DISP_DLL __declspec(dllexport)
-#else
-#define DISP_DLL __declspec(dllimport)
-#endif
-
 
 
 /**
@@ -99,7 +91,7 @@ Minsik Park, Hyun-Eui Kim, Hyon-Gon Choo, Jinwoong Kim, and Cheong Hee Park,"Dis
 * @brief Wave Aberration module
 * @author Minsik Park
 */
-class DISP_DLL ophWaveAberration : public ophDis
+class RECON_DLL ophWaveAberration : public ophRec
 {
 private :
 	/**

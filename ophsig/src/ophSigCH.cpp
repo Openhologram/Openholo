@@ -578,7 +578,7 @@ bool ophSigCH::readConfig(const char* fname)
 	(xml_node->FirstChildElement("cols"))->QueryIntText(&_cfgSig.cols);
 	(xml_node->FirstChildElement("width"))->QueryFloatText(&_cfgSig.width);
 	(xml_node->FirstChildElement("height"))->QueryFloatText(&_cfgSig.height);
-	(xml_node->FirstChildElement("wavelength"))->QueryDoubleText(&_cfgSig.lambda[0]);
+	(xml_node->FirstChildElement("wavelength"))->QueryDoubleText(&_cfgSig.wavelength[0]);
 	(xml_node->FirstChildElement("nz"))->QueryIntText(&Nz);
 	(xml_node->FirstChildElement("maxiter"))->QueryIntText(&MaxIter);
 	(xml_node->FirstChildElement("tau"))->QueryDoubleText(&Tau);
@@ -836,7 +836,7 @@ matrix<Complex<Real>> ophSigCH::propagationHoloAS(matrix<Complex<Real>> complexH
 	{
 		for (int j = 0; j < nc2; j++)
 		{
-			fz = sqrt(pow(1.0 / _cfgSig.lambda[0], 2) - pow((i - nr2 / 2.0 + 1.0)*dfr, 2) - pow((j - nc2 / 2.0 + 1.0)*dfc, 2));
+			fz = sqrt(pow(1.0 / _cfgSig.wavelength[0], 2) - pow((i - nr2 / 2.0 + 1.0)*dfr, 2) - pow((j - nc2 / 2.0 + 1.0)*dfc, 2));
 			propKernel(i, j)._Val[_RE] = cos(2 * M_PI*depth*fz);
 			propKernel(i, j)._Val[_IM] = sin(2 * M_PI*depth*fz);
 		}
