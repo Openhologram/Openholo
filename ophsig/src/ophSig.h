@@ -77,7 +77,7 @@ struct SIG_DLL ophSigConfig {
 * @detail
 This module is related method which works holographic core processing.
 
-I. Holographic core processing
+	* @section I. Holographic core processing
 
 	1. Hologram convert method
 		-   Convert to off-axis hologram
@@ -255,7 +255,7 @@ public:
 	* @detail
 	This module is related method which convert to off-axis hologram. 
 
-1. Introduction
+	* @section Introduction
 		- Complex hologram records the amplitude and the complete phase of the diffracted optical field, reconstr
 		uction of the complex hologram can give the 3D image of an object without the twin-image and background 
 		noise [1]. However, a conventional SLM cannot represent a complex hologram because the SLM can represent 
@@ -269,7 +269,7 @@ public:
 		tion due to twin image noise, background noise, and amplitude flattening [4].
 ![Figure 2. Concept of convet to off-axis hologram.](pics/ophsig/offaxis.png)
 
-2. Algorithm
+	* @section Algorithm
 		-  In the off-axis hologram, the optical axis of the reference wave is tilted to that of the object wave. 
 		The angle between the optical axes of the reference and object waves introduces a spatial carrier within 
 		the hologram. The spatial carrier allows the separation of the desired 3D image of the object from the 
@@ -298,7 +298,7 @@ public:
 		-  where dc is a DC bias added to make the off-axis hologram become a positive value.
 ![Figure 2. Flowchart](@ref pics/ophsig/offaxis_flowchart.png)
 
-3. Reference
+	* @section Reference
 		- [1] T.-C. Poon, T. Kim, G. Indebetouw, B. W. Schilling, M. H. Wu, K. Shinoda, and Y. Suzuki, “Twin-image elimination experiments for three-dimensional images in optical scanning holography,” Opt. Lett. 25, 215–217 (2000).
 		- [2] E. N. Leith and J. Upatnieks, “Reconstructed wavefronts and communication theory,” J. Opt. Soc. Am. 52, 1123–1130 (1962). 16. 
 		- [3] E. N. Leith and J. Upatnieks, “Wavefront reconstruction with continuous-tone objects,” J. Opt. Soc. Am. 53, 1377–1381 (1963).
@@ -321,7 +321,7 @@ public:
 	* @detail
 	This module is related method which convert to horizontal parallax only hologram.
 
-1. Introduction
+	* @section Introduction
 	- The hologram contains all the information of a 3D object and require a large amount of transmission for use 
 	in a holographic display. However, because the capacity of the information transmission channel is limited, a 
 	great amount of research has been spent on holographic information reduction so as to facilitate, for example, 
@@ -335,7 +335,7 @@ public:
 	recorded full-parallax (FP) hologram to an HPO hologram was subsequently proposed [4]. The converted HPO hologram
 	was optically reconstruct using a conventional amplitude-only spatial light modulator (SLM) [5].	
 	
-2. Algorithm
+	* @section Algorithm
 	- This method that converts a full-parallax hologram to an HPO hologram by using Gaussian low-pass filtering 
 	and fringe-matched filtering. Although a full-parallax hologram of a 3D object can be considered as a collec
 	tion of 2D Fresnel zone plates (FZPs), an HPO hologram is a collection of 1D FZPs [3]. Figures 1(a) and 1(b) show 
@@ -409,7 +409,7 @@ public:
 		+\frac{\lambda}{NA_{lp}^2z^2}y^2\right\}}dz \qquad (6)
 	\f]
 ![Figure 2. Flowchart](@ref pics/ophsig/hpo_flowchart.png)
-3. Reference
+	* @section Reference
 		- [1] P. St. Hilaire, S. A. Benton, and M. Lucente, “Synthetic aperture holography: a novel approach to three-dimensional displays,” J. Opt. Soc. Am. A 9, 11, 1969-1977 (1992).
 		- [2] H. Yoshikawa and H. Taniguchi, “Computer Generated Rainbow Hologram,” Opt. Rev. 6, 118 (1999).
 		- [3] T.-C. Poon, T. Akin, G. Indebetouw, and T. Kim, “Horizontal parallax-only electronic holography,” Opt. Express 13, 2427–2432 (2005).
@@ -433,7 +433,7 @@ public:
 	* @detail
 	This module is related method which compensate of full color hologram with chromatic aberration.
 
-1. Introduction
+	* @section Introduction
 	- Recording holographic information of a real object as a form of electric signal has a long history [1,2]. 
 	Optical scanning holography (OSH) proposed to record a hologram of a real object using heterodyne scanning [3,4]. 
 	Twin-image noise in OSH was eliminated by recording a complex hologram using in-phase and quadrature(Q)-phase 
@@ -447,7 +447,7 @@ public:
 	investigate the chromatic aberration issue of full-color OSH and propose a digital filtering technique that compensates 
 	the chromatic aberration.
 
-2. Algorithm
+	* @section Algorithm
 	- The complex RGB holograms that are encoded pattern between RGB FZPs and object’s RGB reflectances are given by [7]: 
 	\f[
 		H_n (x,y)=\int I_n (x,y,z)\otimes \frac{j}{\lambda_n z_n}\exp{\left(-\frac{\pi}{NA_n^2 z_n^2}+j\frac{\pi}{\lambda_n z_n} \right)(x^2+y^2 )}dz, \quad n={R,G,B} \qquad (1)
@@ -482,7 +482,7 @@ public:
 	determined by \f$\lambda_n z_n\f$ match the focal lengths of GB FZPs to the focal length of the R FZP.
 ![Figure 2. Flowchart.](@ref pics/ophsig/cac_flowchart.png)
 
-3. Reference
+	* @section Reference
 	- [1] C. Burckhardt and L. Enloe, "Television transmission of holograms with reduced resolution requirements on the camera tube," Bell Syst. Tech.Jour 45, 1529–1535 (1969).
 	- [2] J. Berrang, "Television transmission of holograms using a narrow-bandvideo signal," Bell Syst. Tech. J 879–887 (1970).
 	- [3] T. C. Poon and a Korpel, "Optical transfer function of an acousto-opticheterodyning image processor," Opt. Lett. 4, 317–9 (1979).
@@ -526,7 +526,7 @@ public:
 	* @detail
 	This module is related method which extraction of distance parameter using axis transformation method.
 
-1. Introduction
+	* @section Introduction
 	- OSH is reconstructed digitally by convolving the complex conjugate of Fresnel zone plate (FZP) with the hologram. 
 	This is the same as conventional digital holography, in which the FZP’s distance parameter is set according to the 
 	depth location of the objects. However, since the depth location of the objects is unknown, digital reconstructions
@@ -540,7 +540,7 @@ public:
 	the distance parameter. Therefore, we propose to extract the distance parameter directly from the hologram using axis 
 	transformation without any manual processes.
 
-2. Algorithm
+	* @section Algorithm
 	- First, the complex hologram is filtered by a Gaussian low-pass filter with transfer function. The Gaussian low-pass filtered 
 	hologram is given by the following equation:
 	\f[
@@ -591,7 +591,7 @@ public:
 	- Note that the location of the delta function pair gives the distance parameter. This can be extracted directly by detecting the location of the maximum value of Eq. (6).
 ![Figure 1. Flowchart.](@ref pics/ophsig/at_flowchart.png)
 
-3. Reference
+	* @section Reference
 	- [1] P. Ferraro, G. Coppola, S. D. Nicola, A. Finizio, and G. Pierattini, “Digital holographic microscope with automatic focus tracking by detecting sample displacement in real time,” Opt. Lett. 28, 1257-1259 (2003).
 	- [2] M. Liebling and M. Unser, “Autofocus for digital Fresnel holograms by use of a Fresnelet-sparsity criterion,” J. Opt. Soc. Am. A 21, 2424-2430 (2004).
 	- [3] P. Langehanenberg, B. Kemper, D. Dirksen, and G. von Bally, “Autofocusing in digital holographic phase contrast microscopy on pure phase objects for live cell imaging,” Appl. Opt. 47, D176 (2008).
@@ -618,7 +618,7 @@ public:
 	* @detail
 	This module is related method which extraction of distance parameter using sharpness function maximization method.
 
-1. Introduction
+	* @section Introduction
 	- We use autofocusing to capture in-focus images. It is based on sharpness of images and various of autofocusing algorithms 
 	have been proposed. It represents a peak when the image is in-focus and drops when the image goes out-of-focus. It can relate 
 	to holography signal process. Hologram has a depth information of object and is reconstructed at that point. The sharpness 
@@ -626,7 +626,7 @@ public:
 	- If the depth of focus is not correct, the reconstructed hologram can not have a clear image. It means the same as in-focus 
 	image phenomenon. For this reasons, we will discuss the hologram signal processing using the sharpness functions.
 
-2. Algorithm
+	* @section Algorithm
 	- Brenner function [1] : A focus function f(Z) is calculated which is a measure of the average change in gray level between 
 	pairs of points separated by n pixels. f(Z) is a maximum when the image is in focus. and is given by 
 	\f[
@@ -638,7 +638,7 @@ public:
 	- Reconstruct the hologram to sequential depth positions using Fresnel diffraction method. then we can obtain \f$ f(Z) \f$ of reconstructed hologram image. 
 	if \f$f(Z)\f$ is maximum value, value of \f$Z\f$ is distance parameter of hologram.
 	
-3. Reference
+	* @section Reference
 	- [1] J. Brenner et al., "An Automated Microscope for Cytologic Research - A Preliminary Evaluation", Journal of Histochemistry and Cytochemistry, vol. 24, no. 1, pp. 100-111, 1976	
 
 	*/
@@ -657,12 +657,20 @@ public:
 	double sigGetParamSF(float zMax, float zMin, int sampN, float th);
 
 	/**
-	* @ingroup PSDH
-	* @brief Extraction of complex field from 4 phase shifted interference patterns
+	* @addtogroup PSDH
+	//@{
 	* @detail
 	Extract complex field from 4 interference patterns with 90 degree phase shifts of the reference wave
 	Store the result complex field to the member variable ComplexH
 	![](pics/ophsig/psdh/PSDH_concept.png)
+
+	*/
+	//! @} PSDH
+
+	/**
+	* @ingroup PSDH
+	* @brief Extraction of complex field from 4 phase shifted interference patterns
+	* @detail
 	* @param fname0, fname90, fname180, fname270 Input image files for 4 interference patterns
 	* @return if works well return 0  or error occurs return -1
 	*/
