@@ -68,7 +68,7 @@ struct SIG_DLL ophSigConfig {
 	double wavelength[3];
 	float NA;
 	float z;
-	int colorType;
+	int wavelength_num;
 };
 
 /**

@@ -45,7 +45,7 @@
 
 #include "ophSig.h"
 
-ophSig::ophSig(void) 
+ophSig::ophSig(void)
 	: _cfgSig()
 	, _angleX(0)
 	, _angleY(0)
@@ -159,8 +159,6 @@ inline Real ophSig::maxOfMat(matrix<T>& src) {
 template<typename T>
 void ophSig::meshgrid(vector<T>& src1, vector<T>& src2, matrix<T>& dst1, matrix<T>& dst2)
 {
-	/*int src1_total = src1.size();
-	int src2_total = src2.size();*/
 	int src1_total = static_cast<int>(src1.size());
 	int src2_total = static_cast<int>(src2.size());
 
@@ -269,6 +267,7 @@ void ophSig::fft2(matrix<Complex<T>> &src, matrix<Complex<T>> &dst, int sign, ui
 	fftw_free(fft_in);
 	fftw_free(fft_out);
 }
+
 template<typename T>
 void ophSig::fftShift(matrix<Complex<T>> &src, matrix<Complex<T>> &dst)
 {
@@ -285,18 +284,13 @@ void ophSig::fftShift(matrix<Complex<T>> &src, matrix<Complex<T>> &dst)
 			int jj = (j + yshift) % src.size[_Y];
 			dst.mat[ii][jj]._Val[_RE] = src.mat[i][j].real();
 			dst.mat[ii][jj]._Val[_IM] = src.mat[i][j].imag();
-
 		}
-
 	}
 }
 
-vector<Real> ophSig::linspace(double first, double last, int len) {
-	vector<Real> result;
-	for (int i = 0; i < len; i++)
-	{
-		result.push_back(0);
-	}
+vector<Real> ophSig::linspace(double first, double last, int len) {	
+	vector<Real> result(len);
+
 	double step = (last - first) / (len - 1);
 	for (int i = 0; i < len; i++) { result[i] = first + i*step; }
 	return result;
@@ -332,7 +326,7 @@ void ophSig::linInterp(vector<T> &X, matrix<Complex<T>> &src, vector<T> &Xq, mat
 		}
 		else
 		{
-			while ((Xq[j]) > (X[i + 1])) i++;
+			while ((Xq[j]) >(X[i + 1])) i++;
 		}
 		dst(0, j)._Val[_RE] = src(0, i).real() + (src(0, i + 1).real() - src(0, i).real()) / (X[i + 1] - X[i]) * (Xq[j] - X[i]);
 		dst(0, j)._Val[_IM] = src(0, i).imag() + (src(0, i + 1).imag() - src(0, i).imag()) / (X[i + 1] - X[i]) * (Xq[j] - X[i]);
@@ -348,39 +342,23 @@ int ophSig::loadAsOhc(const char *fname)
 	if (!OHC_decoder->load()) return -1;
 	vector<Real> wavelengthArray;
 	OHC_decoder->getWavelength(wavelengthArray);
+	_cfgSig.wavelength_num = OHC_decoder->getNumOfWavlen();
+	int wavelength_num = OHC_decoder->getNumOfWavlen();
 
-	if (_cfgSig.colorType == 0)
+	ivec2 pixel_number;
+	pixel_number = OHC_decoder->getNumOfPixel();
+	_cfgSig.rows = pixel_number[0];
+	_cfgSig.cols = pixel_number[1];
+
+	for (int i = 0; i < _cfgSig.wavelength_num; i++)
 	{
-		
 		_cfgSig.lambda = wavelengthArray[0];
+		_cfgSig.wavelength[i] = wavelengthArray[(_cfgSig.wavelength_num - 1) - i];
 
-		ivec2 pixel_number;
-		pixel_number = OHC_decoder->getNumOfPixel();
-		_cfgSig.rows = pixel_number[0];
-		_cfgSig.cols = pixel_number[1];
-
-		OHC_decoder->getComplexFieldData(&complex_H);
-		Buffer2Field(complex_H[0], ComplexH[0], pixel_number);
+		ComplexH[i].resize(_cfgSig.rows, _cfgSig.cols);
+		OHC_decoder->getComplexFieldData(ComplexH[i], (_cfgSig.wavelength_num - 1) - i);		
 	}
-	else if (_cfgSig.colorType == 1)
-	{
-		for (int i = 0; i < wavelengthArray.size(); i++)
-		{
-			_cfgSig.wavelength[2 - i] = wavelengthArray[i];
-		}
-		ivec2 pixel_number;
-		pixel_number = OHC_decoder->getNumOfPixel();
-		_cfgSig.rows = pixel_number[0];
-		_cfgSig.cols = pixel_number[1];
-
-		OHC_decoder->getComplexFieldData(&complex_H);
-		for (int i = 0; i < wavelengthArray.size(); i++)
-		{
-			Buffer2Field(complex_H[i], ComplexH[2 - i], pixel_number);
-		}
-	}
-	return 0;
-
+	return true;
 }
 
 int ophSig::saveAsOhc(const char *fname)
@@ -392,24 +370,15 @@ int ophSig::saveAsOhc(const char *fname)
 	OHC_encoder->setNumOfPixel(_cfgSig.rows, _cfgSig.cols);
 
 	OHC_encoder->setFieldEncoding(FldStore::Directly, FldCodeType::RI);
-	if (_cfgSig.colorType == 0)
+		
+	OHC_encoder->setNumOfWavlen(_cfgSig.wavelength_num);
+
+	for (int i = _cfgSig.wavelength_num - 1; i >= 0; i--)
 	{
-		OHC_encoder->setNumOfWavlen(1);
-		OHC_encoder->setWavelength(_cfgSig.lambda, LenUnit::nm);
-		*&complex_H = new Complex<Real>*[1];
-		Field2Buffer(ComplexH[0], complex_H);
-		OHC_encoder->addComplexFieldData(complex_H[0]);
-	}
-	else if (_cfgSig.colorType == 1)
-	{
-		OHC_encoder->setNumOfWavlen(3);
-		OHC_encoder->setWavelength(_cfgSig.wavelength[0], LenUnit::nm);
-		*&complex_H = new Complex<Real>*[3];
-		for (int i = 0; i < 3; i++)
-		{
-			Field2Buffer(ComplexH[2 - i], &complex_H[i]);
-			OHC_encoder->addComplexFieldData(complex_H[i]);
-		}
+		int wl = _cfgSig.wavelength[i] * 1000000000;
+		OHC_encoder->setWavelength(wl, LenUnit::nm);
+
+		OHC_encoder->addComplexFieldData(ComplexH[i]);
 	}
 
 	if (!OHC_encoder->save()) return -1;
@@ -421,12 +390,10 @@ bool ophSig::load(const char *real, const char *imag)
 {
 	string realname = real;
 	string imagname = imag;
-
-	int nz = 1;
+	
 	char* RGB_name[3] = { "","","" };
 
-	if (_cfgSig.colorType) {
-		nz = 3;
+	if (_cfgSig.wavelength_num > 1) {		
 		RGB_name[0] = "_B";
 		RGB_name[1] = "_G";
 		RGB_name[2] = "_R";
@@ -446,28 +413,25 @@ bool ophSig::load(const char *real, const char *imag)
 	{
 		realname = real;
 		imagname = imag;
-		//realname.insert(checktype, RGB_name[z]);
-		//imagname.insert(checktype, RGB_name[z]);
 
 		uchar* realdata = loadAsImg(realname.c_str());
 		uchar* imagdata = loadAsImg(imagname.c_str());
-		
+
 		if (realdata == 0 && imagdata == 0) {
 			cout << "failed : hologram data load was failed." << endl;
 			return false;
 		}
 
-		for (int z = 0; z < nz; z++)
+		for (int z = 0; z < _cfgSig.wavelength_num; z++)
 		{
 			realMat[z].resize(_cfgSig.rows, _cfgSig.cols);
 			imagMat[z].resize(_cfgSig.rows, _cfgSig.cols);
-		
 			for (int i = _cfgSig.rows - 1; i >= 0; i--)
 			{
 				for (int j = 0; j < _cfgSig.cols; j++)
 				{
-					realMat[z](_cfgSig.rows - i - 1, j) = (double)realdata[(i * _cfgSig.cols + j)*nz + z];
-					imagMat[z](_cfgSig.rows - i - 1, j) = (double)imagdata[(i * _cfgSig.cols + j)*nz + z];
+					realMat[z](_cfgSig.rows - i - 1, j) = (double)realdata[(i * _cfgSig.cols + j)*_cfgSig.wavelength_num + z];
+					imagMat[z](_cfgSig.rows - i - 1, j) = (double)imagdata[(i * _cfgSig.cols + j)*_cfgSig.wavelength_num + z];
 				}
 			}
 		}
@@ -483,7 +447,7 @@ bool ophSig::load(const char *real, const char *imag)
 		double *realdata = new  double[total];
 		double *imagdata = new  double[total];
 
-		for (int z = 0; z < nz; z++)
+		for (int z = 0; z < _cfgSig.wavelength_num; z++)
 		{
 			realname = real;
 			imagname = imag;
@@ -496,24 +460,24 @@ bool ophSig::load(const char *real, const char *imag)
 
 			freal.read(reinterpret_cast<char*>(realdata), sizeof(double) * total);
 			fimag.read(reinterpret_cast<char*>(imagdata), sizeof(double) * total);
+			
+			realMat[z].resize(_cfgSig.rows, _cfgSig.cols);
+			imagMat[z].resize(_cfgSig.rows, _cfgSig.cols);
 
 			for (int col = 0; col < _cfgSig.cols; col++)
 			{
 				for (int row = 0; row < _cfgSig.rows; row++)
 				{
-					realMat[z].resize(_cfgSig.rows, _cfgSig.cols);
-					imagMat[z].resize(_cfgSig.rows, _cfgSig.cols);
-
 					realMat[z](row, col) = realdata[_cfgSig.rows*col + row];
 					imagMat[z](row, col) = imagdata[_cfgSig.rows*col + row];
 				}
 			}
 			freal.close();
-			fimag.close();
+			fimag.close();			
 		}
 		delete[] realdata;
 		delete[] imagdata;
-	}	
+	}
 	else
 	{
 		LOG("wrong type\n");
@@ -521,7 +485,7 @@ bool ophSig::load(const char *real, const char *imag)
 
 	//nomalization
 	double realout, imagout;
-	for (int z = 0; z < nz; z++)
+	for (int z = 0; z < _cfgSig.wavelength_num; z++)
 	{
 		meanOfMat(realMat[z], realout); meanOfMat(imagMat[z], imagout);
 		realMat[z] / realout; imagMat[z] / imagout;
@@ -540,7 +504,6 @@ bool ophSig::load(const char *real, const char *imag)
 			{
 				ComplexH[z](i, j)._Val[_RE] = realMat[z](i, j);
 				ComplexH[z](i, j)._Val[_IM] = imagMat[z](i, j);
-
 			}
 		}
 	}
@@ -553,13 +516,10 @@ bool ophSig::save(const char *real, const char *imag)
 {
 	string realname = real;
 	string imagname = imag;
-
-
-	int nz = 1;
+	
 	char* RGB_name[3] = { "","","" };
 
-	if (_cfgSig.colorType) {
-		nz = 3; 
+	if (_cfgSig.wavelength_num > 1) {
 		RGB_name[0] = "_B";
 		RGB_name[1] = "_G";
 		RGB_name[2] = "_R";
@@ -572,7 +532,7 @@ bool ophSig::save(const char *real, const char *imag)
 		double *realdata = new  double[_cfgSig.rows * _cfgSig.cols];
 		double *imagdata = new  double[_cfgSig.rows * _cfgSig.cols];
 
-		for (int z = 0; z < nz; z++)
+		for (int z = 0; z < _cfgSig.wavelength_num; z++)
 		{
 			realname = real;
 			imagname = imag;
@@ -607,13 +567,13 @@ bool ophSig::save(const char *real, const char *imag)
 			}
 			cos.write(reinterpret_cast<const char*>(realdata), sizeof(double) * _cfgSig.rows * _cfgSig.cols);
 			sin.write(reinterpret_cast<const char*>(imagdata), sizeof(double) * _cfgSig.rows * _cfgSig.cols);
-			
+
 			cos.close();
 			sin.close();
 		}
 		delete[]realdata;
 		delete[]imagdata;
-	
+
 		std::cout << "file save binary complete" << endl;
 	}
 	else {
@@ -626,11 +586,9 @@ bool ophSig::save(const char *real)
 {
 	string realname = real;
 	string fname;
-	int nz = 1;
-	char* RGB_name[3] = {"","",""};
+	char* RGB_name[3] = { "","","" };
 
-	if (_cfgSig.colorType) {
-		nz = 3;
+	if (_cfgSig.wavelength_num > 1) {
 		RGB_name[0] = "_B";
 		RGB_name[1] = "_G";
 		RGB_name[2] = "_R";
@@ -640,15 +598,15 @@ bool ophSig::save(const char *real)
 	if (realname.substr(checktype + 1, realname.size()) == "bmp")
 	{
 		oph::uchar* realdata;
-		realdata = (oph::uchar*)malloc(sizeof(oph::uchar) * _cfgSig.rows * _cfgSig.cols * nz);
-		
+		realdata = (oph::uchar*)malloc(sizeof(oph::uchar) * _cfgSig.rows * _cfgSig.cols * _cfgSig.wavelength_num);
+
 		double gamma = 0.5;
 		double maxIntensity = 0.0;
 		double realVal = 0.0;
 		double imagVal = 0.0;
 		double intensityVal = 0.0;
 
-		for (int z = 0; z < nz; z++)
+		for (int z = 0; z < _cfgSig.wavelength_num; z++)
 		{
 			for (int j = 0; j < ComplexH[z].size[_Y]; j++) {
 				for (int i = 0; i < ComplexH[z].size[_X]; i++) {
@@ -662,18 +620,18 @@ bool ophSig::save(const char *real)
 			}
 			for (int i = _cfgSig.rows - 1; i >= 0; i--)
 			{
-				for (int j = 0; j <  _cfgSig.cols; j++)
+				for (int j = 0; j < _cfgSig.cols; j++)
 				{
 					realVal = ComplexH[z](_cfgSig.rows - i - 1, j)._Val[_RE];
 					imagVal = ComplexH[z](_cfgSig.rows - i - 1, j)._Val[_IM];
 					intensityVal = realVal*realVal + imagVal*imagVal;
-					realdata[(i*_cfgSig.cols + j)* nz + z] = (uchar)(pow(intensityVal / maxIntensity, gamma)*255.0);
+					realdata[(i*_cfgSig.cols + j)* _cfgSig.wavelength_num + z] = (uchar)(pow(intensityVal / maxIntensity, gamma)*255.0);
 				}
 			}
 			//sprintf(str, "_%.2u", z);
 			//realname.insert(checktype, RGB_name[z]);
 		}
-		saveAsImg(realname.c_str(), nz * 8, realdata, _cfgSig.cols, _cfgSig.rows);
+		saveAsImg(realname.c_str(), _cfgSig.wavelength_num * 8, realdata, _cfgSig.cols, _cfgSig.rows);
 
 		delete[] realdata;
 		std::cout << "file save bmp complete" << endl;
@@ -683,7 +641,7 @@ bool ophSig::save(const char *real)
 	{
 		double *realdata = new  double[_cfgSig.rows * _cfgSig.cols];
 
-		for (int z = 0; z < nz; z++)
+		for (int z = 0; z < _cfgSig.wavelength_num; z++)
 		{
 			realname = real;
 			realname.insert(checktype, RGB_name[z]);
@@ -710,163 +668,120 @@ bool ophSig::save(const char *real)
 		delete[]realdata;
 		std::cout << "file save binary complete" << endl;
 	}
-	
+
 	return TRUE;
 }
 
 bool ophSig::sigConvertOffaxis() {
-	OphRealField x, y, H1;
-	vector<Real> X, Y;
-	OphComplexField expSource, exp, offh;
-	x.resize(_cfgSig.rows, _cfgSig.cols);
-	y.resize(_cfgSig.rows, _cfgSig.cols);
-	expSource.resize(_cfgSig.rows, _cfgSig.cols);
-	exp.resize(_cfgSig.rows, _cfgSig.cols);
-	offh.resize(_cfgSig.rows, _cfgSig.cols);
+	OphRealField H1;
+	double x, y;
+	int i, j;
+	Complex<double> temp;
 	H1.resize(_cfgSig.rows, _cfgSig.cols);
-	vector<Real> r = linspace(1, _cfgSig.cols, _cfgSig.cols);
-	vector<Real> c = linspace(1, _cfgSig.rows, _cfgSig.rows);
 
-	for (int i = 0; i < _cfgSig.cols; i++)
+	for (i = 0; i < _cfgSig.rows; i++)
 	{
-		X.push_back(_cfgSig.width / (_cfgSig.cols - 1)*(r[i] - 1) - _cfgSig.width / 2);
-	}
-	for (int i = 0; i < _cfgSig.rows; i++)
-	{
-		Y.push_back(_cfgSig.height / (_cfgSig.rows - 1)*(c[i] - 1) - _cfgSig.height / 2);
-	}
-	meshgrid(X, Y, x, y);
-
-	for (int i = 0; i < _cfgSig.rows; i++)
-	{
-		for (int j = 0; j < _cfgSig.cols; j++)
+		y = (_cfgSig.height / (_cfgSig.rows - 1)*i - _cfgSig.height / 2);
+		for (j = 0; j < _cfgSig.cols; j++)
 		{
-			expSource(i, j)._Val[_RE] = 0;
-			expSource(i, j)._Val[_IM] = ((2 * M_PI) / _cfgSig.lambda)*((x(i, j) *sin(_angleX)) + (y(i, j) *sin(_angleY)));
+			x = (_cfgSig.width / (_cfgSig.cols - 1)*j - _cfgSig.width / 2);
+
+			temp._Val[_RE] = cos(((2 * M_PI) / _cfgSig.lambda)*(x*sin(_angleX) + y *sin(_angleY)));
+			temp._Val[_IM] = sin(((2 * M_PI) / _cfgSig.lambda)*(x*sin(_angleX) + y *sin(_angleY)));
+			H1(i, j) = (ComplexH[0](i, j)*temp)._Val[_RE];
 		}
 	}
-	expMat(expSource, exp);
-	offh = ComplexH[0].mulElem(exp);
-	for (int i = 0; i < _cfgSig.rows; i++)
-	{
-		for (int j = 0; j < _cfgSig.cols; j++)
-		{
-			H1(i, j) = offh(i, j)._Val[_RE];
-		}
-	}
-
 	double out = minOfMat(H1);
-
 	H1 - out;
 	out = maxOfMat(H1);
-	for (int i = 0; i < ophSig::_cfgSig.rows; i++)
+
+	for (i = 0; i < ophSig::_cfgSig.rows; i++)
 	{
-		for (int j = 0; j < ophSig::_cfgSig.cols; j++)
+		for (j = 0; j < ophSig::_cfgSig.cols; j++)
 		{
 			ComplexH[0](i, j)._Val[_RE] = H1(i, j) / out;
 			ComplexH[0](i, j)._Val[_IM] = 0;
 		}
 	}
-
 	return true;
 }
 
 bool ophSig::sigConvertHPO() {
-	OphRealField x, y; OphComplexField expSource, exp, F1, G1, OUT_H, HPO;
-	vector<Real> X, Y;
-	x.resize(_cfgSig.rows, _cfgSig.cols);
-	y.resize(_cfgSig.rows, _cfgSig.cols);
-	expSource.resize(_cfgSig.rows, _cfgSig.cols);
-	exp.resize(_cfgSig.rows, _cfgSig.cols);
-	F1.resize(_cfgSig.rows, _cfgSig.cols);
-	G1.resize(_cfgSig.rows, _cfgSig.cols);
-	OUT_H.resize(_cfgSig.rows, _cfgSig.cols);
-	HPO.resize(_cfgSig.rows, _cfgSig.cols);
-
+	OphComplexField  F1, G1, OUT_H;
+	int nx = _cfgSig.cols;
+	int ny = _cfgSig.rows;
+	double  y;
+	F1.resize(ny, nx);
+	G1.resize(ny, nx);
+	OUT_H.resize(ny, nx);
 	float NA = _cfgSig.width / (2 * _cfgSig.z);
 	float NA_g = NA*_redRate;
-
-	vector<Real> r = linspace(1, _cfgSig.cols, _cfgSig.cols);
-	vector<Real> c = linspace(1, _cfgSig.rows, _cfgSig.rows);
-	for (int i = 0; i < _cfgSig.cols; i++)
-	{
-		X.push_back(2 * M_PI*(r[i] - 1) / _cfgSig.width - M_PI*(_cfgSig.cols - 1) / _cfgSig.width);
-	}
-	for (int i = 0; i < _cfgSig.rows; i++)
-	{
-		Y.push_back(2 * M_PI*(c[i] - 1) / _cfgSig.height - M_PI*(_cfgSig.rows - 1) / _cfgSig.height);
-	}
-
-	meshgrid(X, Y, x, y);
+	int i, j;
+	int xshift = nx / 2;
+	int yshift = ny / 2;
+	double temp = 0.;
+	double temp2 = 0.;
 	double sigmaf = (_cfgSig.z*_cfgSig.lambda) / (4 * M_PI);
-	for (int i = 0; i < _cfgSig.rows; i++)
+
+	for (i = 0; i < ny; i++)
 	{
-		for (int j = 0; j < _cfgSig.cols; j++)
+		int ii = (i + yshift) % ny;
+		y = (2 * M_PI*(i) / _cfgSig.height - M_PI*(_cfgSig.rows - 1) / _cfgSig.height);
+		temp = sigmaf*(y*y);
+		temp2 = ((-M_PI*((_cfgSig.lambda / (2 * M_PI*NA_g))*(_cfgSig.lambda / (2 * M_PI*NA_g))))*((y*y)));
+		for (j = 0; j < nx; j++)
 		{
-			expSource(i, j)._Val[_RE] = 0;
-			expSource(i, j)._Val[_IM] = sigmaf*(y(i, j)*y(i, j));
+			int jj = (j + xshift) % nx;
+			F1(ii, jj)._Val[_RE] = cos(temp);
+			F1(ii, jj)._Val[_IM] = sin(temp);
+			G1(ii, jj)._Val[_RE] = std::exp(temp2);
+			G1(ii, jj)._Val[_IM] = 0;
 		}
 	}
-	expMat(expSource, exp);
-	fftShift(exp, F1);
-	for (int i = 0; i < _cfgSig.rows; i++)
-	{
-		for (int j = 0; j < _cfgSig.cols; j++)
-		{
-			expSource(i, j)._Val[_RE] = ((-M_PI*((_cfgSig.lambda / (2 * M_PI*NA_g))*(_cfgSig.lambda / (2 * M_PI*NA_g))))*((y(i, j)*y(i, j))));
-			expSource(i, j)._Val[_IM] = 0;
-		}
-	}
-	expMat(expSource, exp);
-	fftShift(exp, G1);
 	fft2(ComplexH[0], OUT_H, OPH_FORWARD);
-	HPO = G1.mulElem(F1.mulElem(OUT_H));
-	fft2(HPO, ComplexH[0], OPH_BACKWARD);
+	G1.mulElem(F1.mulElem(OUT_H));
+	fft2(G1, ComplexH[0], OPH_BACKWARD);
 	return true;
 }
 
 bool ophSig::sigConvertCAC(double red, double green, double blue) {
-	OphRealField x, y;
+	
+	Real x, y;
 	OphComplexField FFZP, exp, FH, conj, FH_CAC;
-	vector<Real> X, Y;
+	int nx = _cfgSig.cols;
+	int ny = _cfgSig.rows;
 	_cfgSig.wavelength[0] = blue;
 	_cfgSig.wavelength[1] = green;
 	_cfgSig.wavelength[2] = red;
-	x.resize(_cfgSig.rows, _cfgSig.cols);
-	y.resize(_cfgSig.rows, _cfgSig.cols);
-	FFZP.resize(_cfgSig.rows, _cfgSig.cols);
-	exp.resize(_cfgSig.rows, _cfgSig.cols);
-	FH.resize(_cfgSig.rows, _cfgSig.cols);
-	conj.resize(_cfgSig.rows, _cfgSig.cols);
-	FH_CAC.resize(_cfgSig.rows, _cfgSig.cols);
+
+	FFZP.resize(ny, nx);
+	FH.resize(ny, nx);
+
+	int i, j;
+
 	for (int z = 0; z < 3; z++)
 	{
 		double sigmaf = ((_foc[2] - _foc[z])*_cfgSig.wavelength[z]) / (4 * M_PI);
-		vector<Real> r = linspace(1, _cfgSig.cols, _cfgSig.cols);
-		vector<Real> c = linspace(1, _cfgSig.rows, _cfgSig.rows);
-		for (int i = 0; i < ophSig::_cfgSig.cols; i++)
+		int xshift = nx / 2;
+		int yshift = ny / 2;
+		double temp = 0.;
+
+		for (i = 0; i < ny; i++)
 		{
-			X.push_back(2 * M_PI*(r[i] - 1) / _radius - M_PI*(ophSig::_cfgSig.cols - 1) / _radius);
-		}
-		for (int i = 0; i < ophSig::_cfgSig.rows; i++)
-		{
-			Y.push_back(2 * M_PI*(c[i] - 1) / _radius - M_PI*(ophSig::_cfgSig.rows - 1) / _radius);
-		}
-		meshgrid(X, Y, x, y);
-		for (int i = 0; i < ophSig::_cfgSig.rows; i++)
-		{
-			for (int j = 0; j < ophSig::_cfgSig.cols; j++)
+			int ii = (i + yshift) % ny;
+			for (j = 0; j < nx; j++)
 			{
-				FFZP(i, j)._Val[_RE] = 0;
-				FFZP(i, j)._Val[_IM] = sigmaf*((x(i, j)*x(i, j)) + (y(i, j)*y(i, j)));
+				x = 2 * M_PI * j / _radius - M_PI*(nx - 1) / _radius;
+				y = 2 * M_PI * i / _radius - M_PI*(ny - 1) / _radius;
+				int jj = (j + xshift) % nx;
+				temp = sigmaf * ((x * x + y * y));
+				FFZP(ii, jj)._Val[_RE] = cos(temp);
+				FFZP(ii, jj)._Val[_IM] = -sin(temp);
 			}
 		}
-		expMat(FFZP, exp);
-		fftShift(exp, FFZP);
 		fft2(ComplexH[z], FH, OPH_FORWARD);
-		conjMat(FFZP, conj);
-		FH_CAC = FH.mulElem(conj);
-		fft2(FH_CAC, ComplexH[z], OPH_BACKWARD);
+		FH.mulElem(FFZP);
+		fft2(FH, ComplexH[z], OPH_BACKWARD);
 	}
 	return true;
 }
@@ -898,7 +813,7 @@ bool ophSig::readConfig(const char* fname)
 	(xml_node->FirstChildElement("width"))->QueryFloatText(&_cfgSig.width);
 	(xml_node->FirstChildElement("height"))->QueryFloatText(&_cfgSig.height);
 	(xml_node->FirstChildElement("wavelength"))->QueryDoubleText(&_cfgSig.lambda);
-	(xml_node->FirstChildElement("colorType"))->QueryIntText(&_cfgSig.colorType);
+	(xml_node->FirstChildElement("wavelength_num"))->QueryIntText(&_cfgSig.wavelength_num);
 	(xml_node->FirstChildElement("NA"))->QueryFloatText(&_cfgSig.NA);
 	(xml_node->FirstChildElement("z"))->QueryFloatText(&_cfgSig.z);
 	(xml_node->FirstChildElement("angle_X"))->QueryFloatText(&_angleX);
@@ -914,21 +829,21 @@ bool ophSig::readConfig(const char* fname)
 
 
 bool ophSig::propagationHolo(float depth) {
-	int i, j, nx = 0, ny = 0, nz = 1;
+	int i, j, nx = 0, ny = 0;
 	Real x, y, sigmaf;
 
 	OphComplexField FH;
 	OphComplexField FFZP;
 
-	if (_cfgSig.colorType)		nz = 3;	
-	else 	_cfgSig.wavelength[0] = _cfgSig.lambda;	
+	if (_cfgSig.wavelength_num <= 1)
+		_cfgSig.wavelength[0] = _cfgSig.lambda;
 
-	for (int z = 0; z < nz; z++) {
+	for (int z = 0; z < _cfgSig.wavelength_num; z++) {
 		nx = ComplexH[z].size[_X];
 		ny = ComplexH[z].size[_Y];
 
 		sigmaf = (depth * _cfgSig.wavelength[z]) / (4 * M_PI);
-		
+
 		FH.resize(nx, ny);
 		FFZP.resize(nx, ny);
 
@@ -946,7 +861,7 @@ bool ophSig::propagationHolo(float depth) {
 				FFZP(ii, jj)._Val[_RE] = cos(temp) * FH(ii, jj)._Val[_RE] - sin(temp) * FH(ii, jj)._Val[_IM];
 				FFZP(ii, jj)._Val[_IM] = sin(temp) * FH(ii, jj)._Val[_RE] + cos(temp) * FH(ii, jj)._Val[_IM];
 			}
-		}	
+		}
 
 		this->fft2(FFZP, ComplexH[z], OPH_BACKWARD);
 	}
@@ -959,7 +874,7 @@ OphComplexField ophSig::propagationHolo(OphComplexField complexH, float depth) {
 
 	OphComplexField FH;
 	OphComplexField FFZP;
-	
+
 	nx = complexH.size[_X];
 	ny = complexH.size[_Y];
 
@@ -983,61 +898,41 @@ OphComplexField ophSig::propagationHolo(OphComplexField complexH, float depth) {
 		}
 	}
 	fft2(FFZP, complexH, OPH_BACKWARD);
-	
+
 	return complexH;
 }
 
 double ophSig::sigGetParamAT() {
 
+	int i = 0, j = 0;
 	Real max = 0;	double index = 0;
-	OphComplexField Flr(ComplexH[0].size[_X], ComplexH[0].size[_Y]);
-	OphComplexField Fli(ComplexH[0].size[_X], ComplexH[0].size[_Y]);
-	OphComplexField Hsyn(ComplexH[0].size[_X], ComplexH[0].size[_Y]);
-	OphComplexField Hsyn_copy1(ComplexH[0].size[_X], ComplexH[0].size[_Y]);
-	OphComplexField Hsyn_copy2(ComplexH[0].size[_X], ComplexH[0].size[_Y]);
-	OphRealField Hsyn_copy3(ComplexH[0].size[_X], ComplexH[0].size[_Y]);
+	float NA_g = (float)0.025;
+	int nx = ComplexH[0].size[_X];
+	int ny = ComplexH[0].size[_Y];
 
-	OphComplexField Fo(ComplexH[0].size[_X], ComplexH[0].size[_Y]);
-	OphComplexField Fo1(ComplexH[0].size[_X], ComplexH[0].size[_Y]);
+	OphComplexField Flr(nx, ny);
+	OphComplexField Fli(nx, ny);
+	OphComplexField Hsyn(nx, ny);
+	OphComplexField Hsyn_copy1(nx, ny);
+	OphComplexField Hsyn_copy2(nx, ny);
+	OphRealField Hsyn_copy3(nx, ny);
+
+	OphComplexField Fo(nx, ny);
 	OphComplexField Fon, yn, Ab_yn;
 
-	OphRealField Ab_yn_half, kx, ky, temp, G; 
-	vector<Real> r, c;
+	OphRealField Ab_yn_half;
+	OphRealField G(nx, ny);
+	Real r = 1, c = 1;
 	vector<Real> t, tn;
 
-	r = ophSig::linspace(1, _cfgSig.rows, _cfgSig.rows);
-	c = ophSig::linspace(1, _cfgSig.cols, _cfgSig.cols);
-
-	for (int i = 0; i < r.size(); i++)
+	for (i = 0; i < nx; i++)
 	{
-		r.at(i) = (2 * M_PI*(r.at(i) - 1) / _cfgSig.height - M_PI*(_cfgSig.rows - 1) / _cfgSig.height);
-	}
-
-	for (int i = 0; i < c.size(); i++)
-	{
-		c.at(i) = (2 * M_PI*(c.at(i) - 1) / _cfgSig.width - M_PI*(_cfgSig.cols - 1) / _cfgSig.width);
-	}
-	meshgrid(c, r, kx, ky);
-
-	float NA_g = (float)0.025;
-
-	temp.resize(kx.size[_X], kx.size[_Y]);
-	G.resize(temp.size[_X], temp.size[_Y]);
-
-	for (int i = 0; i < temp.size[_X]; i++)
-	{
-		for (int j = 0; j < temp.size[_Y]; j++)
+		for (j = 0; j < ny; j++)
 		{
-			temp(i, j) = -M_PI * (_cfgSig.lambda / (2 * M_PI * NA_g)) * (_cfgSig.lambda / (2 * M_PI * NA_g)) * (kx(i, j) * kx(i, j) + ky(i, j) * ky(i, j));
-		}
-	}
 
-	expMat(temp, G);
-
-	for (int i = 0; i < ComplexH[0].size[_X]; i++)
-	{
-		for (int j = 0; j < ComplexH[0].size[_Y]; j++)
-		{
+			r = (2 * M_PI*(i) / _cfgSig.height - M_PI*(_cfgSig.rows - 1) / _cfgSig.height);
+			c = (2 * M_PI*(j) / _cfgSig.width - M_PI*(_cfgSig.cols - 1) / _cfgSig.width);
+			G(i, j) = std::exp(-M_PI * (_cfgSig.lambda / (2 * M_PI * NA_g)) * (_cfgSig.lambda / (2 * M_PI * NA_g)) * (c * c + r * r));
 			Flr(i, j)._Val[0] = ComplexH[0](i, j)._Val[0];
 			Fli(i, j)._Val[0] = ComplexH[0](i, j)._Val[1];
 			Flr(i, j)._Val[1] = 0;
@@ -1048,56 +943,33 @@ double ophSig::sigGetParamAT() {
 	fft2(Flr, Flr);
 	fft2(Fli, Fli);
 
-	for (int i = 0; i < Hsyn.size[_X]; i++)
+	int xshift = nx / 2;
+	int yshift = ny / 2;
+
+	for (i = 0; i < nx; i++)
 	{
-		for (int j = 0; j < Hsyn.size[_Y]; j++)
+		int ii = (i + xshift) % nx;
+		for (j = 0; j < ny; j++)
 		{
 			Hsyn(i, j)._Val[_RE] = Flr(i, j)._Val[_RE] * G(i, j);
 			Hsyn(i, j)._Val[_IM] = Fli(i, j)._Val[_RE] * G(i, j);
-		}
-	}
-
-	for (int i = 0; i < Hsyn.size[_X]; i++)
-	{
-		for (int j = 0; j < Hsyn.size[_Y]; j++)
-		{
 			Hsyn_copy1(i, j) = Hsyn(i, j);
 			Hsyn_copy2(i, j) = Hsyn_copy1(i, j) * Hsyn(i, j);
+			Hsyn_copy3(i, j) = pow(sqrt(Hsyn(i, j)._Val[_RE] * Hsyn(i, j)._Val[_RE] + Hsyn(i, j)._Val[_IM] * Hsyn(i, j)._Val[_IM]), 2) + pow(10, -300);
+			int jj = (j + yshift) % ny;
+			Fo(ii, jj)._Val[_RE] = Hsyn_copy2(i, j)._Val[0] / Hsyn_copy3(i, j);
+			Fo(ii, jj)._Val[_IM] = Hsyn_copy2(i, j)._Val[1] / Hsyn_copy3(i, j);
 		}
 	}
 
-	absMat(Hsyn, Hsyn_copy3);
-	Hsyn_copy3 = Hsyn_copy3.mulElem(Hsyn_copy3) + pow(10, -300);
-
-
-
-
-	for (int i = 0; i < Hsyn_copy2.size[_X]; i++)
-	{
-		for (int j = 0; j < Hsyn_copy2.size[_Y]; j++)
-		{
-			Fo(i, j)._Val[0] = Hsyn_copy2(i, j)._Val[0] / Hsyn_copy3(i, j);
-			Fo(i, j)._Val[1] = Hsyn_copy2(i, j)._Val[1] / Hsyn_copy3(i, j);
-		}
-	}
-
-
-	fftShift(Fo, Fo1);
-
-	t = linspace(0, 1, _cfgSig.rows / 2 + 1);
-
+	t = linspace(0, 1, nx / 2 + 1);
 	tn.resize(t.size());
+	Fon.resize(1, t.size());
 
 	for (int i = 0; i < tn.size(); i++)
 	{
 		tn.at(i) = pow(t.at(i), 0.5);
-	}
-
-	Fon.resize(1, Fo.size[_X] / 2 + 1);
-
-	for (int i = 0; i < Fo.size[_X] / 2 + 1; i++)
-	{
-		Fon(0, i)._Val[0] = Fo1(_cfgSig.rows / 2 - 1, _cfgSig.rows / 2 - 1 + i)._Val[0];
+		Fon(0, i)._Val[0] = Fo(nx / 2 - 1, nx / 2 - 1 + i)._Val[0];
 		Fon(0, i)._Val[1] = 0;
 	}
 
@@ -1106,35 +978,28 @@ double ophSig::sigGetParamAT() {
 	fft1(yn, yn);
 	Ab_yn.resize(yn.size[_X], yn.size[_Y]);
 	absMat(yn, Ab_yn);
-	Ab_yn_half.resize(1, _cfgSig.rows / 4 + 1);
-
-	for (int i = 0; i < _cfgSig.rows / 4 + 1; i++)
+	Ab_yn_half.resize(1, nx / 4 + 1);
+	
+	for (int i = 0; i < nx / 4 + 1; i++)
 	{
-		Ab_yn_half(0, i) = Ab_yn(0, _cfgSig.rows / 4 + i - 1)._Val[_RE];
-	}
-
-
-
-	max = maxOfMat(Ab_yn_half);
-
-	for (int i = 0; i < Ab_yn_half.size[1]; i++)
-	{
-		if (Ab_yn_half(0, i) == max)
+		Ab_yn_half(0, i) = Ab_yn(0, nx / 4 + i - 1)._Val[_RE];
+		if (i == 0) max = Ab_yn_half(0, 0);
+		else
 		{
-			index = i;
-			break;
+			if (Ab_yn_half(0, i) > max)
+			{
+				max = Ab_yn_half(0, i);
+				index = i;
+			}
 		}
 	}
-
 	index = -(((index + 1) - 120) / 10) / 140 + 0.1;
 
 	return index;
 }
 
-
-
 double ophSig::sigGetParamSF(float zMax, float zMin, int sampN, float th) {
-	
+
 	int nx, ny;
 
 	nx = ComplexH[0].size[_X];
@@ -1309,7 +1174,7 @@ bool ophSig::getComplexHFromPSDH(const char * fname0, const char * fname90, cons
 		free(f90data);
 		free(f180data);
 		free(f270data);
-		
+
 	}
 	else
 	{
@@ -1324,7 +1189,7 @@ bool ophSig::getComplexHFromPSDH(const char * fname0, const char * fname90, cons
 		{
 			for (int j = 0; j < _cfgSig.cols; j++)
 			{
-				ComplexH[z](i, j)._Val[_RE] = (f0Mat[z](i, j) - f180Mat[z](i,j))*normalizefactor;
+				ComplexH[z](i, j)._Val[_RE] = (f0Mat[z](i, j) - f180Mat[z](i, j))*normalizefactor;
 				ComplexH[z](i, j)._Val[_IM] = (f90Mat[z](i, j) - f270Mat[z](i, j))*normalizefactor;
 
 			}
