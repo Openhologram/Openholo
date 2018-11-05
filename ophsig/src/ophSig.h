@@ -68,7 +68,7 @@ struct SIG_DLL ophSigConfig {
 	double wavelength[3];
 	float NA;
 	float z;
-	int colorType;
+	int wavelength_num;
 };
 
 /**
@@ -681,12 +681,21 @@ protected:
 	virtual void ophFree(void);
 
 	ophSigConfig _cfgSig;
-	OphComplexField ComplexH[3];
+	OphComplexField* ComplexH;
+
+	float _width;
+	float _height;
+
+	float _NA;
+	float _z;
+
+	int _wavelength_num;
+
 	float _angleX;
 	float _angleY;
 	float _redRate;
 	float _radius;
-	float _foc[3];
+	float* _foc;
 };
 
 #endif // !__ophSig_h
