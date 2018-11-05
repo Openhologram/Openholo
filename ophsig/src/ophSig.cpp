@@ -267,25 +267,7 @@ void ophSig::fft2(matrix<Complex<T>> &src, matrix<Complex<T>> &dst, int sign, ui
 	fftw_free(fft_out);
 }
 
-template<typename T>
-void ophSig::fftShift(matrix<Complex<T>> &src, matrix<Complex<T>> &dst)
-{
-	if (src.size != dst.size) {
-		dst.resize(src.size[_X], src.size[_Y]);
-	}
-	int xshift = src.size[_X] / 2;
-	int yshift = src.size[_Y] / 2;
-	for (int i = 0; i < src.size[_X]; i++)
-	{
-		int ii = (i + xshift) % src.size[_X];
-		for (int j = 0; j < src.size[_Y]; j++)
-		{
-			int jj = (j + yshift) % src.size[_Y];
-			dst.mat[ii][jj]._Val[_RE] = src.mat[i][j].real();
-			dst.mat[ii][jj]._Val[_IM] = src.mat[i][j].imag();
-		}
-	}
-}
+
 
 vector<Real> ophSig::linspace(double first, double last, int len) {	
 	vector<Real> result(len);
