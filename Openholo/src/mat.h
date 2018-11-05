@@ -330,25 +330,25 @@ namespace oph
 			}
 		}
 
-		matrix<T>& operator ()(T args...) {
-			va_list ap;
+		//matrix<T>& operator ()(T args...) {
+		//	va_list ap;
 
-			__va_start(&ap, args);
+		//	__va_start(&ap, args);
 
-			for (int x = 0; x < size[_X]; x++) {
-				for (int y = 0; y < size[_Y]; y++) {
-					if (x == 0 && y == 0) {
-						mat[x][y] = args;
-						continue;
-					}
-					T n = __crt_va_arg(ap, T);
-					mat[x][y] = n;
-				}
-			}
-			__crt_va_end(ap);
+		//	for (int x = 0; x < size[_X]; x++) {
+		//		for (int y = 0; y < size[_Y]; y++) {
+		//			if (x == 0 && y == 0) {
+		//				mat[x][y] = args;
+		//				continue;
+		//			}
+		//			T n = __crt_va_arg(ap, T);
+		//			mat[x][y] = n;
+		//		}
+		//	}
+		//	__crt_va_end(ap);
 
-			return *this;
-		}
+		//	return *this;
+		//}
 
 		matrix<T>& operator +(matrix<T>& p) {
 			return add(p);
