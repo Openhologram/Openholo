@@ -1,9 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="_1_Propagation &amp; Refocusing">
-      <UniqueIdentifier>{ecc8f8d1-bfc1-45ae-a910-85bba6a60bdf}</UniqueIdentifier>
-    </Filter>
     <Filter Include="_2_Complex Field Compute">
       <UniqueIdentifier>{c21d97fd-5187-422a-9fd5-6391ce6eee28}</UniqueIdentifier>
     </Filter>
@@ -16,15 +13,41 @@
     <Filter Include="__ophRec">
       <UniqueIdentifier>{adba4de5-30ac-4d4e-b085-d83dc8f35492}</UniqueIdentifier>
     </Filter>
+    <Filter Include="_1_Display">
+      <UniqueIdentifier>{ecc8f8d1-bfc1-45ae-a910-85bba6a60bdf}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="_1_Display\_1_Wave Aberration">
+      <UniqueIdentifier>{93a60df5-4594-498a-8670-a4ed212826e1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="_1_Display\_2_Cascaded Propagation">
+      <UniqueIdentifier>{d5302afa-773f-4c9f-92ed-fc80d5282de5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="_1_Display\_3_Partial Coherence">
+      <UniqueIdentifier>{31aecc26-aec2-4c92-9544-5c420ec65190}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\ophRec.cpp">
       <Filter>__ophRec</Filter>
     </ClCompile>
+    <ClCompile Include="src\tinyxml2.cpp" />
+    <ClCompile Include="src\ophWaveAberration.cpp">
+      <Filter>_1_Display\_1_Wave Aberration</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ophCascadedPropagation.cpp">
+      <Filter>_1_Display\_2_Cascaded Propagation</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\ophRec.h">
       <Filter>__ophRec</Filter>
+    </ClInclude>
+    <ClInclude Include="src\tinyxml2.h" />
+    <ClInclude Include="src\ophWaveAberration.h">
+      <Filter>_1_Display\_1_Wave Aberration</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ophCascadedPropagation.h">
+      <Filter>_1_Display\_2_Cascaded Propagation</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

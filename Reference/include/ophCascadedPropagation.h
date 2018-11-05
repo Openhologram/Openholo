@@ -48,6 +48,8 @@
 
 #include "ophDis.h"
 
+enum SourceType {IMG, OHC};
+
 struct OphCascadedPropagationConfig {
 	OphCascadedPropagationConfig()
 		: num_colors(0),
@@ -174,8 +176,23 @@ class DISP_DLL ophCascadedPropagation : public ophDis {
 		*/
 		bool save(const wchar_t* pathname, uint8_t bitsperpixel);
 
+		/**
+		* @brief Function to write OHC file
+		*/
+		virtual int saveAsOhc(const char *fname);
+
+		/**
+		* @brief Function to read OHC file
+		*/
+		virtual int loadAsOhc(const char *fname);
+
 
 	private:
+		/**
+		* @param config_: configuration parameters for cascaded propagation
+		*/
+		SourceType sourcetype_;
+
 		/**
 		* @param config_: configuration parameters for cascaded propagation
 		*/
@@ -206,27 +223,12 @@ class DISP_DLL ophCascadedPropagation : public ophDis {
 		*/
 		wstring hologram_path;
 
-	private:
 		/**
 		* @brief Reads configurations from XML file
 		* @return true if successful
 		* @return false when failed
 		*/
 		bool readConfig(const wchar_t* fname);
-
-		/**
-		* @brief Calculates 1st propagation (from SLM plane to pupil plane)
-		* @return true if successful
-		* @return false when failed
-		*/
-		bool propagateSlmToPupil();
-
-		/**
-		* @brief Calculates 2nd propagation (from pupil plane to retina plane)
-		* @return true if successful
-		* @return false when failed
-		*/
-		bool propagatePupilToRetina();
 
 		/**
 		* @brief Allocates memory according to configuration setup
@@ -245,7 +247,7 @@ class DISP_DLL ophCascadedPropagation : public ophDis {
 		* @return true if successful
 		* @return false when failed
 		*/
-		bool loadInput();
+		bool loadInputImg(string hologram_path_str);
 
 		/**
 		* @brief Generates intensity fields from complex wavefields
@@ -258,6 +260,11 @@ class DISP_DLL ophCascadedPropagation : public ophDis {
 
 
 	public:
+		/**
+		* @brief Returns if all data are prepared
+		*/
+		bool isReadyToPropagate() { return ready_to_propagate; }
+
 		/**
 		* @brief Returns number of colors
 		*/
@@ -338,6 +345,20 @@ class DISP_DLL ophCascadedPropagation : public ophDis {
 		// setters
 		//virtual bool SetSlmWavefield(Complex<Real>* srcHologram) = 0; // set input wavefield (for later use)
 		//virtual bool SetSlmWavefield(ophGen& srcHologram) = 0; // set input wavefield (for later use)
+
+		/**
+		* @brief Calculates 1st propagation (from SLM plane to pupil plane)
+		* @return true if successful
+		* @return false when failed
+		*/
+		bool propagateSlmToPupil();
+
+		/**
+		* @brief Calculates 2nd propagation (from pupil plane to retina plane)
+		* @return true if successful
+		* @return false when failed
+		*/
+		bool propagatePupilToRetina();
 
 
 	protected:

@@ -70,49 +70,20 @@ struct geometric {
 Triangular mesh based CGH generates the complex field of 3D objects represented as a collection of the triangular meshes.
 The algorithm aggregates the angular spectrums of individual triangular meshes and then performs a Fourier transform to obtain the complex field for entire objects.
 
-![](images/mesh_fig3.png)
+![](pics/ophgen/mesh/mesh_fig3.png)
 
 The angular spectrum of the individual triangular mesh is obtained using the analytic formula of the Fourier transform of the reference triangular aperture, considering the geometrical relation between the hologram plane and the local mesh plane, and also between the local mesh and the reference triangular aperture.
 
-![](images/mesh_fig1.png)
-![](images/mesh_fig2.png)
+![](pics/ophgen/mesh/mesh_fig1.png)
+![](pics/ophgen/mesh/mesh_fig2.png)
 
 The phase distribution on the mesh is determined by the carrier wave is assumed to be a plane wave of a specfic direction in the code.
 The amplitude inside each mesh is determined by the surface shading model and it can be either linearly varying for the continuous shading or uniform for the flat shading.
 
-![continuous shading](images/mesh_ex_continuous.png)
-![flat shading](images/mesh_ex_flat.png)
-
-* @section Example
-
-@code
-#include "ophTriMesh.h"
-
-int main(void)
-{
-	ophTri* Hologram = new ophTri();
-
-	// Load
-	Hologram->readMeshConfig("config/TestSpecMesh.xml");		// Read the Mesh hologram configuration file
-	Hologram->loadMeshData("source/mesh_teapot.ply","ply");		// Read the Meshed object data
-	Hologram->objScaleShift();					// Object scaling and shifting
-
-	// Generate
-	Hologram->generateMeshHologram(Hologram->SHADING_FLAT);		// Generate the hologram
-		/// Put the shading effect type
-
-	// Save as Complex Field Data
-	Hologram->saveAsOhc("result/Mesh_complexField.ohc");		// Save the hologram complex field data
-
-	// Encode
-	Hologram->encoding(Hologram->ENCODE_SIMPLENI);		// Encode the hologram
-
-	// Save as Encoded Image
-	Hologram->normalizeEncoded();		// Normalize the encoded hologram to generate image file
-	ivec2 encode_size = Hologram->getEncodeSize();		// Encoded hologram size
-	Hologram->save("result/Mesh_0.1m_ni_-0.3deg.bmp", 8, nullptr, encode_size[_X], encode_size[_Y]);		// Save the encoded hologram image
-}
-@endcode
+![continuous shading](pics/ophgen/mesh/mesh_ex_continuous.png)
+	-Fig.continuous shading
+![flat shading](pics/ophgen/mesh/mesh_ex_flat.png)
+	-Fig.flat shading
 
 */
 //! @} mesh
@@ -150,7 +121,7 @@ private:
 private:
 
 	Real objSize;							/// Object maximum of width and height / unit :[m]
-	Real objShift[3];						/// Object shift value / Data structure - [shiftX, shiftY, shiftZ] / unit : [m]
+	vec3 objShift;							/// Object shift value / Data structure - [shiftX, shiftY, shiftZ] / unit : [m]
 
 	Real carrierWave[3] = { 0,0,1 };		/// Carrier wave direction / default : {0, 0, 1}
 
@@ -159,17 +130,21 @@ private:
 
 public:
 	void setObjSize(Real in) { objSize = in; }
-	void setObjShift(Real in[]) { objShift[_X] = in[_X]; objShift[_Y] = in[_Y]; objShift[_Z] = in[_Z]; }
+	void setObjShift(vec3 in) { objShift[_X] = in[_X]; objShift[_Y] = in[_Y]; objShift[_Z] = in[_Z]; }
 	void setObjShift(vector<Real> in) { objShift[_X] = in[_X]; objShift[_Y] = in[_Y]; objShift[_Z] = in[_Z]; }
 	void setCarrierWave(Real in1, Real in2, Real in3) { carrierWave[_X] = in1; carrierWave[_Y] = in2; carrierWave[_Z] = in3; }
 	void setIllumination(vec3 in) { illumination = in; }
 	void setIllumination(Real inx, Real iny, Real inz) { illumination = { inx, iny, inz }; }
 	void setShadingType(int in) { SHADING_TYPE = in; }
+
 	ulonglong getNumMesh() { return meshData->n_faces; }
 	Real* getMeshData() { return triMeshArray; }
 	Complex<Real>* getAngularSpectrum() { return angularSpectrum; }
 	Real* getScaledMeshData() {	return scaledMeshData; }
 
+	const Real& getObjSize(void) { return objSize; }
+	const vec3& getObjShift(void) { return objShift; }
+	const vec3&	getIllumination(void) { return illumination; }
 public:
 	/**
 	* @brief	Triangular mesh basc CGH configuration file load
@@ -190,7 +165,7 @@ public:
 	* @param	ext				File extension
 	* @return	triMeshArray
 	*/
-	void loadMeshData(const char* fileName, const char* ext);
+	bool loadMeshData(const char* fileName, const char* ext);
 
 	/**
 	* @brief	Mesh object data scaling and shifting
@@ -201,7 +176,7 @@ public:
 	*/
 	void objScaleShift();
 	void objScaleShift(Real objSize_, vector<Real> objShift_);
-	void objScaleShift(Real objSize_, Real objShift_[]);
+	void objScaleShift(Real objSize_, vec3 objShift_);
 
 	enum SHADING_FLAG { SHADING_FLAT, SHADING_CONTINUOUS };
 
@@ -219,6 +194,8 @@ public:
 	* @param	Real	carryingAngleY		Wave carrying angle in vertical direction
 	*/
 	void waveCarry(Real carryingAngleX, Real carryingAngleY);
+
+	//virtual int saveAsOhc(const char* fname);
 
 private:
 	

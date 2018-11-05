@@ -64,11 +64,10 @@ struct SIG_DLL ophSigConfig {
 	int cols;
 	float width;
 	float height;
-	double lambda;
-	double wavelength[3];
+	double lambda[3];
 	float NA;
 	float z;
-	int colorType;
+	int color;
 };
 
 /**
@@ -87,6 +86,9 @@ I. Holographic core processing
 	2. Extraction of distance parameter method
 		-   using sharpness function maximization method
 		-   using axis transformation method
+
+	3. Phase-shifting digital holography
+		-	Convert 4 interference patterns with 90 degree reference wave phase shift to complex field
 
 ![](pics/ophsig/flowchart.png)
 
@@ -112,7 +114,7 @@ public:
 	* @param bitpixel bit per pixel
 	* @return         if works well return 0  or error occurs return -1
 	*/
-	bool load(const char *real, const char *imag);
+	bool load(const char *real, const char *imag, uint8_t bitpixel);
 	/**
 	* @brief          Save data as bmp or bin file
 	* @param real     real data file name
@@ -120,8 +122,8 @@ public:
 	* @param bitpixel bit per pixel
 	* @return         if works well return 0  or error occurs return -1
 	*/
-	bool save(const char *real, const char *imag);
-	bool save(const char *real);
+	bool save(const char *real, const char *imag, uint8_t bitpixel);
+	bool save(const char *real, uint8_t bitpixel);
 	int loadAsOhc(const char *fname);
 	int saveAsOhc(const char *fname);
 protected:
@@ -267,7 +269,7 @@ public:
 		lex hologram using the phase-only SLM, the reconstructed 3D image is distorted by amplitude flattening.
 		- Convert complex holograms into off-axis holograms, which can reconstruct 3D images of objects without distor
 		tion due to twin image noise, background noise, and amplitude flattening [4].
-![Figure 2. Concept of convet to off-axis hologram.](pics/ophsig/offaxis.png)
+![Figure 2. Concept of convet to off-axis hologram.](@ref pics/ophsig/offaxis.png)
 
 2. Algorithm
 		-  In the off-axis hologram, the optical axis of the reference wave is tilted to that of the object wave. 
@@ -518,7 +520,7 @@ public:
 	* @param depth position from hologram plane to propagation hologram plane
 	* @return output signal
 	*/
-	OphComplexField propagationHolo(OphComplexField complexH, float depth);
+	matrix<Complex<Real>> propagationHolo(matrix<Complex<Real>> complexH, float depth);
 
 	/**
 	* @addtogroup getAT
@@ -658,13 +660,14 @@ public:
 
 	/**
 	* @ingroup PSDH
-	* @brief
+	* @brief Extraction of complex field from 4 phase shifted interference patterns
 	* @detail
-	* @param
-	* @param
-	* @param
-	* @param
-	* @return
+	Extract complex field from 4 interference patterns with 90 degree phase shifts of the reference wave
+	Store the result complex field to the member variable ComplexH
+	![](pics/ophsig/PSDH/PSDH_concept.png)
+
+	* @param fname0, fname90, fname180, fname270 Input image files for 4 interference patterns
+	* @return if works well return 0  or error occurs return -1
 	*/
 	bool getComplexHFromPSDH(const char* fname0, const char* fname90, const char* fname180, const char* fname270);
 	
@@ -673,12 +676,16 @@ protected:
 	virtual void ophFree(void);
 
 	ophSigConfig _cfgSig;
-	OphComplexField ComplexH[3];
+	matrix<Complex<Real>> ComplexH[3];
+	Complex<Real>** complex_H;
 	float _angleX;
 	float _angleY;
 	float _redRate;
 	float _radius;
 	float _foc[3];
+
+
+
 };
 
 #endif // !__ophSig_h
