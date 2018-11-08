@@ -662,7 +662,7 @@ public:
 	* @detail
 	Extract complex field from 4 interference patterns with 90 degree phase shifts of the reference wave
 	Store the result complex field to the member variable ComplexH
-	![](pics/ophsig/psdh/PSDH_concept.png)
+	![](pics/ophsig/psdh/psdh_concept.png)
 
 	*/
 	//! @} PSDH

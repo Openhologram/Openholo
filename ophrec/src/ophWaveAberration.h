@@ -73,7 +73,7 @@ using namespace std;
 The Class generates the complex field of wavefront aberration of optical systems.
 
 The wave aberrations can be mathematically represented using Zernike polynomials.
- ![](@ref pics/ophdis/WaveAberration/zernike_poly.bmp)
+ ![](@ref pics/ophdis/waveaberration/zernike_poly.bmp)
 
  The Zernike polynomial is calculated according to Zernike polynomial coefficient using the Zernike polynomial equation to be described in reference.
  The each of the calculated Zernike polynomials is accumulated into one data set, which is transformed into a complex field of the wave aberration

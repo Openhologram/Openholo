@@ -49,7 +49,7 @@
 #ifndef __OphWaveAberration_h
 #define __OphWaveAberration_h
 
-#include "ophDis.h"
+#include "ophRec.h"
 #include <iostream>
 #include <fstream>
 #include <complex>
@@ -63,14 +63,6 @@
 using namespace std;
 
 
-#ifdef DISP_EXPORT
-#define DISP_DLL __declspec(dllexport)
-#else
-#define DISP_DLL __declspec(dllimport)
-#endif
-
-
-
 /**
 * @addtogroup waveaberr
 //@{
@@ -81,7 +73,7 @@ using namespace std;
 The Class generates the complex field of wavefront aberration of optical systems.
 
 The wave aberrations can be mathematically represented using Zernike polynomials.
- ![](@ref pics/ophdis/WaveAberration/zernike_poly.bmp)
+ ![](@ref pics/ophdis/waveaberration/zernike_poly.bmp)
 
  The Zernike polynomial is calculated according to Zernike polynomial coefficient using the Zernike polynomial equation to be described in reference.
  The each of the calculated Zernike polynomials is accumulated into one data set, which is transformed into a complex field of the wave aberration
@@ -99,7 +91,7 @@ Minsik Park, Hyun-Eui Kim, Hyon-Gon Choo, Jinwoong Kim, and Cheong Hee Park,"Dis
 * @brief Wave Aberration module
 * @author Minsik Park
 */
-class DISP_DLL ophWaveAberration : public ophDis
+class RECON_DLL ophWaveAberration : public ophRec
 {
 private :
 	/**

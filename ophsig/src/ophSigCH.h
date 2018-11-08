@@ -22,10 +22,10 @@ J. Bioucas-Dias and M. Figueiredo, "A New TwIST: Two-Step Iterative Shrinkage/Th
 www.lx.it.pt/~bioucas/TwIST
 
 
-![Compressed holography finds 3D object from complex field data by maximizing sparisity in 3D object space.](@ref pics/ophsig/CH/CH_concept.png)\n
+![Compressed holography finds 3D object from complex field data by maximizing sparisity in 3D object space.](@ref pics/ophsig/ch/ch_concept.png)\n
 \n
 
-![Comparison with usual numerical reconstruction.](@ref pics/ophsig/CH/CH_result.png)
+![Comparison with usual numerical reconstruction.](@ref pics/ophsig/ch/ch_result.png)
 
 */
 //! @} CH

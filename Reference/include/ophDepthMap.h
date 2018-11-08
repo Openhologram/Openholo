@@ -141,7 +141,7 @@ public:
 private:
 
 	void initialize();
-	void initCPU();   
+	void initCPU();
 	void initGPU();
 
 	bool prepareInputdataCPU(uchar* img, uchar* dimg);
