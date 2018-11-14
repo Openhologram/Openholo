@@ -6,5 +6,5 @@ command update
 
 
 
-a99rdf
+a99r
 
