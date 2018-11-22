@@ -212,6 +212,8 @@ Real ophDepthMap::generateHologram(void)
 {
 	initialize();
 
+	encode_size = context_.pixel_number;
+
 	auto start_time = CUR_TIME;
 
 	if (is_CPU)
@@ -234,7 +236,9 @@ Real ophDepthMap::generateHologram(void)
 
 void ophDepthMap::encodeHologram(void)
 {
+	LOG("Single Side Band Encoding..");
 	encodeSideBand(is_CPU, ivec2(0, 1));
+	LOG("Done.\n");
 }
 
 int ophDepthMap::save(const char * fname, uint8_t bitsperpixel)

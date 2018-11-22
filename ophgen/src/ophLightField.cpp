@@ -45,6 +45,8 @@
 
 #include "ophLightField.h"
 
+#include "include.h"
+
 #include "sys.h"
 #include "tinyxml2.h"
 
@@ -275,10 +277,13 @@ void ophLF::generateHologram() {
 
 	auto start = CUR_TIME;
 
-	cout << "Generating Hologram..." << endl;
+	LOG("Converting....");
 	convertLF2ComplexField();
-	cout << "Convert finished" << endl;
+	LOG("finished.\n");
+
+	LOG("Propagating ...");
 	fresnelPropagation(RSplane_complex_field, (*complex_H), distanceRS2Holo);
+	LOG("finished.\n");
 
 	auto end = CUR_TIME;
 	auto during = ((std::chrono::duration<Real>)(end - start)).count();

@@ -505,39 +505,47 @@ void ophTri::generateAS(uint SHADING_FLAG) {
 
 	findNormals(SHADING_FLAG);
 
-	for (uint n = 0; n < meshData->n_faces; n++) {
-		for_i(9,
-			mesh[i] = scaledMeshData[9 * n + i];
+	int j; // private variable for Multi Threading
+#ifdef _OPENMP
+#pragma omp parallel
+	{
+#pragma omp for private(j)
+#endif
+		for (j = 0; j < meshData->n_faces; j++) {
+			for_i(9,
+				mesh[i] = scaledMeshData[9 * j + i];
 			);
 
-		if (checkValidity(mesh, *(no + n)) != 1)
-			continue;
-		
-		if (findGeometricalRelations(mesh, *(no + n)) != 1)
-			continue;
+			if (checkValidity(mesh, *(no + j)) != 1)
+				continue;
 
-		if (calFrequencyTerm() != 1)
-			continue;
+			if (findGeometricalRelations(mesh, *(no + j)) != 1)
+				continue;
 
-		switch (SHADING_FLAG)
-		{
-		case SHADING_FLAT:
-			refAS_Flat(*(no + n));
-			break;
-		case SHADING_CONTINUOUS:
-			refAS_Continuous(n);
-			break;
-		default:
-			cout << "error: WRONG SHADING_FLAG" << endl;
-			cin.get();
+			if (calFrequencyTerm() != 1)
+				continue;
+
+			switch (SHADING_FLAG)
+			{
+			case SHADING_FLAT:
+				refAS_Flat(*(no + j));
+				break;
+			case SHADING_CONTINUOUS:
+				refAS_Continuous(j);
+				break;
+			default:
+				LOG("error: WRONG SHADING_FLAG\n");
+				cin.get();
+			}
+			if (refToGlobal() != 1)
+				continue;
+
+			char szLog[MAX_PATH];
+			sprintf(szLog, "%d / %d\n", j + 1, meshData->n_faces);
+			LOG(szLog);
 		}
-		if (refToGlobal() != 1)
-			continue;
-
-		cout << n+1 << " / " << meshData->n_faces << endl;
 	}
-
-	cout << "Angular Spectrum Generated..." << endl;
+	LOG("Angular Spectrum Generated...\n");
 
 	delete[] mesh, scaledMeshData, fx, fy, fz, mesh_local, flx, fly, flz, freqTermX, freqTermY, refAS, ASTerm, randTerm, phaseTerm, convol;
 }

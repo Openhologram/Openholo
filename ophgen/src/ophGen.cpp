@@ -621,7 +621,7 @@ void ophGen::loadComplex(char* real_file, char* imag_file, int n_x, int n_y) {
 }
 
 void ophGen::normalizeEncoded() {
-	oph::normalize((Real*)holo_encoded, holo_normalized, encode_size.v[_X], encode_size.v[_Y]);
+	oph::normalize(holo_encoded, holo_normalized, encode_size.v[_X], encode_size.v[_Y]);
 }
 
 void ophGen::encoding(unsigned int ENCODE_FLAG) {
@@ -654,36 +654,42 @@ void ophGen::encoding(unsigned int ENCODE_FLAG) {
 	switch (ENCODE_FLAG)
 	{
 	case ENCODE_SIMPLENI:
-		cout << "Simple Numerical Interference Encoding.." << endl;
+		LOG("Simple Numerical Interference Encoding..");
 		numericalInterference((*complex_H), holo_encoded, size);
+		LOG("Done.\n.");
 		break;
 	case ENCODE_REAL:
-		cout << "Real Part Encoding.." << endl;
+		LOG("Real Part Encoding..");
 		realPart<Real>((*complex_H), holo_encoded, size);
+		LOG("Done.\n.");
 		break;
 	case ENCODE_BURCKHARDT:
-		cout << "Burckhardt Encoding.." << endl;
+		LOG("Burckhardt Encoding..");
 		burckhardt((*complex_H), holo_encoded, size);
+		LOG("Done.\n.");
 		break;
 	case ENCODE_TWOPHASE:
-		cout << "Two Phase Encoding.." << endl;
+		LOG("Two Phase Encoding..");
 		twoPhaseEncoding((*complex_H), holo_encoded, size);
+		LOG("Done.\n.");
 		break;
 	case ENCODE_PHASE:
-		cout << "Phase Encoding.." << endl;
+		LOG("Phase Encoding..");
 		getPhase((*complex_H), holo_encoded, size);
+		LOG("Done.\n.");
 		break;
 	case ENCODE_AMPLITUDE:
-		cout << "Amplitude Encoding.." << endl;
+		LOG("Amplitude Encoding..");
 		getAmplitude((*complex_H), holo_encoded, size);
+		LOG("Done.\n.");
 		break;
 	case ENCODE_SSB:
 	case ENCODE_OFFSSB:
-		cout << "error: PUT PASSBAND" << endl;
+		LOG("error: PUT PASSBAND\n");
 		cin.get();
 		return;
 	default:
-		cout << "error: WRONG ENCODE_FLAG" << endl;
+		LOG("error: WRONG ENCODE_FLAG\n");
 		cin.get();
 		return;
 	}
@@ -709,16 +715,18 @@ void ophGen::encoding(unsigned int ENCODE_FLAG, unsigned int passband) {
 	switch (ENCODE_FLAG)
 	{
 	case ENCODE_SSB:
-		cout << "Single Side Band Encoding.." << endl;
+		LOG("Single Side Band Encoding..");
 		singleSideBand((*complex_H), holo_encoded, context_.pixel_number, passband);
+		LOG("Done.");
 		break;
 	case ENCODE_OFFSSB:
-		cout << "Off-axis Single Side Band Encoding.." << endl;
+		LOG("Off-axis Single Side Band Encoding..");
 		freqShift((*complex_H), (*complex_H), context_.pixel_number, 0, 100);
 		singleSideBand((*complex_H), holo_encoded, context_.pixel_number, passband);
+		LOG("Done.\n");
 		break;
 	default:
-		cout << "error: WRONG ENCODE_FLAG" << endl;
+		LOG("error: WRONG ENCODE_FLAG\n");
 		cin.get();
 		return;
 	}

@@ -210,6 +210,8 @@ double ophWRP::calculateWRP(void)
 	int Nx = context_.pixel_number.v[0]; //slm_pixelNumberX
 	int Ny = context_.pixel_number.v[1]; //slm_pixelNumberY
 
+	encode_size = context_.pixel_number;
+
 	Real wpx = context_.pixel_pitch.v[0];//wrp pitch
 	Real wpy = context_.pixel_pitch.v[1];
 
@@ -357,7 +359,6 @@ void ophWRP::generateHologram(void)
 	Real distance = pc_config_.propagation_distance;
 	fresnelPropagation(p_wrp_, (*complex_H), distance);
 	printf("Hologram Generated!\n");
-
 }
 
 oph::Complex<Real>** ophWRP::calculateMWRP(void)
