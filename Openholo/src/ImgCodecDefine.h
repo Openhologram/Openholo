@@ -54,43 +54,43 @@ namespace oph
 #define LINK_IMG_PATH_SIZE 4*1024*sizeof(BYTE) // 4KB
 
 	/************************ Enumerator Class for OHC *****************************/
-	
+
 	/* Unit of Length */
 	enum class LenUnit : uint8_t {
-		Null= 0,	/* Null Data */
-		m	= 1,	/* Meter */
-		cm	= 2,	/* Centi Meter */
-		mm	= 3,	/* Milli Meter */
-		um	= 4,	/* Micro Meter */
-		nm	= 5,	/* Nano Meter */
+		Null = 0,	/* Null Data */
+		m = 1,	/* Meter */
+		cm = 2,	/* Centi Meter */
+		mm = 3,	/* Milli Meter */
+		um = 4,	/* Micro Meter */
+		nm = 5,	/* Nano Meter */
 	};
 
 	/* Color Channel Type */
 	enum class ColorType : uint8_t {
-		Null= 0,	/* Null Data */
-		RGB	= 1,	/* RGB 3-channel */
-		MLT	= 2,	/* Multiple Colors : Grayscale color is the one case of MLT. */
+		Null = 0,	/* Null Data */
+		RGB = 1,	/* RGB 3-channel */
+		MLT = 2,	/* Multiple Colors : Grayscale color is the one case of MLT. */
 		//GRY = 3,	/* Grayscale 1-channel */
 	};
 
 	/* Color Arrangement */
 	enum class ColorArran : uint8_t {
-		Null	  = 0,	/* Null Data */
+		Null = 0,	/* Null Data */
 		SeqtChanl = 1,	/* Sequential RGB Color channels */
 		EachChanl = 2,	/* Each Color channels */
 	};
 
 	/* Complex Field Data Type */
 	enum class DataType : uint8_t {
-		Null	= 0,	/* Null Data */
-		Int8	= 1,	/* char */
-		Int16	= 2,	/* short */
-		Int32	= 3,	/* long */
-		Int64	= 4,	/* longlong */
-		Uint8	= 5,	/* uchar */
-		Uint16	= 6,	/* ushort */
-		Uint32	= 7,	/* ulong */
-		Uint64	= 8,	/* ulonglong */
+		Null = 0,	/* Null Data */
+		Int8 = 1,	/* char */
+		Int16 = 2,	/* short */
+		Int32 = 3,	/* long */
+		Int64 = 4,	/* longlong */
+		Uint8 = 5,	/* uchar */
+		Uint16 = 6,	/* ushort */
+		Uint32 = 7,	/* ulong */
+		Uint64 = 8,	/* ulonglong */
 		Float32 = 9,	/* Single precision floating */
 		Float64 = 10,	/* Double precision floating */
 		CmprFmt = 11,	/* Compressed Image File */
@@ -98,7 +98,7 @@ namespace oph
 
 	/* Field Store Type */
 	enum class FldStore : uint8_t {
-		Null	 = 0,	/* Null Data */
+		Null = 0,	/* Null Data */
 		Directly = 1,	/* Field data is directly stored at the 'Field Data' region. */
 		LinkFile = 2,	/* Field data is stored at separate files and they are referred by path. 'Field Data' region stores those file paths. */
 	};
@@ -106,10 +106,10 @@ namespace oph
 	/* Encoding Type of Field Data Domain */
 	enum class FldCodeType : uint8_t {
 		Null = 0,	/* Null Data */
-		AP	 = 1,	/* Amplitude & Phase */
-		RI	 = 2,	/* Real & Imaginary */
-		AE	 = 3,	/* Amplitude-only Encoded */
-		PE	 = 4,	/* Phase-only Encoded */
+		AP = 1,	/* Amplitude & Phase */
+		RI = 2,	/* Real & Imaginary */
+		AE = 3,	/* Amplitude-only Encoded */
+		PE = 4,	/* Phase-only Encoded */
 	};
 
 	/* Phase Encoded Type : Boolean */
@@ -122,12 +122,12 @@ namespace oph
 	/* Compressed Image Type File Format */
 	enum class CompresType : uint8_t {
 		Null = 0,	/* No Image Format, Directly store raw data. */
-		BMP  = 1,	/* Bitmap (bmp, dib) */
-		JPG  = 2,	/* JPEG (jpg, jpeg, jpe) */
-		J2K  = 3,	/* JPEG-2000 (jpf, jpx, jp2, j2c, j2k, jpc) */
-		PNG  = 4,	/* PNG (png, pns) */
-		GIF  = 5,	/* GIF (gif) */
-		TIF  = 6,	/* TIFF (tif, tiff) */
+		BMP = 1,	/* Bitmap (bmp, dib) */
+		JPG = 2,	/* JPEG (jpg, jpeg, jpe) */
+		J2K = 3,	/* JPEG-2000 (jpf, jpx, jp2, j2c, j2k, jpc) */
+		PNG = 4,	/* PNG (png, pns) */
+		GIF = 5,	/* GIF (gif) */
+		TIF = 6,	/* TIFF (tif, tiff) */
 	};
 
 

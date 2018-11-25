@@ -83,7 +83,7 @@ namespace oph
 
 		void getComplexFieldData(OphComplexField** cmplx_field);
 		void getComplexFieldData(Complex<Real>*** cmplx_field);
-		
+
 	protected: /* field */
 		std::string fname;
 		//void* buf = nullptr; //coded data

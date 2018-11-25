@@ -11,10 +11,16 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\ophCascadedPropagation.cpp" />
     <ClCompile Include="src\ophRec.cpp" />
+    <ClCompile Include="src\ophWaveAberration.cpp" />
+    <ClCompile Include="src\tinyxml2.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\ophCascadedPropagation.h" />
     <ClInclude Include="src\ophRec.h" />
+    <ClInclude Include="src\ophWaveAberration.h" />
+    <ClInclude Include="src\tinyxml2.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{D0F04385-3806-46B2-93C2-26ECED076074}</ProjectGuid>

@@ -10,6 +10,22 @@
 * @addtogroup CH
 //@{
 * @detail
+* @section Introduction
+
+This module is related methods which perform compressed holography algorithm.
+Compressed holography algorithm is based on a paper D.Brady et al., Opt. Express 18, pp. 13040 (2009).
+The methods in this module (except twist) has been created based on the original code included in the supplement material of S.Lim, D. Marks, and D. Brady, "Sampling and processing for compressive holography," Applied Optics, vol. 50, no. 34, pp. H75-H86, 2011.
+
+This module also uses a TwIST algorithm (J.M. Bioucas-Dias et al., IEEE Trans. Image Proc. 16, pp.2992 (2007)).
+The 'twist' method in this module is based on the optimization algorithm (TwIST) code created and distributed by Jose Bioucas-Dias and Mario Figueiredo, October, 2007
+J. Bioucas-Dias and M. Figueiredo, "A New TwIST: Two-Step Iterative Shrinkage/Thresholding Algorithms for Image Restoration",  IEEE Transactions on Image processing, 2007.
+www.lx.it.pt/~bioucas/TwIST
+
+
+![Compressed holography finds 3D object from complex field data by maximizing sparisity in 3D object space.](@ref pics/ophsig/ch/ch_concept.png)\n
+\n
+
+![Comparison with usual numerical reconstruction.](@ref pics/ophsig/ch/ch_result.png)
 
 */
 //! @} CH

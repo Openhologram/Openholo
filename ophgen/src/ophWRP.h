@@ -84,13 +84,13 @@ using namespace oph;
 
 * @section Introduction
 
-CGH generation with WRP methods is supported in this module, including single WRP method, 
+CGH generation with WRP methods is supported in this module, including single WRP method,
 multiple WRP method.
 
 I. WRP based hologram generation
 
 -   Implement the hologram generation with point cloud and RGB-Depth data
--   Reduce the hologram generation time 
+-   Reduce the hologram generation time
 
 II. Single WRP method
 
@@ -102,8 +102,8 @@ II. Single WRP method
 
 III. Multiple WRP method
 
--   In this Multiple WRP method, each WRPs are supporting to each corresponding depth layer 
-    which means the WRPs have uniformed quantizing distance between the object points and WRP
+-   In this Multiple WRP method, each WRPs are supporting to each corresponding depth layer
+	which means the WRPs have uniformed quantizing distance between the object points and WRP
 -   The location of each WRPs is calculated by a constant dimension of the active area
 -   and then calculate each corresponding WRP of depth layer
 -   finally, the diffraction of every WRP to hologram plane by Fresnel propagation
@@ -136,6 +136,13 @@ protected:
 	virtual ~ophWRP(void);
 
 public:
+	const vec3& getScale() { return pc_config_.scale; }
+	const Real& getLocation() { return pc_config_.wrp_location; }
+	const Real& getDistance() { return pc_config_.propagation_distance; }
+	const int& getNumOfWRP() { return pc_config_.num_wrp; }
+	void setScale(vec3 scale) { pc_config_.scale = scale; }
+	void setLocation(Real location) { pc_config_.wrp_location = location; }
+	void setDistance(Real distance) { pc_config_.propagation_distance; }
 
 	/**
 	* @brief override
@@ -201,7 +208,7 @@ protected:
 	oph::Complex<Real>* p_wrp_;   ///< wrp buffer - complex type
 
 	OphPointCloudData obj_;       ///< Input Pointcloud Data
-	 
+
 	OphWRPConfig pc_config_;      ///< structure variable for WRP hologram configuration
 
 };

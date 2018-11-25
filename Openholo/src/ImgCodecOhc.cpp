@@ -141,7 +141,7 @@ void oph::ImgCodecOhc::getComplexFieldData(Complex<Real>*** cmplx_field)
 		*cmplx_field = new Complex<Real>*[field_cmplx.size()];
 
 	for (uint i = 0; i < field_cmplx.size(); i++)
-		oph::Field2Buffer(field_cmplx[i], cmplx_field[i]);
+		oph::Field2Buffer(field_cmplx[i], *cmplx_field + i);
 }
 
 void oph::ImgCodecOhc::releaseOHCheader() {
@@ -1066,6 +1066,8 @@ bool oph::ImgEncoderOhc::save() {
 	//fopen_s(&fp, this->fname.c_str(), "w");
 	//if (fp == nullptr) return false;
 
+	LOG("Saving...%s...", fname.c_str());
+	auto start = CUR_TIME;
 	//if (fp) {
 	if (this->File.is_open()) {
 		if (this->Header == nullptr) {
@@ -1200,7 +1202,7 @@ bool oph::ImgEncoderOhc::save() {
 
 		// write Complex Field Data
 		//fwrite(this->buf, 1, sizeof(dataSize), fp);
-		if (FldInfo.cmplxFldType == DataType::Float32) 
+		if (FldInfo.cmplxFldType == DataType::Float32)
 		{
 			size_t dataTypeSize = sizeof(float);
 			ulonglong maxIdx = dataSize / dataTypeSize;
@@ -1209,7 +1211,7 @@ bool oph::ImgEncoderOhc::save() {
 
 			//this->File.write((char*)this->buf_f32, sizeof(dataSize));
 		}
-		else if (FldInfo.cmplxFldType == DataType::Float64) 
+		else if (FldInfo.cmplxFldType == DataType::Float64)
 		{
 			size_t dataTypeSize = sizeof(double);
 			ulonglong maxIdx = dataSize / dataTypeSize;
@@ -1222,6 +1224,12 @@ bool oph::ImgEncoderOhc::save() {
 
 		//fclose(fp);
 		this->File.close();
+
+		auto end = CUR_TIME;
+
+		auto during = ((std::chrono::duration<Real>)(end - start)).count();
+
+		LOG("%.5lfsec...done\n", during);
 		return true;
 	}
 	else {

@@ -60,8 +60,12 @@ ophCascadedPropagation::ophCascadedPropagation(const wchar_t* configfilepath)
 	: ready_to_propagate(false),
 	hologram_path(L"")
 {
-	if (readConfig(configfilepath) && allocateMem() && loadInput())
-		ready_to_propagate = true;
+	if (readConfig(configfilepath) && allocateMem())
+	{
+		string hologram_path_str;
+		hologram_path_str.assign(hologram_path.begin(), hologram_path.end());
+		ready_to_propagate = (sourcetype_ == SourceType::IMG && loadInputImg(hologram_path_str)) || (sourcetype_ == SourceType::OHC && loadAsOhc(hologram_path_str.c_str()));
+	}
 }
 
 ophCascadedPropagation::~ophCascadedPropagation()
@@ -75,7 +79,7 @@ void ophCascadedPropagation::ophFree()
 
 bool ophCascadedPropagation::propagate()
 {
-	if (!ready_to_propagate)
+	if (!isReadyToPropagate())
 	{
 		PRINT_ERROR("module not initialized");
 		return false;
@@ -105,6 +109,39 @@ bool ophCascadedPropagation::save(const wchar_t* pathname, uint8_t bitsperpixel)
 	return (1 == saveAsImg(bufs.c_str(), bitsperpixel, src, getResX(), getResY()));
 }
 
+int ophCascadedPropagation::saveAsOhc(const char * fname)
+{
+	oph::uint nx = getResX();
+	oph::uint ny = getResY();
+	for (oph::uint i = 0; i < getNumColors(); i++)
+		memcpy(complex_H[i], wavefield_retina[i], nx * ny * sizeof(Complex<Real>));
+
+	if (!context_.wave_length)
+		context_.wave_length = new Real[getNumColors()];
+	for (oph::uint i = 0; i < getNumColors(); i++)
+		context_.wave_length[i] = config_.wavelengths[i];
+	context_.pixel_pitch[0] = config_.dx;
+	context_.pixel_pitch[1] = config_.dy;
+	context_.pixel_number[0] = config_.nx;
+	context_.pixel_number[1] = config_.ny;
+
+	return Openholo::saveAsOhc(fname);
+}
+
+int ophCascadedPropagation::loadAsOhc(const char * fname)
+{
+	if (Openholo::loadAsOhc(fname) != 1)
+		return -1;
+
+	oph::uint nx = getResX();
+	oph::uint ny = getResY();
+	config_.num_colors = OHC_decoder->getNumOfWavlen();
+	for (oph::uint i = 0; i < getNumColors(); i++)
+		memcpy(wavefield_SLM[i], complex_H[i], nx * ny * sizeof(Complex<Real>));
+
+	return 1;
+}
+
 bool ophCascadedPropagation::allocateMem()
 {
 	wavefield_SLM.resize(getNumColors());
@@ -112,40 +149,40 @@ bool ophCascadedPropagation::allocateMem()
 	wavefield_retina.resize(getNumColors());
 	oph::uint nx = getResX();
 	oph::uint ny = getResY();
+	complex_H = new Complex<Real>*[getNumColors()];
 	for (oph::uint i = 0; i < getNumColors(); i++)
 	{
 		wavefield_SLM[i] = new oph::Complex<Real>[nx * ny];
 		wavefield_pupil[i] = new oph::Complex<Real>[nx * ny];
 		wavefield_retina[i] = new oph::Complex<Real>[nx * ny];
+		complex_H[i] = new oph::Complex<Real>[nx * ny];
 	}
-
+	
 	return true;
 }
 
 void ophCascadedPropagation::deallocateMem()
 {
 	for (auto e : wavefield_SLM)
-	//for each (auto e in wavefield_SLM)
 		delete[] e;
 	wavefield_SLM.clear();
 
 	for (auto e : wavefield_pupil)
-	//for each (auto e in wavefield_pupil)
 		delete[] e;
 	wavefield_pupil.clear();
 	
 	for (auto e : wavefield_retina)
-	//for each (auto e in wavefield_retina)
 		delete[] e;
 	wavefield_retina.clear();
+
+	for (oph::uint i = 0; i < getNumColors(); i++)
+		delete[] complex_H[i];
 }
 
 // read in hologram data
-bool ophCascadedPropagation::loadInput()
+bool ophCascadedPropagation::loadInputImg(string hologram_path_str)
 {
-	string buf;
-	buf.assign(hologram_path.begin(), hologram_path.end());
-	if (checkExtension(buf.c_str(), ".bmp") == 0)
+	if (checkExtension(hologram_path_str.c_str(), ".bmp") == 0)
 	{
 		PRINT_ERROR("input file format not supported");
 		return false;
@@ -153,7 +190,7 @@ bool ophCascadedPropagation::loadInput()
 	oph::uint nx = getResX();
 	oph::uint ny = getResY();
 	oph::uchar* data = new oph::uchar[nx * ny * getNumColors()];
-	if (loadAsImgUpSideDown(buf.c_str(), data) == 0)	// loadAsImg() keeps to fail
+	if (loadAsImgUpSideDown(hologram_path_str.c_str(), data) == 0)	// loadAsImg() keeps to fail
 	{
 		PRINT_ERROR("input file not found");
 		delete[] data;
@@ -268,12 +305,21 @@ bool ophCascadedPropagation::readConfig(const wchar_t* fname)
 	}
 
 	xml_node = xml_doc.FirstChild();
-	auto next = xml_node->FirstChildElement("NumColors");
+	auto next = xml_node->FirstChildElement("SourceType");
+	if (!next || !(next->GetText()))
+		return false;
+	string sourceTypeStr = (xml_node->FirstChildElement("SourceType"))->GetText();
+	if (sourceTypeStr == string("IMG"))
+		sourcetype_ = SourceType::IMG;
+	else if (sourceTypeStr == string("OHC"))
+		sourcetype_ = SourceType::OHC;
+
+	next = xml_node->FirstChildElement("NumColors");
 	if (!next || tinyxml2::XML_SUCCESS != next->QueryUnsignedText(&config_.num_colors))
 		return false;
 	if (getNumColors() == 0 || getNumColors() > 3)
 		return false;
-	
+
 	if (config_.num_colors >= 1)
 	{
 		next = xml_node->FirstChildElement("WavelengthR");
@@ -311,6 +357,20 @@ bool ophCascadedPropagation::readConfig(const wchar_t* fname)
 	next = xml_node->FirstChildElement("ResolutionVer");
 	if (!next || tinyxml2::XML_SUCCESS != next->QueryUnsignedText(&config_.ny))
 		return false;
+
+	if (!context_.wave_length)
+		context_.wave_length = new Real[getNumColors()];
+	for (oph::uint i = 0; i < getNumColors(); i++)
+		context_.wave_length[i] = config_.wavelengths[i];
+	context_.pixel_pitch[0] = config_.dx;
+	context_.pixel_pitch[1] = config_.dy;
+	context_.pixel_number[0] = config_.nx;
+	context_.pixel_number[1] = config_.ny;
+
+	setPixelNumberOHC(context_.pixel_number);
+	setPixelPitchOHC(context_.pixel_pitch);
+	for (oph::uint i = 0; i < getNumColors(); i++)
+		addWaveLengthOHC(context_.wave_length[i]);
 
 	next = xml_node->FirstChildElement("FieldLensFocalLength");
 	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&config_.field_lens_focal_length))
