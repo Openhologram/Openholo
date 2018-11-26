@@ -473,4 +473,24 @@ void ophWaveAberration::readAberration(const char* fname)
 	fin.close();
 }
 
+int ophWaveAberration::loadAsOhc(const char * fname)
+{
+	if (Openholo::loadAsOhc(fname) == -1) {
+		LOG("Failed load file");
+		return -1;
+	}
 
+	pixelPitchX = context_.pixel_pitch[_X];
+	pixelPitchY = context_.pixel_pitch[_Y];
+
+	int xr = resolutionX = context_.pixel_number[_X];
+	int yr = resolutionY = context_.pixel_number[_Y];
+
+	waveLength = context_.wave_length[0];
+
+	for (int x = 0; x < xr; x++) {
+		for (int y = 0; y < yr; y++) {
+			complex_W[x][y] = complex_H[0][x + y * xr];
+		}
+	}
+}
