@@ -57,6 +57,59 @@ ophWRP::~ophWRP(void)
 {
 }
 
+void ophWRP::autoScaling(void)
+{
+	long long int Nx = context_.pixel_number.v[0];
+	long long int Ny = context_.pixel_number.v[1];
+
+	Real wave_len = context_.wave_length[0];
+	Real wpx = context_.pixel_pitch.v[0];//wrp pitch
+	Real wpy = context_.pixel_pitch.v[1];
+
+	Real size = Ny*wpy*0.8 / 2;
+
+	OphPointCloudData pc = obj_;
+
+	Real* x = new Real[n_points];
+	Real* y = new Real[n_points];
+
+	for (int i = 0; i < n_points; i++) {
+		uint idx = 3 * i;
+		x[i] = pc.vertex[idx + _X];
+		y[i] = pc.vertex[idx + _Y];
+	}
+
+	Real xmax = maxOfArr(x, n_points);
+	Real ymax = maxOfArr(y, n_points);
+
+	Real z_wrp = pc_config_.wrp_location;
+	Real distance = pc_config_.propagation_distance;
+
+	Real scale = 50;
+	Real zwa = scale * (context_.pixel_pitch.v[0] * context_.pixel_pitch.v[0]) / wave_len;
+	Real zmin = z_wrp - zwa;
+
+	int j;
+#ifdef _OPENMP
+	int num_threads = 0;
+#pragma omp parallel
+	{
+		num_threads = omp_get_num_threads(); // get number of Multi Threading
+#pragma omp for private(j)
+#endif
+		for (j = 0; j < n_points; ++j) { //Create Fringe Pattern
+			uint idx = 3 * j;
+			pc.vertex[idx + _X] = pc.vertex[idx + _X] / xmax * size;
+			pc.vertex[idx + _Y] = pc.vertex[idx + _Y] / ymax * size;
+			pc.vertex[idx + _Z] = zmin;
+
+		}
+#ifdef _OPENMP
+	}
+	std::cout << ">>> All " << num_threads << " threads" << std::endl;
+#endif
+
+}
 
 int ophWRP::loadPointCloud(const char* pc_file)
 {
@@ -72,32 +125,6 @@ bool ophWRP::readConfig(const char* cfg_file)
 		return false;
 
 	return true;
-}
-
-void ophWRP::encodeHologram(void)
-{
-	const int size = context_.pixel_number.v[_X] * context_.pixel_number.v[_Y];
-
-	/*	initialize	*/
-	int encode_size = size;
-	if (holo_encoded != nullptr) delete[] holo_encoded;
-	holo_encoded = new Real[size];
-	memset(holo_encoded, 0, sizeof(double) * size);
-
-	if (holo_normalized != nullptr) delete[] holo_normalized;
-	holo_normalized = new uchar[size];
-	memset(holo_normalized, 0, sizeof(uchar) * size);
-
-	int pnx = context_.pixel_number[_X];
-	int pny = context_.pixel_number[_Y];
-
-	int i = 0;
-#pragma omp parallel for private(i)	
-	for (i = 0; i < pnx*pny; i++) {
-		holo_encoded[i] = (*complex_H)[i].angle();
-	}
-
-
 }
 
 void ophWRP::normalize(void)
@@ -291,66 +318,6 @@ double ophWRP::calculateWRP(void)
 	LOG("%.5lfsec...hologram generated..\n", during);
 	return during;
 
-}
-
-void ophWRP::fresnelPropagation(Complex<Real>* in, Complex<Real>* out, Real distance) {
-
-	int Nx = context_.pixel_number[_X];
-	int Ny = context_.pixel_number[_Y];
-
-	Real dx = context_.pixel_pitch[_X];
-	Real dy = context_.pixel_pitch[_Y];
-
-	Real k = context_.k;
-
-	Real fx = 1 / (Nx*dx);
-	Real fy = 1 / (Ny*dy);
-
-	Complex<Real>* in2x = new Complex<Real>[Nx*Ny];
-	Complex<Real> zero(0, 0);
-	oph::memsetArr<Complex<Real>>(in2x, zero, 0, Nx*Ny);
-
-	int idxIn = 0;
-
-	for (idxIn = 0; idxIn<Nx*Ny; idxIn++)
-		in2x[idxIn] = in[idxIn];
-
-	Real* x = new Real[Nx*Ny];
-	Real* y = new Real[Nx*Ny];
-
-	int i = 0;
-	for (int idy = (1 - Ny / 2); idy < (1 + Ny / 2); idy++) {
-		for (int idx = (1 - Nx / 2); idx < (1 + Nx / 2); idx++) {
-			x[i] = idx;
-			y[i] = idy;
-			i++;
-		}
-	}
-
-	Complex<Real>* prop = new Complex<Real>[Nx*Ny];
-	fft2({ Nx, Ny }, in2x, OPH_FORWARD, OPH_ESTIMATE);
-	fftExecute(prop);
-
-	Complex<Real> part;
-
-	Complex<Real>* temp2 = new Complex<Real>[Nx*Ny];
-
-	for (int i = 0; i < Nx*Ny; i++) {
-
-		Real kk = M_PI*context_.wave_length[0] *distance *(x[i] * x[i] + y[i] * y[i]);
-		part._Val[_RE] = cos(k*distance)*cos(kk);
-		part._Val[_IM] = sin(k*distance)*sin(M_PI*context_.wave_length[0]*distance*(x[i] * x[i] + y[i] * y[i]));
-
-		temp2[i]._Val[_RE] = prop[i]._Val[_RE] * part._Val[_RE];
-		temp2[i]._Val[_IM] = prop[i]._Val[_IM] * part._Val[_IM];
-	}
-
-	fft2({ Nx, Ny }, temp2, OPH_BACKWARD, OPH_ESTIMATE);
-	fftExecute((*complex_H));
-
-	delete[] x;
-	delete[] y;
-	delete[] temp2;
 }
 
 void ophWRP::generateHologram(void)
