@@ -143,6 +143,7 @@ public:
 	void setScale(vec3 scale) { pc_config_.scale = scale; }
 	void setLocation(Real location) { pc_config_.wrp_location = location; }
 	void setDistance(Real distance) { pc_config_.propagation_distance; }
+	void autoScaling(void);
 
 	/**
 	* @brief override
@@ -169,14 +170,14 @@ public:
 
 	virtual void normalize(void);
 
-	void encodeHologram(void);
+//	void encodeHologram(void);
 	/**
 	* @brief Generate a WRP, main funtion.
 	* @return implement time (sec)
 	*/
 	double calculateWRP(void);
 
-	virtual void fresnelPropagation(Complex<Real>* in, Complex<Real>* out, Real distance);
+//	virtual void fresnelPropagation(Complex<Real>* in, Complex<Real>* out, Real distance);
 
 	/**
 	* @brief Generate a hologram, main funtion.
