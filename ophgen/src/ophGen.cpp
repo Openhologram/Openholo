@@ -624,7 +624,9 @@ void ophGen::normalizeEncoded() {
 	oph::normalize(holo_encoded, holo_normalized, encode_size.v[_X], encode_size.v[_Y]);
 }
 
-void ophGen::encoding(unsigned int ENCODE_FLAG) {
+void ophGen::encoding(unsigned int ENCODE_FLAG, Complex<Real>* holo) {
+
+	holo == nullptr ? holo = *complex_H : holo;
 
 	const int size = context_.pixel_number.v[_X] * context_.pixel_number.v[_Y];
 
@@ -655,32 +657,32 @@ void ophGen::encoding(unsigned int ENCODE_FLAG) {
 	{
 	case ENCODE_SIMPLENI:
 		LOG("Simple Numerical Interference Encoding..");
-		numericalInterference((*complex_H), holo_encoded, size);
+		numericalInterference((holo), holo_encoded, size);
 		LOG("Done.\n.");
 		break;
 	case ENCODE_REAL:
 		LOG("Real Part Encoding..");
-		realPart<Real>((*complex_H), holo_encoded, size);
+		realPart<Real>((holo), holo_encoded, size);
 		LOG("Done.\n.");
 		break;
 	case ENCODE_BURCKHARDT:
 		LOG("Burckhardt Encoding..");
-		burckhardt((*complex_H), holo_encoded, size);
+		burckhardt((holo), holo_encoded, size);
 		LOG("Done.\n.");
 		break;
 	case ENCODE_TWOPHASE:
 		LOG("Two Phase Encoding..");
-		twoPhaseEncoding((*complex_H), holo_encoded, size);
+		twoPhaseEncoding((holo), holo_encoded, size);
 		LOG("Done.\n.");
 		break;
 	case ENCODE_PHASE:
 		LOG("Phase Encoding..");
-		getPhase((*complex_H), holo_encoded, size);
+		getPhase((holo), holo_encoded, size);
 		LOG("Done.\n.");
 		break;
 	case ENCODE_AMPLITUDE:
 		LOG("Amplitude Encoding..");
-		getAmplitude((*complex_H), holo_encoded, size);
+		getAmplitude((holo), holo_encoded, size);
 		LOG("Done.\n.");
 		break;
 	case ENCODE_SSB:
@@ -695,8 +697,10 @@ void ophGen::encoding(unsigned int ENCODE_FLAG) {
 	}
 }
 
-void ophGen::encoding(unsigned int ENCODE_FLAG, unsigned int passband) {
-	
+void ophGen::encoding(unsigned int ENCODE_FLAG, unsigned int passband, Complex<Real>* holo) {
+
+	holo == nullptr ? holo = *complex_H : holo;
+
 	const int size = context_.pixel_number.v[_X] * context_.pixel_number.v[_Y];
 	
 	encode_size.v[_X] = context_.pixel_number.v[_X];
@@ -716,13 +720,13 @@ void ophGen::encoding(unsigned int ENCODE_FLAG, unsigned int passband) {
 	{
 	case ENCODE_SSB:
 		LOG("Single Side Band Encoding..");
-		singleSideBand((*complex_H), holo_encoded, context_.pixel_number, passband);
+		singleSideBand((holo), holo_encoded, context_.pixel_number, passband);
 		LOG("Done.");
 		break;
 	case ENCODE_OFFSSB:
 		LOG("Off-axis Single Side Band Encoding..");
 		freqShift((*complex_H), (*complex_H), context_.pixel_number, 0, 100);
-		singleSideBand((*complex_H), holo_encoded, context_.pixel_number, passband);
+		singleSideBand((holo), holo_encoded, context_.pixel_number, passband);
 		LOG("Done.\n");
 		break;
 	default:

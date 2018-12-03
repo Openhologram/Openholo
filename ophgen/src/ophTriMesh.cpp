@@ -506,44 +506,38 @@ void ophTri::generateAS(uint SHADING_FLAG) {
 	findNormals(SHADING_FLAG);
 
 	int j; // private variable for Multi Threading
-#ifdef _OPENMP
-#pragma omp parallel
-	{
-#pragma omp for private(j)
-#endif
-		for (j = 0; j < meshData->n_faces; j++) {
-			for_i(9,
-				mesh[i] = scaledMeshData[9 * j + i];
-			);
+	for (int j = 0; j < meshData->n_faces; j++) {
+		for_i(9,
+			mesh[i] = scaledMeshData[9 * j + i];
+		);
 
-			if (checkValidity(mesh, *(no + j)) != 1)
-				continue;
+		if (checkValidity(mesh, *(no + j)) != 1)
+			continue;
 
-			if (findGeometricalRelations(mesh, *(no + j)) != 1)
-				continue;
+		if (findGeometricalRelations(mesh, *(no + j)) != 1)
+			continue;
 
-			if (calFrequencyTerm() != 1)
-				continue;
+		if (calFrequencyTerm() != 1)
+			continue;
 
-			switch (SHADING_FLAG)
-			{
-			case SHADING_FLAT:
-				refAS_Flat(*(no + j));
-				break;
-			case SHADING_CONTINUOUS:
-				refAS_Continuous(j);
-				break;
-			default:
-				LOG("error: WRONG SHADING_FLAG\n");
-				cin.get();
-			}
-			if (refToGlobal() != 1)
-				continue;
-
-			char szLog[MAX_PATH];
-			sprintf(szLog, "%d / %d\n", j + 1, meshData->n_faces);
-			LOG(szLog);
+		switch (SHADING_FLAG)
+		{
+		case SHADING_FLAT:
+			refAS_Flat(*(no + j));
+			break;
+		case SHADING_CONTINUOUS:
+			refAS_Continuous(j);
+			break;
+		default:
+			LOG("error: WRONG SHADING_FLAG\n");
+			cin.get();
 		}
+		if (refToGlobal() != 1)
+			continue;
+
+		char szLog[MAX_PATH];
+		sprintf(szLog, "%d / %d\n", j + 1, meshData->n_faces);
+		LOG(szLog);
 	}
 	LOG("Angular Spectrum Generated...\n");
 

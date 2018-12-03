@@ -651,6 +651,8 @@ public:
 	Real generateHologram(uint diff_flag = PC_DIFF_RS);
 	void encodeHologram(vec2 band_limit = vec2(0.8, 0.5), vec2 spectrum_shift = vec2(0.0, 0.5));
 
+	virtual void encoding(unsigned int ENCODE_FLAG, unsigned int SSB_PASSBAND);
+
 private:
 	/**
 	* @brief Calculate Integral Fringe Pattern of 3D Point Cloud based Computer Generated Holography

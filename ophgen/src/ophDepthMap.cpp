@@ -238,7 +238,49 @@ void ophDepthMap::encodeHologram(void)
 {
 	LOG("Single Side Band Encoding..");
 	encodeSideBand(is_CPU, ivec2(0, 1));
-	LOG("Done.\n");
+	LOG("Done.\n.");
+}
+
+void ophDepthMap::encoding(unsigned int ENCODE_FLAG)
+{
+	fft2(context_.pixel_number, *complex_H, OPH_BACKWARD);
+	Complex<Real>* dst = new Complex<Real>[context_.pixel_number[_X] * context_.pixel_number[_Y]];
+	fftwShift(*complex_H, dst, context_.pixel_number[_X], context_.pixel_number[_Y], OPH_BACKWARD);
+
+	ophGen::encoding(ENCODE_FLAG, dst);
+
+	delete[] dst;
+}
+
+void ophDepthMap::encoding(unsigned int ENCODE_FLAG, unsigned int SSB_PASSBAND)
+{
+	fft2(context_.pixel_number, *complex_H, OPH_BACKWARD);
+	Complex<Real>* dst = new Complex<Real>[context_.pixel_number[_X] * context_.pixel_number[_Y]];
+	fftwShift(*complex_H, dst, context_.pixel_number[_X], context_.pixel_number[_Y], OPH_BACKWARD);
+
+	
+	if (ENCODE_FLAG == ophGen::ENCODE_SSB) {
+		ivec2 location;
+		switch (SSB_PASSBAND) {
+		case SSB_TOP:
+			location = ivec2(0, 1);
+			break;
+		case SSB_BOTTOM:
+			location = ivec2(0, -1);
+			break;
+		case SSB_LEFT:
+			location = ivec2(-1, 0);
+			break;
+		case SSB_RIGHT:
+			location = ivec2(1, 0);
+			break;
+		}
+
+		encodeSideBand(is_CPU, location);
+	}
+	else ophGen::encoding(ENCODE_FLAG, SSB_PASSBAND, dst);
+
+	delete[] dst;
 }
 
 int ophDepthMap::save(const char * fname, uint8_t bitsperpixel)

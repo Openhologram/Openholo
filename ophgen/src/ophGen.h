@@ -185,7 +185,7 @@ public:
 	*	else - (holosizeX, holosizeY)
 	* @overload
 	*/
-	void encoding(unsigned int ENCODE_FLAG);
+	virtual void encoding(unsigned int ENCODE_FLAG, Complex<Real>* holo = nullptr);
 	/*
 	* @brief	Encoding Functions
 	* @details
@@ -194,7 +194,7 @@ public:
 	* @param	SSB_PASSBAND : SSB_LEFT, SSB_RIGHT, SSB_TOP, SSB_BOTTOM
 	* @overload
 	*/
-	void encoding(unsigned int ENCODE_FLAG, unsigned int SSB_PASSBAND);
+	virtual void encoding(unsigned int ENCODE_FLAG, unsigned int SSB_PASSBAND, Complex<Real>* holo = nullptr);
 	void encoding();
 	enum SSB_PASSBAND { SSB_LEFT, SSB_RIGHT, SSB_TOP, SSB_BOTTOM };
 

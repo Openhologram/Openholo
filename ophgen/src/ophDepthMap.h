@@ -121,6 +121,8 @@ public:
 	Real generateHologram(void);
 
 	void encodeHologram(void);
+	virtual void encoding(unsigned int ENCODE_FLAG);
+	virtual void encoding(unsigned int ENCODE_FLAG, unsigned int SSB_PASSBAND);
 
 	virtual int save(const char* fname, uint8_t bitsperpixel = 24);
 
