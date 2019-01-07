@@ -177,7 +177,7 @@ public:
 	*	ENCODE_REAL			:	Real Part
 	*	ENCODE_SIMPLENI		:	Simple numerical interference
 	*	ENCODE_BURCKHARDT	:	Burckhardt encoding
-	*							@see C.B. Burckhardt, ¡°A simplification of Lee¡¯s method of generating holograms by computer,¡± Applied Optics, vol. 9, no. 8, pp. 1949-1949, 1970.
+	*							@see C.B. Burckhardt, "A simplification of Lee's method of generating holograms by computer," Applied Optics, vol. 9, no. 8, pp. 1949-1949, 1970.
 	*	ENCODE_TWOPHASE		:	Two Phase Encoding
 	* @return	holo_encoded
 	*	ENCODE_BURCKHARDT - (holosizeX*3, holosizeY)
@@ -197,6 +197,12 @@ public:
 	void encoding(unsigned int ENCODE_FLAG, unsigned int SSB_PASSBAND);
 	void encoding();
 	enum SSB_PASSBAND { SSB_LEFT, SSB_RIGHT, SSB_TOP, SSB_BOTTOM };
+
+public:
+	enum SLM_TYPE { SLM_PHASE, SLM_AMPLITUDE };
+	void testSLM(const char* encodedImage, unsigned int SLM_TYPE, Real pixelPitch, Real waveLength, Real distance);
+
+	void waveCarry(Real carryingAngleX, Real carryingAngleY);
 
 protected:
 	/**

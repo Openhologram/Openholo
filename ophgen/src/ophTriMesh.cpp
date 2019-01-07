@@ -371,10 +371,11 @@ void ophTri::generateMeshHologram(uint SHADING_FLAG) {
 	initializeAS();
 	generateAS(SHADING_FLAG);
 
-	(*complex_H) = angularSpectrum;
 	fft2(context_.pixel_number, angularSpectrum, OPH_BACKWARD, OPH_ESTIMATE);
 	fftwShift(angularSpectrum, (*complex_H), context_.pixel_number[_X], context_.pixel_number[_Y], OPH_BACKWARD);
 	/*fftExecute((*complex_H));*/
+
+	//fresnelPropagation(*(complex_H), *(complex_H), objShift[_Z]);
 
 	auto end = CUR_TIME;
 	auto during = ((std::chrono::duration<Real>)(end - start)).count();

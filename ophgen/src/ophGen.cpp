@@ -1009,6 +1009,108 @@ void ophGen::fresnelPropagation(Complex<Real>* in, Complex<Real>* out, Real dist
 	delete[] temp3;
 }
 
+void ophGen::testSLM(const char* encodedIMG, unsigned int SLM_TYPE, Real pixelPitch, Real waveLength, Real distance) {
+	
+	FILE *infile;
+	fopen_s(&infile, encodedIMG, "rb");
+	if (infile == nullptr) { LOG("No such file"); return; }
+
+	// BMP Header Information
+	fileheader hf;
+	bitmapinfoheader hInfo;
+	fread(&hf, sizeof(fileheader), 1, infile);
+	if (hf.signature[0] != 'B' || hf.signature[1] != 'M') { LOG("Not BMP File");  return; }
+
+	fread(&hInfo, sizeof(bitmapinfoheader), 1, infile);
+	fseek(infile, hf.fileoffset_to_pixelarray, SEEK_SET);
+
+	encode_size[_X] = hInfo.width;
+	encode_size[_Y] = hInfo.height;
+	
+	oph::uchar *img_tmp;
+	if (hInfo.imagesize == 0) {
+		img_tmp = new uchar[hInfo.width*hInfo.height*(hInfo.bitsperpixel / 8)];
+		fread(img_tmp, sizeof(oph::uchar), hInfo.width*hInfo.height*(hInfo.bitsperpixel / 8), infile);
+	}
+	else {
+		img_tmp = new uchar[hInfo.imagesize];
+		fread(img_tmp, sizeof(oph::uchar), hInfo.imagesize, infile);
+	}
+	fclose(infile);
+
+	LOG("File loaded...\n");
+	
+	Complex<Real>* encodedData = new Complex<Real>[encode_size[_X]*encode_size[_Y]];
+	memset(encodedData, (0,0), sizeof(Complex<Real>) * encode_size[_X] * encode_size[_Y]);
+
+	switch (SLM_TYPE)
+	{
+	case SLM_AMPLITUDE:
+		for (uint i = 0; i < encode_size[_X] * encode_size[_Y]; i++) {
+			encodedData[i][_RE] = (Real)img_tmp[i] / 255;
+		}
+		break;
+	case SLM_PHASE:
+		for (uint i = 0; i < encode_size[_X] * encode_size[_Y]; i++) {
+			Complex<Real> temp(0, 0);
+			temp[_IM] = -M_PI + 2 * M_PI*(Real)img_tmp[i] / 255;
+			encodedData[i] = exp(temp);
+		}
+		break;
+	default:
+		LOG("SLM_ERROR\n");
+		break;
+	}
+	context_.pixel_number = encode_size;
+	context_.pixel_pitch[_X] = pixelPitch;
+	context_.pixel_pitch[_Y] = pixelPitch;
+	context_.wave_length[0] = waveLength;
+	
+	Complex<Real>* reconData = new Complex<Real>[context_.pixel_number[_X] * context_.pixel_number[_Y]];
+	fresnelPropagation(encodedData, reconData, distance);
+
+	initialize();
+	for (uint i = 0; i < context_.pixel_number[_X] * context_.pixel_number[_Y]; i++) {
+		holo_encoded[i] = sqrt(reconData[i]._Val[_RE] * reconData[i]._Val[_RE] + reconData[i]._Val[_IM] * reconData[i]._Val[_IM]);
+	}
+
+	delete[] encodedData, reconData;
+}
+
+void ophGen::waveCarry(Real carryingAngleX, Real carryingAngleY) {
+
+	int Nx = context_.pixel_number[_X];
+	int Ny = context_.pixel_number[_Y];
+
+	Real dfx = 1 / context_.pixel_pitch[_X] / Nx;
+	Real dfy = 1 / context_.pixel_pitch[_Y] / Ny;
+	Real* fx = new Real[Nx*Ny];
+	Real* fy = new Real[Nx*Ny];
+	Real* fz = new Real[Nx*Ny];
+	uint i = 0;
+	for (int idxFy = Ny / 2; idxFy > -Ny / 2; idxFy--) {
+		for (int idxFx = -Nx / 2; idxFx < Nx / 2; idxFx++) {
+			fx[i] = idxFx*dfx;
+			fy[i] = idxFy*dfy;
+			fz[i] = sqrt((1 / context_.wave_length[0])*(1 / context_.wave_length[0]) - fx[i] * fx[i] - fy[i] * fy[i]);
+
+			i++;
+		}
+	}
+
+	Complex<Real>* carrier = new Complex<Real>[context_.pixel_number[_X] * context_.pixel_number[_Y]];
+
+	for (int i = 0; i < context_.pixel_number[_X] * context_.pixel_number[_Y]; i++) {
+		carrier[i][_RE] = 0;
+		carrier[i][_IM] = 0.01 * tan(carryingAngleX)*fx[i] + 0.01 * tan(carryingAngleY)*fy[i];
+		(*complex_H)[i] = (*complex_H)[i] * exp(carrier[i]);
+	}
+
+	delete[] fx;
+	delete[] fy;
+	delete[] fz;
+	delete[] carrier;
+}
 
 void ophGen::encodeSideBand(bool bCPU, ivec2 sig_location)
 {
