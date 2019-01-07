@@ -106,9 +106,12 @@ xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)Reference\include\"
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="src\ophACPAS.h" />
     <ClInclude Include="src\ophDepthMap.h" />
     <ClInclude Include="src\ophGen.h" />
     <ClInclude Include="src\ophLightField.h" />
+    <ClInclude Include="src\ophLUT.h" />
+    <ClInclude Include="src\ophPAS.h" />
     <ClInclude Include="src\ophPointCloud.h" />
     <ClInclude Include="src\ophTriMesh.h" />
     <ClInclude Include="src\ophPointCloud_GPU.h" />
@@ -116,11 +119,14 @@ xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)Reference\include\"
     <ClInclude Include="src\tinyxml2.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\ophACPAS.cpp" />
     <ClCompile Include="src\ophDepthMap.cpp" />
     <ClCompile Include="src\ophDepthMap_CPU.cpp" />
     <ClCompile Include="src\ophDepthMap_GPU.cpp" />
     <ClCompile Include="src\ophGen.cpp" />
     <ClCompile Include="src\ophLightField.cpp" />
+    <ClCompile Include="src\ophLUT.cpp" />
+    <ClCompile Include="src\ophPAS.cpp" />
     <ClCompile Include="src\ophPointCloud.cpp" />
     <ClCompile Include="src\ophPointCloud_GPU.cpp" />
     <ClCompile Include="src\ophTriMesh.cpp">

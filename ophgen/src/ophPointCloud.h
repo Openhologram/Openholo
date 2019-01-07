@@ -548,6 +548,10 @@ Fresnel diffraction Anti-alliasing
 class GEN_DLL ophPointCloud : public ophGen
 {
 public:
+	enum PC_DIFF_FLAG {
+		PC_DIFF_RS,
+		PC_DIFF_FRESNEL,
+	};
 	/**
 	* @brief Constructor
 	* @details Initialize variables.
@@ -646,11 +650,15 @@ public:
 
 	/**
 	* @brief Generate a hologram, main funtion.
+	* @param Select diffraction flag\n
+	*		PC_DIFF_RS: Diffraction using R-S integral\n
+	*		PC_DIFF_FRESNEL: Diffraction using Fresnel integral
 	* @return implement time (sec)
 	*/
 	Real generateHologram(uint diff_flag = PC_DIFF_RS);
 	void encodeHologram(vec2 band_limit = vec2(0.8, 0.5), vec2 spectrum_shift = vec2(0.0, 0.5));
 
+	virtual void encoding(unsigned int ENCODE_FLAG);
 	virtual void encoding(unsigned int ENCODE_FLAG, unsigned int SSB_PASSBAND);
 
 private:

@@ -117,7 +117,11 @@ public:
 	void setMode(bool is_CPU);
 	bool readConfig(const char* fname);
 	bool readImageDepth(const char* source_folder, const char* img_prefix, const char* depth_img_prefix);
-
+	
+	/**
+	* @brief Generate a hologram, main funtion. When the calculation is finished, the angular spectrum is performed.
+	* @return implement time (sec)
+	*/
 	Real generateHologram(void);
 
 	void encodeHologram(void);

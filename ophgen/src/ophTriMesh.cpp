@@ -505,7 +505,7 @@ void ophTri::generateAS(uint SHADING_FLAG) {
 
 	findNormals(SHADING_FLAG);
 
-	int j; // private variable for Multi Threading
+	//int j; // private variable for Multi Threading
 	for (int j = 0; j < meshData->n_faces; j++) {
 		for_i(9,
 			mesh[i] = scaledMeshData[9 * j + i];

@@ -62,13 +62,6 @@ struct OphDepthMapConfig;
 struct OphMeshData;
 struct OphWRPConfig;
 
-enum PC_DIFF_FLAG {
-	//PC_DIFF_RS_ENCODED,
-	//PC_DIFF_FRESNEL_ENCODED,
-	PC_DIFF_RS/*_NOT_ENCODED*/,
-	PC_DIFF_FRESNEL/*_NOT_ENCODED*/,
-};
-
 
 
 

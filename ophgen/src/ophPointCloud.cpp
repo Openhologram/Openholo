@@ -197,10 +197,15 @@ void ophPointCloud::encodeHologram(const vec2 band_limit, const vec2 spectrum_sh
 	LOG("Done.\n");
 }
 
+void ophPointCloud::encoding(unsigned int ENCODE_FLAG)
+{
+	ophGen::encoding(ENCODE_FLAG);
+}
+
 void ophPointCloud::encoding(unsigned int ENCODE_FLAG, unsigned int SSB_PASSBAND)
 {
 	if (ENCODE_FLAG == ENCODE_SSB)  encodeHologram();
-	else  ophGen::encoding(ENCODE_FLAG, SSB_PASSBAND);
+	else if (ENCODE_FLAG == ENCODE_OFFSSB) ophGen::encoding(ENCODE_FLAG, SSB_PASSBAND);
 }
 
 void ophPointCloud::genCghPointCloudCPU(uint diff_flag)

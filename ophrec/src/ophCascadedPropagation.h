@@ -142,11 +142,11 @@ Joseph W. Goodman, "Introduction to Fourier Optics 3rd Edition"
 A. Schwerdtner, R. Haussler, and N. Leister, "Large holographic displays for real-time applications," in Proc. SPIE, 2008, vol. 6912, p. 69120T
 
 Here, the source wavefield is:
-![](@ref pics/ophdis/cascadedpropagation/DMDG_RGB_CP.png)
+![](@ref pics/ophdis/cascadedpropagation/dmdg_rgb_cp.png)
 \n
 
 And the resulting wavefield at the retina is:
-![](@ref pics/ophdis/cascadedpropagation/intensityRGB.png)
+![](@ref pics/ophdis/cascadedpropagation/intensityrgb.png)
 
 */
 //! @} casprop

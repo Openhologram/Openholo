@@ -58,6 +58,15 @@
     <ClInclude Include="src\ophPointCloud_GPU.h">
       <Filter>_1_Generation\_ophPointCloud</Filter>
     </ClInclude>
+    <ClInclude Include="src\ophACPAS.h">
+      <Filter>_1_Generation\_ophACPAS</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ophLUT.h">
+      <Filter>_1_Generation\_ophLUT</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ophPAS.h">
+      <Filter>_1_Generation\_ophPAS</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\ophDepthMap_GPU.cpp">
@@ -87,6 +96,15 @@
     </ClCompile>
     <ClCompile Include="src\ophPointCloud_GPU.cpp">
       <Filter>_1_Generation\_ophPointCloud</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ophACPAS.cpp">
+      <Filter>_1_Generation\_ophACPAS</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ophLUT.cpp">
+      <Filter>_1_Generation\_ophLUT</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ophPAS.cpp">
+      <Filter>_1_Generation\_ophPAS</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
