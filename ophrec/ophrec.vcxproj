@@ -11,15 +11,21 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\ophCascadedPropagation.cpp" />
     <ClCompile Include="src\ophRec.cpp" />
+    <ClCompile Include="src\ophWaveAberration.cpp" />
+    <ClCompile Include="src\tinyxml2.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\ophCascadedPropagation.h" />
     <ClInclude Include="src\ophRec.h" />
+    <ClInclude Include="src\ophWaveAberration.h" />
+    <ClInclude Include="src\tinyxml2.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{D0F04385-3806-46B2-93C2-26ECED076074}</ProjectGuid>
     <RootNamespace>ophrec</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.17134.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
     <ProjectName>ophrec</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />

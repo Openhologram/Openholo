@@ -62,13 +62,6 @@ struct OphDepthMapConfig;
 struct OphMeshData;
 struct OphWRPConfig;
 
-enum PC_DIFF_FLAG {
-	//PC_DIFF_RS_ENCODED,
-	//PC_DIFF_FRESNEL_ENCODED,
-	PC_DIFF_RS/*_NOT_ENCODED*/,
-	PC_DIFF_FRESNEL/*_NOT_ENCODED*/,
-};
-
 
 
 
@@ -185,7 +178,7 @@ public:
 	*	else - (holosizeX, holosizeY)
 	* @overload
 	*/
-	void encoding(unsigned int ENCODE_FLAG);
+	virtual void encoding(unsigned int ENCODE_FLAG, Complex<Real>* holo = nullptr);
 	/*
 	* @brief	Encoding Functions
 	* @details
@@ -194,7 +187,7 @@ public:
 	* @param	SSB_PASSBAND : SSB_LEFT, SSB_RIGHT, SSB_TOP, SSB_BOTTOM
 	* @overload
 	*/
-	void encoding(unsigned int ENCODE_FLAG, unsigned int SSB_PASSBAND);
+	virtual void encoding(unsigned int ENCODE_FLAG, unsigned int SSB_PASSBAND, Complex<Real>* holo = nullptr);
 	void encoding();
 	enum SSB_PASSBAND { SSB_LEFT, SSB_RIGHT, SSB_TOP, SSB_BOTTOM };
 
@@ -214,6 +207,7 @@ protected:
 	ivec2 encode_size;
 	int ENCODE_METHOD;
 	int SSB_PASSBAND;
+
 public:
 	void setEncodeMethod(int in) { ENCODE_METHOD = in; }
 	void setSSBPassBand(int in){ SSB_PASSBAND = in; }

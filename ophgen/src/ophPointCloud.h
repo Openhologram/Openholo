@@ -548,6 +548,10 @@ Fresnel diffraction Anti-alliasing
 class GEN_DLL ophPointCloud : public ophGen
 {
 public:
+	enum PC_DIFF_FLAG {
+		PC_DIFF_RS,
+		PC_DIFF_FRESNEL,
+	};
 	/**
 	* @brief Constructor
 	* @details Initialize variables.
@@ -604,9 +608,9 @@ public:
 	* @param Amplitude 3D Point Cloud Model Amplitude Data of Point-Based Light Wave
 	* @param Phase 3D Point Cloud Model Phase Data of Point-Based Light Wave
 	*/
-	inline void getModelLocation(Real *vertex) { vertex = pc_data_.vertex; }
-	inline void getModelColor(Real *color) { color = pc_data_.color; }
-	inline void getModelPhase(Real *phase) { phase = pc_data_.phase; }
+	inline const Real* getModelLocation(Real *vertex) { vertex != NULL ? vertex = pc_data_.vertex : vertex; return pc_data_.vertex; }
+	inline const Real* getModelColor(Real *color) { color != NULL ? color = pc_data_.color : color; return pc_data_.color; }
+	inline const Real* getModelPhase(Real *phase) { phase != NULL ? phase = pc_data_.phase : phase; return pc_data_.phase; }
 	inline int getNumberOfPoints() { return n_points; }
 
 public:
@@ -646,10 +650,16 @@ public:
 
 	/**
 	* @brief Generate a hologram, main funtion.
+	* @param Select diffraction flag\n
+	*		PC_DIFF_RS: Diffraction using R-S integral\n
+	*		PC_DIFF_FRESNEL: Diffraction using Fresnel integral
 	* @return implement time (sec)
 	*/
 	Real generateHologram(uint diff_flag = PC_DIFF_RS);
 	void encodeHologram(vec2 band_limit = vec2(0.8, 0.5), vec2 spectrum_shift = vec2(0.0, 0.5));
+
+	virtual void encoding(unsigned int ENCODE_FLAG);
+	virtual void encoding(unsigned int ENCODE_FLAG, unsigned int SSB_PASSBAND);
 
 private:
 	/**

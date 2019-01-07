@@ -47,6 +47,7 @@
 #include "include.h"
 
 #include <sys.h>
+#include <cufft.h>
 
 ophPointCloud::ophPointCloud(void)
 	: ophGen()
@@ -127,7 +128,10 @@ void ophPointCloud::encodeHologram(const vec2 band_limit, const vec2 spectrum_sh
 		return;
 	}
 
+	LOG("Single Side Band Encoding..");
+
 	ivec2 pn = context_.pixel_number;
+	encode_size = pn;
 	vec2 pp = context_.pixel_pitch;
 	vec2 ss = context_.ss;
 
@@ -189,6 +193,19 @@ void ophPointCloud::encodeHologram(const vec2 band_limit, const vec2 spectrum_sh
 	delete[] xx_o;
 	delete[] y_o;
 	delete[] yy_o;
+
+	LOG("Done.\n");
+}
+
+void ophPointCloud::encoding(unsigned int ENCODE_FLAG)
+{
+	ophGen::encoding(ENCODE_FLAG);
+}
+
+void ophPointCloud::encoding(unsigned int ENCODE_FLAG, unsigned int SSB_PASSBAND)
+{
+	if (ENCODE_FLAG == ENCODE_SSB)  encodeHologram();
+	else if (ENCODE_FLAG == ENCODE_OFFSSB) ophGen::encoding(ENCODE_FLAG, SSB_PASSBAND);
 }
 
 void ophPointCloud::genCghPointCloudCPU(uint diff_flag)

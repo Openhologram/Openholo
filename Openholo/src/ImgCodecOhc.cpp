@@ -74,7 +74,7 @@ oph::ImgCodecOhc::ImgCodecOhc(const std::string &_fname) {
 	this->setFileName(_fname);
 }
 
-oph::ImgCodecOhc::ImgCodecOhc(const std::string &_fname, const OHCheader &_Header) {
+oph::ImgCodecOhc::ImgCodecOhc(const std::string &_fname, const ohcHeader &_Header) {
 	this->initOHCheader();
 	this->setFileName(_fname);
 	this->setOHCheader(_Header);
@@ -84,7 +84,7 @@ void oph::ImgCodecOhc::initOHCheader() {
 	if (this->Header != nullptr)
 		delete this->Header;
 
-	this->Header = new OHCheader();
+	this->Header = new ohcHeader();
 }
 
 bool oph::ImgCodecOhc::setFileName(const std::string &_fname) {
@@ -93,23 +93,23 @@ bool oph::ImgCodecOhc::setFileName(const std::string &_fname) {
 	return true;
 }
 
-bool oph::ImgCodecOhc::setOHCheader(const OHCheader &_Header) {
+bool oph::ImgCodecOhc::setOHCheader(const ohcHeader &_Header) {
 	if (this->Header != nullptr)
 		delete this->Header;
 
-	this->Header = new OHCheader(_Header);
+	this->Header = new ohcHeader(_Header);
 
 	return true;
 }
 
-void oph::ImgCodecOhc::getOHCheader(OHCheader &_Header) {
+void oph::ImgCodecOhc::getOHCheader(ohcHeader &_Header) {
 	if (this->Header == nullptr)
 		LOG("OHC CODEC : No Header Data.");
 	else
 		_Header = *(this->Header);
 }
 
-void oph::ImgCodecOhc::getFieldInfo(OHCFIELDINFOHEADER &_FieldInfo, std::vector<double_t> &_wavlenTable) {
+void oph::ImgCodecOhc::getFieldInfo(ohcFieldInfoHeader &_FieldInfo, std::vector<double_t> &_wavlenTable) {
 	if (this->Header == nullptr)
 		LOG("OHC CODEC : No Header Data.");
 	else {
@@ -174,7 +174,7 @@ oph::ImgDecoderOhc::ImgDecoderOhc(const std::string &_fname)
 {
 }
 
-oph::ImgDecoderOhc::ImgDecoderOhc(const std::string &_fname, const OHCheader &_Header)
+oph::ImgDecoderOhc::ImgDecoderOhc(const std::string &_fname, const ohcHeader &_Header)
 	: ImgCodecOhc(_fname, _Header)
 {
 }
@@ -223,7 +223,7 @@ vec2 oph::ImgDecoderOhc::getPixelPitch() {
 LenUnit oph::ImgDecoderOhc::getPixelPitchUnit() {
 	if ((this->Header == nullptr) || !this->bLoadFile) {
 		LOG("OHC CODEC Error : No loaded data.");
-		return (LenUnit)-1;
+		return LenUnit::Null;
 	}
 	else
 		return FldInfo.pitchUnit;
@@ -241,7 +241,7 @@ uint oph::ImgDecoderOhc::getNumOfWavlen() {
 ColorType oph::ImgDecoderOhc::getColorType() {
 	if ((this->Header == nullptr) || !this->bLoadFile) {
 		LOG("OHC CODEC Error : No loaded data.");
-		return (ColorType)-1;
+		return ColorType::Null;
 	}
 	else
 		return FldInfo.clrType;
@@ -250,7 +250,7 @@ ColorType oph::ImgDecoderOhc::getColorType() {
 ColorArran oph::ImgDecoderOhc::getColorArrange() {
 	if ((this->Header == nullptr) || !this->bLoadFile) {
 		LOG("OHC CODEC Error : No loaded data.");
-		return (ColorArran)-1;
+		return ColorArran::Null;
 	}
 	else
 		return FldInfo.clrArrange;
@@ -259,7 +259,7 @@ ColorArran oph::ImgDecoderOhc::getColorArrange() {
 LenUnit oph::ImgDecoderOhc::getUnitOfWavlen() {
 	if ((this->Header == nullptr) || !this->bLoadFile) {
 		LOG("OHC CODEC Error : No loaded data.");
-		return (LenUnit)-1;
+		return LenUnit::Null;
 	}
 	else
 		return FldInfo.wavlenUnit;
@@ -268,7 +268,7 @@ LenUnit oph::ImgDecoderOhc::getUnitOfWavlen() {
 CompresType oph::ImgDecoderOhc::getCompressedFormatType() {
 	if ((this->Header == nullptr) || !this->bLoadFile) {
 		LOG("OHC CODEC Error : No loaded data.");
-		return (CompresType)-1;
+		return CompresType::Null;
 	}
 	else
 		return FldInfo.comprsType;
@@ -298,7 +298,7 @@ bool oph::ImgDecoderOhc::load() {
 	bool isOpen = File.is_open();
 	if (this->File.is_open()) {
 		if (this->Header == nullptr)
-			this->Header = new OHCheader();
+			this->Header = new ohcHeader();
 
 
 		// Read OHC File Header
@@ -317,7 +317,7 @@ bool oph::ImgDecoderOhc::load() {
 			std::cout << "Reading Openholo Complex Field File..." << std::endl << fname << std::endl;
 			std::cout << "OHC File was made on OpenHolo version " << (int)FHeader.fileVersionMajor << "." << (int)FHeader.fileVersionMinor << "..." << std::endl;
 		}
-		//this->File.read((char*)&FHeader, sizeof(OHCheader));
+		//this->File.read((char*)&FHeader, sizeof(ohcHeader));
 		//if ((FHeader.fileSignature[0] != FMT_SIGN_OHC[0]) || (FHeader.fileSignature[1] != FMT_SIGN_OHC[1])) {
 		//	LOG("Not OHC File");
 		//	return false;
@@ -358,7 +358,7 @@ bool oph::ImgDecoderOhc::load() {
 		FldInfo.bPhaseCode = (BPhaseCode)bPhaseCode;
 		FldInfo.comprsType = (CompresType)comprsType;
 
-		//this->File.read((char*)&FldInfo, sizeof(OHCFIELDINFOHEADER));
+		//this->File.read((char*)&FldInfo, sizeof(ohcFieldInfoHeader));
 		if (FldInfo.fldSize == 0) {
 			LOG("Error : No Field Data");
 			this->File.close();
@@ -384,7 +384,7 @@ bool oph::ImgDecoderOhc::load() {
 		case DataType::Float32:
 			ok = decodeFieldData();
 			break;
-		case DataType::CmprFmt: //파일 링크 아님, 이미지 코덱을 직접 저장하는 방식
+		case DataType::CmprFmt:
 			LOG("Error : Compressed Image Format Decoding is Not Yet supported...");
 			this->File.close();
 			return false;
@@ -426,7 +426,7 @@ bool oph::ImgDecoderOhc::load() {
 		//case DataType::Uint64:
 		//	ok = decodeFieldData<uint64_t>();
 		//	break;
-		//case DataType::CmprFmt: //파일 링크 아님, 이미지 코덱을 직접 저장하는 방식
+		//case DataType::CmprFmt:
 		//	LOG("Error : Compressed Image Format Decoding is Not Yet supported...");
 		//	this->File.close();
 		//	return false;
@@ -523,7 +523,7 @@ bool oph::ImgDecoderOhc::decodeFieldData()
 				for (int clrChnl = 0; clrChnl < n_wavlens; ++clrChnl) { // RGB is wavlenNum == 3
 					ulonglong idx_sqtlChnl = n_wavlens * idx + clrChnl;
 
-					if (FldInfo.clrArrange == ColorArran::SequentialRGB) {
+					if (FldInfo.clrArrange == ColorArran::SeqtChanl) {
 						switch (FldInfo.fldCodeType) {
 						case FldCodeType::RI: {
 							if (FldInfo.cmplxFldType == DataType::Float32) {
@@ -563,7 +563,7 @@ bool oph::ImgDecoderOhc::decodeFieldData()
 						}
 						}
 					}
-					else if (FldInfo.clrArrange == ColorArran::EachChannel) {
+					else if (FldInfo.clrArrange == ColorArran::EachChanl) {
 						ulonglong idx_eachChnl = idx + clrChnl * n_pixels;
 
 						switch (FldInfo.fldCodeType) {
@@ -610,7 +610,7 @@ bool oph::ImgDecoderOhc::decodeFieldData()
 		}
 		return true;
 	}
-	else if (FldInfo.fldStore == FldStore::LinkFile) { // 데이터 타입으로 파일 직접 저장 말고, 이미지 포맷 링크 방식
+	else if (FldInfo.fldStore == FldStore::LinkFile) {
 		LOG("Error : Link Image File Decoding is Not Yet supported...");
 		return false;
 	}
@@ -803,7 +803,7 @@ bool oph::ImgDecoderOhc::decodeFieldData()
 //		}
 //		return true;
 //	}
-//	else if (FldInfo.fldStore == FldStore::LinkFile) { // 데이터 타입으로 파일 직접 저장 말고, 이미지 포맷 링크 방식
+//	else if (FldInfo.fldStore == FldStore::LinkFile) {
 //		LOG("Error : Link Image File Decoding is Not Yet supported...");
 //		return false;
 //	}
@@ -834,7 +834,7 @@ oph::ImgEncoderOhc::ImgEncoderOhc()
 	initOHCheader();
 }
 
-oph::ImgEncoderOhc::ImgEncoderOhc(const std::string &_fname, const OHCheader &_Header)
+oph::ImgEncoderOhc::ImgEncoderOhc(const std::string &_fname, const ohcHeader &_Header)
 	: ImgCodecOhc(_fname, _Header)
 {
 	initOHCheader();
@@ -857,7 +857,7 @@ void oph::ImgEncoderOhc::initOHCheader() {
 	if (this->Header != nullptr)
 		delete this->Header;
 
-	this->Header = new OHCheader();
+	this->Header = new ohcHeader();
 
 	//Set Initial Header of Encoder
 	FHeader.fileSignature[0] = FMT_SIGN_OHC[0];
@@ -869,17 +869,17 @@ void oph::ImgEncoderOhc::initOHCheader() {
 
 	//Set Initial Complex Field Information for Encoder
 	FldInfo.headerSize = 0;
-	FldInfo.pitchUnit = LenUnit::m;
+	FldInfo.pitchUnit = LenUnit::Null;
 	FldInfo.wavlenNum = 0;
 	FldInfo.clrType = ColorType::MLT;
-	FldInfo.clrArrange = ColorArran::EachChannel;
+	FldInfo.clrArrange = ColorArran::EachChanl;
 	FldInfo.wavlenUnit = LenUnit::m;
 	FldInfo.fldStore = FldStore::Directly;
 	FldInfo.fldCodeType = FldCodeType::RI;
 	FldInfo.bPhaseCode = BPhaseCode::NotEncoded;
 	FldInfo.phaseCodeMin = -1.0;
 	FldInfo.phaseCodeMax = 1.0;
-	FldInfo.comprsType = (CompresType)-1;
+	FldInfo.comprsType = CompresType::Null;
 
 	if (std::is_same<double, Real>::value)
 		FldInfo.cmplxFldType = DataType::Float64;
@@ -1066,10 +1066,12 @@ bool oph::ImgEncoderOhc::save() {
 	//fopen_s(&fp, this->fname.c_str(), "w");
 	//if (fp == nullptr) return false;
 
+	LOG("Saving...%s...", fname.c_str());
+	auto start = CUR_TIME;
 	//if (fp) {
 	if (this->File.is_open()) {
 		if (this->Header == nullptr) {
-			this->Header = new OHCheader();
+			this->Header = new ohcHeader();
 			this->initOHCheader();
 		}
 
@@ -1080,7 +1082,7 @@ bool oph::ImgEncoderOhc::save() {
 		case DataType::Float32:
 			dataSize = encodeFieldData();
 			break;
-		case DataType::CmprFmt: // 파일 링크 아님, 이미지 코덱을 직접 저장하는 방식
+		case DataType::CmprFmt:
 			LOG("Error : Compressed Image Format Encoding is Not Yet supported...");
 			//fclose(fp);
 			this->File.close();
@@ -1124,7 +1126,7 @@ bool oph::ImgEncoderOhc::save() {
 		//case DataType::Uint64:
 		//	dataSize = encodeFieldData<uint64_t>();
 		//	break;
-		//case DataType::CmprFmt: // 파일 링크 아님, 이미지 코덱을 직접 저장하는 방식
+		//case DataType::CmprFmt:
 		//	LOG("Error : Compressed Image Format Encoding is Not Yet supported...");
 		//	//fclose(fp);
 		//	this->File.close();
@@ -1149,17 +1151,17 @@ bool oph::ImgEncoderOhc::save() {
 		}
 		else {
 			if (FldInfo.cmplxFldType != DataType::CmprFmt)
-				FldInfo.comprsType = (CompresType)-1;
+				FldInfo.comprsType = CompresType::Null;
 
-			FldInfo.headerSize = (uint32_t)(sizeof(OHCFIELDINFOHEADER) + wavlenTableSize);
+			FldInfo.headerSize = (uint32_t)(sizeof(ohcFieldInfoHeader) + wavlenTableSize);
 			FldInfo.fldSize = dataSize;
-			FHeader.fileSize = sizeof(OHCFILEHEADER) + FldInfo.headerSize + FldInfo.fldSize;
-			FHeader.fileOffBytes = sizeof(OHCFILEHEADER) + FldInfo.headerSize;
+			FHeader.fileSize = sizeof(ohcFileHeader) + FldInfo.headerSize + FldInfo.fldSize;
+			FHeader.fileOffBytes = sizeof(ohcFileHeader) + FldInfo.headerSize;
 		}
 
 		// write File Header
-		//fwrite(&FHeader, 1, sizeof(OHCheader), fp);
-		//this->File.write((char*)&FHeader, sizeof(OHCheader));
+		//fwrite(&FHeader, 1, sizeof(ohcHeader), fp);
+		//this->File.write((char*)&FHeader, sizeof(ohcHeader));
 		File << FHeader.fileSignature[0] << FHeader.fileSignature[1] << "\n";
 		File << FHeader.fileSize << "\n";
 		File << FHeader.fileVersionMajor << "\n";
@@ -1169,8 +1171,8 @@ bool oph::ImgEncoderOhc::save() {
 		File << FHeader.fileOffBytes << "\n";
 
 		// write Field Info Header
-		//fwrite(&FldInfo, 1, sizeof(OHCFIELDINFOHEADER), fp);
-		//this->File.write((char*)&FldInfo, sizeof(OHCFIELDINFOHEADER));
+		//fwrite(&FldInfo, 1, sizeof(ohcFieldInfoHeader), fp);
+		//this->File.write((char*)&FldInfo, sizeof(ohcFieldInfoHeader));
 		File << FldInfo.headerSize << "\n";
 		File << FldInfo.pxNumX << "\n";
 		File << FldInfo.pxNumY << "\n";
@@ -1200,7 +1202,7 @@ bool oph::ImgEncoderOhc::save() {
 
 		// write Complex Field Data
 		//fwrite(this->buf, 1, sizeof(dataSize), fp);
-		if (FldInfo.cmplxFldType == DataType::Float32) 
+		if (FldInfo.cmplxFldType == DataType::Float32)
 		{
 			size_t dataTypeSize = sizeof(float);
 			ulonglong maxIdx = dataSize / dataTypeSize;
@@ -1209,7 +1211,7 @@ bool oph::ImgEncoderOhc::save() {
 
 			//this->File.write((char*)this->buf_f32, sizeof(dataSize));
 		}
-		else if (FldInfo.cmplxFldType == DataType::Float64) 
+		else if (FldInfo.cmplxFldType == DataType::Float64)
 		{
 			size_t dataTypeSize = sizeof(double);
 			ulonglong maxIdx = dataSize / dataTypeSize;
@@ -1222,6 +1224,12 @@ bool oph::ImgEncoderOhc::save() {
 
 		//fclose(fp);
 		this->File.close();
+
+		auto end = CUR_TIME;
+
+		auto during = ((std::chrono::duration<Real>)(end - start)).count();
+
+		LOG("%.5lfsec...done\n", during);
 		return true;
 	}
 	else {
@@ -1264,7 +1272,7 @@ uint64_t oph::ImgEncoderOhc::encodeFieldData()
 				for (int clrChnl = 0; clrChnl < n_wavlens; ++clrChnl) { // RGB is wavlenNum == 3
 					ulonglong idx_sqtlChnl = n_wavlens * idx + clrChnl;
 
-					if (FldInfo.clrArrange == ColorArran::SequentialRGB) {
+					if (FldInfo.clrArrange == ColorArran::SeqtChanl) {
 						switch (FldInfo.fldCodeType) {
 						case FldCodeType::RI: {
 							if (FldInfo.cmplxFldType == DataType::Float32) {
@@ -1316,7 +1324,7 @@ uint64_t oph::ImgEncoderOhc::encodeFieldData()
 						}
 						}
 					}
-					else if (FldInfo.clrArrange == ColorArran::EachChannel) {
+					else if (FldInfo.clrArrange == ColorArran::EachChanl) {
 						ulonglong idx_eachChnl = idx + clrChnl * n_pixels;
 
 						switch (FldInfo.fldCodeType) {
@@ -1375,7 +1383,7 @@ uint64_t oph::ImgEncoderOhc::encodeFieldData()
 		}
 		return dataSizeBytes;
 	}
-	else if (FldInfo.fldStore == FldStore::LinkFile) { // 데이터 타입으로 파일 직접 저장 말고, 이미지 포맷 링크 방식
+	else if (FldInfo.fldStore == FldStore::LinkFile) {
 		LOG("Error : Link Image File Encoding is Not Yet supported...");
 		return dataSizeBytes;
 	}
@@ -1418,7 +1426,7 @@ uint64_t oph::ImgEncoderOhc::encodeFieldData()
 //				for (int clrChnl = 0; clrChnl < n_wavlens; ++clrChnl) { // RGB is wavlenNum == 3
 //					ulonglong idx_sqtlChnl = n_wavlens * idx + clrChnl;
 //
-//					if (FldInfo.clrArrange == ColorArran::SequentialRGB) {
+//					if (FldInfo.clrArrange == ColorArran::SeqtChanl) {
 //						switch (FldInfo.fldCodeType) {
 //						case FldCodeType::RI: {
 //							if (!bIsInteger) { // floating type
@@ -1483,7 +1491,7 @@ uint64_t oph::ImgEncoderOhc::encodeFieldData()
 //						}
 //						}
 //					}
-//					else if (FldInfo.clrArrange == ColorArran::EachChannel) {
+//					else if (FldInfo.clrArrange == ColorArran::EachChanl) {
 //						ulonglong idx_eachChnl = idx + clrChnl * n_pixels;
 //
 //						switch (FldInfo.fldCodeType) {
@@ -1555,7 +1563,7 @@ uint64_t oph::ImgEncoderOhc::encodeFieldData()
 //		}
 //		return dataSizeBytes;
 //	}
-//	else if (FldInfo.fldStore == FldStore::LinkFile) { // 데이터 타입으로 파일 직접 저장 말고, 이미지 포맷 링크 방식
+//	else if (FldInfo.fldStore == FldStore::LinkFile) {
 //		LOG("Error : Link Image File Encoding is Not Yet supported...");
 //		return dataSizeBytes;
 //	}

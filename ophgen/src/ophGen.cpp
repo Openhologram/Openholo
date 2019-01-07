@@ -130,39 +130,56 @@ bool ophGen::readConfig(const char* fname, OphPointCloudConfig& configdata)
 	xml_node = xml_doc.FirstChild();
 
 #if REAL_IS_DOUBLE & true
-	(xml_node->FirstChildElement("ScalingXofPointCloud"))->QueryDoubleText(&configdata.scale[_X]);
-	(xml_node->FirstChildElement("ScalingYofPointCloud"))->QueryDoubleText(&configdata.scale[_Y]);
-	(xml_node->FirstChildElement("ScalingZofPointCloud"))->QueryDoubleText(&configdata.scale[_Z]);
-	(xml_node->FirstChildElement("OffsetInDepth"))->QueryDoubleText(&configdata.offset_depth);
-	(xml_node->FirstChildElement("SLMpixelPitchX"))->QueryDoubleText(&context_.pixel_pitch[_X]);
-	(xml_node->FirstChildElement("SLMpixelPitchY"))->QueryDoubleText(&context_.pixel_pitch[_Y]);
-	(xml_node->FirstChildElement("BandpassFilterWidthX"))->QueryDoubleText(&configdata.filter_width[_X]);
-	(xml_node->FirstChildElement("BandpassFilterWidthY"))->QueryDoubleText(&configdata.filter_width[_Y]);
-	(xml_node->FirstChildElement("FocalLengthofInputLens"))->QueryDoubleText(&configdata.focal_length_lens_in);
-	(xml_node->FirstChildElement("FocalLengthofOutputLens"))->QueryDoubleText(&configdata.focal_length_lens_out);
-	(xml_node->FirstChildElement("FocalLengthofEyepieceLens"))->QueryDoubleText(&configdata.focal_length_lens_eye_piece);
-	(xml_node->FirstChildElement("WavelengthofLaser"))->QueryDoubleText(&context_.wave_length[0]);
-	(xml_node->FirstChildElement("TiltAngleX"))->QueryDoubleText(&configdata.tilt_angle[_X]);
-	(xml_node->FirstChildElement("TiltAngleY"))->QueryDoubleText(&configdata.tilt_angle[_Y]);
+	auto next = xml_node->FirstChildElement("ScalingXofPointCloud");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&configdata.scale[_X]))
+		return false;
+	next = xml_node->FirstChildElement("ScalingYofPointCloud");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&configdata.scale[_Y]))
+		return false;
+	next = xml_node->FirstChildElement("ScalingZofPointCloud");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&configdata.scale[_Z]))
+		return false;
+	next = xml_node->FirstChildElement("OffsetInDepth");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&configdata.offset_depth))
+		return false;
+	next = xml_node->FirstChildElement("SLMpixelPitchX");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&context_.pixel_pitch[_X]))
+		return false;
+	next = xml_node->FirstChildElement("SLMpixelPitchY");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&context_.pixel_pitch[_Y]))
+		return false;
+	next = xml_node->FirstChildElement("WavelengthofLaser");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&context_.wave_length[0]))
+		return false;
 #else
-	(xml_node->FirstChildElement("ScalingXofPointCloud"))->QueryFloatText(&configdata.scale[_X]);
-	(xml_node->FirstChildElement("ScalingYofPointCloud"))->QueryFloatText(&configdata.scale[_Y]);
-	(xml_node->FirstChildElement("ScalingZofPointCloud"))->QueryFloatText(&configdata.scale[_Z]);
-	(xml_node->FirstChildElement("OffsetInDepth"))->QueryFloatText(&configdata.offset_depth);
-	(xml_node->FirstChildElement("SLMpixelPitchX"))->QueryFloatText(&context_.pixel_pitch[_X]);
-	(xml_node->FirstChildElement("SLMpixelPitchY"))->QueryFloatText(&context_.pixel_pitch[_Y]);
-	(xml_node->FirstChildElement("BandpassFilterWidthX"))->QueryFloatText(&configdata.filter_width[_X]);
-	(xml_node->FirstChildElement("BandpassFilterWidthY"))->QueryFloatText(&configdata.filter_width[_Y]);
-	(xml_node->FirstChildElement("FocalLengthofInputLens"))->QueryFloatText(&configdata.focal_length_lens_in);
-	(xml_node->FirstChildElement("FocalLengthofOutputLens"))->QueryFloatText(&configdata.focal_length_lens_out);
-	(xml_node->FirstChildElement("FocalLengthofEyepieceLens"))->QueryFloatText(&configdata.focal_length_lens_eye_piece);
-	(xml_node->FirstChildElement("WavelengthofLaser"))->QueryFloatText(&context_.wave_length[0]);
-	(xml_node->FirstChildElement("TiltAngleX"))->QueryFloatText(&configdata.tilt_angle[_X]);
-	(xml_node->FirstChildElement("TiltAngleY"))->QueryFloatText(&configdata.tilt_angle[_Y]);
+	auto next = xml_node->FirstChildElement("ScalingXofPointCloud");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryFloatText(&configdata.scale[_X]))
+		return false;
+	next = xml_node->FirstChildElement("ScalingYofPointCloud");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryFloatText(&configdata.scale[_Y]))
+		return false;
+	next = xml_node->FirstChildElement("ScalingZofPointCloud");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryFloatText(&configdata.scale[_Z]))
+		return false;
+	next = xml_node->FirstChildElement("OffsetInDepth");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryFloatText(&configdata.offset_depth))
+		return false;
+	next = xml_node->FirstChildElement("SLMpixelPitchX");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryFloatText(&context_.pixel_pitch[_X]))
+		return false;
+	next = xml_node->FirstChildElement("SLMpixelPitchY");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryFloatText(&context_.pixel_pitch[_Y]))
+		return false;
+	next = xml_node->FirstChildElement("WavelengthofLaser");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryFloatText(&context_.wave_length[0]))
+		return false;
 #endif
-	(xml_node->FirstChildElement("SLMpixelNumX"))->QueryIntText(&context_.pixel_number[_X]);
-	(xml_node->FirstChildElement("SLMpixelNumY"))->QueryIntText(&context_.pixel_number[_Y]);
-	configdata.filter_shape_flag = (int8_t*)(xml_node->FirstChildElement("BandpassFilterShape"))->GetText();
+	next = xml_node->FirstChildElement("SLMpixelNumX");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryIntText(&context_.pixel_number[_X]))
+		return false;
+	next = xml_node->FirstChildElement("SLMpixelNumY");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryIntText(&context_.pixel_number[_Y]))
+		return false;
 
 	context_.k = (2 * M_PI) / context_.wave_length[0];
 	context_.ss[_X] = context_.pixel_number[_X] * context_.pixel_pitch[_X];
@@ -204,19 +221,33 @@ bool ophGen::readConfig(const char* fname, OphDepthMapConfig & config)
 
 	xml_node = xml_doc.FirstChild();
 
-	(xml_node->FirstChildElement("SLMpixelNumX"))->QueryIntText(&context_.pixel_number[_X]);
-	(xml_node->FirstChildElement("SLMpixelNumY"))->QueryIntText(&context_.pixel_number[_Y]);
+	auto next = xml_node->FirstChildElement("SLMpixelNumX");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryIntText(&context_.pixel_number[_X]))
+		return false;
+	next = xml_node->FirstChildElement("SLMpixelNumY");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryIntText(&context_.pixel_number[_Y]))
+		return false;
 
-	(xml_node->FirstChildElement("FlagChangeDepthQuantization"))->QueryBoolText(&config.FLAG_CHANGE_DEPTH_QUANTIZATION);
-	(xml_node->FirstChildElement("DefaultDepthQuantization"))->QueryUnsignedText(&config.DEFAULT_DEPTH_QUANTIZATION);
-	(xml_node->FirstChildElement("NumberOfDepthQuantization"))->QueryUnsignedText(&config.NUMBER_OF_DEPTH_QUANTIZATION);
+	next = xml_node->FirstChildElement("FlagChangeDepthQuantization");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryBoolText(&config.FLAG_CHANGE_DEPTH_QUANTIZATION))
+		return false;
+	next = xml_node->FirstChildElement("DefaultDepthQuantization");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryUnsignedText(&config.DEFAULT_DEPTH_QUANTIZATION))
+		return false;
+	next = xml_node->FirstChildElement("NumberOfDepthQuantization");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryUnsignedText(&config.NUMBER_OF_DEPTH_QUANTIZATION))
+		return false;
 
 	if (config.FLAG_CHANGE_DEPTH_QUANTIZATION == 0)
 		config.num_of_depth = config.DEFAULT_DEPTH_QUANTIZATION;
 	else
 		config.num_of_depth = config.NUMBER_OF_DEPTH_QUANTIZATION;
 
-	std::string render_depth = (xml_node->FirstChildElement("RenderDepth"))->GetText();
+	std::string render_depth;
+	next = xml_node->FirstChildElement("RenderDepth");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryBoolText(&config.FLAG_CHANGE_DEPTH_QUANTIZATION))
+		return false;
+	else render_depth = (xml_node->FirstChildElement("RenderDepth"))->GetText();
 
 	std::size_t found = render_depth.find(':');
 	if (found != std::string::npos)
@@ -243,22 +274,49 @@ bool ophGen::readConfig(const char* fname, OphDepthMapConfig & config)
 		return false;
 	}
 
-	(xml_node->FirstChildElement("RandomPahse"))->QueryBoolText(&config.RANDOM_PHASE);
+	next = xml_node->FirstChildElement("RandomPahse");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryBoolText(&config.RANDOM_PHASE))
+		return false;
+	//(xml_node->FirstChildElement("RandomPahse"))->QueryBoolText(&config.RANDOM_PHASE);
 	
 #if REAL_IS_DOUBLE & true
-	(xml_node->FirstChildElement("FieldLens"))->QueryDoubleText(&config.field_lens);
-	(xml_node->FirstChildElement("WaveLength"))->QueryDoubleText(&context_.wave_length[0]);
-	(xml_node->FirstChildElement("SLMpixelPitchX"))->QueryDoubleText(&context_.pixel_pitch[_X]);
-	(xml_node->FirstChildElement("SLMpixelPitchY"))->QueryDoubleText(&context_.pixel_pitch[_Y]);
-	(xml_node->FirstChildElement("NearOfDepth"))->QueryDoubleText(&config.near_depthmap);
-	(xml_node->FirstChildElement("FarOfDepth"))->QueryDoubleText(&config.far_depthmap);
+	next = xml_node->FirstChildElement("FieldLens");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&config.field_lens))
+		return false;
+	next = xml_node->FirstChildElement("WaveLength");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&context_.wave_length[0]))
+		return false;
+	next = xml_node->FirstChildElement("SLMpixelPitchX");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&context_.pixel_pitch[_X]))
+		return false;
+	next = xml_node->FirstChildElement("SLMpixelPitchY");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&context_.pixel_pitch[_Y]))
+		return false;
+	next = xml_node->FirstChildElement("NearOfDepth");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&config.near_depthmap))
+		return false;
+	next = xml_node->FirstChildElement("FarOfDepth");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&config.far_depthmap))
+		return false;
 #else
-	(xml_node->FirstChildElement("FieldLens"))->QueryFloatText(&config.field_lens);
-	(xml_node->FirstChildElement("WaveLength"))->QueryFloatText(&context_.wave_length[0]);
-	(xml_node->FirstChildElement("SLMpixelPitchX"))->QueryFloatText(&context_.pixel_pitch[_X]);
-	(xml_node->FirstChildElement("SLMpixelPitchY"))->QueryFloatText(&context_.pixel_pitch[_Y]);
-	(xml_node->FirstChildElement("NearOfDepth"))->QueryFloatText(&config.near_depthmap);
-	(xml_node->FirstChildElement("FarOfDepth"))->QueryFloatText(&config.far_depthmap);
+	next = xml_node->FirstChildElement("FieldLens");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryFloatText(&config.field_lens))
+		return false;
+	next = xml_node->FirstChildElement("WaveLength");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryFloatText(&context_.wave_length[0]))
+		return false;
+	next = xml_node->FirstChildElement("SLMpixelPitchX");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryFloatText(&context_.pixel_pitch[_X]))
+		return false;
+	next = xml_node->FirstChildElement("SLMpixelPitchY");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryFloatText(&context_.pixel_pitch[_Y]))
+		return false;
+	next = xml_node->FirstChildElement("NearOfDepth");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryFloatText(&config.near_depthmap))
+		return false;
+	next = xml_node->FirstChildElement("FarOfDepth");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryFloatText(&config.far_depthmap))
+		return false;
 #endif
 
 	context_.k = (2 * M_PI) / context_.wave_length[0];
@@ -280,10 +338,6 @@ bool ophGen::readConfig(const char* fname, OphDepthMapConfig & config)
 
 bool ophGen::readConfig(const char* fname, OphWRPConfig& configdata)
 {
-	/*	if (!ophGen::readConfig(cfg_file, pc_config_))
-	return false;
-
-	return true;*/
 	LOG("Reading....%s...", fname);
 
 	auto start = CUR_TIME;
@@ -514,10 +568,12 @@ void ophGen::loadComplex(char* real_file, char* imag_file, int n_x, int n_y) {
 }
 
 void ophGen::normalizeEncoded() {
-	oph::normalize((Real*)holo_encoded, holo_normalized, encode_size.v[_X], encode_size.v[_Y]);
+	oph::normalize(holo_encoded, holo_normalized, encode_size.v[_X], encode_size.v[_Y]);
 }
 
-void ophGen::encoding(unsigned int ENCODE_FLAG) {
+void ophGen::encoding(unsigned int ENCODE_FLAG, Complex<Real>* holo) {
+
+	holo == nullptr ? holo = *complex_H : holo;
 
 	const int size = context_.pixel_number.v[_X] * context_.pixel_number.v[_Y];
 
@@ -547,43 +603,51 @@ void ophGen::encoding(unsigned int ENCODE_FLAG) {
 	switch (ENCODE_FLAG)
 	{
 	case ENCODE_SIMPLENI:
-		cout << "Simple Numerical Interference Encoding.." << endl;
-		numericalInterference((*complex_H), holo_encoded, size);
+		LOG("Simple Numerical Interference Encoding..");
+		numericalInterference((holo), holo_encoded, size);
+		LOG("Done.\n.");
 		break;
 	case ENCODE_REAL:
-		cout << "Real Part Encoding.." << endl;
-		realPart<Real>((*complex_H), holo_encoded, size);
+		LOG("Real Part Encoding..");
+		realPart<Real>((holo), holo_encoded, size);
+		LOG("Done.\n.");
 		break;
 	case ENCODE_BURCKHARDT:
-		cout << "Burckhardt Encoding.." << endl;
-		burckhardt((*complex_H), holo_encoded, size);
+		LOG("Burckhardt Encoding..");
+		burckhardt((holo), holo_encoded, size);
+		LOG("Done.\n.");
 		break;
 	case ENCODE_TWOPHASE:
-		cout << "Two Phase Encoding.." << endl;
-		twoPhaseEncoding((*complex_H), holo_encoded, size);
+		LOG("Two Phase Encoding..");
+		twoPhaseEncoding((holo), holo_encoded, size);
+		LOG("Done.\n.");
 		break;
 	case ENCODE_PHASE:
-		cout << "Phase Encoding.." << endl;
-		getPhase((*complex_H), holo_encoded, size);
+		LOG("Phase Encoding..");
+		getPhase((holo), holo_encoded, size);
+		LOG("Done.\n.");
 		break;
 	case ENCODE_AMPLITUDE:
-		cout << "Amplitude Encoding.." << endl;
-		getAmplitude((*complex_H), holo_encoded, size);
+		LOG("Amplitude Encoding..");
+		getAmplitude((holo), holo_encoded, size);
+		LOG("Done.\n.");
 		break;
 	case ENCODE_SSB:
 	case ENCODE_OFFSSB:
-		cout << "error: PUT PASSBAND" << endl;
+		LOG("error: PUT PASSBAND\n");
 		cin.get();
 		return;
 	default:
-		cout << "error: WRONG ENCODE_FLAG" << endl;
+		LOG("error: WRONG ENCODE_FLAG\n");
 		cin.get();
 		return;
 	}
 }
 
-void ophGen::encoding(unsigned int ENCODE_FLAG, unsigned int passband) {
-	
+void ophGen::encoding(unsigned int ENCODE_FLAG, unsigned int passband, Complex<Real>* holo) {
+
+	holo == nullptr ? holo = *complex_H : holo;
+
 	const int size = context_.pixel_number.v[_X] * context_.pixel_number.v[_Y];
 	
 	encode_size.v[_X] = context_.pixel_number.v[_X];
@@ -602,16 +666,18 @@ void ophGen::encoding(unsigned int ENCODE_FLAG, unsigned int passband) {
 	switch (ENCODE_FLAG)
 	{
 	case ENCODE_SSB:
-		cout << "Single Side Band Encoding.." << endl;
-		singleSideBand((*complex_H), holo_encoded, context_.pixel_number, passband);
+		LOG("Single Side Band Encoding..");
+		singleSideBand((holo), holo_encoded, context_.pixel_number, passband);
+		LOG("Done.");
 		break;
 	case ENCODE_OFFSSB:
-		cout << "Off-axis Single Side Band Encoding.." << endl;
+		LOG("Off-axis Single Side Band Encoding..");
 		freqShift((*complex_H), (*complex_H), context_.pixel_number, 0, 100);
-		singleSideBand((*complex_H), holo_encoded, context_.pixel_number, passband);
+		singleSideBand((holo), holo_encoded, context_.pixel_number, passband);
+		LOG("Done.\n");
 		break;
 	default:
-		cout << "error: WRONG ENCODE_FLAG" << endl;
+		LOG("error: WRONG ENCODE_FLAG\n");
 		cin.get();
 		return;
 	}
@@ -694,9 +760,9 @@ void ophGen::numericalInterference(oph::Complex<Real>* holo, Real* encoded, cons
 	Real* ref = new Real;
 	*ref = oph::maxOfArr(temp1, size);
 
-	oph::Complex<Real>* temp2 = holo;
+	oph::Complex<Real>* temp2 = new oph::Complex<Real>[size];
 	for_i(size,
-		temp2[i][_RE] += *ref;
+		temp2[i] = holo[i] + *ref;
 	);
 
 	Real* temp3 = new Real[size];

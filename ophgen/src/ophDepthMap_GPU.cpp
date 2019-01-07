@@ -201,9 +201,9 @@ void ophDepthMap::initGPU()
 */
 bool ophDepthMap::prepareInputdataGPU(uchar* imgptr, uchar* dimgptr)
 {
-	const int nx = context_.pixel_number[0];
-	const int ny = context_.pixel_number[1];
-	const int N = nx * ny;
+	cout << "nx : " << context_.pixel_number[0] << endl;
+	cout << "ny : " << context_.pixel_number[1] << endl;
+	const unsigned long long N = context_.pixel_number[0] * context_.pixel_number[1];
 	
 	HANDLE_ERROR(cudaMemcpyAsync(img_src_gpu, imgptr, sizeof(uchar1)*N, cudaMemcpyHostToDevice), stream_);
 	HANDLE_ERROR(cudaMemcpyAsync(dimg_src_gpu, dimgptr, sizeof(uchar1)*N, cudaMemcpyHostToDevice), stream_);

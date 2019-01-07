@@ -212,6 +212,7 @@ protected:
 	ivec2 encode_size;
 	int ENCODE_METHOD;
 	int SSB_PASSBAND;
+
 public:
 	void setEncodeMethod(int in) { ENCODE_METHOD = in; }
 	void setSSBPassBand(int in){ SSB_PASSBAND = in; }

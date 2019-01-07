@@ -92,30 +92,36 @@ uint ophTri::loadMeshText(const char* fileName) {
 	return 1;
 }
 
-void ophTri::loadMeshData(const char* fileName, const char* ext) {
+bool ophTri::loadMeshData(const char* fileName, const char* ext) {
 	meshData = new OphMeshData;
 	cout << "ext = " << ext << endl;
 
-	if (!strcmp(ext,"txt")) {
+	if (!strcmp(ext, "txt")) {
 		cout << "Text File.." << endl;
 		if (loadMeshText(fileName))
 			cout << "Mesh Data Load Finished.." << endl;
 		else
 			cout << "Mesh Data Load Failed.." << endl;
 	}
-	else if (!strcmp(ext,"ply")) {
+	else if (!strcmp(ext, "ply")) {
 		cout << "PLY File.." << endl;
 		PLYparser meshPLY;
 		if (meshPLY.loadPLY(fileName, meshData->n_faces, meshData->color_channels, &meshData->face_idx, &meshData->vertex, &meshData->color))
 			cout << "Mesh Data Load Finished.." << endl;
 		else
+		{
 			cout << "Mesh Data Load Failed.." << endl;
+			return false;
+		}
 	}
 	else {
 		cout << "Error: Mesh data must be .txt or .ply" << endl;
+		return false;
 	}
 	meshData->n_faces /= 3;
 	triMeshArray = meshData->vertex;
+
+	return true;
 }
 
 int ophTri::readMeshConfig(const char* mesh_config) {
@@ -142,36 +148,101 @@ int ophTri::readMeshConfig(const char* mesh_config) {
 	xml_node = xml_doc.FirstChild();
 
 #if REAL_IS_DOUBLE & true
-	(xml_node->FirstChildElement("ObjectSize"))->QueryDoubleText(&objSize);
-	(xml_node->FirstChildElement("ObjectShiftX"))->QueryDoubleText(&objShift[_X]);
-	(xml_node->FirstChildElement("ObjectShiftY"))->QueryDoubleText(&objShift[_Y]);
-	(xml_node->FirstChildElement("ObjectShiftZ"))->QueryDoubleText(&objShift[_Z]);
-	//(xml_node->FirstChildElement("CarrierWaveVectorX"))->QueryDoubleText(&carrierWave[_X]);
-	//(xml_node->FirstChildElement("CarrierWaveVectorY"))->QueryDoubleText(&carrierWave[_Y]);
-	//(xml_node->FirstChildElement("CarrierWaveVectorZ"))->QueryDoubleText(&carrierWave[_Z]);
-	(xml_node->FirstChildElement("LampDirectionX"))->QueryDoubleText(&illumination[_X]);
-	(xml_node->FirstChildElement("LampDirectionY"))->QueryDoubleText(&illumination[_Y]);
-	(xml_node->FirstChildElement("LampDirectionZ"))->QueryDoubleText(&illumination[_Z]);
-	(xml_node->FirstChildElement("SLMPixelPitchX"))->QueryDoubleText(&context_.pixel_pitch[_X]);
-	(xml_node->FirstChildElement("SLMPixelPitchY"))->QueryDoubleText(&context_.pixel_pitch[_Y]);
-	(xml_node->FirstChildElement("WavelengthofLaser"))->QueryDoubleText(&context_.wave_length[0]);
+	auto next = xml_node->FirstChildElement("ObjectSize");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&objSize))
+		return false;
+	next = xml_node->FirstChildElement("ObjectShiftX");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&objShift[_X]))
+		return false;
+	next = xml_node->FirstChildElement("ObjectShiftY");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&objShift[_Y]))
+		return false;
+	next = xml_node->FirstChildElement("ObjectShiftZ");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&objShift[_Z]))
+		return false;
+	next = xml_node->FirstChildElement("LampDirectionX");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&illumination[_X]))
+		return false;
+	next = xml_node->FirstChildElement("LampDirectionY");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&illumination[_Y]))
+		return false;
+	next = xml_node->FirstChildElement("LampDirectionZ");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&illumination[_Z]))
+		return false;
+	next = xml_node->FirstChildElement("SLMPixelPitchX");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&context_.pixel_pitch[_X]))
+		return false;
+	next = xml_node->FirstChildElement("SLMPixelPitchY");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&context_.pixel_pitch[_Y]))
+		return false;
+	next = xml_node->FirstChildElement("WavelengthofLaser");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&context_.wave_length[0]))
+		return false;
+	//(xml_node->FirstChildElement("ObjectSize"))->QueryDoubleText(&objSize);
+	//(xml_node->FirstChildElement("ObjectShiftX"))->QueryDoubleText(&objShift[_X]);
+	//(xml_node->FirstChildElement("ObjectShiftY"))->QueryDoubleText(&objShift[_Y]);
+	//(xml_node->FirstChildElement("ObjectShiftZ"))->QueryDoubleText(&objShift[_Z]);
+	////(xml_node->FirstChildElement("CarrierWaveVectorX"))->QueryDoubleText(&carrierWave[_X]);
+	////(xml_node->FirstChildElement("CarrierWaveVectorY"))->QueryDoubleText(&carrierWave[_Y]);
+	////(xml_node->FirstChildElement("CarrierWaveVectorZ"))->QueryDoubleText(&carrierWave[_Z]);
+	//(xml_node->FirstChildElement("LampDirectionX"))->QueryDoubleText(&illumination[_X]);
+	//(xml_node->FirstChildElement("LampDirectionY"))->QueryDoubleText(&illumination[_Y]);
+	//(xml_node->FirstChildElement("LampDirectionZ"))->QueryDoubleText(&illumination[_Z]);
+	//(xml_node->FirstChildElement("SLMPixelPitchX"))->QueryDoubleText(&context_.pixel_pitch[_X]);
+	//(xml_node->FirstChildElement("SLMPixelPitchY"))->QueryDoubleText(&context_.pixel_pitch[_Y]);
+	//(xml_node->FirstChildElement("WavelengthofLaser"))->QueryDoubleText(&context_.wave_length[0]);
 #else
-	(xml_node->FirstChildElement("ObjectSize"))->QueryFloatText(&objSize);
-	(xml_node->FirstChildElement("ObjectShiftX"))->QueryFloatText(&objShift[_X]);
-	(xml_node->FirstChildElement("ObjectShiftY"))->QueryFloatText(&objShift[_Y]);
-	(xml_node->FirstChildElement("ObjectShiftZ"))->QueryFloatText(&objShift[_Z]);
-	//(xml_node->FirstChildElement("CarrierWaveVectorX"))->QueryFloatText(&carrierWave[_X]);
-	//(xml_node->FirstChildElement("CarrierWaveVectorY"))->QueryFloatText(&carrierWave[_Y]);
-	//(xml_node->FirstChildElement("CarrierWaveVectorZ"))->QueryFloatText(&carrierWave[_Z]);
-	(xml_node->FirstChildElement("LampDirectionX"))->QueryFloatText(&illumination[_X]);
-	(xml_node->FirstChildElement("LampDirectionY"))->QueryFloatText(&illumination[_Y]);
-	(xml_node->FirstChildElement("LampDirectionZ"))->QueryFloatText(&illumination[_Z]);
-	(xml_node->FirstChildElement("SLMPixelPitchX"))->QueryFloatText(&context_.pixel_pitch[_X]);
-	(xml_node->FirstChildElement("SLMPixelPitchY"))->QueryFloatText(&context_.pixel_pitch[_Y]);
-	(xml_node->FirstChildElement("WavelengthofLaser"))->QueryFloatText(&context_.wave_length[0]);
+	auto next = xml_node->FirstChildElement("ObjectSize");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryFloatText(&objSize))
+		return false;
+	next = xml_node->FirstChildElement("ObjectShiftX");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryFloatText(&objShift[_X]))
+		return false;
+	next = xml_node->FirstChildElement("ObjectShiftY");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryFloatText(&objShift[_Y]))
+		return false;
+	next = xml_node->FirstChildElement("ObjectShiftZ");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryFloatText(&objShift[_Z]))
+		return false;
+	next = xml_node->FirstChildElement("LampDirectionX");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryFloatText(&illumination[_X]))
+		return false;
+	next = xml_node->FirstChildElement("LampDirectionY");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryFloatText(&illumination[_Y]))
+		return false;
+	next = xml_node->FirstChildElement("LampDirectionZ");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryFloatText(&illumination[_Z]))
+		return false;
+	next = xml_node->FirstChildElement("SLMPixelPitchX");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryFloatText(&context_.pixel_pitch[_X]))
+		return false;
+	next = xml_node->FirstChildElement("SLMPixelPitchY");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryFloatText(&context_.pixel_pitch[_Y]))
+		return false;
+	next = xml_node->FirstChildElement("WavelengthofLaser");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryFloatText(&context_.wave_length[0]))
+		return false;
+	//(xml_node->FirstChildElement("ObjectSize"))->QueryFloatText(&objSize);
+	//(xml_node->FirstChildElement("ObjectShiftX"))->QueryFloatText(&objShift[_X]);
+	//(xml_node->FirstChildElement("ObjectShiftY"))->QueryFloatText(&objShift[_Y]);
+	//(xml_node->FirstChildElement("ObjectShiftZ"))->QueryFloatText(&objShift[_Z]);
+	////(xml_node->FirstChildElement("CarrierWaveVectorX"))->QueryFloatText(&carrierWave[_X]);
+	////(xml_node->FirstChildElement("CarrierWaveVectorY"))->QueryFloatText(&carrierWave[_Y]);
+	////(xml_node->FirstChildElement("CarrierWaveVectorZ"))->QueryFloatText(&carrierWave[_Z]);
+	//(xml_node->FirstChildElement("LampDirectionX"))->QueryFloatText(&illumination[_X]);
+	//(xml_node->FirstChildElement("LampDirectionY"))->QueryFloatText(&illumination[_Y]);
+	//(xml_node->FirstChildElement("LampDirectionZ"))->QueryFloatText(&illumination[_Z]);
+	//(xml_node->FirstChildElement("SLMPixelPitchX"))->QueryFloatText(&context_.pixel_pitch[_X]);
+	//(xml_node->FirstChildElement("SLMPixelPitchY"))->QueryFloatText(&context_.pixel_pitch[_Y]);
+	//(xml_node->FirstChildElement("WavelengthofLaser"))->QueryFloatText(&context_.wave_length[0]);
 #endif
-	(xml_node->FirstChildElement("SLMPixelNumX"))->QueryIntText(&context_.pixel_number[_X]);
-	(xml_node->FirstChildElement("SLMPixelNumY"))->QueryIntText(&context_.pixel_number[_Y]);
+	next = xml_node->FirstChildElement("SLMPixelNumX");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryIntText(&context_.pixel_number[_X]))
+		return false;
+	next = xml_node->FirstChildElement("SLMPixelNumY");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryIntText(&context_.pixel_number[_Y]))
+		return false;
+
 	//(xml_node->FirstChildElement("MeshShadingType"))->QueryIntText(&SHADING_TYPE);
 	//(xml_node->FirstChildElement("EncodingMethod"))->QueryIntText(&ENCODE_METHOD);
 	//if (ENCODE_METHOD == ENCODE_SSB || ENCODE_METHOD == ENCODE_OFFSSB)
@@ -200,6 +271,15 @@ int ophTri::readMeshConfig(const char* mesh_config) {
 	return true;
 }
 
+
+//int ophTri::saveAsOhc(const char * fname)
+//{
+//	setPixelNumberOHC(getEncodeSize());
+//
+//	Openholo::saveAsOhc(fname);
+//	
+//	return 0;
+//}
 
 void ophTri::initializeAS() {
 	angularSpectrum = new Complex<Real>[context_.pixel_number[_X] * context_.pixel_number[_Y]];
@@ -317,7 +397,7 @@ void ophTri::objScaleShift(Real objSize_, vector<Real> objShift_) {
 	cout << "Object Scaling and Shifting Finishied.." << endl;
 }
 
-void ophTri::objScaleShift(Real objSize_, Real objShift_[]) {
+void ophTri::objScaleShift(Real objSize_, vec3 objShift_) {
 	setObjSize(objSize_);
 	setObjShift(objShift_);
 
@@ -426,15 +506,16 @@ void ophTri::generateAS(uint SHADING_FLAG) {
 
 	findNormals(SHADING_FLAG);
 
-	for (uint n = 0; n < meshData->n_faces; n++) {
+	//int j; // private variable for Multi Threading
+	for (int j = 0; j < meshData->n_faces; j++) {
 		for_i(9,
-			mesh[i] = scaledMeshData[9 * n + i];
-			);
+			mesh[i] = scaledMeshData[9 * j + i];
+		);
 
-		if (checkValidity(mesh, *(no + n)) != 1)
+		if (checkValidity(mesh, *(no + j)) != 1)
 			continue;
-		
-		if (findGeometricalRelations(mesh, *(no + n)) != 1)
+
+		if (findGeometricalRelations(mesh, *(no + j)) != 1)
 			continue;
 
 		if (calFrequencyTerm() != 1)
@@ -443,22 +524,23 @@ void ophTri::generateAS(uint SHADING_FLAG) {
 		switch (SHADING_FLAG)
 		{
 		case SHADING_FLAT:
-			refAS_Flat(*(no + n));
+			refAS_Flat(*(no + j));
 			break;
 		case SHADING_CONTINUOUS:
-			refAS_Continuous(n);
+			refAS_Continuous(j);
 			break;
 		default:
-			cout << "error: WRONG SHADING_FLAG" << endl;
+			LOG("error: WRONG SHADING_FLAG\n");
 			cin.get();
 		}
 		if (refToGlobal() != 1)
 			continue;
 
-		cout << n+1 << " / " << meshData->n_faces << endl;
+		char szLog[MAX_PATH];
+		sprintf(szLog, "%d / %d\n", j + 1, meshData->n_faces);
+		LOG(szLog);
 	}
-
-	cout << "Angular Spectrum Generated..." << endl;
+	LOG("Angular Spectrum Generated...\n");
 
 	delete[] mesh, scaledMeshData, fx, fy, fz, mesh_local, flx, fly, flz, freqTermX, freqTermY, refAS, ASTerm, randTerm, phaseTerm, convol;
 }
