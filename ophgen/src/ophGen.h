@@ -208,6 +208,9 @@ protected:
 	int ENCODE_METHOD;
 	int SSB_PASSBAND;
 
+private:
+	bool bCarried;
+
 public:
 	void setEncodeMethod(int in) { ENCODE_METHOD = in; }
 	void setSSBPassBand(int in){ SSB_PASSBAND = in; }

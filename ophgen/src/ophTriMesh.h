@@ -193,7 +193,7 @@ public:
 	* @param	Real	carryingAngleX		Wave carrying angle in horizontal direction
 	* @param	Real	carryingAngleY		Wave carrying angle in vertical direction
 	*/
-	void waveCarry(Real carryingAngleX, Real carryingAngleY);
+	//void waveCarry(Real carryingAngleX, Real carryingAngleY);
 
 	//virtual int saveAsOhc(const char* fname);
 

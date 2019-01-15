@@ -290,7 +290,7 @@ int ophDepthMap::save(const char * fname, uint8_t bitsperpixel)
 
 	int pnx = context_.pixel_number[_X];
 	int pny = context_.pixel_number[_Y];
-	int px = static_cast<int>(pnx / 3);
+	int px = pnx;//static_cast<int>(pnx / 3);
 	int py = pny;
 
 	ophGen::save(resName.c_str(), bitsperpixel, holo_normalized, px, py);
