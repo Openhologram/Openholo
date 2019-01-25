@@ -57,6 +57,7 @@ ophGen::ophGen(void)
 	: Openholo()
 	, holo_encoded(nullptr)
 	, holo_normalized(nullptr)
+	, bCarried(false)
 {
 	uint wavelength_num = 1;
 
@@ -237,6 +238,8 @@ bool ophGen::readConfig(const char* fname, OphDepthMapConfig & config)
 	next = xml_node->FirstChildElement("NumberOfDepthQuantization");
 	if (!next || tinyxml2::XML_SUCCESS != next->QueryUnsignedText(&config.NUMBER_OF_DEPTH_QUANTIZATION))
 		return false;
+
+	//context_.pixel_number[_X] *= 3;
 
 	if (config.FLAG_CHANGE_DEPTH_QUANTIZATION == 0)
 		config.num_of_depth = config.DEFAULT_DEPTH_QUANTIZATION;
@@ -1162,6 +1165,8 @@ void ophGen::testSLM(const char* encodedIMG, unsigned int SLM_TYPE, Real pixelPi
 }
 
 void ophGen::waveCarry(Real carryingAngleX, Real carryingAngleY, Real distance) {
+	if (bCarried == FALSE) bCarried = TRUE;
+	else return;
 
 	int Nx = context_.pixel_number[_X];
 	int Ny = context_.pixel_number[_Y];
