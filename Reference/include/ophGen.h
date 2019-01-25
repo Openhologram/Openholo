@@ -62,13 +62,6 @@ struct OphDepthMapConfig;
 struct OphMeshData;
 struct OphWRPConfig;
 
-enum PC_DIFF_FLAG {
-	//PC_DIFF_RS_ENCODED,
-	//PC_DIFF_FRESNEL_ENCODED,
-	PC_DIFF_RS/*_NOT_ENCODED*/,
-	PC_DIFF_FRESNEL/*_NOT_ENCODED*/,
-};
-
 
 
 
@@ -185,7 +178,7 @@ public:
 	*	else - (holosizeX, holosizeY)
 	* @overload
 	*/
-	void encoding(unsigned int ENCODE_FLAG);
+	virtual void encoding(unsigned int ENCODE_FLAG, Complex<Real>* holo = nullptr);
 	/*
 	* @brief	Encoding Functions
 	* @details
@@ -194,13 +187,21 @@ public:
 	* @param	SSB_PASSBAND : SSB_LEFT, SSB_RIGHT, SSB_TOP, SSB_BOTTOM
 	* @overload
 	*/
-	void encoding(unsigned int ENCODE_FLAG, unsigned int SSB_PASSBAND);
+	virtual void encoding(unsigned int ENCODE_FLAG, unsigned int SSB_PASSBAND, Complex<Real>* holo = nullptr);
 	void encoding();
 	enum SSB_PASSBAND { SSB_LEFT, SSB_RIGHT, SSB_TOP, SSB_BOTTOM };
 
 public:
 	enum SLM_TYPE { SLM_PHASE, SLM_AMPLITUDE };
 	void testSLM(const char* encodedImage, unsigned int SLM_TYPE, Real pixelPitch, Real waveLength, Real distance);
+
+	/**
+	* @brief	Wave carry
+	* @param	Real	carryingAngleX		Wave carrying angle in horizontal direction
+	* @param	Real	carryingAngleY		Wave carrying angle in vertical direction
+	* @param	Real	distance			Distance between the display and the object
+	*/
+	void waveCarry(Real carryingAngleX, Real carryingAngleY, Real distance);
 
 protected:
 	/**

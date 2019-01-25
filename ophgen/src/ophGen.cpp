@@ -1106,44 +1106,62 @@ void ophGen::testSLM(const char* encodedIMG, unsigned int SLM_TYPE, Real pixelPi
 
 	LOG("File loaded...\n");
 	
-	Complex<Real>* encodedData = new Complex<Real>[encode_size[_X]*encode_size[_Y]];
-	memset(encodedData, (0,0), sizeof(Complex<Real>) * encode_size[_X] * encode_size[_Y]);
+	Complex<Real>* encodedSLM = new Complex<Real>[encode_size[_X]*encode_size[_Y]];
+	memset(encodedSLM, (0,0), sizeof(Complex<Real>) * encode_size[_X] * encode_size[_Y]);
 
 	switch (SLM_TYPE)
 	{
 	case SLM_AMPLITUDE:
 		for (uint i = 0; i < encode_size[_X] * encode_size[_Y]; i++) {
-			encodedData[i][_RE] = (Real)img_tmp[i] / 255;
+			encodedSLM[i][_RE] = (Real)img_tmp[i] / 255;
 		}
 		break;
 	case SLM_PHASE:
 		for (uint i = 0; i < encode_size[_X] * encode_size[_Y]; i++) {
 			Complex<Real> temp(0, 0);
 			temp[_IM] = -M_PI + 2 * M_PI*(Real)img_tmp[i] / 255;
-			encodedData[i] = exp(temp);
+			encodedSLM[i] = exp(temp);
 		}
 		break;
 	default:
 		LOG("SLM_ERROR\n");
 		break;
 	}
+
 	context_.pixel_number = encode_size;
 	context_.pixel_pitch[_X] = pixelPitch;
 	context_.pixel_pitch[_Y] = pixelPitch;
 	context_.wave_length[0] = waveLength;
+
+	fft2(encode_size, encodedSLM, FFTW_FORWARD, FFTW_ESTIMATE);
+	fftwShift(encodedSLM, encodedSLM, encode_size[_X], encode_size[_Y], FFTW_FORWARD);
+
+	Complex<Real>* fourFfiltered = new Complex<Real>[encode_size[_X] * encode_size[_Y]];
+	memset(fourFfiltered, (0, 0), sizeof(Complex<Real>) * encode_size[_X] * encode_size[_Y]);
+
+	for (int i = 0; i < encode_size[_Y] / 2-1; i++)
+	{
+		for (int j = 0; j < encode_size[_X]/2-1; j++)
+		{
+			fourFfiltered[i*encode_size[_X] + j] = encodedSLM[i*encode_size[_X] + j];
+		}
+	}
+
+	fft2(encode_size, fourFfiltered, FFTW_BACKWARD, FFTW_ESTIMATE);
+	fftwShift(fourFfiltered, encodedSLM, encode_size[_X], encode_size[_Y], FFTW_BACKWARD);
 	
 	Complex<Real>* reconData = new Complex<Real>[context_.pixel_number[_X] * context_.pixel_number[_Y]];
-	fresnelPropagation(encodedData, reconData, distance);
+	fresnelPropagation(encodedSLM, reconData, distance);
 
 	initialize();
 	for (uint i = 0; i < context_.pixel_number[_X] * context_.pixel_number[_Y]; i++) {
 		holo_encoded[i] = sqrt(reconData[i]._Val[_RE] * reconData[i]._Val[_RE] + reconData[i]._Val[_IM] * reconData[i]._Val[_IM]);
 	}
 
-	delete[] encodedData, reconData;
+	delete[] encodedSLM, fourFfiltered, reconData;
 }
 
-void ophGen::waveCarry(Real carryingAngleX, Real carryingAngleY) {
+void ophGen::waveCarry(Real carryingAngleX, Real carryingAngleY, Real distance) {
 
 	int Nx = context_.pixel_number[_X];
 	int Ny = context_.pixel_number[_Y];
@@ -1168,7 +1186,7 @@ void ophGen::waveCarry(Real carryingAngleX, Real carryingAngleY) {
 
 	for (int i = 0; i < context_.pixel_number[_X] * context_.pixel_number[_Y]; i++) {
 		carrier[i][_RE] = 0;
-		carrier[i][_IM] = 0.01 * tan(carryingAngleX)*fx[i] + 0.01 * tan(carryingAngleY)*fy[i];
+		carrier[i][_IM] = distance * tan(carryingAngleX)*fx[i] + distance * tan(carryingAngleY)*fy[i];
 		(*complex_H)[i] = (*complex_H)[i] * exp(carrier[i]);
 	}
 

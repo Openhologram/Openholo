@@ -96,7 +96,7 @@ public:
 	/**
 	* @brief Constructor
 	*/
-	explicit ophLF(void) {}
+	explicit ophLF(void);
 
 protected:
 	/**
@@ -165,14 +165,6 @@ protected:
 
 	void initializeLF();
 	void convertLF2ComplexField();
-
-public:
-	/**
-	* @brief	Wave carry
-	* @param	Real	carryingAngleX		Wave carrying angle in horizontal direction
-	* @param	Real	carryingAngleY		Wave carrying angle in vertical direction
-	*/
-	void waveCarry(Real carryingAngleX, Real carryingAngleY);
 
 private:
 	
