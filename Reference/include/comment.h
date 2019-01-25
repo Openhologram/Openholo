@@ -74,9 +74,9 @@ Generation Hologram - Point Cloud Example
 	Hologram->generateHologram(PC_DIFF_RS);											// Select R-S diffraction or Fresnel diffraction
 	Hologram->saveAsOhc("result/PointCloud/Result_PointCloudSample_Plane.ohc");		// Save to ohc(Openholo complex field file format)
 
-	Hologram->encodeHologram();														// Encode Complex Field to Real Field
-	Hologram->normalize();															// Normalize Real Field to unsigned char(0~255) for save to image(*.BMP)
+	Hologram->encoding(ENCODE_SSB, SSB_TOP);										// Encode Complex Field to Real Field
 
+	Hologram->normalize();															// Normalize Real Field to unsigned char(0~255) for save to image(*.BMP)
 	Hologram->save("result/PointCloud/Result_PointCloudSample_Plane.bmp");			// Save to bmp
 
 	Hologram->release();															// Release memory used to Generate Point Cloud
@@ -102,9 +102,9 @@ Generation Hologram - Depth Map Example.
 	Hologram->generateHologram();													// CGH by depth map
 	Hologram->saveAsOhc("result/DepthMap/Result_DepthmapSample.ohc");				// Save to ohc(Openholo complex field file format)
 
-	Hologram->encodeHologram();														// Encode Complex Field to Real Field
-	Hologram->normalize();															// Normalize Real Field to unsigned char(0~255) for save to image(*.BMP)
+	Hologram->encoding(ENCODE_SSB, SSB_BOTTOM);										// Encode Complex Field to Real Field
 
+	Hologram->normalize();															// Normalize Real Field to unsigned char(0~255) for save to image(*.BMP)
 	Hologram->save("result/DepthMap/Result_DepthmapSample.bmp");					// Save to bmp
 
 	Hologram->release();															// Release memory used to Generate DepthMap

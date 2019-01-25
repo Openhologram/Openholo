@@ -195,7 +195,13 @@ public:
 	enum SLM_TYPE { SLM_PHASE, SLM_AMPLITUDE };
 	void testSLM(const char* encodedImage, unsigned int SLM_TYPE, Real pixelPitch, Real waveLength, Real distance);
 
-	void waveCarry(Real carryingAngleX, Real carryingAngleY);
+	/**
+	* @brief	Wave carry
+	* @param	Real	carryingAngleX		Wave carrying angle in horizontal direction
+	* @param	Real	carryingAngleY		Wave carrying angle in vertical direction
+	* @param	Real	distance			Distance between the display and the object
+	*/
+	void waveCarry(Real carryingAngleX, Real carryingAngleY, Real distance);
 
 protected:
 	/**

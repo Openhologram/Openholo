@@ -121,7 +121,7 @@ private:
 private:
 
 	Real objSize;							/// Object maximum of width and height / unit :[m]
-	Real objShift[3];						/// Object shift value / Data structure - [shiftX, shiftY, shiftZ] / unit : [m]
+	vec3 objShift;							/// Object shift value / Data structure - [shiftX, shiftY, shiftZ] / unit : [m]
 
 	Real carrierWave[3] = { 0,0,1 };		/// Carrier wave direction / default : {0, 0, 1}
 
@@ -165,7 +165,7 @@ public:
 	* @param	ext				File extension
 	* @return	triMeshArray
 	*/
-	void loadMeshData(const char* fileName, const char* ext);
+	bool loadMeshData(const char* fileName, const char* ext);
 
 	/**
 	* @brief	Mesh object data scaling and shifting
@@ -188,13 +188,6 @@ public:
 	void generateMeshHologram(uint SHADING_FLAG);
 	void generateMeshHologram();
 	
-	/**
-	* @brief	Wave carry
-	* @param	Real	carryingAngleX		Wave carrying angle in horizontal direction
-	* @param	Real	carryingAngleY		Wave carrying angle in vertical direction
-	*/
-	void waveCarry(Real carryingAngleX, Real carryingAngleY);
-
 	//virtual int saveAsOhc(const char* fname);
 
 private:
