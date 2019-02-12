@@ -277,6 +277,8 @@ double ophWRP::calculateWRP(void)
 
 		for (k = 0; k < num; ++k) {
 			uint idx = 3 * k;
+			uint color_idx = pc.n_colors * k;
+
 			Real x = pc.vertex[idx + _X];
 			Real y = pc.vertex[idx + _Y];
 			Real z = pc.vertex[idx + _Z];
