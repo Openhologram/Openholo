@@ -192,9 +192,12 @@ oph::Complex<Real>* ophWRP::calSubWRP(double wrp_d, Complex<Real>* wrp, OphPoint
 	for (int k = 0; k < num; k++) {
 
 		uint idx = 3 * k;
+		uint color_idx = pc->n_colors * k;
+
 		Real x = pc->vertex[idx + _X];
 		Real y = pc->vertex[idx + _Y];
 		Real z = pc->vertex[idx + _Z];
+		Real amplitude = pc->color[color_idx];
 
 		float dz = wrp_d - z;
 		//	float tw = (int)fabs(wave_len*dz / wpx / wpx / 2 + 0.5) * 2 - 1;
@@ -220,8 +223,8 @@ oph::Complex<Real>* ophWRP::calSubWRP(double wrp_d, Complex<Real>* wrp, OphPoint
 				//double tmp_re,tmp_im;
 				Complex<Real> tmp;
 
-				tmp._Val[_RE] = cosf(wave_num*r) / (r + 0.05);
-				tmp._Val[_IM] = sinf(wave_num*r) / (r + 0.05);
+				tmp._Val[_RE] = (amplitude*cosf(wave_num*r)) / (r + 0.05);
+				tmp._Val[_IM] = (-amplitude*sinf(wave_num*r)) / (r + 0.05);
 
 				if (tx + wx >= 0 && tx + wx < Nx && ty + wy >= 0 && ty + wy < Ny)
 				{
@@ -282,6 +285,7 @@ double ophWRP::calculateWRP(void)
 			Real x = pc.vertex[idx + _X];
 			Real y = pc.vertex[idx + _Y];
 			Real z = pc.vertex[idx + _Z];
+			Real amplitude = pc.color[color_idx];
 
 			float dz = wrp_d - z;
 			float tw = (int)fabs(wave_len*dz / wpx / wpx / 2 + 0.5) * 2 - 1;
@@ -306,8 +310,8 @@ double ophWRP::calculateWRP(void)
 
 					//double tmp_re,tmp_im;
 					oph::Complex<Real> tmp;
-					tmp._Val[_RE] = cosf(wave_num*r) / (r + 0.05);
-					tmp._Val[_IM] = sinf(wave_num*r) / (r + 0.05);
+					tmp._Val[_RE] = (amplitude * cosf(wave_num*r)) / (r + 0.05);
+					tmp._Val[_IM] = (-amplitude*sinf(wave_num*r)) / (r + 0.05);
 
 					if (tx + wx >= 0 && tx + wx < Nx && ty + wy >= 0 && ty + wy < Ny)
 						addPixel2WRP(wx + tx, wy + ty, tmp);
