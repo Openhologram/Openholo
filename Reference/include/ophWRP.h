@@ -143,17 +143,17 @@ public:
 	void setScale(vec3 scale) { pc_config_.scale = scale; }
 	void setLocation(Real location) { pc_config_.wrp_location = location; }
 	void setDistance(Real distance) { pc_config_.propagation_distance; }
-	void autoScaling(void);
+	void autoScaling(Real scale);
 
 	/**
 	* @brief override
 	* @{
-	* @brief Import Point Cloud Data Base File : *.PYL file.
+	* @brief Import Point Cloud Data Base File : *.PLY file.
 	* This Function is included memory location of Input Point Clouds.
 	*/
 	/**
 	* @brief override
-	* @param InputModelFile PointCloud(*.PYL) input file path
+	* @param InputModelFile PointCloud(*.PLY) input file path
 	* @return number of Pointcloud (if it failed loading, it returned -1)
 	*/
 	virtual int loadPointCloud(const char* pc_file);
