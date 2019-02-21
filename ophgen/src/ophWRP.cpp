@@ -66,7 +66,7 @@ void ophWRP::autoScaling(Real scale)
 	Real wpx = context_.pixel_pitch.v[0];//wrp pitch
 	Real wpy = context_.pixel_pitch.v[1];
 
-	Real size = Ny * wpy*0.8 / 2;
+	Real size = Ny * wpy * 0.8 / 2;
 
 	OphPointCloudData pc = obj_;
 
@@ -85,16 +85,6 @@ void ophWRP::autoScaling(Real scale)
 	Real ymax = maxOfArr(y, n_points);
 	Real zmax = maxOfArr(z, n_points);
 
-	Real zmin = minOfArr(z, n_points);
-
-	Real z_wrp = pc_config_.wrp_location;
-	Real distance = pc_config_.propagation_distance;
-
-	//Real scale =100;
-	Real zwa = scale * (context_.pixel_pitch.v[0] * context_.pixel_pitch.v[0]) / wave_len;
-	Real z_min = z_wrp - zwa;
-
-	Real z_size = (z_min / zmin)*(zmax - zmin);
 
 	int j;
 #ifdef _OPENMP
@@ -108,7 +98,7 @@ void ophWRP::autoScaling(Real scale)
 			uint idx = 3 * j;
 			pc.vertex[idx + _X] = pc.vertex[idx + _X] / xmax * size;
 			pc.vertex[idx + _Y] = pc.vertex[idx + _Y] / ymax * size;
-			pc.vertex[idx + _Z] = pc.vertex[idx + _Z] / zmax * z_size;
+			pc.vertex[idx + _Z] = pc.vertex[idx + _Z] / zmax * size;
 
 		}
 #ifdef _OPENMP
@@ -311,7 +301,7 @@ double ophWRP::calculateWRP(void)
 					//double tmp_re,tmp_im;
 					oph::Complex<Real> tmp;
 					tmp._Val[_RE] = (amplitude * cosf(wave_num*r)) / (r + 0.05);
-					tmp._Val[_IM] = (-amplitude*sinf(wave_num*r)) / (r + 0.05);
+					tmp._Val[_IM] = (-amplitude * sinf(wave_num*r)) / (r + 0.05);
 
 					if (tx + wx >= 0 && tx + wx < Nx && ty + wy >= 0 && ty + wy < Ny)
 						addPixel2WRP(wx + tx, wy + ty, tmp);
