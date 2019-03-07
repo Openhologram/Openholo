@@ -143,7 +143,7 @@ public:
 	void setScale(vec3 scale) { pc_config_.scale = scale; }
 	void setLocation(Real location) { pc_config_.wrp_location = location; }
 	void setDistance(Real distance) { pc_config_.propagation_distance; }
-	void autoScaling(Real scale);
+	void autoScaling();
 
 	/**
 	* @brief override

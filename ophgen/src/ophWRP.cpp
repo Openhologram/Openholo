@@ -300,8 +300,8 @@ double ophWRP::calculateWRP(void)
 
 					//double tmp_re,tmp_im;
 					oph::Complex<Real> tmp;
-					tmp._Val[_RE] = (amplitude * cosf(wave_num*r) * cosf(wave_num*wave_len*rand(0, 1))) / (r + 0.05);
-					tmp._Val[_IM] = (-amplitude * sinf(wave_num*r) * sinf(wave_num*wave_len*rand(0, 1))) / (r + 0.05);
+					tmp._Val[_RE] = (amplitude * cosf(wave_num*r) * cosf(wave_num*wave_len*rand(0, 1))) / r;
+					tmp._Val[_IM] = (-amplitude * sinf(wave_num*r) * sinf(wave_num*wave_len*rand(0, 1))) / r;
 
 					if (tx + wx >= 0 && tx + wx < Nx && ty + wy >= 0 && ty + wy < Ny)
 						addPixel2WRP(wx + tx, wy + ty, tmp);
