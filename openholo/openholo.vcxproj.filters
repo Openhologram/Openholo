@@ -78,6 +78,9 @@
     <ClInclude Include="src\comment.h">
       <Filter>_1_Openholo</Filter>
     </ClInclude>
+    <ClInclude Include="src\ophKernel.cuh">
+      <Filter>_1_Openholo</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Openholo.cpp">

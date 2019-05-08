@@ -85,7 +85,7 @@ extern "C"
 	* @param bNomarlized : If bNomarlized == true, normalize the result after FFT.
 	* @see propagation_AngularSpectrum_GPU, encoding_GPU
 	*/
-	void cudaFFT(CUstream_st* stream, int nx, int ny, cufftDoubleComplex* in_filed, cufftDoubleComplex* output_field, int direction,  bool bNormailized = false);
+	void cudaFFT(CUstream_st* stream, int nx, int ny, cufftDoubleComplex* in_filed, cufftDoubleComplex* output_field, int direction);
 
 
 	//void cudaCropFringe(CUstream_st* stream, int nx, int ny, cufftDoubleComplex* in_field, cufftDoubleComplex* out_field, int cropx1, int cropx2, int cropy1, int cropy2);
@@ -156,6 +156,15 @@ extern "C"
 
 	/**@}*/
 
+}
+
+void empty(int a, int b, int& sum)
+{
+	int* arr;
+	int idx = 0;
+	arr = new int[b - a + 1];
+	
+	idx == b - a ? sum += arr[idx] : idx++;
 }
 
 /**

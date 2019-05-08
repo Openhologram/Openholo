@@ -42,57 +42,11 @@
 // Check whether software you use contains licensed software.
 //
 //M*/
-
+#pragma once
 #ifndef ophDMKernel_cu__
 #define ophDMKernel_cu__
 
-#include <cuda_runtime.h>
-#include <cuComplex.h>
-#include <cuda.h>
-#include <device_launch_parameters.h>
-#include <device_functions.h>
-#include <cufft.h>
-
-static const int kBlockThreads = 512;
-
-__global__ void fftShift(int N, int nx, int ny, cufftDoubleComplex* input, cufftDoubleComplex* output, bool bNormailzed)
-{
-	int tid = threadIdx.x + blockIdx.x*blockDim.x;
-
-	double normalF = 1.0;
-	if (bNormailzed == true)
-		normalF = nx * ny;
-
-	while (tid < N)
-	{
-		int i = tid % nx;
-		int j = tid / nx;
-
-		int ti = i - nx / 2; if (ti<0) ti += nx;
-		int tj = j - ny / 2; if (tj<0) tj += ny;
-
-		int oindex = tj * nx + ti;
-
-
-		output[tid].x = input[oindex].x / normalF;
-		output[tid].y = input[oindex].y / normalF;
-
-		tid += blockDim.x * gridDim.x;
-	}
-}
-
-__device__  void exponent_complex(cuDoubleComplex* val)
-{
-	double exp_val = exp(val->x);
-	double cos_v;
-	double sin_v;
-	sincos(val->y, &sin_v, &cos_v);
-
-	val->x = exp_val * cos_v;
-	val->y = exp_val * sin_v;
-
-}
-
+#include "ophKernel.cuh"
 
 __global__ void depth_sources_kernel(cufftDoubleComplex* u_o_gpu, unsigned char* img_src_gpu, unsigned char* dimg_src_gpu, double* depth_index_gpu,
 	int dtr, double rand_phase_val_a, double rand_phase_val_b, double carrier_phase_delay_a, double carrier_phase_delay_b, int pnx, int pny,
@@ -228,48 +182,6 @@ __global__ void change_depth_quan_kernel(double* depth_index_gpu, unsigned char*
 		depth_index_gpu[tid] = depth_index_gpu[tid] + (double)(tdepth * (dtr + 1));
 	}
 }
-
-
-extern "C"
-void cudaFFT(CUstream_st* stream, int nx, int ny, cufftDoubleComplex* in_field, cufftDoubleComplex* output_field, int direction, bool bNormalized)
-{
-	unsigned int nblocks = (nx*ny + kBlockThreads - 1) / kBlockThreads;
-	int N = nx * ny;
-	fftShift << <nblocks, kBlockThreads, 0, stream >> >(N, nx, ny, in_field, output_field, false);
-
-	cufftHandle plan;
-
-	// fft
-	if (cufftPlan2d(&plan, ny, nx, CUFFT_Z2Z) != CUFFT_SUCCESS)
-	{
-		//LOG("FAIL in creating cufft plan");
-		return;
-	};
-
-	cufftResult result;
-
-	if (direction == -1)
-		result = cufftExecZ2Z(plan, output_field, in_field, CUFFT_FORWARD);
-	else
-		result = cufftExecZ2Z(plan, output_field, in_field, CUFFT_INVERSE);
-
-	if (result != CUFFT_SUCCESS)
-	{
-		//LOG("------------------FAIL: execute cufft, code=%s", result);
-		return;
-	}
-
-	if (cudaDeviceSynchronize() != cudaSuccess) {
-		//LOG("Cuda error: Failed to synchronize\n");
-		return;
-	}
-
-	fftShift << < nblocks, kBlockThreads, 0, stream >> >(N, nx, ny, in_field, output_field, bNormalized);
-
-	cufftDestroy(plan);
-
-}
-
 
 extern "C"
 void cudaDepthHoloKernel(CUstream_st* stream, int pnx, int pny, cufftDoubleComplex* u_o_gpu, unsigned char* img_src_gpu, unsigned char* dimg_src_gpu, double* depth_index_gpu,
