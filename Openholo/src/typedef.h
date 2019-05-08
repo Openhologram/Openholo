@@ -58,6 +58,7 @@ typedef double Real_t;
 
 namespace oph
 {
+#define __IPL_H__
 	typedef unsigned int uint;
 	typedef unsigned short ushort;
 	typedef unsigned char uchar;
