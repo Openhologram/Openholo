@@ -52,14 +52,14 @@
 ophPointCloud::ophPointCloud(void)
 	: ophGen()
 {
-	setMode(false);
+	setMode(MODE_CPU);
 	n_points = -1;
 }
 
 ophPointCloud::ophPointCloud(const char* pc_file, const char* cfg_file)
 	: ophGen()
 {
-	setMode(false);
+	setMode(MODE_CPU);
 	n_points = loadPointCloud(pc_file);
 	if (n_points == -1) std::cerr << "OpenHolo Error : Failed to load Point Cloud Data File(*.dat)" << std::endl;
 
