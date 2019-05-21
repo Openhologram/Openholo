@@ -399,6 +399,7 @@ bool ophCascadedPropagation::readConfig(const wchar_t* fname)
 
 bool ophCascadedPropagation::propagateSlmToPupil()
 {
+	auto start_time = CUR_TIME;
 	oph::uint numColors = getNumColors();
 	oph::uint nx = getResX();
 	oph::uint ny = getResY();
@@ -435,12 +436,20 @@ bool ophCascadedPropagation::propagateSlmToPupil()
 
 		memcpy(getPupilWavefield(color), buf, sizeof(oph::Complex<Real>) * nx * ny);
 	}
+
+	auto end_time = CUR_TIME;
+
+	auto during_time = ((std::chrono::duration<Real>)(end_time - start_time)).count();
+
+	LOG("SLM to Pupil propagation - Implement time : %.5lf sec\n", during_time);
+
 	delete[] buf;
 	return true;
 }
 
 bool ophCascadedPropagation::propagatePupilToRetina()
 {
+	auto start_time = CUR_TIME;
 	oph::uint numColors = getNumColors();
 	oph::uint nx = getResX();
 	oph::uint ny = getResY();
@@ -468,6 +477,12 @@ bool ophCascadedPropagation::propagatePupilToRetina()
 
 		fftwShift(buf, getRetinaWavefield(color), nx, ny, OPH_FORWARD, false);
 	}
+
+	auto end_time = CUR_TIME;
+
+	auto during_time = ((std::chrono::duration<Real>)(end_time - start_time)).count();
+
+	LOG("Pupil to Retina propagation - Implement time : %.5lf sec\n", during_time);
 
 	delete[] buf;
 	return true;

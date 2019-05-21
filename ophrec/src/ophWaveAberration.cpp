@@ -178,6 +178,7 @@ void ophWaveAberration::imresize(double **X, int Nx, int Ny, int nx, int ny, dou
 
 void ophWaveAberration::accumulateZernikePolynomial()
 {
+	auto start_time = CUR_TIME;
 	const oph::Complex<Real> j(0,1);
 
 	double wave_lambda = context_.wave_length[0]; // wavelength
@@ -344,6 +345,12 @@ void ophWaveAberration::accumulateZernikePolynomial()
 	}
 
 //	return WD;
+
+	auto end_time = CUR_TIME;
+
+	auto during_time = ((std::chrono::duration<Real>)(end_time - start_time)).count();
+
+	LOG("Implement time : %.5lf sec\n", during_time);
 }
 
 

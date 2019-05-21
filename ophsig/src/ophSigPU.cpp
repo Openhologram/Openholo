@@ -175,6 +175,8 @@ bool ophSigPU::loadPhaseOriginal(void)
 
 bool ophSigPU::runPU(void)
 {
+	auto start_time = CUR_TIME;
+
 	matrix<Real> residue(Nr,Nc);
 	residue.zeros();
 	matrix<Real> branchcut(Nr, Nc);
@@ -182,6 +184,13 @@ bool ophSigPU::runPU(void)
 	phaseResidues(residue);
 	branchCuts(residue, branchcut);
 	floodFill(branchcut);
+
+	auto end_time = CUR_TIME;
+
+	auto during_time = ((std::chrono::duration<Real>)(end_time - start_time)).count();
+
+	LOG("Implement time : %.5lf sec\n", during_time);
+
 	return false;
 }
 

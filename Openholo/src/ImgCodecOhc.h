@@ -84,6 +84,7 @@ namespace oph
 		void getComplexFieldData(OphComplexField** cmplx_field);
 		void getComplexFieldData(Complex<Real>*** cmplx_field);
 
+
 	protected: /* field */
 		std::string fname;
 		//void* buf = nullptr; //coded data
@@ -120,6 +121,8 @@ namespace oph
 		bool load();
 
 	protected:
+		void fieldToComplex(void);
+
 		bool bLoadFile = false;
 		//template<typename T> bool decodeFieldData();
 		//template<typename T> Real decodePhase(const T phase, const Real min_p, const Real max_p, const double min_T, const double max_T);

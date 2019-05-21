@@ -308,14 +308,14 @@ bool oph::ImgDecoderOhc::load() {
 			return false;
 		}
 		else {
-			File >> FHeader.fileSize;
-			File >> FHeader.fileVersionMajor;
-			File >> FHeader.fileVersionMinor;
-			File >> FHeader.fileReserved1;
-			File >> FHeader.fileReserved2;
-			File >> FHeader.fileOffBytes;
+			File >> Header->fileHeader.fileSize;
+			File >> Header->fileHeader.fileVersionMajor;
+			File >> Header->fileHeader.fileVersionMinor;
+			File >> Header->fileHeader.fileReserved1;
+			File >> Header->fileHeader.fileReserved2;
+			File >> Header->fileHeader.fileOffBytes;
 			std::cout << "Reading Openholo Complex Field File..." << std::endl << fname << std::endl;
-			std::cout << "OHC File was made on OpenHolo version " << (int)FHeader.fileVersionMajor << "." << (int)FHeader.fileVersionMinor << "..." << std::endl;
+			std::cout << "OHC File was made on OpenHolo version " << FHeader.fileVersionMajor << "." << FHeader.fileVersionMinor << "..." << std::endl;
 		}
 		//this->File.read((char*)&FHeader, sizeof(ohcHeader));
 		//if ((FHeader.fileSignature[0] != FMT_SIGN_OHC[0]) || (FHeader.fileSignature[1] != FMT_SIGN_OHC[1])) {
@@ -448,6 +448,27 @@ bool oph::ImgDecoderOhc::load() {
 	}
 }
 
+void oph::ImgDecoderOhc::fieldToComplex(void)
+{
+	if (field_cmplx.empty() != true) return;
+
+	uint x = Header->fieldInfo.pxNumX;
+	uint y = Header->fieldInfo.pxNumY;
+	uint n_wav = Header->fieldInfo.wavlenNum;
+
+	for (uint l = 0; l < n_wav; l++)
+	{
+		for (uint i = 0; i < x; i++)
+		{
+			for (uint j = 0; j < y; j++)
+			{
+				if (field_ampli.empty() != true) field_cmplx[l][i][j][_RE] = field_ampli[l][i][j];
+				if (field_phase.empty() != true) field_cmplx[l][i][j][_IM] = field_phase[l][i][j];
+			}
+		}
+	}
+}
+
 bool oph::ImgDecoderOhc::decodeFieldData()
 {
 	int n_wavlens = FldInfo.wavlenNum;
@@ -455,6 +476,8 @@ bool oph::ImgDecoderOhc::decodeFieldData()
 	int rows = FldInfo.pxNumY;
 	int n_pixels = cols * rows;
 	ulonglong n_fields = n_pixels * n_wavlens;
+
+	if (FldInfo.fldStore == FldStore::Null) FldInfo.fldStore = FldStore::Directly;
 
 	int n_cmplxChnl = 0; // Is a data value Dual data(2) or Single data(1) ?
 
@@ -497,7 +520,7 @@ bool oph::ImgDecoderOhc::decodeFieldData()
 		break;
 	}
 	default: {
-		LOG("Error : Invalid Complex Field Encoding Type...");
+		LOG("Error : Invalid Complex Field Encoding Type...\n");
 		return false;
 	}
 	}
@@ -608,14 +631,15 @@ bool oph::ImgDecoderOhc::decodeFieldData()
 				}
 			}
 		}
+		//fieldToComplex();
 		return true;
 	}
 	else if (FldInfo.fldStore == FldStore::LinkFile) {
-		LOG("Error : Link Image File Decoding is Not Yet supported...");
+		LOG("Error : Link Image File Decoding is Not Yet supported...\n");
 		return false;
 	}
 	else {
-		LOG("Error : Invalid Field Data Store Type...");
+		LOG("Error : Invalid Field Data Store Type...\n");
 		return false;
 	}
 }
@@ -1164,8 +1188,8 @@ bool oph::ImgEncoderOhc::save() {
 		//this->File.write((char*)&FHeader, sizeof(ohcHeader));
 		File << FHeader.fileSignature[0] << FHeader.fileSignature[1] << "\n";
 		File << FHeader.fileSize << "\n";
-		File << FHeader.fileVersionMajor << "\n";
-		File << FHeader.fileVersionMinor << "\n";
+		File << (int)FHeader.fileVersionMajor << "\n";
+		File << (int)FHeader.fileVersionMinor << "\n";
 		File << FHeader.fileReserved1 << "\n";
 		File << FHeader.fileReserved2 << "\n";
 		File << FHeader.fileOffBytes << "\n";

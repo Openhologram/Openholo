@@ -276,7 +276,7 @@ void ophDepthMap::encoding(unsigned int ENCODE_FLAG, unsigned int SSB_PASSBAND)
 			break;
 		}
 
-		encodeSideBand(is_CPU, location);
+		encodeSideBand(is_CPU, ivec2(0, 1));
 	}
 	else ophGen::encoding(ENCODE_FLAG, SSB_PASSBAND, dst);
 

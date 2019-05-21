@@ -73,11 +73,20 @@ bool ophSigCH::setCHparam(vector<Real> &z, int maxIter, double tau, double tolA,
 
 bool ophSigCH::runCH(int complexHidx) 
 {
+	auto start_time = CUR_TIME;
+
 	matrix<Real> realimagplaneinput(_cfgSig.rows*2, _cfgSig.cols);
 	c2ri(ComplexH[complexHidx], realimagplaneinput);
 
 	NumRecRealImag.resize(_cfgSig.rows * 2, _cfgSig.cols*Nz);	
 	twist(realimagplaneinput, NumRecRealImag);
+
+	auto end_time = CUR_TIME;
+
+	auto during_time = ((std::chrono::duration<Real>)(end_time - start_time)).count();
+
+	LOG("Implement time : %.5lf sec\n", during_time);
+
 	return TRUE;
 }
 
@@ -655,6 +664,7 @@ bool ophSigCH::loadCHtemp(const char * real, const char * imag, uint8_t bitpixel
 		if (bitpixel == 8)
 		{
 			rgbquad palette[256];
+			ComplexH = new OphComplexField;
 			fread(palette, sizeof(rgbquad), 256, freal);
 			fread(palette, sizeof(rgbquad), 256, fimag);
 
@@ -664,6 +674,7 @@ bool ophSigCH::loadCHtemp(const char * real, const char * imag, uint8_t bitpixel
 		}
 		else
 		{
+			ComplexH = new OphComplexField[3];
 			realMat[0].resize(hInfo.height, hInfo.width);
 			imagMat[0].resize(hInfo.height, hInfo.width);
 			ComplexH[0].resize(hInfo.height, hInfo.width);
