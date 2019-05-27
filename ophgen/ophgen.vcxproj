@@ -92,6 +92,7 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
       <SubSystem>Console</SubSystem>
       <AdditionalDependencies>cudart.lib;cufft.lib;cuda.lib;Openholo.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(ProjectDir)lib;$(SolutionDir)Reference\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>/FORCE:multiple %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <PostBuildEvent>
       <Command>echo copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"
@@ -111,6 +112,7 @@ xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)Reference\include\"
     <ClInclude Include="src\ophDepthMap.h" />
     <ClInclude Include="src\ophGen.h" />
     <ClInclude Include="src\ophLightField.h" />
+    <ClInclude Include="src\ophLightField_GPU.h" />
     <ClInclude Include="src\ophLUT.h" />
     <ClInclude Include="src\ophPAS.h" />
     <ClInclude Include="src\ophPointCloud.h" />
@@ -126,6 +128,7 @@ xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)Reference\include\"
     <ClCompile Include="src\ophDepthMap_GPU.cpp" />
     <ClCompile Include="src\ophGen.cpp" />
     <ClCompile Include="src\ophLightField.cpp" />
+    <ClCompile Include="src\ophLightField_GPU.cpp" />
     <ClCompile Include="src\ophLUT.cpp" />
     <ClCompile Include="src\ophPAS.cpp" />
     <ClCompile Include="src\ophPointCloud.cpp" />
@@ -140,6 +143,7 @@ xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)Reference\include\"
     <CudaCompile Include="src\ophDMKernel.cu">
       <CudaRuntime Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Static</CudaRuntime>
     </CudaCompile>
+    <CudaCompile Include="src\ophLFKernel.cu" />
     <CudaCompile Include="src\ophPCKernel.cu" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

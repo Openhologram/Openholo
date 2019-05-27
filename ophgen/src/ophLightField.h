@@ -109,6 +109,9 @@ private:
 	uchar** LF;										/// Light Field array / 4-D array
 	Complex<Real>* RSplane_complex_field;			/// Complex field in Ray Sampling plane
 
+	// ==== GPU Variables ===============================================
+	bool		is_CPU;
+
 private:
 	
 	// Light Field save parameters
@@ -159,12 +162,24 @@ public:
 
 	//virtual int saveAsOhc(const char* fname);
 
+	//virtual int saveAsOhc(const char* fname);
+
+	void setMode(bool is_CPU);
+
+	// for Testing 
+	void writeIntensity_gray8_bmp(const char* fileName, int nx, int ny, Complex<Real>* complexvalue, int k = -1);
+
 protected:
 	
 	// Inner functions
 
 	void initializeLF();
 	void convertLF2ComplexField();
+
+	// ==== GPU Methods ===============================================
+	void prepareInputdataGPU();
+	void convertLF2ComplexField_GPU();
+	void fresnelPropagation_GPU();
 
 private:
 	

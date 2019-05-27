@@ -56,7 +56,13 @@ ophLF::ophLF(void)
 	: num_image(ivec2(0, 0))
 	, resolution_image(ivec2(0, 0))
 	, distanceRS2Holo(0.0)
+	, is_CPU(true)
 {
+}
+
+void ophLF::setMode(bool isCPU)
+{
+	is_CPU = isCPU;
 }
 
 int ophLF::readLFConfig(const char* LF_config) {
@@ -275,20 +281,42 @@ int ophLF::loadLF()
 
 void ophLF::generateHologram() {
 
-	auto start = CUR_TIME;
+	if (is_CPU)
+	{
+		auto start = CUR_TIME;
 
-	LOG("Converting....");
-	convertLF2ComplexField();
-	LOG("finished.\n");
+		LOG("Converting....");
+		convertLF2ComplexField();
+		LOG("finished.\n");
 
-	LOG("Propagating ...");
-	fresnelPropagation(RSplane_complex_field, (*complex_H), distanceRS2Holo);
-	LOG("finished.\n");
+		LOG("Propagating ...");
+		fresnelPropagation(RSplane_complex_field, (*complex_H), distanceRS2Holo);
+		LOG("finished.\n");
 
-	auto end = CUR_TIME;
-	auto during = ((std::chrono::duration<Real>)(end - start)).count();
+		auto end = CUR_TIME;
+		auto during = ((std::chrono::duration<Real>)(end - start)).count();
+		LOG("%.5lfsec...hologram generated..\n", during);
 
-	LOG("%.5lfsec...hologram generated..\n", during);
+	}
+	else {
+
+		prepareInputdataGPU();
+
+		auto start = CUR_TIME;
+
+		LOG("Converting....");
+		convertLF2ComplexField_GPU();
+		LOG("finished.\n");
+
+		LOG("Propagating ...");
+		fresnelPropagation_GPU();
+		LOG("finished.\n");
+
+		auto end = CUR_TIME;
+		auto during = ((std::chrono::duration<Real>)(end - start)).count();
+		LOG("%.5lfsec...hologram generated..\n", during);
+
+	}
 }
 
 //int ophLF::saveAsOhc(const char * fname)
@@ -355,4 +383,54 @@ void ophLF::convertLF2ComplexField() {
 		}
 	}
 	delete[] complexLF, FFTLF;
+}
+
+void ophLF::writeIntensity_gray8_bmp(const char* fileName, int nx, int ny, Complex<Real>* complexvalue, int k)
+{
+	const int n = nx * ny;
+
+	double* intensity = (double*)malloc(sizeof(double)*n);
+	for (int i = 0; i < n; i++)
+		intensity[i] = complexvalue[i].real();
+	//intensity[i] = complexvalue[i].mag2();
+
+	double min_val, max_val;
+	min_val = intensity[0];
+	max_val = intensity[0];
+
+	for (int i = 0; i < n; ++i)
+	{
+		if (min_val > intensity[i])
+			min_val = intensity[i];
+		else if (max_val < intensity[i])
+			max_val = intensity[i];
+	}
+
+	char fname[100];
+	strcpy_s(fname, fileName);
+	if (k != -1)
+	{
+		char num[30];
+		sprintf_s(num, "_%d", k);
+		strcat_s(fname, num);
+	}
+	strcat_s(fname, ".bmp");
+
+	//LOG("minval %e, max val %e\n", min_val, max_val);
+
+	unsigned char* cgh = (unsigned char*)malloc(sizeof(unsigned char)*n);
+
+	for (int i = 0; i < n; ++i) {
+		double val = (intensity[i] - min_val) / (max_val - min_val);
+		//val = pow(val, 1.0 / 1.5);
+		val = val * 255.0;
+		unsigned char v = (uchar)val;
+
+		cgh[i] = v;
+	}
+
+	int ret = Openholo::saveAsImg(fname, 8, cgh, nx, ny);
+
+	free(intensity);
+	free(cgh);
 }

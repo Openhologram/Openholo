@@ -36,12 +36,12 @@
     <ClInclude Include="src\ivec.h" />
     <ClInclude Include="src\mat.h" />
     <ClInclude Include="src\Openholo.h" />
-    <CudaCompile Include="src\ophKernel.cuh">
+    <ClInclude Include="src\ophKernel.cuh">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </CudaCompile>
+    </ClInclude>
     <ClInclude Include="src\PLYparser.h" />
     <ClInclude Include="src\struct.h" />
     <ClInclude Include="src\sys.h" />
@@ -180,6 +180,7 @@ xcopy /y "$(ProjectDir)lib\*.lib" "$(SolutionDir)ophgen\lib\"</Command>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalDependencies>cudart.lib;cufft.lib;cuda.lib;libfftw3-3.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(ProjectDir)lib\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>/FORCE:multiple %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <PostBuildEvent>
       <Command>xcopy /y "$(TargetDir)$(ProjectName).lib" "$(SolutionDir)Reference\lib\"
