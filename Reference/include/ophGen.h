@@ -329,6 +329,7 @@ protected:
 * @param oph::vec2 Tilt angle for spatial filtering
 */
 struct GEN_DLL OphPointCloudConfig {
+	int n_streams;
 	oph::vec3 scale;
 	Real offset_depth;
 
@@ -340,6 +341,10 @@ struct GEN_DLL OphPointCloudConfig {
 	Real focal_length_lens_eye_piece;
 
 	oph::vec2 tilt_angle;
+
+	OphPointCloudConfig() 
+		: n_streams(0), scale(0, 0, 0), offset_depth(0), filter_shape_flag(0), focal_length_lens_in(0), focal_length_lens_out(0), focal_length_lens_eye_piece(0), tilt_angle(0, 0)
+	{}
 };
 
 /**

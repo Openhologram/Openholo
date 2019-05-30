@@ -181,6 +181,9 @@ bool ophGen::readConfig(const char* fname, OphPointCloudConfig& configdata)
 	next = xml_node->FirstChildElement("SLMpixelNumY");
 	if (!next || tinyxml2::XML_SUCCESS != next->QueryIntText(&context_.pixel_number[_Y]))
 		return false;
+	next = xml_node->FirstChildElement("NumOfStream");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryIntText(&configdata.n_streams))
+		return false;
 
 	context_.k = (2 * M_PI) / context_.wave_length[0];
 	context_.ss[_X] = context_.pixel_number[_X] * context_.pixel_pitch[_X];

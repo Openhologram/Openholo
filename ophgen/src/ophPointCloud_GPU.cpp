@@ -81,7 +81,18 @@ void ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 	std::cout << ">>> " << blockSize << " threads/block, " << gridSize << " blocks/grid" << std::endl;
 
 	//const int n_streams = OPH_CUDA_N_STREAM;
-	const int n_streams = pc_data_.n_points / 300 + 1;
+	int n_streams;
+	if (pc_config_.n_streams == 0)
+		n_streams = pc_data_.n_points / 300 + 1;
+	else if (pc_config_.n_streams < 0)
+	{
+		LOG("Invalid value : NumOfStream");
+		return;
+	}
+	else
+		n_streams = pc_config_.n_streams;
+
+	LOG(">>> Number Of Stream : %d\n", n_streams);
 
 	//threads number
 	const ulonglong bufferSize = n_pixels * sizeof(Real);
@@ -101,7 +112,7 @@ void ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 	}
 
 	GpuConst* host_config = new GpuConst(
-		this->n_points, n_colors,
+		this->n_points, n_colors, this->pc_config_.n_streams,
 		this->pc_config_.scale, this->pc_config_.offset_depth,
 		this->context_.pixel_number,
 		this->context_.pixel_pitch,

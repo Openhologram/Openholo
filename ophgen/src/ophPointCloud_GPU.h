@@ -91,6 +91,7 @@ static void handleError(cudaError_t err, const char *file, int line) {
 typedef struct KernelConst {
 	int n_points;	/// number of point cloud
 	int n_colors;	/// number of colors per point cloud
+	int n_streams;	/// number of streams
 
 	double scale_X;		/// Scaling factor of x coordinate of point cloud
 	double scale_Y;		/// Scaling factor of y coordinate of point cloud
@@ -112,6 +113,7 @@ typedef struct KernelConst {
 	KernelConst(
 		const int &n_points,		/// number of point cloud
 		const int &n_colors,		/// number of colors per point cloud
+		const int &n_streams,		/// number of streams
 		const vec3 &scale_factor,	/// Scaling factor of x, y, z coordinate of point cloud
 		const Real &offset_depth,	/// Offset value of point cloud in z direction
 		const ivec2 &pixel_number,	/// Number of pixel of SLM in x, y direction
@@ -122,6 +124,7 @@ typedef struct KernelConst {
 	{
 		this->n_points = n_points;
 		this->n_colors = n_colors;
+		this->n_streams = n_streams;
 		this->scale_X = scale_factor[_X];
 		this->scale_Y = scale_factor[_Y];
 		this->scale_Z = scale_factor[_Z];
@@ -152,6 +155,7 @@ typedef struct KernelConst_EncodedRS : public KernelConst {
 	KernelConst_EncodedRS(
 		const int &n_points,		/// number of point cloud
 		const int &n_colors,		/// number of colors per point cloud
+		const int &n_streams,
 		const vec3 &scale_factor,	/// Scaling factor of x, y, z coordinate of point cloud
 		const Real &offset_depth,	/// Offset value of point cloud in z direction
 		const ivec2 &pixel_number,	/// Number of pixel of SLM in x, y direction
@@ -160,7 +164,7 @@ typedef struct KernelConst_EncodedRS : public KernelConst {
 		const Real &k,				/// Wave Number = (2 * PI) / lambda
 		const vec2 &tilt_angle		/// tilt_Angle_X, tilt_Angle_Y
 	)
-		: KernelConst(n_points, n_colors, scale_factor, offset_depth, pixel_number, pixel_pitch, ss, k)
+		: KernelConst(n_points, n_colors, n_streams, scale_factor, offset_depth, pixel_number, pixel_pitch, ss, k)
 	{
 		// Tilt Angle
 		this->sin_thetaX = sin(RADIAN(tilt_angle[_X]));
@@ -186,6 +190,7 @@ typedef struct KernelConst_NotEncodedRS : public KernelConst {
 	KernelConst_NotEncodedRS(
 		const int &n_points,		/// number of point cloud
 		const int &n_colors,		/// number of colors per point cloud
+		const int &n_streams,
 		const vec3 &scale_factor,	/// Scaling factor of x, y, z coordinate of point cloud
 		const Real &offset_depth,	/// Offset value of point cloud in z direction
 		const ivec2 &pixel_number,	/// Number of pixel of SLM in x, y direction
@@ -194,7 +199,7 @@ typedef struct KernelConst_NotEncodedRS : public KernelConst {
 		const Real &k,				/// Wave Number = (2 * PI) / lambda
 		const Real &lambda			/// Wave length = lambda
 	)
-		: KernelConst(n_points, n_colors, scale_factor, offset_depth, pixel_number, pixel_pitch, ss, k)
+		: KernelConst(n_points, n_colors, n_streams, scale_factor, offset_depth, pixel_number, pixel_pitch, ss, k)
 	{
 		// Wave Length
 		this->lambda = lambda;
@@ -230,6 +235,7 @@ typedef struct KernelConst_NotEncodedFrsn : public KernelConst {
 	KernelConst_NotEncodedFrsn(
 		const int &n_points,		/// number of point cloud
 		const int &n_colors,		/// number of colors per point cloud
+		const int &n_streams,
 		const vec3 &scale_factor,	/// Scaling factor of x, y, z coordinate of point cloud
 		const Real &offset_depth,	/// Offset value of point cloud in z direction
 		const ivec2 &pixel_number,	/// Number of pixel of SLM in x, y direction
@@ -238,7 +244,7 @@ typedef struct KernelConst_NotEncodedFrsn : public KernelConst {
 		const Real &k,				/// Wave Number = (2 * PI) / lambda
 		const Real &lambda			/// Wave length = lambda
 	)
-		: KernelConst(n_points, n_colors, scale_factor, offset_depth, pixel_number, pixel_pitch, ss, k)
+		: KernelConst(n_points, n_colors, n_streams, scale_factor, offset_depth, pixel_number, pixel_pitch, ss, k)
 	{
 		// Wave Length
 		this->lambda = lambda;
