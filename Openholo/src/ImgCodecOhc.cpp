@@ -1179,7 +1179,7 @@ bool oph::ImgEncoderOhc::save() {
 
 			FldInfo.headerSize = (uint32_t)(sizeof(ohcFieldInfoHeader) + wavlenTableSize);
 			FldInfo.fldSize = dataSize;
-			// sizeof(ohcFileHeader) == 32bit, (24bit로 처리하려면 #pragma pack(1) 추가)
+			// Wrong size
 			FHeader.fileSize = sizeof(ohcFileHeader) + FldInfo.headerSize + FldInfo.fldSize;
 			FHeader.fileOffBytes = sizeof(ohcFileHeader) + FldInfo.headerSize;
 		}
