@@ -58,11 +58,17 @@ ophLF::ophLF(void)
 	, distanceRS2Holo(0.0)
 	, is_CPU(true)
 {
+	setViewingWindow(FALSE);
 }
 
 void ophLF::setMode(bool isCPU)
 {
 	is_CPU = isCPU;
+}
+
+void ophLF::setViewingWindow(bool is_ViewingWindow)
+{
+	this->is_ViewingWindow = is_ViewingWindow;
 }
 
 int ophLF::readLFConfig(const char* LF_config) {
@@ -91,7 +97,10 @@ int ophLF::readLFConfig(const char* LF_config) {
 	//LF_directory = (xml_node->FirstChildElement("LightFieldImageDirectory"))->GetText();
 	//ext = (xml_node->FirstChildElement("LightFieldImageExtention"))->GetText();
 #if REAL_IS_DOUBLE & true
-	auto next = xml_node->FirstChildElement("DistanceRS2Holo");
+	auto next = xml_node->FirstChildElement("FieldLens");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&fieldLens))
+		return false;		
+	next = xml_node->FirstChildElement("DistanceRS2Holo");
 	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&distanceRS2Holo))
 		return false;
 	next = xml_node->FirstChildElement("SLMPixelPitchX");
@@ -204,7 +213,7 @@ int ophLF::loadLF(const char* directory, const char* exten)
 			}
 
 			convertToFormatGray8(rgbOut, *(LF + num), sizeOut[_X], sizeOut[_Y], bytesperpixel);
-
+			delete[] rgbOut; // solved memory leak.
 			num++;
 
 			int out = _findnext(ff, &data);
@@ -279,8 +288,10 @@ int ophLF::loadLF()
 	}
 }
 
-void ophLF::generateHologram() {
+void ophLF::generateHologram() 
+{
 
+	LOG(">>> Transform Viewing Window : %s\n", is_ViewingWindow ? "ON" : "OFF");
 	if (is_CPU)
 	{
 		auto start = CUR_TIME;
@@ -297,6 +308,23 @@ void ophLF::generateHologram() {
 		auto during = ((std::chrono::duration<Real>)(end - start)).count();
 		LOG("%.5lfsec...hologram generated..\n", during);
 
+#ifdef TEST_MODE
+		HWND hwndNotepad = NULL;
+		hwndNotepad = ::FindWindow(NULL, "test.txt - ¸Þ¸ðÀå");
+		if (hwndNotepad) {
+			hwndNotepad = FindWindowEx(hwndNotepad, NULL, "edit", NULL);
+
+			char *pBuf = NULL;
+			int nLen = SendMessage(hwndNotepad, WM_GETTEXTLENGTH, 0, 0);
+			pBuf = new char[nLen + 10];
+
+			SendMessage(hwndNotepad, WM_GETTEXT, nLen + 1, (LPARAM)pBuf);
+			sprintf(pBuf, "%s%.5lf\r\n", pBuf, during);
+
+			SendMessage(hwndNotepad, WM_SETTEXT, 0, (LPARAM)pBuf);
+			delete[] pBuf;
+		}
+#endif
 	}
 	else {
 

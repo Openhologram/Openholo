@@ -99,9 +99,19 @@ void ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 
 	//Host Memory Location
 	const int n_colors = this->pc_data_.n_colors;
-	Real* host_pc_data = this->pc_data_.vertex;
+	Real* host_pc_data = nullptr;
 	Real* host_amp_data = this->pc_data_.color;
 	Real* host_dst = nullptr;
+
+	// Keep original buffer
+	if (is_ViewingWindow) {
+		host_pc_data = new Real[n_points * 3];
+		transformViewingWindow(n_points * 3, host_pc_data, this->pc_data_.vertex);
+	}
+	else {
+		host_pc_data = this->pc_data_.vertex;
+	}
+
 /*	if ((diff_flag == PC_DIFF_RS_ENCODED) || (diff_flag == PC_DIFF_FRESNEL_ENCODED)) {
 		host_dst = new Real[n_pixels];
 		std::memset(host_dst, 0., bufferSize);
@@ -214,6 +224,9 @@ void ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 	HANDLE_ERROR(cudaFree(device_amp_data));
 	HANDLE_ERROR(cudaFree(device_dst));
 	HANDLE_ERROR(cudaFree(device_config));
+	if (is_ViewingWindow) {
+		delete[] host_pc_data;
+	}
 	delete[] host_dst;
 	delete host_config;
 }

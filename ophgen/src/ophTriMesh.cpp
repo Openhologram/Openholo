@@ -61,6 +61,11 @@
 #define _Y3 7
 #define _Z3 8
 
+void ophTri::setViewingWindow(bool is_ViewingWindow)
+{
+	this->is_ViewingWindow = is_ViewingWindow;
+}
+
 uint ophTri::loadMeshText(const char* fileName) {
 
 	cout << "Mesh Text File Load..." << endl;
@@ -148,7 +153,10 @@ int ophTri::readMeshConfig(const char* mesh_config) {
 	xml_node = xml_doc.FirstChild();
 
 #if REAL_IS_DOUBLE & true
-	auto next = xml_node->FirstChildElement("ObjectSize");
+	auto next = xml_node->FirstChildElement("FieldLens");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&field_lens))
+		return false;
+	next = xml_node->FirstChildElement("ObjectSize");
 	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&objSize))
 		return false;
 	next = xml_node->FirstChildElement("ObjectShiftX");
@@ -337,95 +345,119 @@ void ophTri::objNormCenter() {
 }
 
 
-void ophTri::objScaleShift() {
+void ophTri::objScaleShift()
+{
+	LOG(">>> Transform Viewing Window : %s\n", is_ViewingWindow ? "ON" : "OFF");
 	scaledMeshData = new Real[meshData->n_faces * 9];
 	
 	objNormCenter();
 
-	Real* x_point = new Real[meshData->n_faces * 3];
-	Real* y_point = new Real[meshData->n_faces * 3];
-	Real* z_point = new Real[meshData->n_faces * 3];
+	int i;
+#if 1
+#ifdef _OPENMP
+	int num_threads;
+#pragma omp parallel
+	num_threads = omp_get_num_threads(); // get number of Multi Threading
+#pragma omp for private(i)
+#endif
+#endif
+	for (i = 0; i < meshData->n_faces * 3; i++) {
+		Real pcx = (is_ViewingWindow) ? 
+			transformViewingWindow(*(normalizedMeshData + 3 * i + _X)) : *(normalizedMeshData + 3 * i + _X);
+		Real pcy = (is_ViewingWindow) ?
+			transformViewingWindow(*(normalizedMeshData + 3 * i + _Y)) : *(normalizedMeshData + 3 * i + _Y);
+		Real pcz = (is_ViewingWindow) ?
+			transformViewingWindow(*(normalizedMeshData + 3 * i + _Z)) : *(normalizedMeshData + 3 * i + _Z);	
 
-	for_i(meshData->n_faces * 3,
-		*(x_point + i) = *(normalizedMeshData + 3 * i);
-	*(y_point + i) = *(normalizedMeshData + 3 * i + 1);
-	*(z_point + i) = *(normalizedMeshData + 3 * i + 2);
-	);
+		*(scaledMeshData + 3 * i + _X) = pcx * objSize + objShift[_X];
+		*(scaledMeshData + 3 * i + _Y) = pcy * objSize + objShift[_Y];
+		*(scaledMeshData + 3 * i + _Z) = pcz * objSize + objShift[_Z];
+	}
 
-	for_i(meshData->n_faces * 3,
-		*(scaledMeshData + 3 * i) = *(x_point + i)*objSize + objShift[_X];
-		*(scaledMeshData + 3 * i + 1) = *(y_point + i)*objSize + objShift[_Y];
-		*(scaledMeshData + 3 * i + 2) = *(z_point + i)*objSize + objShift[_Z];
-		);
-
-	delete[] x_point;
-	delete[] y_point;
-	delete[] z_point;
 	delete[] normalizedMeshData;
 
 	cout << "Object Scaling and Shifting Finishied.." << endl;
+#if 1
+#ifdef _OPENMP
+	cout << ">>> All " << num_threads << " threads" << endl;
+#endif
+#endif
 }
 
-void ophTri::objScaleShift(Real objSize_, vector<Real> objShift_) {
+void ophTri::objScaleShift(Real objSize_, vector<Real> objShift_) 
+{
 	setObjSize(objSize_);
 	setObjShift(objShift_);
 
 	scaledMeshData = new Real[meshData->n_faces * 9];
 
 	objNormCenter();
+	int i;
 
-	Real* x_point = new Real[meshData->n_faces * 3];
-	Real* y_point = new Real[meshData->n_faces * 3];
-	Real* z_point = new Real[meshData->n_faces * 3];
+#ifdef _OPENMP
+	int num_threads;
+#pragma omp parallel
+	num_threads = omp_get_num_threads(); // get number of Multi Threading
+#pragma omp for private(i)
+#endif
+	for (i = 0; i < meshData->n_faces * 3; i++) {
+		Real pcx = (is_ViewingWindow) ?
+			transformViewingWindow(*(normalizedMeshData + 3 * i + _X)) : *(normalizedMeshData + 3 * i + _X);
+		Real pcy = (is_ViewingWindow) ?
+			transformViewingWindow(*(normalizedMeshData + 3 * i + _Y)) : *(normalizedMeshData + 3 * i + _Y);
+		Real pcz = (is_ViewingWindow) ?
+			transformViewingWindow(*(normalizedMeshData + 3 * i + _Z)) : *(normalizedMeshData + 3 * i + _Z);
 
-	for_i(meshData->n_faces * 3,
-		*(x_point + i) = *(normalizedMeshData + 3 * i);
-	*(y_point + i) = *(normalizedMeshData + 3 * i + 1);
-	*(z_point + i) = *(normalizedMeshData + 3 * i + 2);
-	);
+		*(scaledMeshData + 3 * i + _X) = pcx * objSize + objShift[_X];
+		*(scaledMeshData + 3 * i + _Y) = pcy * objSize + objShift[_Y];
+		*(scaledMeshData + 3 * i + _Z) = pcz * objSize + objShift[_Z];
+	}
 
-	for_i(meshData->n_faces * 3,
-		*(scaledMeshData + 3 * i) = *(x_point + i)*objSize + objShift[_X];
-		*(scaledMeshData + 3 * i + 1) = *(y_point + i)*objSize + objShift[_Y];
-		*(scaledMeshData + 3 * i + 2) = *(z_point + i)*objSize + objShift[_Z];
-	);
-
-	delete[] x_point;
-	delete[] y_point;
-	delete[] z_point;
-
+	delete[] normalizedMeshData;
 	cout << "Object Scaling and Shifting Finishied.." << endl;
+
+#ifdef _OPENMP
+	cout << ">>> All " << num_threads << " threads" << endl;
+#endif
 }
 
-void ophTri::objScaleShift(Real objSize_, vec3 objShift_) {
+void ophTri::objScaleShift(Real objSize_, vec3 objShift_)
+{
 	setObjSize(objSize_);
 	setObjShift(objShift_);
 
 	scaledMeshData = new Real[meshData->n_faces * 9];
 
 	objNormCenter();
+	int i;
 
-	Real* x_point = new Real[meshData->n_faces * 3];
-	Real* y_point = new Real[meshData->n_faces * 3];
-	Real* z_point = new Real[meshData->n_faces * 3];
+#ifdef _OPENMP
+	int num_threads;
+#pragma omp parallel
+	{
+		num_threads = omp_get_num_threads(); // get number of Multi Threading
+#pragma omp for private(i)
+#endif
+		for (i = 0; i < meshData->n_faces * 3; i++) {
+			Real pcx = (is_ViewingWindow) ?
+				transformViewingWindow(*(normalizedMeshData + 3 * i + _X)) : *(normalizedMeshData + 3 * i + _X);
+			Real pcy = (is_ViewingWindow) ?
+				transformViewingWindow(*(normalizedMeshData + 3 * i + _Y)) : *(normalizedMeshData + 3 * i + _Y);
+			Real pcz = (is_ViewingWindow) ?
+				transformViewingWindow(*(normalizedMeshData + 3 * i + _Z)) : *(normalizedMeshData + 3 * i + _Z);
 
-	for_i(meshData->n_faces * 3,
-		*(x_point + i) = *(normalizedMeshData + 3 * i);
-	*(y_point + i) = *(normalizedMeshData + 3 * i + 1);
-	*(z_point + i) = *(normalizedMeshData + 3 * i + 2);
-	);
+			*(scaledMeshData + 3 * i + _X) = pcx * objSize + objShift[_X];
+			*(scaledMeshData + 3 * i + _Y) = pcy * objSize + objShift[_Y];
+			*(scaledMeshData + 3 * i + _Z) = pcz * objSize + objShift[_Z];
+		}
 
-	for_i(meshData->n_faces * 3,
-		*(scaledMeshData + 3 * i) = *(x_point + i)*objSize + objShift[_X];
-	*(scaledMeshData + 3 * i + 1) = *(y_point + i)*objSize + objShift[_Y];
-	*(scaledMeshData + 3 * i + 2) = *(z_point + i)*objSize + objShift[_Z];
-	);
+		delete[] normalizedMeshData;
+		cout << "Object Scaling and Shifting Finishied.." << endl;
 
-	delete[] x_point;
-	delete[] y_point;
-	delete[] z_point;
-
-	cout << "Object Scaling and Shifting Finishied.." << endl;
+#ifdef _OPENMP
+	}
+	cout << ">>> All " << num_threads << " threads" << endl;
+#endif
 }
 
 vec3 vecCross(const vec3& a, const vec3& b)
@@ -443,7 +475,8 @@ vec3 vecCross(const vec3& a, const vec3& b)
 }
 
 
-void ophTri::generateMeshHologram(uint SHADING_FLAG) {
+void ophTri::generateMeshHologram(uint SHADING_FLAG) 
+{
 	cout << "Hologram Generation ..." << endl;
 	auto start = CUR_TIME;
 
@@ -461,6 +494,23 @@ void ophTri::generateMeshHologram(uint SHADING_FLAG) {
 	auto during = ((std::chrono::duration<Real>)(end - start)).count();
 
 	LOG("%.5lfsec...hologram generated..\n", during);
+#ifdef TEST_MODE
+	HWND hwndNotepad = NULL;
+	hwndNotepad = ::FindWindow(NULL, "test.txt - ¸Þ¸ðÀå");
+	if (hwndNotepad) {
+		hwndNotepad = FindWindowEx(hwndNotepad, NULL, "edit", NULL);
+
+		char *pBuf = NULL;
+		int nLen = SendMessage(hwndNotepad, WM_GETTEXTLENGTH, 0, 0);
+		pBuf = new char[nLen + 10];
+
+		SendMessage(hwndNotepad, WM_GETTEXT, nLen + 1, (LPARAM)pBuf);
+		sprintf(pBuf, "%s%.5lf\r\n", pBuf, during);
+
+		SendMessage(hwndNotepad, WM_SETTEXT, 0, (LPARAM)pBuf);
+		delete[] pBuf;
+	}
+#endif
 }
 
 void ophTri::generateMeshHologram() {
@@ -482,14 +532,15 @@ void ophTri::generateMeshHologram() {
 }
 
 
-void ophTri::generateAS(uint SHADING_FLAG) {
-
-	Real* mesh = new Real[9];
+void ophTri::generateAS(uint SHADING_FLAG)
+{
+	//Real* mesh = new Real[9];
+	Real mesh[9] = { 0.0, };
 	calGlobalFrequency();
 
 	ivec2 px = context_.pixel_number;
 
-	mesh_local = new Real[9];
+	//mesh_local = new Real[9];
 	flx = new Real[px[_X] * px[_Y]];
 	fly = new Real[px[_X] * px[_Y]];
 	flz = new Real[px[_X] * px[_Y]];
@@ -506,12 +557,65 @@ void ophTri::generateAS(uint SHADING_FLAG) {
 
 	findNormals(SHADING_FLAG);
 
+	int tid;
+#if 0
+	int j;
+#ifdef _OPENMP
+	int num_threads = 0;
+#pragma omp parallel
+	{
+		num_threads = omp_get_num_threads(); // get number of Multi Threading
+		tid = omp_get_thread_num();
+#pragma omp for private(j, tid, mesh) 
+#endif
+	//int j; // private variable for Multi Threading
+		for (j = 0; j < meshData->n_faces; j++) {
+#if 0
+			for (int i = 0; i > 9; i++) {
+				mesh[i] = scaledMeshData[9 * j + i];
+			}
+#else
+			memcpy(mesh, &scaledMeshData[9 * j], sizeof(Real) * 9);
+#endif
+			if (checkValidity(mesh, *(no + j)) != 1)
+				continue;
+
+			if (findGeometricalRelations(mesh, *(no + j)) != 1)
+				continue;
+
+			if (calFrequencyTerm() != 1)
+				continue;
+
+			switch (SHADING_FLAG)
+			{
+			case SHADING_FLAT:
+				refAS_Flat(*(no + j));
+				break;
+			case SHADING_CONTINUOUS:
+				refAS_Continuous(j);
+				break;
+			default:
+				LOG("error: WRONG SHADING_FLAG\n");
+				cin.get();
+			}
+			if (refToGlobal() != 1)
+				continue;
+
+			//char szLog[MAX_PATH];
+			//sprintf(szLog, "[%d] : %d / %d\n", tid, j + 1, meshData->n_faces);
+			//LOG(szLog);
+		}
+	}
+#else
 	//int j; // private variable for Multi Threading
 	for (int j = 0; j < meshData->n_faces; j++) {
+#if 0
 		for_i(9,
 			mesh[i] = scaledMeshData[9 * j + i];
 		);
-
+#else
+		memcpy(mesh, &scaledMeshData[9 * j], sizeof(Real) * 9);
+#endif
 		if (checkValidity(mesh, *(no + j)) != 1)
 			continue;
 
@@ -540,14 +644,15 @@ void ophTri::generateAS(uint SHADING_FLAG) {
 		sprintf(szLog, "%d / %d\n", j + 1, meshData->n_faces);
 		LOG(szLog);
 	}
+#endif
 	LOG("Angular Spectrum Generated...\n");
 
-	delete[] mesh, scaledMeshData, fx, fy, fz, mesh_local, flx, fly, flz, freqTermX, freqTermY, refAS, ASTerm, randTerm, phaseTerm, convol;
+	delete[]/* mesh, mesh_local,*/scaledMeshData, fx, fy, fz, flx, fly, flz, freqTermX, freqTermY, refAS, ASTerm, randTerm, phaseTerm, convol;
 }
 
 
-uint ophTri::findNormals(uint SHADING_FLAG) {
-
+uint ophTri::findNormals(uint SHADING_FLAG)
+{
 	no = new vec3[meshData->n_faces];
 	na = new vec3[meshData->n_faces];
 	nv = new vec3[meshData->n_faces * 3];
@@ -627,14 +732,16 @@ uint ophTri::checkValidity(Real* mesh, vec3 no) {
 	return 0;
 }
 
-uint ophTri::findGeometricalRelations(Real* mesh, vec3 no) {
-	vec3 n = no / norm(no);
-
+uint ophTri::findGeometricalRelations(Real* mesh, vec3 no)
+{
+	vec3 n = no / norm(no);	
+	Real mesh_local[9] = { 0.0 };
 	Real th, ph;
 	if (n[_X] == 0 && n[_Z] == 0)
 		th = 0;
 	else
 		th = atan(n[_X] / n[_Z]);
+
 	Real temp = n[_Y] / sqrt(n[_X] * n[_X] + n[_Z] * n[_Z]);
 	ph = atan(temp);
 	geom.glRot[0] = cos(th);			geom.glRot[1] = 0;			geom.glRot[2] = -sin(th);
@@ -914,7 +1021,8 @@ void ophTri::randPhaseDist(Complex<Real>* AS)
 
 }
 
-uint ophTri::refToGlobal() {
+uint ophTri::refToGlobal() 
+{
 	int Nx = context_.pixel_number[_X];
 	int Ny = context_.pixel_number[_Y];
 
@@ -931,6 +1039,7 @@ uint ophTri::refToGlobal() {
 		+ carrierWave[_Y] * (geom.glRot[1] * geom.glShift[_X] + geom.glRot[4] * geom.glShift[_Y] + geom.glRot[7] * geom.glShift[_Z])
 		+ carrierWave[_Z] * (geom.glRot[2] * geom.glShift[_X] + geom.glRot[5] * geom.glShift[_Y] + geom.glRot[8] * geom.glShift[_Z]));
 	Complex<Real> temp(0,0);
+
 	for (int i = 0; i < Nx*Ny; i++) {
 		if (fz[i] == 0)
 			temp = 0;

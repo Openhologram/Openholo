@@ -131,7 +131,10 @@ bool ophGen::readConfig(const char* fname, OphPointCloudConfig& configdata)
 	xml_node = xml_doc.FirstChild();
 
 #if REAL_IS_DOUBLE & true
-	auto next = xml_node->FirstChildElement("ScalingXofPointCloud");
+	auto next = xml_node->FirstChildElement("FieldLens");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&configdata.field_lens))
+		return false;
+	next = xml_node->FirstChildElement("ScalingXofPointCloud");
 	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&configdata.scale[_X]))
 		return false;
 	next = xml_node->FirstChildElement("ScalingYofPointCloud");
@@ -367,6 +370,7 @@ bool ophGen::readConfig(const char* fname, OphWRPConfig& configdata)
 	xml_node = xml_doc.FirstChild();
 
 #if REAL_IS_DOUBLE & true
+	(xml_node->FirstChildElement("FieldLens"))->QueryDoubleText(&configdata.field_lens);
 	(xml_node->FirstChildElement("ScalingXofPointCloud"))->QueryDoubleText(&configdata.scale[_X]);
 	(xml_node->FirstChildElement("ScalingYofPointCloud"))->QueryDoubleText(&configdata.scale[_Y]);
 	(xml_node->FirstChildElement("ScalingZofPointCloud"))->QueryDoubleText(&configdata.scale[_Z]);
@@ -606,6 +610,7 @@ void ophGen::encoding(unsigned int ENCODE_FLAG, Complex<Real>* holo) {
 	memset(holo_normalized, 0, sizeof(uchar) * encode_size[_X] * encode_size[_Y]);
 
 
+	std::ofstream File;
 	switch (ENCODE_FLAG)
 	{
 	case ENCODE_SIMPLENI:
