@@ -52,14 +52,22 @@ ophWRP::ophWRP(void)
 	n_points = -1;
 	p_wrp_ = nullptr;
 	is_CPU = true;
+	setViewingWindow(FALSE);
 }
 
 ophWRP::~ophWRP(void)
 {
 }
 
+void ophWRP::setViewingWindow(bool is_ViewingWindow)
+{
+	this->is_ViewingWindow = is_ViewingWindow;
+}
+
 void ophWRP::autoScaling()
 {
+	LOG(">>> Transform Viewing Window : %s\n", is_ViewingWindow ? "ON" : "OFF");
+	start = CUR_TIME;
 	long long int Nx = context_.pixel_number.v[0];
 	long long int Ny = context_.pixel_number.v[1];
 
@@ -77,15 +85,16 @@ void ophWRP::autoScaling()
 
 	for (int i = 0; i < n_points; i++) {
 		uint idx = 3 * i;
-		x[i] = pc.vertex[idx + _X];
-		y[i] = pc.vertex[idx + _Y];
-		z[i] = pc.vertex[idx + _Z];
+		x[i] = (is_ViewingWindow) ? transformViewingWindow(pc.vertex[idx + _X]) : pc.vertex[idx + _X];
+		y[i] = (is_ViewingWindow) ? transformViewingWindow(pc.vertex[idx + _Y]) : pc.vertex[idx + _Y];
+		z[i] = (is_ViewingWindow) ? transformViewingWindow(pc.vertex[idx + _Z]) : pc.vertex[idx + _Z];
 	}
 
 	Real xmax = maxOfArr(x, n_points);
 	Real ymax = maxOfArr(y, n_points);
 	Real zmax = maxOfArr(z, n_points);
 
+	LOG(">>> x : %.5lf (ViewWinfow : %s)\n", pc.vertex[0], (is_ViewingWindow) ? "ON" : "OFF");
 
 	int j;
 #ifdef _OPENMP
@@ -369,6 +378,27 @@ void ophWRP::generateHologram(void)
 		printf("Hologram Generated!\n");
 
 	}
+		end = CUR_TIME;
+
+	auto during = ((std::chrono::duration<Real>)(end - start)).count();
+	LOG("%.5lfsec...hologram generated..\n", during);
+#ifdef TEST_MODE
+	HWND hwndNotepad = NULL;
+	hwndNotepad = ::FindWindow(NULL, "test.txt - ¢¬¨­¢¬©£Aa");
+	if (hwndNotepad) {
+		hwndNotepad = FindWindowEx(hwndNotepad, NULL, "edit", NULL);
+
+		char *pBuf = NULL;
+		int nLen = SendMessage(hwndNotepad, WM_GETTEXTLENGTH, 0, 0);
+		pBuf = new char[nLen + 10];
+
+		SendMessage(hwndNotepad, WM_GETTEXT, nLen + 1, (LPARAM)pBuf);
+		sprintf(pBuf, "%s%.5lf\r\n", pBuf, during);
+
+		SendMessage(hwndNotepad, WM_SETTEXT, 0, (LPARAM)pBuf);
+		delete[] pBuf;
+	}
+#endif
 
 }
 
@@ -419,4 +449,3 @@ void ophWRP::ophFree(void)
 	//	delete[] obj_.color;
 
 }
-
