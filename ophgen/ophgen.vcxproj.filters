@@ -70,11 +70,11 @@
     <ClInclude Include="src\ophLightField_GPU.h">
       <Filter>_1_Generation\_ophLF</Filter>
     </ClInclude>
-    <ClInclude Include="src\ophDepthMap_GPU.h">
-      <Filter>_1_Generation\_ophDepthMap</Filter>
-	</ClInclude>
     <ClInclude Include="src\ophWRP_GPU.h">
       <Filter>_1_Generation\_ophWRP</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ophDepthMap_GPU.h">
+      <Filter>_1_Generation\_ophDepthMap</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
