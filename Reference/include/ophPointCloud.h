@@ -612,6 +612,7 @@ public:
 	inline const Real* getModelColor(Real *color) { color != NULL ? color = pc_data_.color : color; return pc_data_.color; }
 	inline const Real* getModelPhase(Real *phase) { phase != NULL ? phase = pc_data_.phase : phase; return pc_data_.phase; }
 	inline int getNumberOfPoints() { return n_points; }
+	inline Real getFieldLens(void) { return pc_config_.field_lens; }
 
 public:
 	/**
@@ -661,6 +662,16 @@ public:
 	virtual void encoding(unsigned int ENCODE_FLAG);
 	virtual void encoding(unsigned int ENCODE_FLAG, unsigned int SSB_PASSBAND);
 
+	/**
+	* @brief Set the value of a variable is_ViewingWindow(true or false)
+	* @details <pre>
+	if is_ViewingWindow == true
+	Transform viewing window
+	else
+	GPU implementation </pre>
+	* @param is_TransVW : the value for specifying whether the hologram generation method is implemented on the viewing window
+	*/
+	void setViewingWindow(bool is_ViewingWindow);
 private:
 	/**
 	* @brief Calculate Integral Fringe Pattern of 3D Point Cloud based Computer Generated Holography
@@ -674,7 +685,8 @@ private:
 	void diffractNotEncodedRS(ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Real k, Real amplitude, Real lambda, vec2 theta);
 	void diffractEncodedFrsn(void);
 	void diffractNotEncodedFrsn(ivec2 pn, vec2 pp, vec3 pc, Real amplitude, Real lambda, vec2 theta);
-
+	Real transformViewingWindow(Real pt);
+	void transformViewingWindow(int nSize, Real *dst, Real *src);
 	/**
 	* @overload
 	* @param Model Input 3D PointCloud Model Data
@@ -705,6 +717,7 @@ private:
 	virtual void ophFree(void);
 
 	bool is_CPU;
+	bool is_ViewingWindow;
 	int n_points;
 
 	OphPointCloudConfig pc_config_;

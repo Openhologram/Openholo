@@ -329,6 +329,7 @@ protected:
 * @param oph::vec2 Tilt angle for spatial filtering
 */
 struct GEN_DLL OphPointCloudConfig {
+	Real field_lens;
 	int n_streams;
 	oph::vec3 scale;
 	Real offset_depth;
@@ -419,6 +420,7 @@ struct GEN_DLL OphMeshData {
 };
 
 struct GEN_DLL OphWRPConfig {
+	Real field_lens;
 	oph::vec3 scale;								///< Scaling factor of coordinate of point cloud
 
 	int num_wrp;                                    ///< Number of wavefront recording plane(WRP)  

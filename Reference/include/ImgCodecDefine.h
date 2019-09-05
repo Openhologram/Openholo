@@ -132,8 +132,8 @@ namespace oph
 
 
 	/************************ File Header Struct for OHC *****************************/
-
 	/* Openholo Complex Field File Format(*.ohc) Definition */
+#pragma pack(push, 1)
 	struct ohcFileHeader {
 		int8_t		fileSignature[2];	/* File Type(2 Byte) : 'OH' 0x484F */
 		uint64_t	fileSize;			/* Entire file size(in byte) */
@@ -198,7 +198,7 @@ namespace oph
 			this->comprsType = CompresType::Null;
 		}
 	};
-
+#pragma pack(pop)
 	struct ohcHeader {
 		ohcFileHeader			fileHeader;
 		ohcFieldInfoHeader		fieldInfo;
