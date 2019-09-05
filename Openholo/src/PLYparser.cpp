@@ -47,15 +47,15 @@
 
 PLYparser::PLYparser()
 {
-	PropertyTable.insert(std::make_pair(Type::INT8,		std::make_pair(1, "char"	)));
-	PropertyTable.insert(std::make_pair(Type::UINT8,	std::make_pair(1, "uchar"	)));
-	PropertyTable.insert(std::make_pair(Type::INT16,	std::make_pair(2, "short"	)));
-	PropertyTable.insert(std::make_pair(Type::UINT16,	std::make_pair(2, "ushort"	)));
-	PropertyTable.insert(std::make_pair(Type::INT32,	std::make_pair(4, "int"		)));
-	PropertyTable.insert(std::make_pair(Type::UINT32,	std::make_pair(4, "uint"	)));
-	PropertyTable.insert(std::make_pair(Type::FLOAT32,	std::make_pair(4, "float"	)));
-	PropertyTable.insert(std::make_pair(Type::FLOAT64,	std::make_pair(8, "double"	)));
-	PropertyTable.insert(std::make_pair(Type::INVALID,	std::make_pair(0, "INVALID"	)));
+	PropertyTable.insert(std::make_pair(Type::INT8, std::make_pair(1, "char")));
+	PropertyTable.insert(std::make_pair(Type::UINT8, std::make_pair(1, "uchar")));
+	PropertyTable.insert(std::make_pair(Type::INT16, std::make_pair(2, "short")));
+	PropertyTable.insert(std::make_pair(Type::UINT16, std::make_pair(2, "ushort")));
+	PropertyTable.insert(std::make_pair(Type::INT32, std::make_pair(4, "int")));
+	PropertyTable.insert(std::make_pair(Type::UINT32, std::make_pair(4, "uint")));
+	PropertyTable.insert(std::make_pair(Type::FLOAT32, std::make_pair(4, "float")));
+	PropertyTable.insert(std::make_pair(Type::FLOAT64, std::make_pair(8, "double")));
+	PropertyTable.insert(std::make_pair(Type::INVALID, std::make_pair(0, "INVALID")));
 }
 
 PLYparser::~PLYparser()
@@ -129,7 +129,6 @@ bool PLYparser::findIdxOfPropertiesAndElement(const std::vector<PlyElement> &ele
 	else return false;
 }
 
-
 bool PLYparser::loadPLY(const std::string& fileName, ulonglong &n_points, int &color_channels, Real** vertexArray, Real** colorArray, Real** phaseArray, bool &isPhaseParse) {
 	std::string inputPath = fileName;
 	if ((fileName.find(".ply") == std::string::npos) && (fileName.find(".PLY") == std::string::npos)) inputPath += ".ply";
@@ -147,6 +146,7 @@ bool PLYparser::loadPLY(const std::string& fileName, ulonglong &n_points, int &c
 		std::getline(File, line);
 		std::istringstream lineStr(line);
 		std::string token;
+		lineStr.clear();
 		lineStr >> token;
 
 		if ((token != "ply") && (token != "PLY")) {
@@ -159,17 +159,24 @@ bool PLYparser::loadPLY(const std::string& fileName, ulonglong &n_points, int &c
 
 			//parse PLY header
 			while (std::getline(File, line)) {
+				//std::istringstream lineStr(line);
+				lineStr.clear();
 				lineStr.str(line);
-				lineStr >> token;
+				std::istream(lineStr.rdbuf()) >> token;
 
-				if (token == "comment") comments.push_back((8 > 0) ? line.erase(0, 8) : line);
+				if (token == "comment") {
+					comments.push_back((8 > 0) ? line.erase(0, 8) : line);
+				}
 				else if (token == "format") {
 					std::string str;
+					lineStr.clear();
 					lineStr >> str;
 					if (str == "binary_little_endian") isBinary = true;
 					else if (str == "binary_big_endian") isBinary = isBigEndian = true;
 				}
-				else if (token == "element") elements.emplace_back(lineStr);
+				else if (token == "element") {
+					elements.emplace_back(lineStr);
+				}
 				else if (token == "property") {
 					if (!elements.size()) std::cerr << "No Elements defined, file is malformed" << std::endl;
 					elements.back().properties.emplace_back(lineStr);
@@ -239,49 +246,96 @@ bool PLYparser::loadPLY(const std::string& fileName, ulonglong &n_points, int &c
 				std::memset(*phaseArray, NULL, sizeof(Real) * n_points);
 			}
 
+		
+
 			//parse Point Cloud Data
 			for (size_t idxE = 0; idxE < elements.size(); ++idxE) {
-				for (longlong e = 0; e < elements[idxE].size; ++e) {
-					std::getline(File, line);
-					lineStr.str(line);
-					std::string val;
-
-					//color channel parsing
-					if (ok_channel && (idxE == idxE_color)) {
-						lineStr >> val;
-						color_channels = std::stoi(val);
+				int nElementSize = 0;
+				if (isBinary) {
+					for (longlong i = 0; i < elements[idxE].properties.size(); i++) {
+						nElementSize += PropertyTable[elements[idxE].properties[i].propertyType].first;
 					}
+				}
 
-					//vertex data parsing
-					if (idxE == idxE_vertex) {
-						Real x = 0.f;
-						Real y = 0.f;
-						Real z = 0.f;
-						uchar red = 0;
-						uchar green = 0;
-						uchar blue = 0;
-						Real phase = 0.f;
+				for (longlong e = 0; e < elements[idxE].size; ++e) {
+					auto x = 0.0f;
+					auto y = 0.0f;
+					auto z = 0.0f;
+					auto red = 0;
+					auto green = 0;
+					auto blue = 0;
+					auto phase = 0.0f;
 
-						//line Processing
-						for (int p = 0; p < elements[idxE].properties.size(); ++p) {
-							lineStr >> val;
-							if (p == idxP_x) x = std::stof(val);
-							else if (p == idxP_y) y = std::stof(val);
-							else if (p == idxP_z) z = std::stof(val);
-							else if (p == idxP_red) red = std::stoi(val);
-							else if (p == idxP_green) green = std::stoi(val);
-							else if (p == idxP_blue) blue = std::stoi(val);
-							else if ((p == idxP_phase) && isPhaseParse) phase = std::stof(val);
+					// BINARY
+					if (isBinary) {
+						// Read line
+						std::string val;
+						File.read((char *)&val, nElementSize);
+
+						int nSize = PropertyTable[elements[idxE].properties[e].propertyType].first;
+
+						//color channel parsing
+						if (ok_channel && (idxE == idxE_color)) {
+							File.read((char *)&color_channels, nSize);
 						}
 
-						(*vertexArray)[3 * e + 0] = x;
-						(*vertexArray)[3 * e + 1] = y;
-						(*vertexArray)[3 * e + 2] = z;
-						(*colorArray)[3 * e + 0] = (Real)(red / 255.f);
-						(*colorArray)[3 * e + 1] = (Real)(green / 255.f);
-						(*colorArray)[3 * e + 2] = (Real)(blue / 255.f);
-						if (isPhaseParse) (*phaseArray)[e] = phase;
+						//vertex data parsing
+						if (idxE == idxE_vertex) {
+							//line Processing
+							for (int p = 0; p < elements[idxE].properties.size(); ++p) {
+
+								if (p == idxP_x) File.read((char *)&x, nSize);
+								else if (p == idxP_y) File.read((char *)&y, nSize);
+								else if (p == idxP_z) File.read((char *)&z, nSize);
+								else if (p == idxP_red) File.read((char *)&red, nSize);
+								else if (p == idxP_green) File.read((char *)&green, nSize);
+								else if (p == idxP_blue) File.read((char *)&blue, nSize);
+								else if ((p == idxP_phase) && isPhaseParse) File.read((char *)&phase, nSize);
+							}
+						}
 					}
+					// ASCII
+					else {
+						std::getline(File, line);
+						lineStr.str(line);
+						std::string val;
+
+						//color channel parsing
+						if (ok_channel && (idxE == idxE_color)) {
+							lineStr.clear();
+							lineStr >> val;
+							color_channels = std::stoi(val);
+						}
+
+						//vertex data parsing
+						if (idxE == idxE_vertex) {
+
+							//line Processing
+							for (int p = 0; p < elements[idxE].properties.size(); ++p) {
+								lineStr.clear();
+
+								lineStr >> val;
+
+								if (p == idxP_x) x = std::stof(val);
+								else if (p == idxP_y) y = std::stof(val);
+								else if (p == idxP_z) z = std::stof(val);
+								else if (p == idxP_red) red = std::stoi(val);
+								else if (p == idxP_green) green = std::stoi(val);
+								else if (p == idxP_blue) blue = std::stoi(val);
+								else if ((p == idxP_phase) && isPhaseParse) phase = std::stof(val);
+							}
+						}
+					}
+
+					(*vertexArray)[3 * e + 0] = (Real)x;
+					(*vertexArray)[3 * e + 1] = (Real)y;
+					(*vertexArray)[3 * e + 2] = (Real)z;
+					(*colorArray)[3 * e + 0] = (Real)(red / 255.f);
+					(*colorArray)[3 * e + 1] = (Real)(green / 255.f);
+					(*colorArray)[3 * e + 2] = (Real)(blue / 255.f);
+					if (isPhaseParse) (*phaseArray)[e] = phase;
+
+
 				}
 			}
 			File.close();
@@ -362,7 +416,7 @@ bool PLYparser::savePLY(const std::string& fileName, const ulonglong n_points, c
 		for (ulonglong i = 0; i < n_points; ++i) {
 			//Vertex Geometry
 			File << std::fixed << vertexArray[3 * i + 0] << " " << vertexArray[3 * i + 1] << " " << vertexArray[3 * i + 2] << " ";
-			
+
 			//Color Amplitude
 			if (color_channels == 3)
 				File << (int)(255.f*colorArray[3 * i + 0] + 0.5f) << " " << (int)(255.f*colorArray[3 * i + 1] + 0.5f) << " " << (int)(255.f*colorArray[3 * i + 2] + 0.5f) << " ";
@@ -564,7 +618,7 @@ bool PLYparser::loadPLY(const char* fileName, ulonglong & n_vertices, int & colo
 				}
 			}
 
-			std::cout << "Success loading " << n_vertices/3 << " Triangle Mesh, Color Channels : " << color_channels << std::endl;
+			std::cout << "Success loading " << n_vertices / 3 << " Triangle Mesh, Color Channels : " << color_channels << std::endl;
 
 			return true;
 		}
