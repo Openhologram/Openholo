@@ -140,6 +140,7 @@ public:
 	const Real& getLocation() { return pc_config_.wrp_location; }
 	const Real& getDistance() { return pc_config_.propagation_distance; }
 	const int& getNumOfWRP() { return pc_config_.num_wrp; }
+	const int& getFieldLens() { return pc_config_.field_lens; }
 	void setScale(vec3 scale) { pc_config_.scale = scale; }
 	void setLocation(Real location) { pc_config_.wrp_location = location; }
 	void setDistance(Real distance) { pc_config_.propagation_distance; }
@@ -194,6 +195,17 @@ public:
 
 	inline oph::Complex<Real>* getWRPBuff(void) { return p_wrp_; };
 
+	/**
+	* @brief Set the value of a variable is_ViewingWindow(true or false)
+	* @details <pre>
+	if is_ViewingWindow == true
+	Transform viewing window
+	else
+	GPU implementation </pre>
+	* @param is_TransVW : the value for specifying whether the hologram generation method is implemented on the viewing window
+	*/
+	void setViewingWindow(bool is_ViewingWindow);
+	
 protected:
 	// ==== GPU Methods ===============================================
 	void prepareInputdataGPU();
@@ -206,6 +218,11 @@ private:
 	void addPixel2WRP(int x, int y, oph::Complex<Real> temp, oph::Complex<Real>* wrp);
 
 	virtual void ophFree(void);
+	inline Real transformViewingWindow(Real pt) {
+		Real fieldLens = this->getFieldLens();
+		Real transPt = -fieldLens * pt / (pt - fieldLens);
+		return transPt;
+	}
 
 protected:
 
@@ -218,7 +235,9 @@ protected:
 	OphWRPConfig pc_config_;      ///< structure variable for WRP hologram configuration
 
 private:
-
+	std::chrono::time_point<std::chrono::system_clock> start;
+	std::chrono::time_point<std::chrono::system_clock> end;
+	bool is_ViewingWindow;
 	bool is_CPU;
 	Real zmax_;
 
