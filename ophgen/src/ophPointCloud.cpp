@@ -73,7 +73,7 @@ ophPointCloud::~ophPointCloud(void)
 
 void ophPointCloud::setMode(bool is_CPU)
 {
-	this->is_CPU = is_CPU;
+	this->is_CPU = is_CPU;  
 }
 
 int ophPointCloud::loadPointCloud(const char* pc_file)

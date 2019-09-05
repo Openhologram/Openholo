@@ -72,6 +72,9 @@
     </ClInclude>
     <ClInclude Include="src\ophDepthMap_GPU.h">
       <Filter>_1_Generation\_ophDepthMap</Filter>
+	</ClInclude>
+    <ClInclude Include="src\ophWRP_GPU.h">
+      <Filter>_1_Generation\_ophWRP</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -112,6 +115,9 @@
     <ClCompile Include="src\ophLightField_GPU.cpp">
       <Filter>_1_Generation\_ophLF</Filter>
     </ClCompile>
+    <ClCompile Include="src\ophWRP_GPU.cpp">
+      <Filter>_1_Generation\_ophWRP</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="src\ophDMKernel.cu">
@@ -122,6 +128,9 @@
     </CudaCompile>
     <CudaCompile Include="src\ophLFKernel.cu">
       <Filter>_1_Generation\_ophLF</Filter>
+    </CudaCompile>
+    <CudaCompile Include="src\ophWRPKernel.cu">
+      <Filter>_1_Generation\_ophWRP</Filter>
     </CudaCompile>
   </ItemGroup>
 </Project>

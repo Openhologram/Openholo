@@ -51,6 +51,7 @@ ophWRP::ophWRP(void)
 {
 	n_points = -1;
 	p_wrp_ = nullptr;
+	is_CPU = true;
 }
 
 ophWRP::~ophWRP(void)
@@ -96,16 +97,25 @@ void ophWRP::autoScaling()
 #endif
 		for (j = 0; j < n_points; ++j) { //Create Fringe Pattern
 			uint idx = 3 * j;
+			if (xmax>ymax)
+			{
 			pc.vertex[idx + _X] = pc.vertex[idx + _X] / xmax * size;
-			pc.vertex[idx + _Y] = pc.vertex[idx + _Y] / ymax * size;
+			pc.vertex[idx + _Y] = pc.vertex[idx + _Y] / xmax * size;
+			}
+			else
+			{
+				pc.vertex[idx + _X] = pc.vertex[idx + _X] / ymax * size;
+				pc.vertex[idx + _Y] = pc.vertex[idx + _Y] / ymax * size;
+			}
 			pc.vertex[idx + _Z] = pc.vertex[idx + _Z] / zmax * size;
+			z[j] = pc.vertex[idx + _Z];
 
 		}
 #ifdef _OPENMP
 	}
 	std::cout << ">>> All " << num_threads << " threads" << std::endl;
 #endif
-
+	zmax_ = maxOfArr(z, n_points);
 }
 
 int ophWRP::loadPointCloud(const char* pc_file)
@@ -227,9 +237,28 @@ oph::Complex<Real>* ophWRP::calSubWRP(double wrp_d, Complex<Real>* wrp, OphPoint
 	return wrp;
 }
 
-double ophWRP::calculateWRP(void)
+void ophWRP::setMode(bool isCPU)
 {
-	initialize();
+	is_CPU = isCPU;
+}
+
+void ophWRP::calculateWRP()
+{
+	if (is_CPU)
+	{
+		calculateWRPCPU();
+
+	}
+	else
+	{
+		calculateWRPGPU();
+	}
+
+}
+
+double ophWRP::calculateWRPCPU(void)
+{
+//	initialize();
 
 	Real wave_num = context_.k;   // wave_number
 	Real wave_len = context_.wave_length[0];  //wave_length
@@ -325,10 +354,22 @@ double ophWRP::calculateWRP(void)
 
 void ophWRP::generateHologram(void)
 {
+	if(is_CPU)
+	{
 	printf("Generating Hologram\n");
 	Real distance = pc_config_.propagation_distance;
 	fresnelPropagation(p_wrp_, (*complex_H), distance);
 	printf("Hologram Generated!\n");
+	}
+	else
+	{
+		printf("Generating Hologram\n");
+		Real distance = pc_config_.propagation_distance;
+		fresnelPropagation(p_wrp_, (*complex_H), distance);
+		printf("Hologram Generated!\n");
+
+	}
+
 }
 
 oph::Complex<Real>** ophWRP::calculateMWRP(void)

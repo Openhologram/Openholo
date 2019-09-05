@@ -166,8 +166,6 @@ public:
 	* @param InputConfigFile Specification Config(*.config) file path
 	*/
 	virtual bool readConfig(const char* cfg_file);
-
-
 	virtual void normalize(void);
 
 //	void encodeHologram(void);
@@ -175,7 +173,11 @@ public:
 	* @brief Generate a WRP, main funtion.
 	* @return implement time (sec)
 	*/
-	double calculateWRP(void);
+	void setMode(bool is_CPU);
+
+	void calculateWRP(void);
+	double calculateWRPCPU(void);
+	double calculateWRPGPU(void);
 
 //	virtual void fresnelPropagation(Complex<Real>* in, Complex<Real>* out, Real distance);
 
@@ -192,6 +194,9 @@ public:
 
 	inline oph::Complex<Real>* getWRPBuff(void) { return p_wrp_; };
 
+protected:
+	// ==== GPU Methods ===============================================
+	void prepareInputdataGPU();
 
 private:
 
@@ -211,6 +216,11 @@ protected:
 	OphPointCloudData obj_;       ///< Input Pointcloud Data
 
 	OphWRPConfig pc_config_;      ///< structure variable for WRP hologram configuration
+
+private:
+
+	bool is_CPU;
+	Real zmax_;
 
 };
 #endif
