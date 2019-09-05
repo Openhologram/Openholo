@@ -293,7 +293,7 @@ void oph::ImgDecoderOhc::getLinkFilePath(std::vector<std::string> &linkFilePath_
 }
 
 bool oph::ImgDecoderOhc::load() {
-	this->File.open(this->fname/*, std::ios::in | std::ios::trunc*/);
+	this->File.open(this->fname, std::ios::in | std::ios::binary);
 
 	bool isOpen = File.is_open();
 	if (this->File.is_open()) {
@@ -302,63 +302,20 @@ bool oph::ImgDecoderOhc::load() {
 
 
 		// Read OHC File Header
-		File >> FHeader.fileSignature[0] >> FHeader.fileSignature[1];
+		File.read((char *)&FHeader.fileSignature, sizeof(FHeader.fileSignature));
 		if ((FHeader.fileSignature[0] != FMT_SIGN_OHC[0]) || (FHeader.fileSignature[1] != FMT_SIGN_OHC[1])) {
 			LOG("Not OHC File");
 			return false;
 		}
 		else {
-			File >> Header->fileHeader.fileSize;
-			File >> Header->fileHeader.fileVersionMajor;
-			File >> Header->fileHeader.fileVersionMinor;
-			File >> Header->fileHeader.fileReserved1;
-			File >> Header->fileHeader.fileReserved2;
-			File >> Header->fileHeader.fileOffBytes;
-			std::cout << "Reading Openholo Complex Field File..." << std::endl << fname << std::endl;
-			std::cout << "OHC File was made on OpenHolo version " << FHeader.fileVersionMajor << "." << FHeader.fileVersionMinor << "..." << std::endl;
+			File.seekg(ios::beg); // Move file pointer
+			File.read((char *)&FHeader, sizeof(FHeader));
+			printf("Reading Openholo Complex Field File...\n%s\n", fname);
+			printf("OHC File was made on OpenHolo version %c.%c...\n", FHeader.fileVersionMajor, FHeader.fileVersionMinor);
 		}
-		//this->File.read((char*)&FHeader, sizeof(ohcHeader));
-		//if ((FHeader.fileSignature[0] != FMT_SIGN_OHC[0]) || (FHeader.fileSignature[1] != FMT_SIGN_OHC[1])) {
-		//	LOG("Not OHC File");
-		//	return false;
-		//}
-		//else {
-		//	std::cout << "Reading Openholo Complex Field File..." << std::endl << fname << std::endl;
-		//	std::cout << "OHC File was made on OpenHolo version " << (int)FHeader.fileVersionMajor << "." << (int)FHeader.fileVersionMinor << "..." << std::endl;
-		//}
 
-		// Read Complex Field Info Header
-		int pitchUnit, clrType, clrArrange, wavlenUnit, cmplxFldType, fldStore, fldCodeType, bPhaseCode, comprsType;
-		File >> FldInfo.headerSize;
-		File >> FldInfo.pxNumX;
-		File >> FldInfo.pxNumY;
-		File >> FldInfo.pxPitchX;
-		File >> FldInfo.pxPitchY;
-		File >> pitchUnit;
-		File >> FldInfo.wavlenNum;
-		File >> clrType;
-		File >> clrArrange;
-		File >> wavlenUnit;
-		File >> cmplxFldType;
-		File >> fldStore;
-		File >> fldCodeType;
-		File >> bPhaseCode;
-		File >> FldInfo.phaseCodeMin;
-		File >> FldInfo.phaseCodeMax;
-		File >> FldInfo.fldSize;
-		File >> comprsType;
-
-		FldInfo.pitchUnit = (LenUnit)pitchUnit;
-		FldInfo.clrType = (ColorType)clrType;
-		FldInfo.clrArrange = (ColorArran)clrArrange;
-		FldInfo.wavlenUnit = (LenUnit)wavlenUnit;
-		FldInfo.cmplxFldType = (DataType)cmplxFldType;
-		FldInfo.fldStore = (FldStore)fldStore;
-		FldInfo.fldCodeType = (FldCodeType)fldCodeType;
-		FldInfo.bPhaseCode = (BPhaseCode)bPhaseCode;
-		FldInfo.comprsType = (CompresType)comprsType;
-
-		//this->File.read((char*)&FldInfo, sizeof(ohcFieldInfoHeader));
+		// Read Field Info Header
+		File.read((char *)&FldInfo, sizeof(FldInfo));
 		if (FldInfo.fldSize == 0) {
 			LOG("Error : No Field Data");
 			this->File.close();
@@ -368,14 +325,9 @@ bool oph::ImgDecoderOhc::load() {
 		// Read Wavelength Table
 		for (uint n = 0; n < FldInfo.wavlenNum; ++n) {
 			double_t waveLength = 0.0;
-			File >> waveLength;
+			File.read((char *)&waveLength, sizeof(waveLength));
 			WavLeng.push_back(waveLength);
 		}
-		//for (uint n = 0; n < FldInfo.wavlenNum; ++n) {
-		//	double_t wavelength = 0.;
-		//	this->File.read((char*)&wavelength, sizeof(double_t));
-		//	WavLeng.push_back(wavelength);
-		//}
 
 		// Decoding Field Data
 		bool ok = false;
@@ -529,14 +481,12 @@ bool oph::ImgDecoderOhc::decodeFieldData()
 		if (FldInfo.cmplxFldType == DataType::Float32) {
 			this->buf_f32 = new float[n_fields * n_cmplxChnl];
 			for (ulonglong i = 0; i < n_fields * n_cmplxChnl; i++)
-				File >> buf_f32[i];
-			//this->File.read((char*)&this->buf_f32, FldInfo.fldSize);
+				this->File.read((char*)&this->buf_f32[i], sizeof(float));
 		}
 		else if (FldInfo.cmplxFldType == DataType::Float64) {
 			this->buf_f64 = new double[n_fields * n_cmplxChnl];
 			for (ulonglong i = 0; i < n_fields * n_cmplxChnl; i++)
-				File >> buf_f64[i];
-			//this->File.read((char*)&this->buf_f64, FldInfo.fldSize);
+				this->File.read((char*)&this->buf_f64[i], sizeof(double));
 		}
 
 		for (int x = 0; x < cols; ++x) {
@@ -1084,7 +1034,7 @@ void oph::ImgEncoderOhc::addWavelength(const Real wavlen) {
 //}
 
 bool oph::ImgEncoderOhc::save() {
-	this->File.open(this->fname, std::ios::out | std::ios::trunc);
+	this->File.open(this->fname, std::ios::out | std::ios::trunc | std::ios::binary);
 
 	//FILE *fp;
 	//fopen_s(&fp, this->fname.c_str(), "w");
@@ -1184,44 +1134,15 @@ bool oph::ImgEncoderOhc::save() {
 		}
 
 		// write File Header
-		//fwrite(&FHeader, 1, sizeof(ohcHeader), fp);
-		//this->File.write((char*)&FHeader, sizeof(ohcHeader));
-		File << FHeader.fileSignature[0] << FHeader.fileSignature[1] << "\n";
-		File << FHeader.fileSize << "\n";
-		File << (int)FHeader.fileVersionMajor << "\n";
-		File << (int)FHeader.fileVersionMinor << "\n";
-		File << FHeader.fileReserved1 << "\n";
-		File << FHeader.fileReserved2 << "\n";
-		File << FHeader.fileOffBytes << "\n";
+		File.write((char *)&FHeader, sizeof(FHeader));
 
 		// write Field Info Header
-		//fwrite(&FldInfo, 1, sizeof(ohcFieldInfoHeader), fp);
-		//this->File.write((char*)&FldInfo, sizeof(ohcFieldInfoHeader));
-		File << FldInfo.headerSize << "\n";
-		File << FldInfo.pxNumX << "\n";
-		File << FldInfo.pxNumY << "\n";
-		File << FldInfo.pxPitchX << "\n";
-		File << FldInfo.pxPitchY << "\n";
-		File << (int)FldInfo.pitchUnit << "\n";
-		File << FldInfo.wavlenNum << "\n";
-		File << (int)FldInfo.clrType << "\n";
-		File << (int)FldInfo.clrArrange << "\n";
-		File << (int)FldInfo.wavlenUnit << "\n";
-		File << (int)FldInfo.cmplxFldType << "\n";
-		File << (int)FldInfo.fldStore << "\n";
-		File << (int)FldInfo.fldCodeType << "\n";
-		File << (int)FldInfo.bPhaseCode << "\n";
-		File << FldInfo.phaseCodeMin << "\n";
-		File << FldInfo.phaseCodeMax << "\n";
-		File << FldInfo.fldSize << "\n";
-		File << (int)FldInfo.comprsType << "\n";
+		File.write((char *)&FldInfo, sizeof(FldInfo));
 
 		// write Wavelength Table
 		for (uint n = 0; n < FldInfo.wavlenNum; ++n) {
 			double_t waveLength = WavLeng[n];
-			//fwrite(&waveLength, 1, sizeof(double_t), fp);
-			//this->File.write((char*)&waveLength, sizeof(double_t));
-			File << waveLength << "\n";
+			File.write((char*)&waveLength, sizeof(double_t));
 		}
 
 		// write Complex Field Data
@@ -1231,18 +1152,14 @@ bool oph::ImgEncoderOhc::save() {
 			size_t dataTypeSize = sizeof(float);
 			ulonglong maxIdx = dataSize / dataTypeSize;
 			for (ulonglong i = 0; i < maxIdx; i++)
-				File << buf_f32[i] << " ";
-
-			//this->File.write((char*)this->buf_f32, sizeof(dataSize));
+				File.write((char *)&buf_f32[i], sizeof(float));
 		}
 		else if (FldInfo.cmplxFldType == DataType::Float64)
 		{
 			size_t dataTypeSize = sizeof(double);
 			ulonglong maxIdx = dataSize / dataTypeSize;
 			for (ulonglong i = 0; i < maxIdx; i++)
-				File << buf_f64[i] << " ";
-
-			//this->File.write((char*)this->buf_f64, sizeof(dataSize));
+				File.write((char *)&buf_f64[i], sizeof(double));
 		}
 		//this->File.write((char*)this->buf, sizeof(dataSize));
 
