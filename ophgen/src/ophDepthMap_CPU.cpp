@@ -163,11 +163,13 @@ void ophDepthMap::calcHoloCPU()
 	fft2(ivec2(pnx, pny), in, OPH_FORWARD, OPH_ESTIMATE);
 
 	int p = 0;
+#ifdef _OPENMP
 #pragma omp parallel for private(p)
+#endif
 	for (p = 0; p < depth_sz; ++p)
 	{
 		int dtr = dm_config_.render_depth[p];
-		Real temp_depth = dlevel_transform[dtr - 1];
+		Real temp_depth = (is_ViewingWindow) ? dlevel_transform[dtr - 1] : dlevel[dtr - 1];
 
 		Complex<Real>* u_o = (Complex<Real>*)malloc(sizeof(Complex<Real>)*pnx*pny);
 		memset(u_o, 0.0, sizeof(Complex<Real>)*pnx*pny);

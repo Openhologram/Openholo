@@ -51,6 +51,10 @@
 
 #include "include.h"
 
+//Build Option : Multi Core Processing (OpenMP)
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 using namespace oph;
 
 
@@ -128,7 +132,16 @@ public:
 	virtual void encoding(unsigned int ENCODE_FLAG);
 	virtual void encoding(unsigned int ENCODE_FLAG, unsigned int SSB_PASSBAND);
 
-	virtual int save(const char* fname, uint8_t bitsperpixel = 24);
+	virtual int save(const char* fname, uint8_t bitsperpixel = 24);/**
+	* @brief Set the value of a variable is_ViewingWindow(true or false)
+	* @details <pre>
+	if is_ViewingWindow == true
+	Transform viewing window
+	else
+	GPU implementation </pre>
+	* @param is_TransVW : the value for specifying whether the hologram generation method is implemented on the viewing window
+	*/
+	void setViewingWindow(bool is_ViewingWindow);
 
 public:
 	inline void setFieldLens(Real fieldlens) { dm_config_.field_lens = fieldlens; }
@@ -171,7 +184,7 @@ protected:
 
 private:
 	bool					is_CPU;								///< if true, it is implemented on the CPU, otherwise on the GPU.
-
+	bool					is_ViewingWindow;
 	unsigned char*			depth_img;
 	unsigned char*			rgb_img;
 
