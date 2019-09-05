@@ -53,6 +53,7 @@ ophPointCloud::ophPointCloud(void)
 	: ophGen()
 {
 	setMode(MODE_CPU);
+	setViewingWindow(FALSE);
 	n_points = -1;
 }
 
@@ -60,6 +61,7 @@ ophPointCloud::ophPointCloud(const char* pc_file, const char* cfg_file)
 	: ophGen()
 {
 	setMode(MODE_CPU);
+	setViewingWindow(FALSE);
 	n_points = loadPointCloud(pc_file);
 	if (n_points == -1) std::cerr << "OpenHolo Error : Failed to load Point Cloud Data File(*.dat)" << std::endl;
 
@@ -73,7 +75,12 @@ ophPointCloud::~ophPointCloud(void)
 
 void ophPointCloud::setMode(bool is_CPU)
 {
-	this->is_CPU = is_CPU;  
+	this->is_CPU = is_CPU;
+}
+
+void ophPointCloud::setViewingWindow(bool is_ViewingWindow)
+{
+	this->is_ViewingWindow = is_ViewingWindow;
 }
 
 int ophPointCloud::loadPointCloud(const char* pc_file)
@@ -96,7 +103,6 @@ bool ophPointCloud::readConfig(const char* cfg_file)
 Real ophPointCloud::generateHologram(uint diff_flag)
 {
 	auto start_time = CUR_TIME;
-
 	// Create CGH Fringe Pattern by 3D Point Cloud
 	if (is_CPU == true) { //Run CPU
 #ifdef _OPENMP
@@ -104,11 +110,12 @@ Real ophPointCloud::generateHologram(uint diff_flag)
 #else
 		std::cout << "Generate Hologram with Single Core CPU" << std::endl;
 #endif
+		LOG(">>> Transform Viewing Window : %s\n", is_ViewingWindow ? "ON" : "OFF");
 		genCghPointCloudCPU(diff_flag); /// 홀로그램 데이터 Complex data로 변경 시 (*complex_H)으로
 	}
 	else { //Run GPU
 		std::cout << "Generate Hologram with GPU" << std::endl;
-
+		LOG(">>> Transform Viewing Window : %s\n", is_ViewingWindow ? "ON" : "OFF");
 		genCghPointCloudGPU(diff_flag);
 	}
 
@@ -117,7 +124,23 @@ Real ophPointCloud::generateHologram(uint diff_flag)
 	auto during_time = ((std::chrono::duration<Real>)(end_time - start_time)).count();
 
 	LOG("Implement time : %.5lf sec\n", during_time);
+#ifdef TEST_MODE
+	HWND hwndNotepad = NULL;
+	hwndNotepad = ::FindWindow(NULL, "test.txt - 메모장");
+	if (hwndNotepad) {
+		hwndNotepad = FindWindowEx(hwndNotepad, NULL, "edit", NULL);
 
+		char *pBuf = NULL;
+		int nLen = SendMessage(hwndNotepad, WM_GETTEXTLENGTH, 0, 0);
+		pBuf = new char[nLen + 10];
+
+		SendMessage(hwndNotepad, WM_GETTEXT, nLen + 1, (LPARAM)pBuf);
+		sprintf(pBuf, "%s%.5lf\r\n", pBuf, during_time);
+
+		SendMessage(hwndNotepad, WM_SETTEXT, 0, (LPARAM)pBuf);
+		delete[] pBuf;
+	}
+#endif
 	return during_time;
 }
 
@@ -208,6 +231,15 @@ void ophPointCloud::encoding(unsigned int ENCODE_FLAG, unsigned int SSB_PASSBAND
 	else if (ENCODE_FLAG == ENCODE_OFFSSB) ophGen::encoding(ENCODE_FLAG, SSB_PASSBAND);
 }
 
+void ophPointCloud::transformViewingWindow(int nSize, Real *dst, Real *src)
+{
+	Real fieldLens = this->getFieldLens();
+	memcpy(dst, src, sizeof(Real) * nSize);
+	for (int i = 0; i < nSize; i++) {
+		*(dst + i) = -fieldLens * src[i] / (src[i] - fieldLens);
+	}
+}
+
 void ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 {
 	// Output Image Size
@@ -243,9 +275,12 @@ void ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 		for (j = 0; j < n_points; ++j) { //Create Fringe Pattern
 			uint idx = 3 * j;
 			uint color_idx = pc_data_.n_colors * j;
-			Real pcx = pc_data_.vertex[idx + _X] * pc_config_.scale[_X];
-			Real pcy = pc_data_.vertex[idx + _Y] * pc_config_.scale[_Y];
-			Real pcz = pc_data_.vertex[idx + _Z] * pc_config_.scale[_Z] + pc_config_.offset_depth;
+			Real pcx = (is_ViewingWindow) ? transformViewingWindow(pc_data_.vertex[idx + _X]) : pc_data_.vertex[idx + _X];
+			Real pcy = (is_ViewingWindow) ? transformViewingWindow(pc_data_.vertex[idx + _Y]) : pc_data_.vertex[idx + _Y];
+			Real pcz = (is_ViewingWindow) ? transformViewingWindow(pc_data_.vertex[idx + _Z]) : pc_data_.vertex[idx + _Z];
+			pcx *= pc_config_.scale[_X];
+			pcy *= pc_config_.scale[_Y];
+			pcz *= pc_config_.scale[_Z] + pc_config_.offset_depth;
 			Real amplitude = pc_data_.color[color_idx];
 
 			switch (diff_flag)

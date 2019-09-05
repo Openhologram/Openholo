@@ -101,7 +101,11 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"
 xcopy /y "$(TargetDir)$(ProjectName).lib" "$(SolutionDir)Reference\lib\"
 xcopy /y "$(TargetDir)$(ProjectName).dll" "$(SolutionDir)Reference\dll\"
 xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)Reference\include\"
-</Command>
+
+xcopy /y "$(TargetDir)$(ProjectName).dll" "D:\Utility\_Generator\OpenholoRefAppUI\x64\Release\"
+xcopy /y "$(TargetDir)$(ProjectName).dll" "$(USERPROFILE)\source\repos\OpenholoRefApp\bin\x64\Release\"
+xcopy /y "$(TargetDir)$(ProjectName).lib" "$(USERPROFILE)\source\repos\OpenholoRefApp\Reference\lib\"
+xcopy /y "$(TargetDir)$(ProjectName).dll" "$(USERPROFILE)\source\repos\OpenholoRefApp\Reference\dll\"</Command>
     </PostBuildEvent>
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
@@ -110,6 +114,7 @@ xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)Reference\include\"
   <ItemGroup>
     <ClInclude Include="src\ophACPAS.h" />
     <ClInclude Include="src\ophDepthMap.h" />
+    <ClInclude Include="src\ophDepthMap_GPU.h" />
     <ClInclude Include="src\ophGen.h" />
     <ClInclude Include="src\ophLightField.h" />
     <ClInclude Include="src\ophLightField_GPU.h" />
@@ -125,7 +130,6 @@ xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)Reference\include\"
   <ItemGroup>
     <ClCompile Include="src\ophACPAS.cpp" />
     <ClCompile Include="src\ophDepthMap.cpp" />
-    <ClCompile Include="src\ophDepthMap_CPU.cpp" />
     <ClCompile Include="src\ophDepthMap_GPU.cpp" />
     <ClCompile Include="src\ophGen.cpp" />
     <ClCompile Include="src\ophLightField.cpp" />

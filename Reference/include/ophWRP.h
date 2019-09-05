@@ -140,7 +140,6 @@ public:
 	const Real& getLocation() { return pc_config_.wrp_location; }
 	const Real& getDistance() { return pc_config_.propagation_distance; }
 	const int& getNumOfWRP() { return pc_config_.num_wrp; }
-	const int& getFieldLens() { return pc_config_.field_lens; }
 	void setScale(vec3 scale) { pc_config_.scale = scale; }
 	void setLocation(Real location) { pc_config_.wrp_location = location; }
 	void setDistance(Real distance) { pc_config_.propagation_distance; }
@@ -167,8 +166,6 @@ public:
 	* @param InputConfigFile Specification Config(*.config) file path
 	*/
 	virtual bool readConfig(const char* cfg_file);
-
-
 	virtual void normalize(void);
 
 //	void encodeHologram(void);
@@ -176,7 +173,11 @@ public:
 	* @brief Generate a WRP, main funtion.
 	* @return implement time (sec)
 	*/
-	double calculateWRP(void);
+	void setMode(bool is_CPU);
+
+	void calculateWRP(void);
+	double calculateWRPCPU(void);
+	double calculateWRPGPU(void);
 
 //	virtual void fresnelPropagation(Complex<Real>* in, Complex<Real>* out, Real distance);
 
@@ -193,16 +194,10 @@ public:
 
 	inline oph::Complex<Real>* getWRPBuff(void) { return p_wrp_; };
 
-	/**
-	* @brief Set the value of a variable is_ViewingWindow(true or false)
-	* @details <pre>
-	if is_ViewingWindow == true
-	Transform viewing window
-	else
-	GPU implementation </pre>
-	* @param is_TransVW : the value for specifying whether the hologram generation method is implemented on the viewing window
-	*/
-	void setViewingWindow(bool is_ViewingWindow);
+protected:
+	// ==== GPU Methods ===============================================
+	void prepareInputdataGPU();
+
 private:
 
 	Complex<Real>* ophWRP::calSubWRP(double d, oph::Complex<Real>* wrp, OphPointCloudData* sobj);
@@ -211,7 +206,7 @@ private:
 	void addPixel2WRP(int x, int y, oph::Complex<Real> temp, oph::Complex<Real>* wrp);
 
 	virtual void ophFree(void);
-	Real transformViewingWindow(Real pt);
+
 protected:
 
 	int n_points;                 ///< numbers of points
@@ -223,8 +218,9 @@ protected:
 	OphWRPConfig pc_config_;      ///< structure variable for WRP hologram configuration
 
 private:
-	std::chrono::time_point<std::chrono::system_clock> start;
-	std::chrono::time_point<std::chrono::system_clock> end;
-	bool is_ViewingWindow;
+
+	bool is_CPU;
+	Real zmax_;
+
 };
 #endif
