@@ -76,6 +76,7 @@ void ophGen::initialize(void)
 	int n_y = context_.pixel_number[_Y];
 
 	// Memory Location for Result Image
+	// 1 color channel
 	complex_H[0] = new oph::Complex<Real>[n_x * n_y];
 	memset((*complex_H), 0, sizeof(Complex<Real>) * n_x * n_y);
 
@@ -609,8 +610,6 @@ void ophGen::encoding(unsigned int ENCODE_FLAG, Complex<Real>* holo) {
 	holo_normalized = new uchar[encode_size[_X] * encode_size[_Y]];
 	memset(holo_normalized, 0, sizeof(uchar) * encode_size[_X] * encode_size[_Y]);
 
-
-	std::ofstream File;
 	switch (ENCODE_FLAG)
 	{
 	case ENCODE_SIMPLENI:
@@ -998,7 +997,6 @@ void ophGen::fresnelPropagation(OphConfig context, Complex<Real>* in, Complex<Re
 
 	for (int idxNy = Ny / 2; idxNy < Ny + (Ny / 2); idxNy++) {
 		for (int idxNx = Nx / 2; idxNx < Nx + (Nx / 2); idxNx++) {
-
 			out[idxOut] = temp3[idxNy*Nx * 2 + idxNx];
 			idxOut++;
 		}

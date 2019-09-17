@@ -51,17 +51,17 @@
 
 ophPointCloud::ophPointCloud(void)
 	: ophGen()
+	, is_CPU(true)
+	, is_ViewingWindow(false)
 {
-	setMode(MODE_CPU);
-	setViewingWindow(FALSE);
 	n_points = -1;
 }
 
 ophPointCloud::ophPointCloud(const char* pc_file, const char* cfg_file)
 	: ophGen()
+	, is_CPU(true)
+	, is_ViewingWindow(false)
 {
-	setMode(MODE_CPU);
-	setViewingWindow(FALSE);
 	n_points = loadPointCloud(pc_file);
 	if (n_points == -1) std::cerr << "OpenHolo Error : Failed to load Point Cloud Data File(*.dat)" << std::endl;
 
@@ -102,6 +102,7 @@ bool ophPointCloud::readConfig(const char* cfg_file)
 
 Real ophPointCloud::generateHologram(uint diff_flag)
 {
+	initialize();
 	auto start_time = CUR_TIME;
 	// Create CGH Fringe Pattern by 3D Point Cloud
 	if (is_CPU == true) { //Run CPU
@@ -135,8 +136,9 @@ Real ophPointCloud::generateHologram(uint diff_flag)
 		pBuf = new char[nLen + 10];
 
 		SendMessage(hwndNotepad, WM_GETTEXT, nLen + 1, (LPARAM)pBuf);
-		sprintf(pBuf, "%s%.5lf\r\n", pBuf, during_time);
-
+		//sprintf(pBuf, "%s%.5lf\r\n", pBuf, during_time);
+		sprintf(pBuf, "%s : RE: %.5lf / IM: %.5lf\r\n", 
+			is_CPU ? "CPU" : "GPU", (*complex_H)[0][0], (*complex_H)[0][1]);
 		SendMessage(hwndNotepad, WM_SETTEXT, 0, (LPARAM)pBuf);
 		delete[] pBuf;
 	}
@@ -267,9 +269,11 @@ void ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 	int j; // private variable for Multi Threading
 #ifdef _OPENMP
 	int num_threads = 0;
+	int tid;
 #pragma omp parallel
 	{
 		num_threads = omp_get_num_threads(); // get number of Multi Threading
+		tid = omp_get_thread_num();
 #pragma omp for private(j)
 #endif
 		for (j = 0; j < n_points; ++j) { //Create Fringe Pattern
@@ -282,6 +286,10 @@ void ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 			pcy *= pc_config_.scale[_Y];
 			pcz *= pc_config_.scale[_Z] + pc_config_.offset_depth;
 			Real amplitude = pc_data_.color[color_idx];
+			if (j == 0) {
+
+				LOG("CPU => %.5lf / %.5lf / %.5lf\n", pc_data_.vertex[0], pc_data_.vertex[1], pc_data_.vertex[2]);
+			}
 
 			switch (diff_flag)
 			{
@@ -374,12 +382,8 @@ void ophPointCloud::diffractNotEncodedRS(ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Re
 
 				Real res_real = (amplitude * pc[_Z] * sin(kr)) / (lambda * r * r);
 				Real res_imag = (-amplitude * pc[_Z] * cos(kr)) / (lambda * r * r);
-
 				(*complex_H)[xxtr + yytr * pn[_X]][_RE] += res_real;
 				(*complex_H)[xxtr + yytr * pn[_X]][_IM] += res_imag;
-
-				//LOG("(%3d, %3d) [%7d] : ", xxtr, yytr, xxtr + yytr * pn[_X]);
-				//LOG("holo=(%15.5lf + %20.10lf * i )\n", (*complex_H)[xxtr + yytr * pn[_X]][_RE], (*complex_H)[xxtr + yytr * pn[_X]][_IM]);
 			}
 		}
 	}

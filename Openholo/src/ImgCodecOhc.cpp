@@ -1025,7 +1025,10 @@ void oph::ImgEncoderOhc::addComplexFieldData(const Complex<Real>* data)
 }
 
 void oph::ImgEncoderOhc::addWavelength(const Real wavlen) {
-	WavLeng.push_back(wavlen);
+	std::vector<Real>::iterator iter;
+	iter = find(WavLeng.begin(), WavLeng.end(), wavlen);
+	if (iter == WavLeng.end())
+		WavLeng.push_back(wavlen);
 	this->setNumOfWavlen((uint32_t)WavLeng.size());
 }
 

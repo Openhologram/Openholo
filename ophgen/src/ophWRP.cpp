@@ -52,7 +52,7 @@ ophWRP::ophWRP(void)
 	n_points = -1;
 	p_wrp_ = nullptr;
 	is_CPU = true;
-	setViewingWindow(FALSE);
+	is_ViewingWindow = false;
 }
 
 ophWRP::~ophWRP(void)
@@ -67,7 +67,7 @@ void ophWRP::setViewingWindow(bool is_ViewingWindow)
 void ophWRP::autoScaling()
 {
 	LOG(">>> Transform Viewing Window : %s\n", is_ViewingWindow ? "ON" : "OFF");
-	start = CUR_TIME;
+	m_begin = CUR_TIME;
 	long long int Nx = context_.pixel_number.v[0];
 	long long int Ny = context_.pixel_number.v[1];
 
@@ -94,8 +94,6 @@ void ophWRP::autoScaling()
 	Real ymax = maxOfArr(y, n_points);
 	Real zmax = maxOfArr(z, n_points);
 
-	LOG(">>> x : %.5lf (ViewWinfow : %s)\n", pc.vertex[0], (is_ViewingWindow) ? "ON" : "OFF");
-
 	int j;
 #ifdef _OPENMP
 	int num_threads = 0;
@@ -106,10 +104,10 @@ void ophWRP::autoScaling()
 #endif
 		for (j = 0; j < n_points; ++j) { //Create Fringe Pattern
 			uint idx = 3 * j;
-			if (xmax>ymax)
+			if (xmax > ymax)
 			{
-			pc.vertex[idx + _X] = pc.vertex[idx + _X] / xmax * size;
-			pc.vertex[idx + _Y] = pc.vertex[idx + _Y] / xmax * size;
+				pc.vertex[idx + _X] = pc.vertex[idx + _X] / xmax * size;
+				pc.vertex[idx + _Y] = pc.vertex[idx + _Y] / xmax * size;
 			}
 			else
 			{
@@ -125,6 +123,10 @@ void ophWRP::autoScaling()
 	std::cout << ">>> All " << num_threads << " threads" << std::endl;
 #endif
 	zmax_ = maxOfArr(z, n_points);
+
+	auto time_finish = CUR_TIME;
+	auto during = ((std::chrono::duration<Real>)(time_finish - m_begin)).count();
+	LOG("%s(%d) => Elapsed Time : %.5lf (s)\n", __FUNCTION__, __LINE__, during);
 }
 
 int ophWRP::loadPointCloud(const char* pc_file)
@@ -262,13 +264,14 @@ void ophWRP::calculateWRP()
 	{
 		calculateWRPGPU();
 	}
+	LOG("***** %.5lf / %.5lf\n", p_wrp_[0]._Val[_RE], p_wrp_[0]._Val[_IM]);
 
 }
 
 double ophWRP::calculateWRPCPU(void)
 {
-//	initialize();
-
+	initialize();
+	auto time_start = CUR_TIME;
 	Real wave_num = context_.k;   // wave_number
 	Real wave_len = context_.wave_length[0];  //wave_length
 
@@ -294,7 +297,6 @@ double ophWRP::calculateWRPCPU(void)
 	memset(p_wrp_, 0.0, sizeof(oph::Complex<Real>) * context_.pixel_number[_X] * context_.pixel_number[_Y]);
 
 	int num = n_points;
-	auto time_start = CUR_TIME;
 
 	int k;
 #ifdef _OPENMP
@@ -305,7 +307,6 @@ double ophWRP::calculateWRPCPU(void)
 		num_threads = omp_get_num_threads();
 #pragma omp for private(k)
 #endif
-
 		for (k = 0; k < num; ++k) {
 			uint idx = 3 * k;
 			uint color_idx = pc.n_colors * k;
@@ -324,7 +325,7 @@ double ophWRP::calculateWRPCPU(void)
 			int tx = (int)(x / wpx) + Nx_h;
 			int ty = (int)(y / wpy) + Ny_h;
 
-			cout << "num = " << k << ", tx = " << tx << ", ty = " << ty << ", w = " << w << endl;
+			//cout << "num = " << k << ", tx = " << tx << ", ty = " << ty << ", w = " << w << endl;
 
 			for (int wy = -w; wy < w; wy++) {
 				for (int wx = -w; wx < w; wx++) {//WRP coordinate
@@ -340,10 +341,8 @@ double ophWRP::calculateWRPCPU(void)
 					oph::Complex<Real> tmp;
 					tmp._Val[_RE] = (amplitude * cosf(wave_num*r) * cosf(wave_num*wave_len*rand(0, 1))) / r;
 					tmp._Val[_IM] = (-amplitude * sinf(wave_num*r) * sinf(wave_num*wave_len*rand(0, 1))) / r;
-
 					if (tx + wx >= 0 && tx + wx < Nx && ty + wy >= 0 && ty + wy < Ny)
 						addPixel2WRP(wx + tx, wy + ty, tmp);
-
 				}
 			}
 		}
@@ -355,33 +354,30 @@ double ophWRP::calculateWRPCPU(void)
 	auto time_finish = CUR_TIME;
 
 	auto during = ((std::chrono::duration<Real>)(time_finish - time_start)).count();
-
-	LOG("%.5lfsec...hologram generated..\n", during);
+	LOG("%s(%d) => Elapsed Time : %.5lf (s)\n", __FUNCTION__, __LINE__, during);
 	return during;
 
 }
 
 void ophWRP::generateHologram(void)
 {
+	initialize();
+	auto begin = CUR_TIME;
+	Real distance = pc_config_.propagation_distance;
 	if(is_CPU)
 	{
-	printf("Generating Hologram\n");
-	Real distance = pc_config_.propagation_distance;
-	fresnelPropagation(p_wrp_, (*complex_H), distance);
-	printf("Hologram Generated!\n");
+		fresnelPropagation(p_wrp_, (*complex_H), distance);
 	}
 	else
 	{
-		printf("Generating Hologram\n");
-		Real distance = pc_config_.propagation_distance;
 		fresnelPropagation(p_wrp_, (*complex_H), distance);
-		printf("Hologram Generated!\n");
-
 	}
-		end = CUR_TIME;
+	m_end = CUR_TIME;
 
-	auto during = ((std::chrono::duration<Real>)(end - start)).count();
-	LOG("%.5lfsec...hologram generated..\n", during);
+	auto during = ((std::chrono::duration<Real>)(m_end - begin)).count();
+	auto total = ((std::chrono::duration<Real>)(m_end - m_begin)).count();
+	LOG("%s(%d) => Elapsed Time : %.5lf (s)\n", __FUNCTION__, __LINE__, during);
+	LOG("=> Total Elapsed Time : %.5lf (s)\n", total);
 #ifdef TEST_MODE
 	HWND hwndNotepad = NULL;
 	hwndNotepad = ::FindWindow(NULL, "test.txt - ¢¬¨­¢¬©£Aa");
@@ -393,7 +389,7 @@ void ophWRP::generateHologram(void)
 		pBuf = new char[nLen + 10];
 
 		SendMessage(hwndNotepad, WM_GETTEXT, nLen + 1, (LPARAM)pBuf);
-		sprintf(pBuf, "%s%.5lf\r\n", pBuf, during);
+		sprintf(pBuf, "%s%.5lf\r\n", pBuf, total);
 
 		SendMessage(hwndNotepad, WM_SETTEXT, 0, (LPARAM)pBuf);
 		delete[] pBuf;
@@ -449,3 +445,4 @@ void ophWRP::ophFree(void)
 	//	delete[] obj_.color;
 
 }
+

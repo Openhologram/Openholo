@@ -220,10 +220,8 @@ private:
 	virtual void ophFree(void);
 	inline Real transformViewingWindow(Real pt) {
 		Real fieldLens = this->getFieldLens();
-		Real transPt = -fieldLens * pt / (pt - fieldLens);
-		return transPt;
+		return -fieldLens * pt / (pt - fieldLens);
 	}
-
 protected:
 
 	int n_points;                 ///< numbers of points
@@ -235,8 +233,8 @@ protected:
 	OphWRPConfig pc_config_;      ///< structure variable for WRP hologram configuration
 
 private:
-	std::chrono::time_point<std::chrono::system_clock> start;
-	std::chrono::time_point<std::chrono::system_clock> end;
+	std::chrono::time_point<std::chrono::system_clock> m_begin;
+	std::chrono::time_point<std::chrono::system_clock> m_end;
 	bool is_ViewingWindow;
 	bool is_CPU;
 	Real zmax_;

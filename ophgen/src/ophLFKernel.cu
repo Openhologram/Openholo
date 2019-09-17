@@ -47,13 +47,6 @@
 #define ophLFKernel_cu__
 
 #include "ophKernel.cuh"
-
-//#include <cuda_runtime.h>
-//#include <cuComplex.h>
-//#include <cuda.h>
-//#include <device_launch_parameters.h>
-//#include <device_functions.h>
-//#include <cufft.h>
 #include <curand_kernel.h>
 
 __global__ void cudaKernel_convertLF2ComplexField(int nx, int ny, int rx, int ry, uchar1** LF, cufftDoubleComplex* output)

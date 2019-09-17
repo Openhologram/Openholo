@@ -687,8 +687,7 @@ private:
 	void diffractNotEncodedFrsn(ivec2 pn, vec2 pp, vec3 pc, Real amplitude, Real lambda, vec2 theta);
 	inline Real transformViewingWindow(Real pt) {
 		Real fieldLens = this->getFieldLens();
-		Real transPt = -fieldLens * pt / (pt - fieldLens);
-		return transPt;
+		return -fieldLens * pt / (pt - fieldLens);
 	}
 	void transformViewingWindow(int nSize, Real *dst, Real *src);
 	/**

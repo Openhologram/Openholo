@@ -53,7 +53,10 @@ double ophWRP::calculateWRPGPU(void)
 	memset(p_wrp_, 0.0, sizeof(oph::Complex<Real>) * context_.pixel_number[_X] * context_.pixel_number[_Y]);
 
 	prepareInputdataGPU();
+	auto time_finish = CUR_TIME;
 
+	auto during = ((std::chrono::duration<Real>)(time_finish - m_begin)).count();
+	LOG("%s(%d) => Elapsed Time : %.5lf (s)\n", __FUNCTION__, __LINE__, during);
 	return 0;
 
 }

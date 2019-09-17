@@ -57,8 +57,8 @@ ophLF::ophLF(void)
 	, resolution_image(ivec2(0, 0))
 	, distanceRS2Holo(0.0)
 	, is_CPU(true)
+	, is_ViewingWindow(false)
 {
-	setViewingWindow(FALSE);
 }
 
 void ophLF::setMode(bool isCPU)
@@ -290,7 +290,7 @@ int ophLF::loadLF()
 
 void ophLF::generateHologram() 
 {
-
+	initialize();
 	LOG(">>> Transform Viewing Window : %s\n", is_ViewingWindow ? "ON" : "OFF");
 	if (is_CPU)
 	{
