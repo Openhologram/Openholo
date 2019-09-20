@@ -104,8 +104,7 @@ public:
 	* @brief Constructor
 	*/
 	explicit ophTri(void) {
-		is_CPU = true;
-		is_ViewingWindow = false;
+		setViewingWindow(false);
 	}
 
 protected:
@@ -193,17 +192,6 @@ public:
 	void generateMeshHologram(uint SHADING_FLAG);
 	void generateMeshHologram();
 	
-	/*
-	bool PreProcessingforVertex(int kth, double& t_Coff00, double& t_Coff01, double& t_Coff02, double& t_Coff10, double& t_Coff11, double& t_Coff12,
-		double& detAff, double& R_31, double& R_32, double& R_33, double& T1, double& T2, double& T3);
-	void initDev();
-	void genCghTriMeshGPU();
-	*/
-	/**
-	* @brief Generate a Mesh, main funtion.
-	* @return implement time (sec)
-	*/
-	void setMode(bool is_CPU);
 	//virtual int saveAsOhc(const char* fname);
 	/**
 	* @brief Set the value of a variable is_ViewingWindow(true or false)
@@ -285,10 +273,7 @@ private:
 	Complex<Real>* randTerm;
 	Complex<Real>* phaseTerm;
 	Complex<Real>* convol;
-	bool is_CPU;
 	bool is_ViewingWindow;
-	std::chrono::time_point<std::chrono::system_clock> m_begin;
-	std::chrono::time_point<std::chrono::system_clock> m_end;
 
 };
 

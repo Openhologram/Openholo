@@ -174,8 +174,6 @@ uchar * Openholo::loadAsImg(const char * fname)
 
 int Openholo::saveAsOhc(const char * fname)
 {
-	OHC_encoder->releaseFldData();
-
 	std::string fullname = fname;
 	if (checkExtension(fname, ".ohc") == 0) fullname.append(".ohc");
 	OHC_encoder->setFileName(fullname.c_str());
@@ -183,7 +181,7 @@ int Openholo::saveAsOhc(const char * fname)
 	ohcHeader header;
 	OHC_encoder->getOHCheader(header);
 	auto wavelength_num = header.fieldInfo.wavlenNum;
-	
+
 	for (int i = 0; i < wavelength_num; i++)
 		OHC_encoder->addComplexFieldData(complex_H[i]);
 

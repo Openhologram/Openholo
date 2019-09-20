@@ -545,7 +545,6 @@ Fresnel diffraction Anti-alliasing
 * @brief Openholo Point Cloud based Compter-generated holography.
 * @author
 */
-
 class GEN_DLL ophPointCloud : public ophGen
 {
 public:
@@ -682,9 +681,8 @@ private:
 	* @return implement time (sec)
 	*/
 	void genCghPointCloudCPU(uint diff_flag);
-
 	void diffractEncodedRS(ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Real k, Real amplitude, vec2 theta);
-	void diffractNotEncodedRS(ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Real k, Real amplitude, Real lambda);
+	void diffractNotEncodedRS(ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Real k, Real amplitude, Real lambda, vec2 theta);
 	void diffractEncodedFrsn(void);
 	void diffractNotEncodedFrsn(ivec2 pn, vec2 pp, vec3 pc, Real amplitude, Real lambda, vec2 theta);
 	inline Real transformViewingWindow(Real pt) {

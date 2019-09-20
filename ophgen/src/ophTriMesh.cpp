@@ -348,7 +348,6 @@ void ophTri::objNormCenter() {
 void ophTri::objScaleShift()
 {
 	LOG(">>> Transform Viewing Window : %s\n", is_ViewingWindow ? "ON" : "OFF");
-	m_begin = CUR_TIME;
 	scaledMeshData = new Real[meshData->n_faces * 9];
 	
 	objNormCenter();
@@ -376,15 +375,13 @@ void ophTri::objScaleShift()
 	}
 
 	delete[] normalizedMeshData;
+
+	cout << "Object Scaling and Shifting Finishied.." << endl;
 #if 1
 #ifdef _OPENMP
 	cout << ">>> All " << num_threads << " threads" << endl;
 #endif
 #endif
-	auto end = CUR_TIME;
-
-	auto during = ((std::chrono::duration<Real>)(end - m_begin)).count();
-	LOG("%s(%d) => Elapsed Time : %.5lf (s)\n", __FUNCTION__, __LINE__, during);
 }
 
 void ophTri::objScaleShift(Real objSize_, vector<Real> objShift_) 
@@ -481,31 +478,22 @@ vec3 vecCross(const vec3& a, const vec3& b)
 void ophTri::generateMeshHologram(uint SHADING_FLAG) 
 {
 	cout << "Hologram Generation ..." << endl;
-	auto begin = CUR_TIME;
+	auto start = CUR_TIME;
 
 	initialize();
 	initializeAS();
-	if (is_CPU) {
-		generateAS(SHADING_FLAG);
+	generateAS(SHADING_FLAG);
 
-		fft2(context_.pixel_number, angularSpectrum, OPH_BACKWARD, OPH_ESTIMATE);
-		fftwShift(angularSpectrum, (*complex_H), context_.pixel_number[_X], context_.pixel_number[_Y], OPH_BACKWARD);
-		/*fftExecute((*complex_H));*/
+	fft2(context_.pixel_number, angularSpectrum, OPH_BACKWARD, OPH_ESTIMATE);
+	fftwShift(angularSpectrum, (*complex_H), context_.pixel_number[_X], context_.pixel_number[_Y], OPH_BACKWARD);
+	/*fftExecute((*complex_H));*/
 
-		//fresnelPropagation(*(complex_H), *(complex_H), objShift[_Z]);
+	//fresnelPropagation(*(complex_H), *(complex_H), objShift[_Z]);
 
-	}
-	else {
-		MessageBox(NULL, "Not implementation GPU Acceleration.", "Error", MB_ICONWARNING);
-		//genCghTriMeshGPU();
-	}
+	auto end = CUR_TIME;
+	auto during = ((std::chrono::duration<Real>)(end - start)).count();
 
-	m_end = CUR_TIME;
-
-	auto during = ((std::chrono::duration<Real>)(m_end - begin)).count();
-	auto total = ((std::chrono::duration<Real>)(m_end - m_begin)).count();
-	LOG("%s(%d) => Elapsed Time : %.5lf (s)\n", __FUNCTION__, __LINE__, during);
-	LOG("=> Total Elapsed Time : %.5lf (s)\n", total);
+	LOG("%.5lfsec...hologram generated..\n", during);
 #ifdef TEST_MODE
 	HWND hwndNotepad = NULL;
 	hwndNotepad = ::FindWindow(NULL, "test.txt - 메모장");
@@ -651,15 +639,6 @@ void ophTri::generateAS(uint SHADING_FLAG)
 		}
 		if (refToGlobal() != 1)
 			continue;
-
-
-		double nPer = (j + 1) * 100.0f / (double)meshData->n_faces;
-		// 경과 시간
-		auto during = ((std::chrono::duration<Real>)(CUR_TIME - m_begin)).count();
-		double remain = during * 100.0f / nPer - during;
-		char buf[128] = { 0, };
-		wsprintf(buf, "진행 : %d %% , 경과 시간 : %d 초, 남은 예상 시간 : %d 초", (int)nPer, (int)during, (int)remain);
-		SetConsoleTitle(buf);
 
 		char szLog[MAX_PATH];
 		sprintf(szLog, "%d / %d\n", j + 1, meshData->n_faces);
@@ -1074,9 +1053,4 @@ uint ophTri::refToGlobal()
 	}
 
 	return 1;
-}
-
-void ophTri::setMode(bool isCPU)
-{
-	is_CPU = isCPU;
 }

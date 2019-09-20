@@ -128,22 +128,17 @@ Real ophPointCloud::generateHologram(uint diff_flag)
 #ifdef TEST_MODE
 	HWND hwndNotepad = NULL;
 	hwndNotepad = ::FindWindow(NULL, "test.txt - 메모장");
-	if (!hwndNotepad) {
-		ShellExecute(NULL, "open", "D:\\test.txt", NULL, NULL, SW_SHOW);
-		Sleep(500);
-		hwndNotepad = ::FindWindow(NULL, "test.txt - 메모장");
-	}
 	if (hwndNotepad) {
 		hwndNotepad = FindWindowEx(hwndNotepad, NULL, "edit", NULL);
 
 		char *pBuf = NULL;
 		int nLen = SendMessage(hwndNotepad, WM_GETTEXTLENGTH, 0, 0);
-		pBuf = new char[nLen + 100];
+		pBuf = new char[nLen + 10];
 
 		SendMessage(hwndNotepad, WM_GETTEXT, nLen + 1, (LPARAM)pBuf);
 		//sprintf(pBuf, "%s%.5lf\r\n", pBuf, during_time);
-		sprintf(pBuf, "%s%s : RE: %f / IM: %f\r\n", 
-			pBuf, is_CPU ? "CPU" : "GPU", (*complex_H)[0][0], (*complex_H)[0][1]);
+		sprintf(pBuf, "%s : RE: %.5lf / IM: %.5lf\r\n", 
+			is_CPU ? "CPU" : "GPU", (*complex_H)[0][0], (*complex_H)[0][1]);
 		SendMessage(hwndNotepad, WM_SETTEXT, 0, (LPARAM)pBuf);
 		delete[] pBuf;
 	}
@@ -254,8 +249,6 @@ void ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 	pn[_X] = context_.pixel_number[_X];
 	pn[_Y] = context_.pixel_number[_Y];
 
-	int nPixel = pn[_X] * pn[_Y];
-
 	// Tilt Angle
 	Real thetaX = RADIAN(pc_config_.tilt_angle[_X]);
 	Real thetaY = RADIAN(pc_config_.tilt_angle[_Y]);
@@ -277,17 +270,13 @@ void ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 #ifdef _OPENMP
 	int num_threads = 0;
 	int tid;
-#if 1
 #pragma omp parallel
 	{
 		num_threads = omp_get_num_threads(); // get number of Multi Threading
+		tid = omp_get_thread_num();
 #pragma omp for private(j)
-#else
-	num_threads = omp_get_num_threads(); // get number of Multi Threading
-#endif
 #endif
 		for (j = 0; j < n_points; ++j) { //Create Fringe Pattern
-			tid = omp_get_thread_num();
 			uint idx = 3 * j;
 			uint color_idx = pc_data_.n_colors * j;
 			Real pcx = (is_ViewingWindow) ? transformViewingWindow(pc_data_.vertex[idx + _X]) : pc_data_.vertex[idx + _X];
@@ -295,14 +284,17 @@ void ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 			Real pcz = (is_ViewingWindow) ? transformViewingWindow(pc_data_.vertex[idx + _Z]) : pc_data_.vertex[idx + _Z];
 			pcx *= pc_config_.scale[_X];
 			pcy *= pc_config_.scale[_Y];
-			pcz *= pc_config_.scale[_Z];
-			pcz += pc_config_.offset_depth;
-			Real amplitude = pc_data_.color[color_idx];		
+			pcz *= pc_config_.scale[_Z] + pc_config_.offset_depth;
+			Real amplitude = pc_data_.color[color_idx];
+			if (j == 0) {
+
+				LOG("CPU => %.5lf / %.5lf / %.5lf\n", pc_data_.vertex[0], pc_data_.vertex[1], pc_data_.vertex[2]);
+			}
 
 			switch (diff_flag)
 			{
 			case PC_DIFF_RS:
-				diffractNotEncodedRS(pn, pp, ss, vec3(pcx, pcy, pcz), k, amplitude, context_.wave_length[0]);
+				diffractNotEncodedRS(pn, pp, ss, vec3(pcx, pcy, pcz), k, amplitude, context_.wave_length[0], vec2(thetaX, thetaY));
 				break;
 			case PC_DIFF_FRESNEL:
 				diffractNotEncodedFrsn(pn, pp, vec3(pcx, pcy, pcz), amplitude, context_.wave_length[0], vec2(thetaX, thetaY));
@@ -310,9 +302,7 @@ void ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 			}
 		}
 #ifdef _OPENMP
-#if 1
 	}
-#endif
 	std::cout << ">>> All " << num_threads << " threads" << std::endl;
 #endif
 }
@@ -338,10 +328,10 @@ void ophPointCloud::diffractEncodedRS(ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Real 
 	}
 }
 
-void ophPointCloud::diffractNotEncodedRS(ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Real k, Real amplitude, Real lambda)
+void ophPointCloud::diffractNotEncodedRS(ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Real k, Real amplitude, Real lambda, vec2 theta)
 {
-	Real tx = lambda / (2 * pp[_X]);
-	Real ty = lambda / (2 * pp[_Y]);
+	Real tx = context_.wave_length[0] / (2 * pp[_X]);
+	Real ty = context_.wave_length[0] / (2 * pp[_Y]);
 
 	Real _xbound[2] = {
 		pc[_X] + abs(tx / sqrt(1 - (tx * tx)) * pc[_Z]),
@@ -367,51 +357,33 @@ void ophPointCloud::diffractNotEncodedRS(ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Re
 	if (Xbound[1] < 0)		Xbound[1] = 0;
 	if (Ybound[0] > pn[_Y]) Ybound[0] = pn[_Y];
 	if (Ybound[1] < 0)		Ybound[1] = 0;
-#if 1
-	int xxtr;
-	int nThread;
-#pragma omp parallel
+
+	for (int xxtr = Xbound[1]; xxtr < Xbound[0]; xxtr++)
 	{
-		nThread = omp_get_num_threads();
-		int nSize = Xbound[0] / nThread;
-		int tid = omp_get_thread_num();
-		
-		int nStart = tid * (Xbound[0] / nThread);
-		int xRange = (tid + 1) * (Xbound[0] / nThread);
-		// 마지막 thread면
-		xRange += Xbound[1];
-		xRange += (tid + 1 == nThread) ? ((int)Xbound[0] % nThread) : 0;
-		
-#pragma omp for private(xxtr)
-		for (int xxtr = nStart; xxtr < xRange; xxtr++)
-#else
-		for (int xxtr = Xbound[1]; xxtr < Xbound[0]; xxtr++)
-#endif
+		for (int yytr = Ybound[1]; yytr < Ybound[0]; yytr++)
 		{
-			for (int yytr = Ybound[1]; yytr < Ybound[0]; yytr++)
-			{
-				Real xxx = (-ss[_X] / 2) + ((xxtr - 1) * pp[_X]);
-				Real yyy = (-ss[_Y] / 2) + ((pn[_Y] - yytr) * pp[_Y]);
+			Real xxx = (-ss[_X] / 2) + ((xxtr - 1) * pp[_X]);
+			Real yyy = (-ss[_Y] / 2) + ((pn[_Y] - yytr) * pp[_Y]);
 
-				Real r = sqrt((xxx - pc[_X]) * (xxx - pc[_X]) + (yyy - pc[_Y]) * (yyy - pc[_Y]) + (pc[_Z] * pc[_Z]));
+			Real r = sqrt((xxx - pc[_X]) * (xxx - pc[_X]) + (yyy - pc[_Y]) * (yyy - pc[_Y]) + (pc[_Z] * pc[_Z]));
 
-				Real range_x[2] = {
-					pc[_X] + abs(tx / sqrt(1 - (tx * tx)) * sqrt((yyy - pc[_Y]) * (yyy - pc[_Y]) + (pc[_Z] * pc[_Z]))),
-					pc[_X] - abs(tx / sqrt(1 - (tx * tx)) * sqrt((yyy - pc[_Y]) * (yyy - pc[_Y]) + (pc[_Z] * pc[_Z])))
-				};
+			Real range_x[2] = {
+				pc[_X] + abs(tx / sqrt(1 - (tx * tx)) * sqrt((yyy - pc[_Y]) * (yyy - pc[_Y]) + (pc[_Z] * pc[_Z]))),
+				pc[_X] - abs(tx / sqrt(1 - (tx * tx)) * sqrt((yyy - pc[_Y]) * (yyy - pc[_Y]) + (pc[_Z] * pc[_Z])))
+			};
 
-				Real range_y[2] = {
-					pc[_Y] + abs(ty / sqrt(1 - (ty * ty)) * sqrt((xxx - pc[_X]) * (xxx - pc[_X]) + (pc[_Z] * pc[_Z]))),
-					pc[_Y] - abs(ty / sqrt(1 - (ty * ty)) * sqrt((xxx - pc[_X]) * (xxx - pc[_X]) + (pc[_Z] * pc[_Z])))
-				};
+			Real range_y[2] = {
+				pc[_Y] + abs(ty / sqrt(1 - (ty * ty)) * sqrt((xxx - pc[_X]) * (xxx - pc[_X]) + (pc[_Z] * pc[_Z]))),
+				pc[_Y] - abs(ty / sqrt(1 - (ty * ty)) * sqrt((xxx - pc[_X]) * (xxx - pc[_X]) + (pc[_Z] * pc[_Z])))
+			};
 
-				if (((xxx < range_x[0]) && (xxx > range_x[1])) && ((yyy < range_y[0]) && (yyy > range_y[1]))) {
-					Real kr = k * r;
-					Real res_real = (amplitude * pc[_Z] * sin(kr)) / (lambda * r * r);
-					Real res_imag = (-amplitude * pc[_Z] * cos(kr)) / (lambda * r * r);
-					(*complex_H)[xxtr + yytr * pn[_X]][_RE] += res_real;
-					(*complex_H)[xxtr + yytr * pn[_X]][_IM] += res_imag;
-				}
+			if (((xxx < range_x[0]) && (xxx > range_x[1])) && ((yyy < range_y[0]) && (yyy > range_y[1]))) {
+				Real kr = k * r;
+
+				Real res_real = (amplitude * pc[_Z] * sin(kr)) / (lambda * r * r);
+				Real res_imag = (-amplitude * pc[_Z] * cos(kr)) / (lambda * r * r);
+				(*complex_H)[xxtr + yytr * pn[_X]][_RE] += res_real;
+				(*complex_H)[xxtr + yytr * pn[_X]][_IM] += res_imag;
 			}
 		}
 	}
