@@ -44,7 +44,7 @@
 //M*/
 
 #include "PLYparser.h"
-
+#define BYTE unsigned char
 PLYparser::PLYparser()
 {
 	PropertyTable.insert(std::make_pair(Type::INT8, std::make_pair(1, "char")));
@@ -136,6 +136,9 @@ bool PLYparser::loadPLY(const std::string& fileName, ulonglong &n_points, int &c
 
 	bool isBinary = false;
 	bool isBigEndian = false;
+	Real maxVal, minVal;
+	maxVal = minVal = 0.0f;
+
 	std::vector<PlyElement> elements;
 	std::vector<std::string> comments;
 	std::vector<std::string> objInfo;
@@ -199,10 +202,12 @@ bool PLYparser::loadPLY(const std::string& fileName, ulonglong &n_points, int &c
 				}
 			}
 
+			// color
 			longlong idxE_color = -1;
 			int idxP_channel = -1;
 			bool ok_channel = findIdxOfPropertiesAndElement(elements, "color", "channel", idxE_color, idxP_channel);
 
+			// vertex
 			longlong idxE_vertex = -1;
 			int idxP_x = -1;
 			int idxP_y = -1;
@@ -215,6 +220,18 @@ bool PLYparser::loadPLY(const std::string& fileName, ulonglong &n_points, int &c
 				return false;
 			}
 
+			// face
+			longlong idxE_face = -1;
+			int idxP_list = -1;
+			bool ok_face = findIdxOfPropertiesAndElement(elements, "face", "vertex_indices", idxE_face, idxP_list);
+			if(!ok_face) 
+				ok_face = findIdxOfPropertiesAndElement(elements, "face", "vertex_index", idxE_face, idxP_list);
+			/*if (!ok_face) {
+				srd::cerr << "Error : file is not having faces data..." << std::endl;
+				return false;
+			}*/
+
+			// rgb
 			int idxP_red = -1;
 			int idxP_green = -1;
 			int idxP_blue = -1;
@@ -245,8 +262,9 @@ bool PLYparser::loadPLY(const std::string& fileName, ulonglong &n_points, int &c
 				*phaseArray = new Real[n_points];
 				std::memset(*phaseArray, NULL, sizeof(Real) * n_points);
 			}
-
-		
+			
+			BYTE *pProperty = nullptr;
+			bool bFound = false;
 
 			//parse Point Cloud Data
 			for (size_t idxE = 0; idxE < elements.size(); ++idxE) {
@@ -268,30 +286,43 @@ bool PLYparser::loadPLY(const std::string& fileName, ulonglong &n_points, int &c
 
 					// BINARY
 					if (isBinary) {
-						// Read line
-						std::string val;
-						File.read((char *)&val, nElementSize);
+						// Read line			
+						if (!bFound) {
+							bFound = true;
+							std::getline(File, line);
+							pProperty = (BYTE *)&line[0];
+						}
 
 						int nSize = PropertyTable[elements[idxE].properties[e].propertyType].first;
 
 						//color channel parsing
 						if (ok_channel && (idxE == idxE_color)) {
-							File.read((char *)&color_channels, nSize);
+							memcpy(&color_channels, &pProperty, nSize);
+							pProperty += nSize;
 						}
 
 						//vertex data parsing
 						if (idxE == idxE_vertex) {
 							//line Processing
 							for (int p = 0; p < elements[idxE].properties.size(); ++p) {
-
-								if (p == idxP_x) File.read((char *)&x, nSize);
-								else if (p == idxP_y) File.read((char *)&y, nSize);
-								else if (p == idxP_z) File.read((char *)&z, nSize);
-								else if (p == idxP_red) File.read((char *)&red, nSize);
-								else if (p == idxP_green) File.read((char *)&green, nSize);
-								else if (p == idxP_blue) File.read((char *)&blue, nSize);
-								else if ((p == idxP_phase) && isPhaseParse) File.read((char *)&phase, nSize);
+								
+								if (p == idxP_x) memcpy(&x, pProperty, nSize);
+								else if (p == idxP_y) memcpy(&y, pProperty, nSize);
+								else if (p == idxP_z) memcpy(&z, pProperty, nSize);
+								else if (p == idxP_red) memcpy(&red, pProperty, nSize);
+								else if (p == idxP_green) memcpy(&green, pProperty, nSize);
+								else if (p == idxP_blue) memcpy(&blue, pProperty, nSize);
+								else if ((p == idxP_phase) && isPhaseParse) memcpy(&phase, pProperty, nSize);
+								pProperty += nSize;
 							}
+
+							(*vertexArray)[3 * e + 0] = (Real)x;
+							(*vertexArray)[3 * e + 1] = (Real)y;
+							(*vertexArray)[3 * e + 2] = (Real)z;
+							(*colorArray)[3 * e + 0] = (Real)(red / 255.f);
+							(*colorArray)[3 * e + 1] = (Real)(green / 255.f);
+							(*colorArray)[3 * e + 2] = (Real)(blue / 255.f);
+							if (isPhaseParse) (*phaseArray)[e] = phase;
 						}
 					}
 					// ASCII
@@ -300,20 +331,12 @@ bool PLYparser::loadPLY(const std::string& fileName, ulonglong &n_points, int &c
 						lineStr.str(line);
 						std::string val;
 
-						//color channel parsing
-						if (ok_channel && (idxE == idxE_color)) {
-							lineStr.clear();
-							lineStr >> val;
-							color_channels = std::stoi(val);
-						}
-
 						//vertex data parsing
 						if (idxE == idxE_vertex) {
 
 							//line Processing
 							for (int p = 0; p < elements[idxE].properties.size(); ++p) {
 								lineStr.clear();
-
 								lineStr >> val;
 
 								if (p == idxP_x) x = std::stof(val);
@@ -324,22 +347,50 @@ bool PLYparser::loadPLY(const std::string& fileName, ulonglong &n_points, int &c
 								else if (p == idxP_blue) blue = std::stoi(val);
 								else if ((p == idxP_phase) && isPhaseParse) phase = std::stof(val);
 							}
+
+							(*vertexArray)[3 * e + 0] = (Real)x;
+							(*vertexArray)[3 * e + 1] = (Real)y;
+							(*vertexArray)[3 * e + 2] = (Real)z;
+							// PLY에 Color가 없을 경우, Depth에 따른 RGB Color 지정
+							// Get Max, Min
+							if (!ok_color) {
+								if (maxVal > z) maxVal = z;
+								if (minVal < z) minVal = z;
+							}
+
+							(*colorArray)[3 * e + 0] = (Real)(red / 255.f);
+							(*colorArray)[3 * e + 1] = (Real)(green / 255.f);
+							(*colorArray)[3 * e + 2] = (Real)(blue / 255.f);
+							if (isPhaseParse) (*phaseArray)[e] = phase;
+						}
+						/*
+						// face data parsing
+						else if (idxE == idxE_face) {
+							//line Processing
+							for (int p = 0; p < elements[idxE].properties.size(); ++p) {
+								lineStr.clear();
+								lineStr >> val;
+								int i = 0;
+								if (p == idxP_list) {
+									while (lineStr >> val) {
+										faceArray[3 * e + i++] = stoi(val);
+									}										
+								}
+							}
+						}
+						*/
+						//color channel parsing
+						else if (ok_channel && (idxE == idxE_color)) {
+							lineStr.clear();
+							lineStr >> val;
+							color_channels = std::stoi(val);
 						}
 					}
-
-					(*vertexArray)[3 * e + 0] = (Real)x;
-					(*vertexArray)[3 * e + 1] = (Real)y;
-					(*vertexArray)[3 * e + 2] = (Real)z;
-					(*colorArray)[3 * e + 0] = (Real)(red / 255.f);
-					(*colorArray)[3 * e + 1] = (Real)(green / 255.f);
-					(*colorArray)[3 * e + 2] = (Real)(blue / 255.f);
-					if (isPhaseParse) (*phaseArray)[e] = phase;
-
-
 				}
 			}
 			File.close();
-
+			//delete[]faceArray;
+			// found channel, Grayscale
 			if (ok_channel && (color_channels == 1)) {
 				Real* grayArray = new Real[n_points];
 				for (ulonglong i = 0; i < n_points; ++i) {
@@ -348,6 +399,7 @@ bool PLYparser::loadPLY(const std::string& fileName, ulonglong &n_points, int &c
 				delete[](*colorArray);
 				*colorArray = grayArray;
 			}
+			// not found channel
 			else if (!ok_channel) {
 				bool check = false;
 				for (ulonglong i = 0; i < n_points; ++i) {
@@ -361,8 +413,19 @@ bool PLYparser::loadPLY(const std::string& fileName, ulonglong &n_points, int &c
 				else if (!check) {
 					color_channels = 1;
 					Real* grayArray = new Real[n_points];
-					for (ulonglong i = 0; i < n_points; ++i) {
-						grayArray[i] = (*colorArray)[3 * i];
+
+					if (ok_color) {
+						for (ulonglong i = 0; i < n_points; ++i) {
+							grayArray[i] = (*colorArray)[3 * i];
+						}
+					}
+					else {
+						cout << "Used depth value instead of color" << endl;
+						cout << "minVal : " << minVal << " / maxVal : " << maxVal << endl;
+						for (ulonglong i = 0; i < n_points; ++i) {
+							ulonglong idx = i * 3;
+							grayArray[i] = -(*vertexArray)[idx + 2];//(int)(((*vertexArray)[idx+2] - minVal) / (maxVal - minVal) * 255 + 0.5);
+						}
 					}
 					delete[](*colorArray);
 					*colorArray = grayArray;
@@ -370,7 +433,7 @@ bool PLYparser::loadPLY(const std::string& fileName, ulonglong &n_points, int &c
 			}
 
 			std::cout << "Success loading " << n_points << " Point Clouds, Color Channels : " << color_channels << std::endl;
-
+			
 			return true;
 		}
 	}
@@ -408,7 +471,7 @@ bool PLYparser::savePLY(const std::string& fileName, const ulonglong n_points, c
 		File << "property uchar red\n";
 		File << "property uchar green\n";
 		File << "property uchar blue\n";
-		File << "property Real phase\n";
+		File << "property double phase\n";
 		File << "end_header\n";
 
 		File << color_channels << std::endl;
@@ -685,4 +748,217 @@ bool PLYparser::savePLY(const char* fileName, const ulonglong n_vertices, const 
 		std::cerr << "Error : Failed saving ply file..." << std::endl;
 		return false;
 	}
+}
+
+
+
+bool PLYparser::loadPLY(const char* fileName, ulonglong &n_vertices, int &color_channels, uint **face_idx, Real **vertexArray, Real **faceArray, Real **colorArray)
+{
+	std::string inputPath = fileName;
+	if ((inputPath.find(".ply") == std::string::npos) && (inputPath.find(".PLY") == std::string::npos)) inputPath += ".ply";
+	std::ifstream File(inputPath, std::ios::in | std::ios::binary);
+
+	bool isBinary = false;
+	bool isBigEndian = false;
+	std::vector<PlyElement> elements;
+	std::vector<std::string> comments;
+	std::vector<std::string> objInfo;
+
+
+	if (File.is_open()) {
+		//parse header
+		std::string line;
+		std::getline(File, line);
+		std::istringstream lineStr(line);
+		std::string token;
+		lineStr.clear();
+		lineStr >> token;
+
+		if ((token != "ply") && (token != "PLY")) {
+			std::cerr << "Error : Failed loading ply file..." << std::endl;
+			File.close();
+			return false;
+		}
+		else {
+			std::cout << "Parsing *.PLY file for OpenHolo Triangle Mesh Generation..." << std::endl;
+
+			//parse PLY header
+			while (std::getline(File, line)) {
+				lineStr.clear();
+				lineStr.str(line);
+				lineStr >> token;
+
+				if (token == "comment") comments.push_back((8 > 0) ? line.erase(0, 8) : line);
+				else if (token == "format") {
+					std::string str;
+					lineStr.clear();
+					lineStr >> str;
+					if (str == "binary_little_endian") isBinary = true;
+					else if (str == "binary_big_endian") isBinary = isBigEndian = true;
+				}
+				else if (token == "element") elements.emplace_back(lineStr);
+				else if (token == "property") {
+					if (!elements.size()) std::cerr << "No Elements defined, file is malformed" << std::endl;
+					elements.back().properties.emplace_back(lineStr);
+				}
+				else if (token == "obj_info") objInfo.push_back((9 > 0) ? line.erase(0, 9) : line);
+				else if (token == "end_header") break;
+			}
+
+			//print comment list
+			for (auto cmt : comments) {
+				std::cout << "Comment : " << cmt << std::endl;
+			}
+
+			//print element and property list
+			for (auto elmnt : elements) {
+				std::cout << "Element - " << elmnt.name << " : ( " << elmnt.size << " )" << std::endl;
+				for (auto Property : elmnt.properties) {
+					std::cout << "\tProperty : " << Property.name << " : ( " << PropertyTable[Property.propertyType].second << " )" << std::endl;
+				}
+			}
+
+			longlong idxE_color = -1;
+			int idxP_channel = -1;
+			bool ok_channel = findIdxOfPropertiesAndElement(elements, "color", "channel", idxE_color, idxP_channel);
+
+			longlong idxE_vertex = -1;
+			int idxP_face_idx = -1;
+			int idxP_x = -1;
+			int idxP_y = -1;
+			int idxP_z = -1;
+			bool ok_vertex = findIdxOfPropertiesAndElement(elements, "vertex", "face_idx", idxE_vertex, idxP_face_idx);
+			ok_vertex = findIdxOfPropertiesAndElement(elements, "vertex", "x", idxE_vertex, idxP_x);
+			ok_vertex = findIdxOfPropertiesAndElement(elements, "vertex", "y", idxE_vertex, idxP_y);
+			ok_vertex = findIdxOfPropertiesAndElement(elements, "vertex", "z", idxE_vertex, idxP_z);
+			if (!ok_vertex) {
+				std::cerr << "Error : file is not having vertices data..." << std::endl;
+				return false;
+			}
+
+			longlong idxE_face = -1;
+			int idxP_vertex_indices = -1;
+			bool ok_face = findIdxOfPropertiesAndElement(elements, "face", "vertex_indices", idxE_face, idxP_vertex_indices);
+
+			int idxP_red = -1;
+			int idxP_green = -1;
+			int idxP_blue = -1;
+			bool ok_color = findIdxOfPropertiesAndElement(elements, "vertex", "red", idxE_vertex, idxP_red);
+			ok_color = findIdxOfPropertiesAndElement(elements, "vertex", "green", idxE_vertex, idxP_green);
+			ok_color = findIdxOfPropertiesAndElement(elements, "vertex", "blue", idxE_vertex, idxP_blue);
+			if (!ok_color) {
+				ok_color = findIdxOfPropertiesAndElement(elements, "vertex", "diffuse_red", idxE_vertex, idxP_red);
+				ok_color = findIdxOfPropertiesAndElement(elements, "vertex", "diffuse_green", idxE_vertex, idxP_green);
+				ok_color = findIdxOfPropertiesAndElement(elements, "vertex", "diffuse_blue", idxE_vertex, idxP_blue);
+
+				if (!ok_vertex) {
+					std::cerr << "Error : file is not having vertices color data..." << std::endl;
+					return false;
+				}
+			}
+
+			if (ok_face && !ok_color) {
+
+			}
+
+
+
+
+			n_vertices = elements[idxE_vertex].size;
+			*face_idx = new uint[n_vertices];
+			*vertexArray = new Real[3 * n_vertices];
+			*colorArray = new Real[3 * n_vertices];
+			std::memset(*face_idx, NULL, sizeof(uint) * n_vertices);
+			std::memset(*vertexArray, NULL, sizeof(Real) * 3 * n_vertices);
+			std::memset(*colorArray, NULL, sizeof(Real) * 3 * n_vertices);
+
+			//parse Triangle Mesh Data
+			for (size_t idxE = 0; idxE < elements.size(); ++idxE) {
+				for (longlong e = 0; e < elements[idxE].size; ++e) {
+					std::getline(File, line);
+					lineStr.clear();
+					lineStr.str(line);
+					std::string val;
+
+					//color channel parsing
+					if (ok_channel && (idxE == idxE_color)) {
+						lineStr.clear();
+						lineStr >> val;
+						color_channels = std::stoi(val);
+					}
+
+					//vertex data parsing
+					if (idxE == idxE_vertex) {
+						uint face = 0;
+						Real x = 0.f;
+						Real y = 0.f;
+						Real z = 0.f;
+						uchar red = 0;
+						uchar green = 0;
+						uchar blue = 0;
+
+						//line Processing
+						for (int p = 0; p < elements[idxE].properties.size(); ++p) {
+							lineStr.clear();
+							lineStr >> val;
+							if (p == idxP_face_idx) face = std::stoul(val);
+							if (p == idxP_x) x = std::stof(val);
+							else if (p == idxP_y) y = std::stof(val);
+							else if (p == idxP_z) z = std::stof(val);
+							else if (p == idxP_red) red = std::stoi(val);
+							else if (p == idxP_green) green = std::stoi(val);
+							else if (p == idxP_blue) blue = std::stoi(val);
+						}
+
+						(*face_idx)[e] = face;
+						(*vertexArray)[3 * e + 0] = x;
+						(*vertexArray)[3 * e + 1] = y;
+						(*vertexArray)[3 * e + 2] = z;
+						(*colorArray)[3 * e + 0] = (Real)(red / 255.f);
+						(*colorArray)[3 * e + 1] = (Real)(green / 255.f);
+						(*colorArray)[3 * e + 2] = (Real)(blue / 255.f);
+					}
+				}
+			}
+			File.close();
+
+			if (ok_channel && (color_channels == 1)) {
+				Real* grayArray = new Real[n_vertices];
+				for (ulonglong i = 0; i < n_vertices; ++i) {
+					grayArray[i] = (*colorArray)[3 * i];
+				}
+				delete[](*colorArray);
+				*colorArray = grayArray;
+			}
+			else if (!ok_channel) {
+				bool check = false;
+				for (ulonglong i = 0; i < n_vertices; ++i) {
+					if (((*colorArray)[3 * i + 0] != (*colorArray)[3 * i + 1]) || ((*colorArray)[3 * i + 1] != (*colorArray)[3 * i + 2])) {
+						check = true;
+						break;
+					}
+				}
+
+				if (check) color_channels = 3;
+				else if (!check) {
+					color_channels = 1;
+					Real* grayArray = new Real[n_vertices];
+					for (ulonglong i = 0; i < n_vertices; ++i) {
+						grayArray[i] = (*colorArray)[3 * i];
+					}
+					delete[](*colorArray);
+					*colorArray = grayArray;
+				}
+			}
+
+			std::cout << "Success loading " << n_vertices / 3 << " Triangle Mesh, Color Channels : " << color_channels << std::endl;
+
+			return true;
+		}
+	}
+	else {
+		std::cerr << "Error : Failed loading ply file..." << std::endl;
+		return false;
+	}
+	return true;
 }

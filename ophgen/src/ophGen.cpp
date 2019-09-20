@@ -78,11 +78,11 @@ void ophGen::initialize(void)
 	// Memory Location for Result Image
 	// 1 color channel
 	complex_H[0] = new oph::Complex<Real>[n_x * n_y];
-	memset((*complex_H), 0, sizeof(Complex<Real>) * n_x * n_y);
+	memset((*complex_H), 0.0, sizeof(Complex<Real>) * n_x * n_y);
 
 	if (holo_encoded != nullptr) delete[] holo_encoded;
 	holo_encoded = new Real[n_x * n_y];
-	memset(holo_encoded, 0, sizeof(Real) * n_x * n_y);
+	memset(holo_encoded, 0.0, sizeof(Real) * n_x * n_y);
 
 	if (holo_normalized != nullptr) delete[] holo_normalized;
 	holo_normalized = new uchar[n_x * n_y];
