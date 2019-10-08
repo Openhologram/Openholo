@@ -1,7 +1,6 @@
 #include "sys.h"
 #include <stdarg.h>
 #include <stdio.h>
-
 static FILE *fp;
  
 void file_log(const char *fmt, ...)
@@ -97,4 +96,3 @@ int string_cmp(const WChar* str1, const WChar* str2)
 	return strcmp(str1, str2);
 #endif
 }
-

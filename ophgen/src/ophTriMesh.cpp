@@ -154,7 +154,7 @@ int ophTri::readMeshConfig(const char* mesh_config) {
 
 #if REAL_IS_DOUBLE & true
 	auto next = xml_node->FirstChildElement("FieldLens");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&field_lens))
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&fieldLength))
 		return false;
 	next = xml_node->FirstChildElement("ObjectSize");
 	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&objSize))
@@ -363,11 +363,11 @@ void ophTri::objScaleShift()
 #endif
 	for (i = 0; i < meshData->n_faces * 3; i++) {
 		Real pcx = (is_ViewingWindow) ? 
-			transformViewingWindow(*(normalizedMeshData + 3 * i + _X)) : *(normalizedMeshData + 3 * i + _X);
+			transVW(*(normalizedMeshData + 3 * i + _X)) : *(normalizedMeshData + 3 * i + _X);
 		Real pcy = (is_ViewingWindow) ?
-			transformViewingWindow(*(normalizedMeshData + 3 * i + _Y)) : *(normalizedMeshData + 3 * i + _Y);
+			transVW(*(normalizedMeshData + 3 * i + _Y)) : *(normalizedMeshData + 3 * i + _Y);
 		Real pcz = (is_ViewingWindow) ?
-			transformViewingWindow(*(normalizedMeshData + 3 * i + _Z)) : *(normalizedMeshData + 3 * i + _Z);	
+			transVW(*(normalizedMeshData + 3 * i + _Z)) : *(normalizedMeshData + 3 * i + _Z);	
 
 		*(scaledMeshData + 3 * i + _X) = pcx * objSize + objShift[_X];
 		*(scaledMeshData + 3 * i + _Y) = pcy * objSize + objShift[_Y];
@@ -402,11 +402,11 @@ void ophTri::objScaleShift(Real objSize_, vector<Real> objShift_)
 #endif
 	for (i = 0; i < meshData->n_faces * 3; i++) {
 		Real pcx = (is_ViewingWindow) ?
-			transformViewingWindow(*(normalizedMeshData + 3 * i + _X)) : *(normalizedMeshData + 3 * i + _X);
+			transVW(*(normalizedMeshData + 3 * i + _X)) : *(normalizedMeshData + 3 * i + _X);
 		Real pcy = (is_ViewingWindow) ?
-			transformViewingWindow(*(normalizedMeshData + 3 * i + _Y)) : *(normalizedMeshData + 3 * i + _Y);
+			transVW(*(normalizedMeshData + 3 * i + _Y)) : *(normalizedMeshData + 3 * i + _Y);
 		Real pcz = (is_ViewingWindow) ?
-			transformViewingWindow(*(normalizedMeshData + 3 * i + _Z)) : *(normalizedMeshData + 3 * i + _Z);
+			transVW(*(normalizedMeshData + 3 * i + _Z)) : *(normalizedMeshData + 3 * i + _Z);
 
 		*(scaledMeshData + 3 * i + _X) = pcx * objSize + objShift[_X];
 		*(scaledMeshData + 3 * i + _Y) = pcy * objSize + objShift[_Y];
@@ -440,11 +440,11 @@ void ophTri::objScaleShift(Real objSize_, vec3 objShift_)
 #endif
 		for (i = 0; i < meshData->n_faces * 3; i++) {
 			Real pcx = (is_ViewingWindow) ?
-				transformViewingWindow(*(normalizedMeshData + 3 * i + _X)) : *(normalizedMeshData + 3 * i + _X);
+				transVW(*(normalizedMeshData + 3 * i + _X)) : *(normalizedMeshData + 3 * i + _X);
 			Real pcy = (is_ViewingWindow) ?
-				transformViewingWindow(*(normalizedMeshData + 3 * i + _Y)) : *(normalizedMeshData + 3 * i + _Y);
+				transVW(*(normalizedMeshData + 3 * i + _Y)) : *(normalizedMeshData + 3 * i + _Y);
 			Real pcz = (is_ViewingWindow) ?
-				transformViewingWindow(*(normalizedMeshData + 3 * i + _Z)) : *(normalizedMeshData + 3 * i + _Z);
+				transVW(*(normalizedMeshData + 3 * i + _Z)) : *(normalizedMeshData + 3 * i + _Z);
 
 			*(scaledMeshData + 3 * i + _X) = pcx * objSize + objShift[_X];
 			*(scaledMeshData + 3 * i + _Y) = pcy * objSize + objShift[_Y];

@@ -290,61 +290,50 @@ int ophLF::loadLF()
 
 void ophLF::generateHologram() 
 {
-	initialize();
+	auto start = CUR_TIME;
 	LOG(">>> Transform Viewing Window : %s\n", is_ViewingWindow ? "ON" : "OFF");
+	LOG(">>> Acceleration : %s\n", is_CPU ? "CPU" : "GPU");
+	initialize();
+	LOG("initialize() ... %.5lfsec\n", ((std::chrono::duration<Real>)(CUR_TIME - start)).count());
 	if (is_CPU)
 	{
-		auto start = CUR_TIME;
-
-		LOG("Converting....");
 		convertLF2ComplexField();
-		LOG("finished.\n");
-
-		LOG("Propagating ...");
+		LOG("convertLF2ComplexField() ... %.5lfsec\n", ((std::chrono::duration<Real>)(CUR_TIME - start)).count());
 		fresnelPropagation(RSplane_complex_field, (*complex_H), distanceRS2Holo);
-		LOG("finished.\n");
+		LOG("fresnelPropagation() ... %.5lfsec\n", ((std::chrono::duration<Real>)(CUR_TIME - start)).count());
+	}
+	else
+	{
+		prepareInputdataGPU();
+		LOG("prepareInputdataGPU() ... %.5lfsec\n", ((std::chrono::duration<Real>)(CUR_TIME-start)).count());
+		convertLF2ComplexField_GPU();
+		LOG("convertLF2ComplexField_GPU() ... %.5lfsec\n", ((std::chrono::duration<Real>)(CUR_TIME-start)).count());
+		fresnelPropagation_GPU();
+		LOG("fresnelPropagation_GPU() ... %.5lfsec\n", ((std::chrono::duration<Real>)(CUR_TIME - start)).count());
 
-		auto end = CUR_TIME;
-		auto during = ((std::chrono::duration<Real>)(end - start)).count();
-		LOG("%.5lfsec...hologram generated..\n", during);
+	}
+
+	auto end = CUR_TIME;
+	auto during = ((std::chrono::duration<Real>)(end - start)).count();
+	LOG("Total Elapsed Time: %.5lf(sec)\n", during);
 
 #ifdef TEST_MODE
-		HWND hwndNotepad = NULL;
-		hwndNotepad = ::FindWindow(NULL, "test.txt - 메모장");
-		if (hwndNotepad) {
-			hwndNotepad = FindWindowEx(hwndNotepad, NULL, "edit", NULL);
+	HWND hwndNotepad = NULL;
+	hwndNotepad = ::FindWindow(NULL, "test.txt - 메모장");
+	if (hwndNotepad) {
+		hwndNotepad = FindWindowEx(hwndNotepad, NULL, "edit", NULL);
 
-			char *pBuf = NULL;
-			int nLen = SendMessage(hwndNotepad, WM_GETTEXTLENGTH, 0, 0);
-			pBuf = new char[nLen + 10];
+		char *pBuf = NULL;
+		int nLen = SendMessage(hwndNotepad, WM_GETTEXTLENGTH, 0, 0);
+		pBuf = new char[nLen + 100];
 
-			SendMessage(hwndNotepad, WM_GETTEXT, nLen + 1, (LPARAM)pBuf);
-			sprintf(pBuf, "%s%.5lf\r\n", pBuf, during);
+		SendMessage(hwndNotepad, WM_GETTEXT, nLen + 1, (LPARAM)pBuf);
+		sprintf(pBuf, "%s%lf\r\n", pBuf, during);
 
-			SendMessage(hwndNotepad, WM_SETTEXT, 0, (LPARAM)pBuf);
-			delete[] pBuf;
-		}
+		SendMessage(hwndNotepad, WM_SETTEXT, 0, (LPARAM)pBuf);
+		delete[] pBuf;
+	}
 #endif
-	}
-	else {
-
-		prepareInputdataGPU();
-
-		auto start = CUR_TIME;
-
-		LOG("Converting....");
-		convertLF2ComplexField_GPU();
-		LOG("finished.\n");
-
-		LOG("Propagating ...");
-		fresnelPropagation_GPU();
-		LOG("finished.\n");
-
-		auto end = CUR_TIME;
-		auto during = ((std::chrono::duration<Real>)(end - start)).count();
-		LOG("%.5lfsec...hologram generated..\n", during);
-
-	}
 }
 
 //int ophLF::saveAsOhc(const char * fname)
@@ -371,7 +360,8 @@ void ophLF::initializeLF() {
 }
 
 
-void ophLF::convertLF2ComplexField() {
+void ophLF::convertLF2ComplexField()
+{
 	int nx = num_image[_X];
 	int ny = num_image[_Y];
 	int rx = resolution_image[_X];
@@ -384,7 +374,7 @@ void ophLF::convertLF2ComplexField() {
 	Complex<Real>* FFTLF = new Complex<Real>[rx*ry];
 
 	Real randVal;
-	Complex<Real> phase(0,0);
+	Complex<Real> phase(0.0, 0.0);
 	for (int idxRx = 0; idxRx < rx; idxRx++) {
 		for (int idxRy = 0; idxRy < ry; idxRy++) {
 

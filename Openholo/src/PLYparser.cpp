@@ -334,8 +334,6 @@ bool PLYparser::loadPLY(const std::string& fileName, ulonglong &n_points, int &c
 					(*colorArray)[3 * e + 1] = (Real)(green / 255.f);
 					(*colorArray)[3 * e + 2] = (Real)(blue / 255.f);
 					if (isPhaseParse) (*phaseArray)[e] = phase;
-
-
 				}
 			}
 			File.close();

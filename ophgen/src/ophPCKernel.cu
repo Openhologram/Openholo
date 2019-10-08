@@ -96,6 +96,7 @@ __global__ void cudaKernel_diffractNotEncodedRS(Real* pc_data, Real* amp_data, c
 	ulonglong tid = blockIdx.x * blockDim.x + threadIdx.x;
 	ulonglong tid_offset = blockDim.x * gridDim.x;
 	ulonglong n_pixels = config->pn_X * config->pn_Y;
+	ulonglong tmp = tid;
 
 	for (tid; tid < n_pixels; tid += tid_offset) {
 		int xxtr = tid % config->pn_X;
@@ -110,7 +111,7 @@ __global__ void cudaKernel_diffractNotEncodedRS(Real* pc_data, Real* amp_data, c
 			Real pcy = pc_data[3 * j + _Y] * config->scale_Y;
 			Real pcz = pc_data[3 * j + _Z] * config->scale_Z + config->offset_depth;
 			Real amplitude = amp_data[config->n_colors * j];
-
+			
 			//boundary test
 			Real abs_det_txy_pcz = abs(config->det_tx * pcz);
 			Real _xbound[2] = {
@@ -138,8 +139,7 @@ __global__ void cudaKernel_diffractNotEncodedRS(Real* pc_data, Real* amp_data, c
 			if (Xbound[1] < 0)				Xbound[1] = 0;
 			if (Ybound[0] > config->pn_Y)	Ybound[0] = config->pn_Y;
 			if (Ybound[1] < 0)				Ybound[1] = 0;
-			//
-
+			
 			if (((xxtr >= Xbound[1]) && (xxtr < Xbound[0])) && ((yytr >= Ybound[1]) && (yytr < Ybound[0]))) {
 				Real xxx_pcx_sq = (xxx - pcx) * (xxx - pcx);
 				Real yyy_pcy_sq = (yyy - pcy) * (yyy - pcy);
@@ -165,7 +165,6 @@ __global__ void cudaKernel_diffractNotEncodedRS(Real* pc_data, Real* amp_data, c
 					Real a = (amplitude * pcz) / (config->lambda * r * r);;
 					Real res_real = sin(p) * a;
 					Real res_imag = -cos(p) * a;
-
 					*(dst_real + idx) += res_real;
 					*(dst_imag + idx) += res_imag;
 				}

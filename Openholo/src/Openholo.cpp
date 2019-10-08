@@ -177,6 +177,9 @@ int Openholo::saveAsOhc(const char * fname)
 	std::string fullname = fname;
 	if (checkExtension(fname, ".ohc") == 0) fullname.append(".ohc");
 	OHC_encoder->setFileName(fullname.c_str());
+	
+	// Clear vector
+	OHC_encoder->releaseFldData();
 
 	ohcHeader header;
 	OHC_encoder->getOHCheader(header);
@@ -524,8 +527,19 @@ void Openholo::fftShift(int nx, int ny, Complex<Real>* input, Complex<Real>* out
 
 void Openholo::ophFree(void)
 {
+#ifdef USE_3CHANNEL
+	ohcHeader header;
+	OHC_encoder->getOHCheader(header);
+	auto wavelength_num = header.fieldInfo.wavlenNum;
+	for (int i = 0; i < wavelength_num; i++) {
+		if (complex_H[i]) 
+			delete[] complex_H[i];
+	}
+#else
 	if ((*complex_H)) delete[](*complex_H);
+#endif
 	if (complex_H) delete[] complex_H;
+
 	if (context_.wave_length) delete[] context_.wave_length;
 
 	delete OHC_encoder;

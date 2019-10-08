@@ -78,12 +78,14 @@ void ophLF::prepareInputdataGPU()
 
 	HANDLE_ERROR(cudaMemcpy(LF_gpu, LFData_gpu, sizeof(uchar*)*nx*ny, cudaMemcpyHostToDevice));
 
-	if (RSplane_complex_field_gpu)   cudaFree(RSplane_complex_field_gpu);
+	if (RSplane_complex_field_gpu)
+		cudaFree(RSplane_complex_field_gpu);
 	HANDLE_ERROR(cudaMalloc((void**)&RSplane_complex_field_gpu, sizeof(cufftDoubleComplex)*rx*ry*nx*ny));
 }
 
 void ophLF::convertLF2ComplexField_GPU()
 {
+	auto start = CUR_TIME;
 	int nx = num_image[_X];
 	int ny = num_image[_Y];
 	int rx = resolution_image[_X];
@@ -99,29 +101,39 @@ void ophLF::convertLF2ComplexField_GPU()
 	HANDLE_ERROR(cudaMemsetAsync(RSplane_complex_field_gpu, 0, sizeof(cufftDoubleComplex)*rx*ry*nx*ny, streamLF));
 
 	cudaConvertLF2ComplexField_Kernel(streamLF, nx, ny, rx, ry, LF_gpu, complexLF_gpu);
-
+	LOG("\tcudaConvertLF2ComplexField_Kernel() ... %.5lfsec\n", ((std::chrono::duration<Real>)(CUR_TIME - start)).count());
 	cufftHandle fftplan;
 	if (cufftPlan2d(&fftplan, ny, nx, CUFFT_Z2Z) != CUFFT_SUCCESS)
 	{
 		LOG("FAIL in creating cufft plan");
 		return;
 	};
+	LOG("\tcufftPlan2d() ... %.5lfsec\n", ((std::chrono::duration<Real>)(CUR_TIME - start)).count());
 
 	cufftDoubleComplex* in, *out;
+#if 0
+	for (int k = 0; k < nx*ny; k++)
+	{
+		int offset = rx * ry * k;
+		in = complexLF_gpu + offset;
+		out = FFTLF_temp_gpu + offset;
+		cudaFFT_LF(&fftplan, streamLF, rx, ry, in, out, -1);
+	}
+#else
 	for (int k = 0; k < rx*ry; k++)
 	{
 		int offset = nx * ny*k;
 		in = complexLF_gpu + offset;
 		out = FFTLF_temp_gpu + offset;
-
 		cudaFFT_LF(&fftplan, streamLF, nx, ny, in, out, -1);
-
 	}
-
+#endif
+	LOG("\tcudaFFT_LF() ... %.5lfsec\n", ((std::chrono::duration<Real>)(CUR_TIME - start)).count());
 	cufftDestroy(fftplan);
 
 	procMultiplyPhase(streamLF, nx, ny, rx, ry, FFTLF_temp_gpu, RSplane_complex_field_gpu, CUDART_PI);
 
+	LOG("\tprocMultiplyPhase() ... %.5lfsec\n", ((std::chrono::duration<Real>)(CUR_TIME - start)).count());
 	cudaFree(complexLF_gpu);
 	cudaFree(FFTLF_temp_gpu);
 }
@@ -159,8 +171,9 @@ void ophLF::fresnelPropagation_GPU()
 	HANDLE_ERROR(cudaMemcpyAsync(output, RSplane_complex_field_gpu, sizeof(cufftDoubleComplex)*Nx*Ny, cudaMemcpyDeviceToHost), streamLF);
 	for (int i = 0; i < Nx*Ny; ++i)
 	{
-		complex_H[0][i][_RE] = output[i].x;
-		complex_H[0][i][_IM] = output[i].y;
+		// 1-channel로 코딩. 추후 변경
+		(*complex_H)[i][_RE] = output[i].x;
+		(*complex_H)[i][_IM] = output[i].y;
 	}
 
 	cudaFree(in2x);

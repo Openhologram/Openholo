@@ -612,7 +612,7 @@ public:
 	inline const Real* getModelColor(Real *color) { color != NULL ? color = pc_data_.color : color; return pc_data_.color; }
 	inline const Real* getModelPhase(Real *phase) { phase != NULL ? phase = pc_data_.phase : phase; return pc_data_.phase; }
 	inline int getNumberOfPoints() { return n_points; }
-	inline Real getFieldLens(void) { return pc_config_.field_lens; }
+	inline Real getFieldLens(void) { return pc_config_.fieldLength; }
 
 public:
 	/**
@@ -682,14 +682,22 @@ private:
 	*/
 	void genCghPointCloudCPU(uint diff_flag);
 	void diffractEncodedRS(ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Real k, Real amplitude, vec2 theta);
-	void diffractNotEncodedRS(ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Real k, Real amplitude, Real lambda, vec2 theta);
+#ifdef USE_3CHANNEL
+	void diffractNotEncodedRS(uint nColor, ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Real k, Real amplitude, Real lambda);
+#else
+	void diffractNotEncodedRS(ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Real k, Real amplitude, Real lambda);
+#endif
 	void diffractEncodedFrsn(void);
+#ifdef USE_3CHANNEL
+	void diffractNotEncodedFrsn(uint nColor, ivec2 pn, vec2 pp, vec3 pc, Real amplitude, Real lambda, vec2 theta);
+#else
 	void diffractNotEncodedFrsn(ivec2 pn, vec2 pp, vec3 pc, Real amplitude, Real lambda, vec2 theta);
-	inline Real transformViewingWindow(Real pt) {
+#endif
+	inline Real transVW(Real pt) {
 		Real fieldLens = this->getFieldLens();
 		return -fieldLens * pt / (pt - fieldLens);
 	}
-	void transformViewingWindow(int nSize, Real *dst, Real *src);
+	void transVW(int nSize, Real *dst, Real *src);
 	/**
 	* @overload
 	* @param Model Input 3D PointCloud Model Data

@@ -161,7 +161,6 @@ void oph::ImgCodecOhc::releaseFldData() {
 	this->field_cmplx.clear();
 }
 
-
 /************************ OHC Decoder *****************************/
 
 oph::ImgDecoderOhc::ImgDecoderOhc()
@@ -1024,11 +1023,18 @@ void oph::ImgEncoderOhc::addComplexFieldData(const Complex<Real>* data)
 	this->field_cmplx.push_back(complexField);
 }
 
-void oph::ImgEncoderOhc::addWavelength(const Real wavlen) {
-	std::vector<Real>::iterator iter;
-	iter = find(WavLeng.begin(), WavLeng.end(), wavlen);
-	if (iter == WavLeng.end())
-		WavLeng.push_back(wavlen);
+
+void oph::ImgEncoderOhc::clearWavelength()
+{
+	WavLeng.clear();
+}
+
+void oph::ImgEncoderOhc::addWavelength(const Real wavlen) 
+{	
+#ifndef USE_3CHANNEL
+	WavLeng.clear(); // 1-channel Àü¿ë
+#endif
+	WavLeng.push_back(wavlen);
 	this->setNumOfWavlen((uint32_t)WavLeng.size());
 }
 

@@ -494,10 +494,20 @@ int ophWaveAberration::loadAsOhc(const char * fname)
 	int yr = resolutionY = context_.pixel_number[_Y];
 
 	waveLength = context_.wave_length[0];
-
+#if 0
+	int nColor = 1;
+	for (int c = 0; c < nColor; c++) {
+		for (int x = 0; x < xr; x++) {
+			for (int y = 0; y < yr; y++) {
+				complex_W[x][y] = complex_H[c][x + y * xr];
+			}
+		}
+	}
+#else
 	for (int x = 0; x < xr; x++) {
 		for (int y = 0; y < yr; y++) {
 			complex_W[x][y] = complex_H[0][x + y * xr];
 		}
 	}
+#endif
 }

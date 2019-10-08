@@ -229,7 +229,7 @@ Real ophDepthMap::generateHologram(void)
 
 	getDepthValues();
 	if(is_ViewingWindow)
-		transformViewingWindow();
+		transVW();
 	calcHoloByDepth();
 
 	auto end_time = CUR_TIME;
@@ -375,15 +375,15 @@ void ophDepthMap::getDepthValues()
 
 /**
 * @brief Transform target object to reflect the system configuration of holographic display.
-* @details Calculate 'dlevel_transform_' variable by using 'field_lens' & 'dlevel_'.
+* @details Calculate 'dlevel_transform_' variable by using 'fieldLength' & 'dlevel_'.
 */
-void ophDepthMap::transformViewingWindow()
+void ophDepthMap::transVW()
 {
 	Real val;
 	dlevel_transform.clear();
 	for (int p = 0; p < dlevel.size(); p++)
 	{
-		val = -dm_config_.field_lens * dlevel[p] / (dlevel[p] - dm_config_.field_lens);
+		val = -dm_config_.fieldLength * dlevel[p] / (dlevel[p] - dm_config_.fieldLength);
 		dlevel_transform.push_back(val);
 	}
 }

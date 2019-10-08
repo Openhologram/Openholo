@@ -144,12 +144,12 @@ public:
 	void setViewingWindow(bool is_ViewingWindow);
 
 public:
-	inline void setFieldLens(Real fieldlens) { dm_config_.field_lens = fieldlens; }
+	inline void setFieldLens(Real fieldlens) { dm_config_.fieldLength = fieldlens; }
 	inline void setNearDepth(Real neardepth) { dm_config_.near_depthmap = neardepth; }
 	inline void setFarDepth(Real fardetph) { dm_config_.far_depthmap = fardetph; }
 	inline void setNumOfDepth(uint numofdepth) { dm_config_.num_of_depth = numofdepth; }
 
-	inline Real getFieldLens(void) { return dm_config_.field_lens; }
+	inline Real getFieldLens(void) { return dm_config_.fieldLength; }
 	inline Real getNearDepth(void) { return dm_config_.near_depthmap; }
 	inline Real getFarDepth(void) { return dm_config_.far_depthmap; }
 	inline uint getNumOfDepth(void) { return dm_config_.num_of_depth; }
@@ -170,7 +170,7 @@ private:
 	void changeDepthQuanCPU();
 	void changeDepthQuanGPU();
 
-	void transformViewingWindow();
+	void transVW();
 
 	void calcHoloByDepth(void);
 	void calcHoloCPU(void);

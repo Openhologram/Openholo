@@ -216,11 +216,13 @@ protected:
 
 private:
 	bool bCarried;
+	uint m_nWave;
 
 public:
 	void setEncodeMethod(int in) { ENCODE_METHOD = in; }
 	void setSSBPassBand(int in){ SSB_PASSBAND = in; }
 	ivec2& getEncodeSize(void) { return encode_size; }
+	void setResolution(ivec2 resolution);
 
 public:
 	/**
@@ -329,7 +331,7 @@ protected:
 * @param oph::vec2 Tilt angle for spatial filtering
 */
 struct GEN_DLL OphPointCloudConfig {
-	Real field_lens;
+	Real fieldLength;
 	int n_streams;
 	oph::vec3 scale;
 	Real offset_depth;
@@ -368,7 +370,7 @@ struct GEN_DLL OphPointCloudData {
 };
 
 /**
-* @param Real FIELD_LENS at config file
+* @param Real fieldLength at config file
 * @param Real NEAR_OF_DEPTH_MAP at config file
 * @param Real FAR_OF_DEPTH_MAP at config file
 * @param oph::uint the number of depth level.
@@ -385,7 +387,7 @@ struct GEN_DLL OphPointCloudData {
 * @param bool If true, random phase is imposed on each depth layer.
 */
 struct GEN_DLL OphDepthMapConfig {
-	Real				field_lens;
+	Real				fieldLength;
 
 	Real				near_depthmap;
 	Real				far_depthmap;
@@ -400,7 +402,7 @@ struct GEN_DLL OphDepthMapConfig {
 	oph::uint			NUMBER_OF_DEPTH_QUANTIZATION;
 	bool				RANDOM_PHASE;
 
-	OphDepthMapConfig() :field_lens(0), near_depthmap(0), far_depthmap(0), num_of_depth(0) {}
+	OphDepthMapConfig() :fieldLength(0), near_depthmap(0), far_depthmap(0), num_of_depth(0) {}
 };
 
 /**
@@ -420,7 +422,7 @@ struct GEN_DLL OphMeshData {
 };
 
 struct GEN_DLL OphWRPConfig {
-	Real field_lens;
+	Real fieldLength;
 	oph::vec3 scale;								///< Scaling factor of coordinate of point cloud
 
 	int num_wrp;                                    ///< Number of wavefront recording plane(WRP)  

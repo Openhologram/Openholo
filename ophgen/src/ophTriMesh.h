@@ -123,7 +123,7 @@ private:
 	OphMeshData* meshData;					/// OphMeshData type data structure pointer
 
 private:
-	Real field_lens;
+	Real fieldLength;
 	Real objSize;							/// Object maximum of width and height / unit :[m]
 	vec3 objShift;							/// Object shift value / Data structure - [shiftX, shiftY, shiftZ] / unit : [m]
 
@@ -148,7 +148,7 @@ public:
 	const Real& getObjSize(void) { return objSize; }
 	const vec3& getObjShift(void) { return objShift; }
 	const vec3&	getIllumination(void) { return illumination; }
-	const Real& getFieldLens(void) { return field_lens; }
+	const Real& getFieldLens(void) { return fieldLength; }
 public:
 	/**
 	* @brief	Triangular mesh basc CGH configuration file load
@@ -223,8 +223,8 @@ private:
 	uint refToGlobal();
 
 	uint loadMeshText(const char* fileName);
-	inline Real transformViewingWindow(Real pt) {
-		Real transPt = -field_lens * pt / (pt - field_lens);
+	inline Real transVW(Real pt) {
+		Real transPt = -fieldLength * pt / (pt - fieldLength);
 		return transPt;
 	}
 private:

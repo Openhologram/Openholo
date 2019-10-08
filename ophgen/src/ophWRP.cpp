@@ -85,9 +85,9 @@ void ophWRP::autoScaling()
 
 	for (int i = 0; i < n_points; i++) {
 		uint idx = 3 * i;
-		x[i] = (is_ViewingWindow) ? transformViewingWindow(pc.vertex[idx + _X]) : pc.vertex[idx + _X];
-		y[i] = (is_ViewingWindow) ? transformViewingWindow(pc.vertex[idx + _Y]) : pc.vertex[idx + _Y];
-		z[i] = (is_ViewingWindow) ? transformViewingWindow(pc.vertex[idx + _Z]) : pc.vertex[idx + _Z];
+		x[i] = (is_ViewingWindow) ? transVW(pc.vertex[idx + _X]) : pc.vertex[idx + _X];
+		y[i] = (is_ViewingWindow) ? transVW(pc.vertex[idx + _Y]) : pc.vertex[idx + _Y];
+		z[i] = (is_ViewingWindow) ? transVW(pc.vertex[idx + _Z]) : pc.vertex[idx + _Z];
 	}
 
 	Real xmax = maxOfArr(x, n_points);

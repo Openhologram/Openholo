@@ -58,11 +58,15 @@ ophGen::ophGen(void)
 	, holo_encoded(nullptr)
 	, holo_normalized(nullptr)
 	, bCarried(false)
+	, m_nWave(0)
 {
+	// 1 channel ?
+#ifndef USE_3CHANNEL
 	uint wavelength_num = 1;
 
 	complex_H = new Complex<Real>*[wavelength_num];
 	context_.wave_length = new Real[wavelength_num];
+#endif
 }
 
 ophGen::~ophGen(void)
@@ -71,15 +75,33 @@ ophGen::~ophGen(void)
 
 void ophGen::initialize(void)
 {
+	LOG("%s()...\n", __FUNCTION__);
 	// Output Image Size
 	int n_x = context_.pixel_number[_X];
 	int n_y = context_.pixel_number[_Y];
 
 	// Memory Location for Result Image
-	// 1 color channel
-	complex_H[0] = new oph::Complex<Real>[n_x * n_y];
-	memset((*complex_H), 0, sizeof(Complex<Real>) * n_x * n_y);
+#ifdef USE_3CHANNEL
 
+	for (uint i = 0; i < m_nWave; i++) {
+		if (complex_H[i] != nullptr) delete[] complex_H[i];
+	}
+	if (complex_H) delete[] complex_H;
+
+
+	auto context = getContext();
+	complex_H = new Complex<Real>*[context.waveNum];
+
+	for (uint i = 0; i < context.waveNum; i++) {
+		complex_H[i] = new oph::Complex<Real>[n_x * n_y];
+		memset(complex_H[i], 0, sizeof(Complex<Real>) * n_x * n_y);
+	}
+	m_nWave = context.waveNum;
+
+#else
+	complex_H[0] = new oph::Complex<Real>[n_x * n_y];
+	memset(complex_H[0], 0, sizeof(Complex<Real>) * n_x * n_y);
+#endif
 	if (holo_encoded != nullptr) delete[] holo_encoded;
 	holo_encoded = new Real[n_x * n_y];
 	memset(holo_encoded, 0, sizeof(Real) * n_x * n_y);
@@ -130,10 +152,69 @@ bool ophGen::readConfig(const char* fname, OphPointCloudConfig& configdata)
 	}
 
 	xml_node = xml_doc.FirstChild();
+#ifdef USE_3CHANNEL
+	using namespace tinyxml2;
+	// about viewing window
+	auto next = xml_node->FirstChildElement("FieldLength");
+	if (!next || XML_SUCCESS != next->QueryDoubleText(&configdata.fieldLength))
+		return false;
+	// about point
+	next = xml_node->FirstChildElement("ScaleX");
+	if (!next || XML_SUCCESS != next->QueryDoubleText(&configdata.scale[_X]))
+		return false;
+	next = xml_node->FirstChildElement("ScaleY");
+	if (!next || XML_SUCCESS != next->QueryDoubleText(&configdata.scale[_Y]))
+		return false;
+	next = xml_node->FirstChildElement("ScaleZ");
+	if (!next || XML_SUCCESS != next->QueryDoubleText(&configdata.scale[_Z]))
+		return false;
+	next = xml_node->FirstChildElement("OffsetInDepth");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&configdata.offset_depth))
+		return false;
+#if 0 // unsupported func
+	next = xml_node->FirstChildElement("MoveX");
+	if (!next || XML_SUCCESS != next->QueryDoubleText(&configdata.move[_X]))
+		return false;
+	next = xml_node->FirstChildElement("MoveY");
+	if (!next || XML_SUCCESS != next->QueryDoubleText(&configdata.move[_Y]))
+		return false;
+	next = xml_node->FirstChildElement("MoveZ"); // OffsetInDepth
+	if (!next || XML_SUCCESS != next->QueryDoubleText(&configdata.move[_Z]))
+		return false;
+#endif
+	int nWave = 1;
+	next = xml_node->FirstChildElement("SLM_WaveNum"); // OffsetInDepth
+	if (!next || XML_SUCCESS != next->QueryIntText(&nWave))
+		return false;
+	
+	context_.waveNum = nWave;
+	if (context_.wave_length) delete[] context_.wave_length;
+	context_.wave_length = new Real[nWave];
 
+	char szNodeName[32] = { 0, };
+	for (int i = 1; i <= nWave; i++) {
+		wsprintfA(szNodeName, "SLM_WaveLength_%d", i);
+		next = xml_node->FirstChildElement(szNodeName);
+		if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&context_.wave_length[i-1]))
+			return false;
+	}
+
+	next = xml_node->FirstChildElement("SLM_PixelNumX");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryIntText(&context_.pixel_number[_X]))
+		return false;
+	next = xml_node->FirstChildElement("SLM_PixelNumY");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryIntText(&context_.pixel_number[_Y]))
+		return false;
+	next = xml_node->FirstChildElement("SLM_PixelPitchX");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&context_.pixel_pitch[_X]))
+		return false;
+	next = xml_node->FirstChildElement("SLM_PixelPitchY");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&context_.pixel_pitch[_Y]))
+		return false;
+#else
 #if REAL_IS_DOUBLE & true
 	auto next = xml_node->FirstChildElement("FieldLens");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&configdata.field_lens))
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&configdata.fieldLength))
 		return false;
 	next = xml_node->FirstChildElement("ScalingXofPointCloud");
 	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&configdata.scale[_X]))
@@ -188,14 +269,21 @@ bool ophGen::readConfig(const char* fname, OphPointCloudConfig& configdata)
 	next = xml_node->FirstChildElement("NumOfStream");
 	if (!next || tinyxml2::XML_SUCCESS != next->QueryIntText(&configdata.n_streams))
 		return false;
-
+#endif
 	context_.k = (2 * M_PI) / context_.wave_length[0];
 	context_.ss[_X] = context_.pixel_number[_X] * context_.pixel_pitch[_X];
 	context_.ss[_Y] = context_.pixel_number[_Y] * context_.pixel_pitch[_Y];
 
 	Openholo::setPixelNumberOHC(context_.pixel_number);
 	Openholo::setPixelPitchOHC(context_.pixel_pitch);
+#ifdef USE_3CHANNEL
+	OHC_encoder->clearWavelength();
+	for(int i=0;i<nWave;i++)
+		Openholo::setWavelengthOHC(context_.wave_length[i], LenUnit::m);
+#else
 	Openholo::setWavelengthOHC(context_.wave_length[0], LenUnit::m);
+#endif
+	//OHC_encoder->setUnitOfWavlen(LenUnit::m);
 
 	auto end = CUR_TIME;
 
@@ -291,7 +379,7 @@ bool ophGen::readConfig(const char* fname, OphDepthMapConfig & config)
 	
 #if REAL_IS_DOUBLE & true
 	next = xml_node->FirstChildElement("FieldLens");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&config.field_lens))
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&config.fieldLength))
 		return false;
 	next = xml_node->FirstChildElement("WaveLength");
 	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&context_.wave_length[0]))
@@ -310,7 +398,7 @@ bool ophGen::readConfig(const char* fname, OphDepthMapConfig & config)
 		return false;
 #else
 	next = xml_node->FirstChildElement("FieldLens");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryFloatText(&config.field_lens))
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryFloatText(&config.fieldLength))
 		return false;
 	next = xml_node->FirstChildElement("WaveLength");
 	if (!next || tinyxml2::XML_SUCCESS != next->QueryFloatText(&context_.wave_length[0]))
@@ -371,7 +459,7 @@ bool ophGen::readConfig(const char* fname, OphWRPConfig& configdata)
 	xml_node = xml_doc.FirstChild();
 
 #if REAL_IS_DOUBLE & true
-	(xml_node->FirstChildElement("FieldLens"))->QueryDoubleText(&configdata.field_lens);
+	(xml_node->FirstChildElement("FieldLens"))->QueryDoubleText(&configdata.fieldLength);
 	(xml_node->FirstChildElement("ScalingXofPointCloud"))->QueryDoubleText(&configdata.scale[_X]);
 	(xml_node->FirstChildElement("ScalingYofPointCloud"))->QueryDoubleText(&configdata.scale[_Y]);
 	(xml_node->FirstChildElement("ScalingZofPointCloud"))->QueryDoubleText(&configdata.scale[_Z]);
@@ -539,7 +627,8 @@ int ophGen::loadAsOhc(const char * fname)
 
 #define for_i(itr, oper) for(int i=0; i<itr; i++){ oper }
 
-void ophGen::loadComplex(char* real_file, char* imag_file, int n_x, int n_y) {
+void ophGen::loadComplex(char* real_file, char* imag_file, int n_x, int n_y)
+{
 	context_.pixel_number[_X] = n_x;
 	context_.pixel_number[_Y] = n_y;
 
@@ -557,25 +646,35 @@ void ophGen::loadComplex(char* real_file, char* imag_file, int n_x, int n_y) {
 		return;
 	}
 
+#ifdef USE_3CHANNEL
+	for (uint i = 0; i < context_.waveNum; i++) {
+		if (complex_H[i] != nullptr) delete[]complex_H[i];
+		complex_H[i] = new oph::Complex<Real>[n_x * n_y];
+		memset(complex_H[i], 0.0, sizeof(Complex<Real>) * n_x * n_y);
+#else
 	if ((*complex_H) != nullptr) delete[] (*complex_H);
 	(*complex_H) = new oph::Complex<Real>[n_x * n_y];
-	memset((*complex_H), 0, sizeof(Complex<Real>) * n_x * n_y);
+	memset((*complex_H), 0.0, sizeof(Complex<Real>) * n_x * n_y);
+#endif
+		Real realVal, imagVal;
 
-	Real realVal, imagVal;
-	
-	int i;
-	i = 0;
-	for (int i = 0; i < n_x * n_y; i++) {
-		freal >> realVal;
-		fimag >> imagVal;
+		for (int j = 0; j < n_x * n_y; j++) {
+			freal >> realVal;
+			fimag >> imagVal;
 
-		Complex<Real> compVal;
-		compVal(realVal, imagVal);
-
-		(*complex_H)[i] = compVal;
-		if (realVal == EOF || imagVal == EOF)
-			break;
+			Complex<Real> compVal;
+			compVal(realVal, imagVal);
+#ifdef USE_3CHANNEL
+			complex_H[i][j] = compVal;
+#else
+			(*complex_H)[j] = compVal;
+#endif
+			if (realVal == EOF || imagVal == EOF)
+				break;
+		}
+#ifdef USE_3CHANNEL
 	}
+#endif
 }
 
 void ophGen::normalizeEncoded() {
@@ -1442,9 +1541,14 @@ void ophGen::getRandPhaseValue(oph::Complex<Real>& rand_phase_val, bool rand_pha
 	}
 }
 
+void ophGen::setResolution(ivec2 resolution)
+{
+	setPixelNumber(resolution);
+	Openholo::setPixelNumberOHC(resolution);
+}
+
 void ophGen::ophFree(void)
 {
 	if (holo_encoded) delete[] holo_encoded;
 	if (holo_normalized) delete[] holo_normalized;
-
 }

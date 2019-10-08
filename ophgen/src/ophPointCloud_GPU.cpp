@@ -48,7 +48,7 @@
 
 #include <sys.h> //for LOG() macro
 
-
+//#define USE_ASYNC
 void ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 {
 	int devID;
@@ -106,127 +106,153 @@ void ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 	// Keep original buffer
 	if (is_ViewingWindow) {
 		host_pc_data = new Real[n_points * 3];
-		transformViewingWindow(n_points * 3, host_pc_data, this->pc_data_.vertex);
+		transVW(n_points * 3, host_pc_data, this->pc_data_.vertex);
 	}
 	else {
 		host_pc_data = this->pc_data_.vertex;
 	}
-
-/*	if ((diff_flag == PC_DIFF_RS_ENCODED) || (diff_flag == PC_DIFF_FRESNEL_ENCODED)) {
-		host_dst = new Real[n_pixels];
-		std::memset(host_dst, 0., bufferSize);
-	}
-	else*/ if ((diff_flag == PC_DIFF_RS) || (diff_flag == PC_DIFF_FRESNEL)) {
+	
+	if ((diff_flag == PC_DIFF_RS) || (diff_flag == PC_DIFF_FRESNEL)) {
 		host_dst = new Real[n_pixels * 2];
 		std::memset(host_dst, 0., bufferSize * 2);
 	}
+#ifdef USE_3CHANNEL
+	for (uint nColor = 0; nColor < context_.waveNum; nColor++)
+	{
+		std::memset(host_dst, 0., bufferSize * 2);
+		context_.k = (2 * M_PI) / context_.wave_length[nColor];
+#endif
+		GpuConst* host_config = new GpuConst(
+			n_points, n_colors, pc_config_.n_streams,
+			pc_config_.scale, pc_config_.offset_depth,
+			context_.pixel_number,
+			context_.pixel_pitch,
+			context_.ss,
+			context_.k
+		);
 
-	GpuConst* host_config = new GpuConst(
-		this->n_points, n_colors, this->pc_config_.n_streams,
-		this->pc_config_.scale, this->pc_config_.offset_depth,
-		this->context_.pixel_number,
-		this->context_.pixel_pitch,
-		this->context_.ss,
-		this->context_.k
-	);
+		//Device(GPU) Memory Location
+		Real* device_pc_data;
+		HANDLE_ERROR(cudaMalloc((void**)&device_pc_data, this->n_points * 3 * sizeof(Real)));
+		
+		Real* device_amp_data;
+		HANDLE_ERROR(cudaMalloc((void**)&device_amp_data, this->n_points * n_colors * sizeof(Real)));
 
-	//Device(GPU) Memory Location
-	Real* device_pc_data;
-	HANDLE_ERROR(cudaMalloc((void**)&device_pc_data, this->n_points * 3 * sizeof(Real)));
-
-	Real* device_amp_data;
-	HANDLE_ERROR(cudaMalloc((void**)&device_amp_data, this->n_points * n_colors * sizeof(Real)));
-
-	Real* device_dst = nullptr;
-/*	if ((diff_flag == PC_DIFF_RS_ENCODED) || (diff_flag == PC_DIFF_FRESNEL_ENCODED)) {
-		HANDLE_ERROR(cudaMalloc((void**)&device_dst, bufferSize));
-		HANDLE_ERROR(cudaMemset(device_dst, 0., bufferSize));
-	}
-	else */if ((diff_flag == PC_DIFF_RS) || (diff_flag == PC_DIFF_FRESNEL)) {
-		HANDLE_ERROR(cudaMalloc((void**)&device_dst, bufferSize * 2));
-		HANDLE_ERROR(cudaMemset(device_dst, 0., bufferSize * 2));
-	}
-
-	GpuConst* device_config = nullptr;
-	switch (diff_flag) {
-	//case PC_DIFF_RS_ENCODED: {
-	//	host_config = new GpuConstERS(*host_config, this->pc_config_.tilt_angle);
-	//	HANDLE_ERROR(cudaMalloc((void**)&device_config, sizeof(GpuConstERS)));
-	//	HANDLE_ERROR(cudaMemcpy(device_config, host_config, sizeof(GpuConstERS), cudaMemcpyHostToDevice));
-	//	break;
-	//}
-	//case PC_DIFF_FRESNEL_ENCODED: {
-	//	break;
-	//}
-	case PC_DIFF_RS/*_NOT_ENCODED*/: {
-		host_config = new GpuConstNERS(*host_config, this->context_.wave_length[0]);
-		HANDLE_ERROR(cudaMalloc((void**)&device_config, sizeof(GpuConstNERS)));
-		HANDLE_ERROR(cudaMemcpy(device_config, host_config, sizeof(GpuConstNERS), cudaMemcpyHostToDevice));
-		break;
-	}
-	case PC_DIFF_FRESNEL/*_NOT_ENCODED*/: {
-		host_config = new GpuConstNEFR(*host_config, this->context_.wave_length[0]);
-		HANDLE_ERROR(cudaMalloc((void**)&device_config, sizeof(GpuConstNEFR)));
-		HANDLE_ERROR(cudaMemcpy(device_config, host_config, sizeof(GpuConstNEFR), cudaMemcpyHostToDevice));
-		break;
-	}
-	}
-
-	int stream_points = this->n_points / n_streams;
-	int offset = 0;
-	for (int i = 0; i < n_streams; ++i) {
-		offset = i * stream_points;
-
-		HANDLE_ERROR(cudaMemcpy(device_pc_data + 3 * offset, host_pc_data + 3 * offset, stream_points * 3 * sizeof(Real), cudaMemcpyHostToDevice));
-		HANDLE_ERROR(cudaMemcpy(device_amp_data + n_colors * offset, host_amp_data + n_colors * offset, stream_points * sizeof(Real), cudaMemcpyHostToDevice));
-
-		switch (diff_flag) {
-		//case PC_DIFF_RS_ENCODED: {
-		//	cudaGenCghPointCloud_EncodedRS(gridSize, blockSize, stream_points, device_pc_data + 3 * offset, device_amp_data + n_colors * offset, device_dst, (GpuConstERS*)device_config);
-
-		//	HANDLE_ERROR(cudaMemcpy(host_dst, device_dst, bufferSize, cudaMemcpyDeviceToHost));
-		//	HANDLE_ERROR(cudaMemset(device_dst, 0., bufferSize));
-		//	for (ulonglong n = 0; n < n_pixels; ++n) {
-		//		this->holo_encoded[n] += host_dst[n];
-		//	}
-		//	break;
-		//}
-		//case PC_DIFF_FRESNEL_ENCODED: {
-		//	break;
-		//}
-		case PC_DIFF_RS/*_NOT_ENCODED*/: {
-			cudaGenCghPointCloud_NotEncodedRS(gridSize, blockSize, stream_points, device_pc_data + 3 * offset, device_amp_data + n_colors * offset, device_dst, device_dst + n_pixels, (GpuConstNERS*)device_config);
-
-			HANDLE_ERROR(cudaMemcpy(host_dst, device_dst, bufferSize * 2, cudaMemcpyDeviceToHost));
+		Real* device_dst = nullptr;
+		if ((diff_flag == PC_DIFF_RS) || (diff_flag == PC_DIFF_FRESNEL)) {
+			HANDLE_ERROR(cudaMalloc((void**)&device_dst, bufferSize * 2));
+#ifdef USE_ASYNC
+			HANDLE_ERROR(cudaMemsetAsync(device_dst, 0., bufferSize * 2));
+#else
 			HANDLE_ERROR(cudaMemset(device_dst, 0., bufferSize * 2));
-			for (ulonglong n = 0; n < n_pixels; ++n) {
-				(*complex_H)[n][_RE] += host_dst[n];
-				(*complex_H)[n][_IM] += host_dst[n + n_pixels];
-			}
+#endif
+		}
+
+		GpuConst* device_config = nullptr;
+		switch (diff_flag) {
+		case PC_DIFF_RS/*_NOT_ENCODED*/: {
+#ifdef USE_3CHANNEL
+			host_config = new GpuConstNERS(*host_config, this->context_.wave_length[nColor]);
+#else
+			host_config = new GpuConstNERS(*host_config, this->context_.wave_length[0]);
+#endif
+			HANDLE_ERROR(cudaMalloc((void**)&device_config, sizeof(GpuConstNERS)));
+#ifdef USE_ASYNC
+			HANDLE_ERROR(cudaMemcpyAsync(device_config, host_config, sizeof(GpuConstNERS), cudaMemcpyHostToDevice));
+#else
+			HANDLE_ERROR(cudaMemcpy(device_config, host_config, sizeof(GpuConstNERS), cudaMemcpyHostToDevice));
+#endif
 			break;
 		}
 		case PC_DIFF_FRESNEL/*_NOT_ENCODED*/: {
-			cudaGenCghPointCloud_NotEncodedFrsn(gridSize, blockSize, stream_points, device_pc_data + 3 * offset, device_amp_data + n_colors * offset, device_dst, device_dst + n_pixels, (GpuConstNEFR*)device_config);
-
-			HANDLE_ERROR(cudaMemcpy(host_dst, device_dst, bufferSize * 2, cudaMemcpyDeviceToHost));
-			HANDLE_ERROR(cudaMemset(device_dst, 0., bufferSize * 2));
-			for (ulonglong n = 0; n < n_pixels; ++n) {
-				(*complex_H)[n][_RE] += host_dst[n];
-				(*complex_H)[n][_IM] += host_dst[n + n_pixels];
-			}
+#ifdef USE_3CHANNEL
+			host_config = new GpuConstNEFR(*host_config, this->context_.wave_length[nColor]);
+#else
+			host_config = new GpuConstNEFR(*host_config, this->context_.wave_length[0]);
+#endif
+			HANDLE_ERROR(cudaMalloc((void**)&device_config, sizeof(GpuConstNEFR)));
+#ifdef USE_ASYNC
+			HANDLE_ERROR(cudaMemcpyAsync(device_config, host_config, sizeof(GpuConstNEFR), cudaMemcpyHostToDevice));
+#else
+			HANDLE_ERROR(cudaMemcpy(device_config, host_config, sizeof(GpuConstNEFR), cudaMemcpyHostToDevice));
+#endif
 			break;
 		}
 		}
-	}
 
-	//free memory
-	HANDLE_ERROR(cudaFree(device_pc_data));
-	HANDLE_ERROR(cudaFree(device_amp_data));
-	HANDLE_ERROR(cudaFree(device_dst));
-	HANDLE_ERROR(cudaFree(device_config));
+		int stream_points = this->n_points / n_streams;
+		int offset = 0;
+		for (int i = 0; i < n_streams; ++i) {
+			offset = i * stream_points;
+
+#ifdef USE_ASYNC
+			HANDLE_ERROR(cudaMemcpyAsync(device_pc_data + 3 * offset, host_pc_data + 3 * offset, stream_points * 3 * sizeof(Real), cudaMemcpyHostToDevice));
+			HANDLE_ERROR(cudaMemcpyAsync(device_amp_data + n_colors * offset, host_amp_data + n_colors * offset, stream_points * sizeof(Real), cudaMemcpyHostToDevice));
+#else
+			HANDLE_ERROR(cudaMemcpy(device_pc_data + 3 * offset, host_pc_data + 3 * offset, stream_points * 3 * sizeof(Real), cudaMemcpyHostToDevice));
+			HANDLE_ERROR(cudaMemcpy(device_amp_data + n_colors * offset, host_amp_data + n_colors * offset, stream_points * sizeof(Real), cudaMemcpyHostToDevice));
+#endif
+			switch (diff_flag) {
+			case PC_DIFF_RS/*_NOT_ENCODED*/: {
+
+				cudaGenCghPointCloud_NotEncodedRS(gridSize, blockSize, stream_points, device_pc_data + 3 * offset, device_amp_data + n_colors * offset, device_dst, device_dst + n_pixels, (GpuConstNERS*)device_config);
+#ifdef USE_ASYNC
+				HANDLE_ERROR(cudaMemcpyAsync(host_dst, device_dst, bufferSize * 2, cudaMemcpyDeviceToHost));
+				HANDLE_ERROR(cudaMemsetAsync(device_dst, 0., bufferSize * 2));
+#else
+				HANDLE_ERROR(cudaMemcpy(host_dst, device_dst, bufferSize * 2, cudaMemcpyDeviceToHost));
+				HANDLE_ERROR(cudaMemset(device_dst, 0., bufferSize * 2));
+#endif
+				for (ulonglong n = 0; n < n_pixels; ++n) {
+#ifdef USE_3CHANNEL
+					complex_H[nColor][n][_RE] += host_dst[n];
+					complex_H[nColor][n][_IM] += host_dst[n + n_pixels];
+#else
+					(*complex_H)[n][_RE] += host_dst[n];
+					(*complex_H)[n][_IM] += host_dst[n + n_pixels];
+#endif
+					if (n == 0) {
+						LOG("GPU > %f / %f\n", host_dst[n], host_dst[n + n_pixels]);
+					}
+				}
+				break;
+			}
+			case PC_DIFF_FRESNEL/*_NOT_ENCODED*/: {
+				cudaGenCghPointCloud_NotEncodedFrsn(gridSize, blockSize, stream_points, device_pc_data + 3 * offset, device_amp_data + n_colors * offset, device_dst, device_dst + n_pixels, (GpuConstNEFR*)device_config);
+#ifdef USE_ASYNC
+				HANDLE_ERROR(cudaMemcpyAsync(host_dst, device_dst, bufferSize * 2, cudaMemcpyDeviceToHost));
+				HANDLE_ERROR(cudaMemsetAsync(device_dst, 0., bufferSize * 2));
+#else
+				HANDLE_ERROR(cudaMemcpy(host_dst, device_dst, bufferSize * 2, cudaMemcpyDeviceToHost));
+				HANDLE_ERROR(cudaMemset(device_dst, 0., bufferSize * 2));
+#endif
+				for (ulonglong n = 0; n < n_pixels; ++n) {
+#ifdef USE_3CHANNEL
+					complex_H[nColor][n][_RE] += host_dst[n];
+					complex_H[nColor][n][_IM] += host_dst[n + n_pixels];
+#else
+					(*complex_H)[n][_RE] += host_dst[n];
+					(*complex_H)[n][_IM] += host_dst[n + n_pixels];
+#endif
+				}
+				break;
+			} // case
+			} // switch
+		} // for
+
+		//free memory
+		HANDLE_ERROR(cudaFree(device_pc_data));
+		HANDLE_ERROR(cudaFree(device_amp_data));
+		HANDLE_ERROR(cudaFree(device_dst));
+		HANDLE_ERROR(cudaFree(device_config));
+		
+		delete host_config;
+#ifdef USE_3CHANNEL
+	}
+#endif
+
+	delete[] host_dst;
 	if (is_ViewingWindow) {
 		delete[] host_pc_data;
 	}
-	delete[] host_dst;
-	delete host_config;
 }

@@ -140,7 +140,7 @@ public:
 	const Real& getLocation() { return pc_config_.wrp_location; }
 	const Real& getDistance() { return pc_config_.propagation_distance; }
 	const int& getNumOfWRP() { return pc_config_.num_wrp; }
-	const int& getFieldLens() { return pc_config_.field_lens; }
+	const int& getFieldLens() { return pc_config_.fieldLength; }
 	void setScale(vec3 scale) { pc_config_.scale = scale; }
 	void setLocation(Real location) { pc_config_.wrp_location = location; }
 	void setDistance(Real distance) { pc_config_.propagation_distance; }
@@ -218,7 +218,7 @@ private:
 	void addPixel2WRP(int x, int y, oph::Complex<Real> temp, oph::Complex<Real>* wrp);
 
 	virtual void ophFree(void);
-	inline Real transformViewingWindow(Real pt) {
+	inline Real transVW(Real pt) {
 		Real fieldLens = this->getFieldLens();
 		return -fieldLens * pt / (pt - fieldLens);
 	}
