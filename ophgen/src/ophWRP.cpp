@@ -270,7 +270,7 @@ void ophWRP::calculateWRP()
 
 double ophWRP::calculateWRPCPU(void)
 {
-	initialize();
+	resetBuffer();
 	auto time_start = CUR_TIME;
 	Real wave_num = context_.k;   // wave_number
 	Real wave_len = context_.wave_length[0];  //wave_length
@@ -361,7 +361,7 @@ double ophWRP::calculateWRPCPU(void)
 
 void ophWRP::generateHologram(void)
 {
-	initialize();
+	resetBuffer();
 	auto begin = CUR_TIME;
 	Real distance = pc_config_.propagation_distance;
 	if(is_CPU)

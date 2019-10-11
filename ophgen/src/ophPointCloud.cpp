@@ -103,7 +103,7 @@ bool ophPointCloud::readConfig(const char* cfg_file)
 
 Real ophPointCloud::generateHologram(uint diff_flag)
 {
-	initialize();
+	resetBuffer();
 	auto start_time = CUR_TIME;
 	// Create CGH Fringe Pattern by 3D Point Cloud
 	if (is_CPU == true) { //Run CPU
@@ -392,78 +392,45 @@ void ophPointCloud::diffractNotEncodedRS(ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Re
 	if (Ybound[0] > pn[_Y]) Ybound[0] = pn[_Y];
 	if (Ybound[1] < 0)		Ybound[1] = 0;
 
-
-	//Complex<Real> temp[pn[_X] * pn[_Y]] = { 0., };
-	Real a;
-#ifdef PARALLEL
-//#pragma omp declare reduction(add: Real : \
-//omp_out = omp_out + omp_in) \
-//initializer(omp_priv = 0.)
-
-	int nThread;
-	int nX = Xbound[0] - Xbound[1];
-#pragma omp parallel
+	for (int xxtr = Xbound[1]; xxtr < Xbound[0]; xxtr++)
 	{
-		nThread = omp_get_num_threads();
-		int nSize = nX / nThread;
-		int tid = omp_get_thread_num();
-		// if nThread = 32, 0~31
-		int xxtr, yytr;
-		int nStartX = tid * nSize + Xbound[1];
-		int xRange = (tid + 1) * nSize + Xbound[1];
-		int nStartY = Ybound[1];
-		int yRange = Ybound[0];
-		xxtr = nStartX;
-		yytr = nStartY;
-		xRange += (tid + 1 == nThread) ? (nX % nThread) : 0;
-#pragma omp for// reduction(add: a)
-		for(xxtr = nStartX; xxtr < xRange; xxtr++)
+		for (int yytr = Ybound[1]; yytr < Ybound[0]; yytr++)
 		{
-			for(yytr = nStartY; yytr < yRange; yytr++)
-			{
-#else
-		for (int xxtr = Xbound[1]; xxtr < Xbound[0]; xxtr++)
-		{		
-			for (int yytr = Ybound[1]; yytr < Ybound[0]; yytr++)
-			{
-#endif
-				Real xxx = (-ss[_X] / 2) + ((xxtr - 1) * pp[_X]);
-				Real yyy = (-ss[_Y] / 2) + ((pn[_Y] - yytr) * pp[_Y]);
 
-				Real r = sqrt((xxx - pc[_X]) * (xxx - pc[_X]) + (yyy - pc[_Y]) * (yyy - pc[_Y]) + (pc[_Z] * pc[_Z]));
+			Real xxx = (-ss[_X] / 2) + ((xxtr - 1) * pp[_X]);
+			Real yyy = (-ss[_Y] / 2) + ((pn[_Y] - yytr) * pp[_Y]);
 
-				Real range_x[2] = {
-					pc[_X] + abs(tx / sqrt(1 - (tx * tx)) * sqrt((yyy - pc[_Y]) * (yyy - pc[_Y]) + (pc[_Z] * pc[_Z]))),
-					pc[_X] - abs(tx / sqrt(1 - (tx * tx)) * sqrt((yyy - pc[_Y]) * (yyy - pc[_Y]) + (pc[_Z] * pc[_Z])))
-				};
+			Real r = sqrt((xxx - pc[_X]) * (xxx - pc[_X]) + (yyy - pc[_Y]) * (yyy - pc[_Y]) + (pc[_Z] * pc[_Z]));
 
-				Real range_y[2] = {
-					pc[_Y] + abs(ty / sqrt(1 - (ty * ty)) * sqrt((xxx - pc[_X]) * (xxx - pc[_X]) + (pc[_Z] * pc[_Z]))),
-					pc[_Y] - abs(ty / sqrt(1 - (ty * ty)) * sqrt((xxx - pc[_X]) * (xxx - pc[_X]) + (pc[_Z] * pc[_Z])))
-				};
+			Real range_x[2] = {
+				pc[_X] + abs(tx / sqrt(1 - (tx * tx)) * sqrt((yyy - pc[_Y]) * (yyy - pc[_Y]) + (pc[_Z] * pc[_Z]))),
+				pc[_X] - abs(tx / sqrt(1 - (tx * tx)) * sqrt((yyy - pc[_Y]) * (yyy - pc[_Y]) + (pc[_Z] * pc[_Z])))
+			};
 
-				if (((xxx < range_x[0]) && (xxx > range_x[1])) && ((yyy < range_y[0]) && (yyy > range_y[1]))) {
-					Real kr = k * r;
+			Real range_y[2] = {
+				pc[_Y] + abs(ty / sqrt(1 - (ty * ty)) * sqrt((xxx - pc[_X]) * (xxx - pc[_X]) + (pc[_Z] * pc[_Z]))),
+				pc[_Y] - abs(ty / sqrt(1 - (ty * ty)) * sqrt((xxx - pc[_X]) * (xxx - pc[_X]) + (pc[_Z] * pc[_Z])))
+			};
 
-					Real res_real = (amplitude * pc[_Z] * sin(kr)) / (lambda * r * r);
-					Real res_imag = (-amplitude * pc[_Z] * cos(kr)) / (lambda * r * r);
+			if (((xxx < range_x[0]) && (xxx > range_x[1])) && ((yyy < range_y[0]) && (yyy > range_y[1]))) {
+				Real kr = k * r;
+
+				Real res_real = (amplitude * pc[_Z] * sin(kr)) / (lambda * r * r);
+				Real res_imag = (-amplitude * pc[_Z] * cos(kr)) / (lambda * r * r);
 #ifdef USE_3CHANNEL
-					complex_H[nColor][xxtr + yytr * pn[_X]][_RE] += res_real;
-					complex_H[nColor][xxtr + yytr * pn[_X]][_IM] += res_imag;
+#pragma omp atomic
+				complex_H[nColor][xxtr + yytr * pn[_X]][_RE] += res_real;
+#pragma omp atomic
+				complex_H[nColor][xxtr + yytr * pn[_X]][_IM] += res_imag;
 #else
-					//t[_RE] += res_real;
-					//t[_IM] += res_imag;
-					//temp[xxtr + yytr * pn[_X]][_RE] += res_real;
-					//temp[xxtr + yytr * pn[_Y]][_IM] += res_imag;
-					(*complex_H)[xxtr + yytr * pn[_X]][_RE] += res_real;
-					(*complex_H)[xxtr + yytr * pn[_X]][_IM] += res_imag;
+#pragma omp atomic
+				(*complex_H)[xxtr + yytr * pn[_X]][_RE] += res_real;
+#pragma omp atomic
+				(*complex_H)[xxtr + yytr * pn[_X]][_IM] += res_imag;
 #endif
-				}
 			}
 		}
-#ifdef PARALLEL
 	}
-#endif
 }
 
 void ophPointCloud::diffractEncodedFrsn(void)
@@ -515,14 +482,16 @@ void ophPointCloud::diffractNotEncodedFrsn(ivec2 pn, vec2 pp, vec3 pc, Real ampl
 			Real res_real = amplitude * sin(p) / (lambda * pc[_Z]);
 			Real res_imag = amplitude * (-cos(p)) / (lambda * pc[_Z]);
 #ifdef USE_3CHANNEL
+#pragma omp atomic
 			complex_H[nColor][xxtr + yytr * pn[_X]][_RE] += res_real;
+#pragma omp atomic
 			complex_H[nColor][xxtr + yytr * pn[_X]][_IM] += res_imag;
 #else
+#pragma omp atomic
 			(*complex_H)[xxtr + yytr * pn[_X]][_RE] += res_real;
+#pragma omp atomic
 			(*complex_H)[xxtr + yytr * pn[_X]][_IM] += res_imag;
 #endif
-			//LOG("(%3d, %3d) [%7d] : ", xxtr, yytr, xxtr + yytr * pn[_X]);
-			//LOG("holo=(%15.5lf + %20.10lf * i )\n", (*complex_H)[xxtr + yytr * pn[_X]][_RE], (*complex_H)[xxtr + yytr * pn[_X]][_IM]);
 		}
 	}
 }

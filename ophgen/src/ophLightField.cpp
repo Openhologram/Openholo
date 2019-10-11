@@ -290,10 +290,10 @@ int ophLF::loadLF()
 
 void ophLF::generateHologram() 
 {
+	resetBuffer();
 	auto start = CUR_TIME;
 	LOG(">>> Transform Viewing Window : %s\n", is_ViewingWindow ? "ON" : "OFF");
 	LOG(">>> Acceleration : %s\n", is_CPU ? "CPU" : "GPU");
-	initialize();
 	LOG("initialize() ... %.5lfsec\n", ((std::chrono::duration<Real>)(CUR_TIME - start)).count());
 	if (is_CPU)
 	{
@@ -348,9 +348,6 @@ void ophLF::generateHologram()
 
 void ophLF::initializeLF() {
 	cout << "initialize LF..." << endl;
-
-	initialize();
-
 	LF = new uchar*[num_image[_X] * num_image[_Y]];
 
 	for_i(num_image[_X] * num_image[_Y],

@@ -226,6 +226,11 @@ public:
 
 public:
 	/**
+	* @brief	reset buffer
+	* @detials	buffer memory set '0'
+	*/
+	void resetBuffer();
+	/**
 	* @brief	Complex field file load
 	* @details	Just used for the reference
 	*/

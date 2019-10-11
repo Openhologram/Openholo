@@ -479,8 +479,7 @@ void ophTri::generateMeshHologram(uint SHADING_FLAG)
 {
 	cout << "Hologram Generation ..." << endl;
 	auto start = CUR_TIME;
-
-	initialize();
+	resetBuffer();
 	initializeAS();
 	generateAS(SHADING_FLAG);
 
@@ -516,8 +515,7 @@ void ophTri::generateMeshHologram(uint SHADING_FLAG)
 void ophTri::generateMeshHologram() {
 	cout << "Hologram Generation ..." << endl;
 	auto start = CUR_TIME;
-
-	initialize();
+	resetBuffer();
 	initializeAS();
 	generateAS(SHADING_TYPE);
 

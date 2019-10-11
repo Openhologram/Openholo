@@ -109,6 +109,9 @@ void ophGen::initialize(void)
 	if (holo_normalized != nullptr) delete[] holo_normalized;
 	holo_normalized = new uchar[n_x * n_y];
 	memset(holo_normalized, 0, sizeof(uchar) * n_x * n_y);
+
+	encode_size[_X] = n_x;
+	encode_size[_Y] = n_y;
 }
 
 int ophGen::loadPointCloud(const char* pc_file, OphPointCloudData *pc_data_)
@@ -623,6 +626,25 @@ int ophGen::loadAsOhc(const char * fname)
 	holo_normalized = new uchar[context_.pixel_number[_X] * context_.pixel_number[_Y]];
 
 	return 0;
+}
+
+void ophGen::resetBuffer()
+{
+	uint nWidth = context_.pixel_number[_X];
+	uint nHeight = context_.pixel_number[_Y];
+#ifdef USE_3CHANNEL
+	for (uint i = 0; i < context_.waveNum; i++) {
+		if(complex_H[i])
+			memset(complex_H[i], 0., sizeof(Complex<Real>) * nWidth * nHeight);
+	}
+#else
+	if((*complex_H))
+		memset((*complex_H), 0., sizeof(Complex<Real>) * nWidth * nHeight);
+	if(holo_encoded)
+		memset(holo_encoded, 0., sizeof(Real) * encode_size[_X] * encode_size[_Y]);
+	if(holo_normalized)
+		memset(holo_normalized, 0, sizeof(uchar) * encode_size[_X] * encode_size[_Y]);
+#endif
 }
 
 #define for_i(itr, oper) for(int i=0; i<itr; i++){ oper }
