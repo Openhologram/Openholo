@@ -48,7 +48,6 @@
 
 #include <sys.h>
 #include <cufft.h>
-//#define PARALLEL
 
 ophPointCloud::ophPointCloud(void)
 	: ophGen()
@@ -105,19 +104,22 @@ Real ophPointCloud::generateHologram(uint diff_flag)
 {
 	resetBuffer();
 	auto start_time = CUR_TIME;
-	// Create CGH Fringe Pattern by 3D Point Cloud
-	if (is_CPU == true) { //Run CPU
+
+	LOG("1) Generate Hologram with %s\n", is_CPU ? 
 #ifdef _OPENMP
-		std::cout << "Generate Hologram with Multi Core CPU" << std::endl;
+		"Multi Core CPU" :
 #else
-		std::cout << "Generate Hologram with Single Core CPU" << std::endl;
+		"Single Core CPU" :
 #endif
-		LOG(">>> Transform Viewing Window : %s\n", is_ViewingWindow ? "ON" : "OFF");
+		"GPU");
+	LOG("2) Transform Viewing Window : %s\n", is_ViewingWindow ? "ON" : "OFF");
+	LOG("3) Diffraction Method : %s\n", diff_flag == PC_DIFF_RS ? "R-S" : "Fresnel");
+
+	// Create CGH Fringe Pattern by 3D Point Cloud
+	if (is_CPU) { //Run CPU
 		genCghPointCloudCPU(diff_flag); /// 홀로그램 데이터 Complex data로 변경 시 (*complex_H)으로
 	}
 	else { //Run GPU
-		std::cout << "Generate Hologram with GPU" << std::endl;
-		LOG(">>> Transform Viewing Window : %s\n", is_ViewingWindow ? "ON" : "OFF");
 		genCghPointCloudGPU(diff_flag);
 	}
 
@@ -284,14 +286,11 @@ void ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 		Real k = context_.k = (2 * M_PI / context_.wave_length[nColor]);
 #endif
 
-#ifndef PARALLEL
-	//omp_set_num_threads(4);
 #pragma omp parallel
 	{
 		num_threads = omp_get_num_threads(); // get number of Multi Threading
 		int tid = omp_get_thread_num();
 #pragma omp for private(j)
-#endif
 #endif
 		for (j = 0; j < n_points; ++j) { //Create Fringe Pattern
 			uint idx = 3 * j;
@@ -330,10 +329,8 @@ void ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 #ifdef USE_3CHANNEL
 	}
 #endif
-#ifndef PARALLEL
 	}
 	std::cout << ">>> All " << num_threads << " threads" << std::endl;
-#endif
 #endif
 }
 
