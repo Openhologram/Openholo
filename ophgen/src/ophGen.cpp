@@ -65,6 +65,7 @@ ophGen::ophGen(void)
 	uint wavelength_num = 1;
 
 	complex_H = new Complex<Real>*[wavelength_num];
+	(*complex_H) = nullptr;
 	context_.wave_length = new Real[wavelength_num];
 #endif
 }
@@ -99,14 +100,24 @@ void ophGen::initialize(void)
 	m_nWave = context.waveNum;
 
 #else
+	if (complex_H[0] != nullptr) {
+		delete[] complex_H[0];
+		complex_H[0] = nullptr;
+	}
 	complex_H[0] = new oph::Complex<Real>[n_x * n_y];
 	memset(complex_H[0], 0, sizeof(Complex<Real>) * n_x * n_y);
 #endif
-	if (holo_encoded != nullptr) delete[] holo_encoded;
+	if (holo_encoded != nullptr) {
+		delete[] holo_encoded;
+		holo_encoded = nullptr;
+	}
 	holo_encoded = new Real[n_x * n_y];
 	memset(holo_encoded, 0, sizeof(Real) * n_x * n_y);
 
-	if (holo_normalized != nullptr) delete[] holo_normalized;
+	if (holo_normalized != nullptr) {
+		delete[] holo_normalized;
+		holo_normalized = nullptr;
+	}
 	holo_normalized = new uchar[n_x * n_y];
 	memset(holo_normalized, 0, sizeof(uchar) * n_x * n_y);
 
@@ -514,12 +525,12 @@ bool ophGen::readConfig(const char* fname, OphWRPConfig& configdata)
 */
 void ophGen::propagationAngularSpectrum(Complex<Real>* input_u, Real propagation_dist)
 {
-	int pnx = context_.pixel_number[0];
-	int pny = context_.pixel_number[1];
-	Real ppx = context_.pixel_pitch[0];
-	Real ppy = context_.pixel_pitch[1];
-	Real ssx = context_.ss[0];
-	Real ssy = context_.ss[1];
+	int pnx = context_.pixel_number[_X];
+	int pny = context_.pixel_number[_Y];
+	Real ppx = context_.pixel_pitch[_X];
+	Real ppy = context_.pixel_pitch[_Y];
+	Real ssx = context_.ss[_X];
+	Real ssy = context_.ss[_Y];
 	Real lambda = context_.wave_length[0];
 
 	for (int i = 0; i < pnx * pny; i++)
@@ -540,8 +551,11 @@ void ophGen::propagationAngularSpectrum(Complex<Real>* input_u, Real propagation
 		Complex<Real> u_frequency;
 		if (prop_mask == 1)
 			u_frequency = kernel * input_u[i];
+#pragma omp atomic
+		(*complex_H)[i][_RE] += u_frequency[_RE];
+#pragma omp atomic
+		(*complex_H)[i][_IM] += u_frequency[_IM];
 
-		(*complex_H)[i] = (*complex_H)[i] + u_frequency;
 	}
 }
 
@@ -1565,8 +1579,12 @@ void ophGen::getRandPhaseValue(oph::Complex<Real>& rand_phase_val, bool rand_pha
 
 void ophGen::setResolution(ivec2 resolution)
 {
-	setPixelNumber(resolution);
-	Openholo::setPixelNumberOHC(resolution);
+	// 기존 해상도와 다르면 버퍼를 다시 생성.
+	if (context_.pixel_number != resolution) {		
+		setPixelNumber(resolution);
+		Openholo::setPixelNumberOHC(resolution);
+		initialize();
+	}
 }
 
 void ophGen::ophFree(void)

@@ -113,6 +113,7 @@ bool ophDepthMap::readConfig(const char * fname)
 	if (!ophGen::readConfig(fname, dm_config_))
 		return false;
 
+	initialize();
 	return true;
 }
 
@@ -152,6 +153,10 @@ bool ophDepthMap::readImageDepth(const char* source_folder, const char* img_pref
 	}
 	LOG("Succeed::Image Load: %s\n", imgfullname.c_str());
 
+	// 2019-10-14 mwnam
+	m_vecRGBImg[_X] = w;
+	m_vecRGBImg[_Y] = h;
+
 	oph::uchar* img = new uchar[w*h];
 	convertToFormatGray8(imgload, img, w, h, bytesperpixel);
 
@@ -171,7 +176,7 @@ bool ophDepthMap::readImageDepth(const char* source_folder, const char* img_pref
 
 	int dw, dh, dbytesperpixel;
 	ret = getImgSize(dw, dh, dbytesperpixel, dimgfullname.c_str());
-
+	
 	uchar* dimgload = new uchar[dw*dh*dbytesperpixel];
 	ret = loadAsImgUpSideDown(dimgfullname.c_str(), dimgload);
 	if (!ret) {
@@ -179,6 +184,10 @@ bool ophDepthMap::readImageDepth(const char* source_folder, const char* img_pref
 		return false;
 	}
 	LOG("Succeed::Depth Image Load: %s\n", dimgfullname.c_str());
+
+	// 2019-10-14 mwnam
+	m_vecDepthImg[_X] = dw;
+	m_vecDepthImg[_Y] = dh;
 
 	uchar* dimg = new uchar[dw*dh];
 	convertToFormatGray8(dimgload, dimg, dw, dh, dbytesperpixel);
@@ -215,22 +224,36 @@ bool ophDepthMap::readImageDepth(const char* source_folder, const char* img_pref
 
 Real ophDepthMap::generateHologram(void)
 {
-	initialize();
+	resetBuffer();
 
 	encode_size = context_.pixel_number;
 
+	MEMORYSTATUS memStatus;
+	GlobalMemoryStatus(&memStatus);
+	LOG("\n*Available Memory: %u (byte)\n", memStatus.dwAvailVirtual);
+
 	auto start_time = CUR_TIME;
-	LOG(">>> Transform Viewing Window : %s\n", is_ViewingWindow ? "ON" : "OFF");
+
+	LOG("1) Algorithm Method : Depth Map\n");
+	LOG("2) Generate Hologram with %s\n", is_CPU ?
+#ifdef _OPENMP
+		"Multi Core CPU" :
+#else
+		"Single Core CPU" :
+#endif
+		"GPU");
+	LOG("3) Transform Viewing Window : %s\n", is_ViewingWindow ? "ON" : "OFF");
 
 	if (is_CPU)
 		prepareInputdataCPU(rgb_img, depth_img);
 	else
 		prepareInputdataGPU(rgb_img, depth_img);
-
 	getDepthValues();
+	LOG("<1> getDepthValues %lf / %lf\n", (*complex_H)[0][_RE], (*complex_H)[0][_IM]);
 	if(is_ViewingWindow)
 		transVW();
 	calcHoloByDepth();
+	LOG("<2> calcHoloByDepth %lf / %lf\n", (*complex_H)[0][_RE], (*complex_H)[0][_IM]);
 
 	auto end_time = CUR_TIME;
 
@@ -245,10 +268,12 @@ Real ophDepthMap::generateHologram(void)
 
 		char *pBuf = NULL;
 		int nLen = SendMessage(hwndNotepad, WM_GETTEXTLENGTH, 0, 0);
-		pBuf = new char[nLen + 10];
+		pBuf = new char[nLen + 100];
 		
 		SendMessage(hwndNotepad, WM_GETTEXT, nLen+1, (LPARAM)pBuf);
-		sprintf(pBuf, "%s%.5lf\r\n", pBuf, during_time);
+		//sprintf(pBuf, "%s%.5lf\r\n", pBuf, during_time);
+		sprintf(pBuf, "%s : RE: %.5lf / IM: %.5lf\r\n",
+			is_CPU ? "CPU" : "GPU", (*complex_H)[0][0], (*complex_H)[0][1]);
 
 		SendMessage(hwndNotepad, WM_SETTEXT, 0, (LPARAM)pBuf);
 		delete[] pBuf;
@@ -333,10 +358,8 @@ void ophDepthMap::initialize()
 
 	ophGen::initialize();
 
-	if (is_CPU)
-		initCPU();
-	else
-		initGPU();
+	initCPU();
+	initGPU();
 }
 
 /**
@@ -410,20 +433,23 @@ void ophDepthMap::calcHoloByDepth()
 */
 void ophDepthMap::initCPU()
 {
+	uint pX = context_.pixel_number[_X];
+	uint pY = context_.pixel_number[_Y];
+
 	if (img_src)	delete[] img_src;
-	img_src = new Real[context_.pixel_number[_X] * context_.pixel_number[_Y]];
+	img_src = new Real[pX * pY];
 
 	if (dmap_src) delete[] dmap_src;
-	dmap_src = new Real[context_.pixel_number[_X] * context_.pixel_number[_Y]];
+	dmap_src = new Real[pX * pY];
 
 	if (alpha_map) delete[] alpha_map;
-	alpha_map = new int[context_.pixel_number[_X] * context_.pixel_number[_Y]];
+	alpha_map = new int[pX * pY];
 
 	if (depth_index) delete[] depth_index;
-	depth_index = new Real[context_.pixel_number[_X] * context_.pixel_number[_Y]];
+	depth_index = new Real[pX * pY];
 
 	if (dmap) delete[] dmap;
-	dmap = new Real[context_.pixel_number[_X] * context_.pixel_number[_Y]];
+	dmap = new Real[pX * pY];
 
 	fftw_cleanup();
 }
@@ -438,8 +464,8 @@ void ophDepthMap::initCPU()
 */
 bool ophDepthMap::prepareInputdataCPU(uchar* imgptr, uchar* dimgptr)
 {
-	int pnx = context_.pixel_number[0];
-	int pny = context_.pixel_number[1];
+	int pnx = context_.pixel_number[_X];
+	int pny = context_.pixel_number[_Y];
 
 	memset(img_src, 0, sizeof(Real)*pnx * pny);
 	memset(dmap_src, 0, sizeof(Real)*pnx * pny);
@@ -468,31 +494,36 @@ bool ophDepthMap::prepareInputdataCPU(uchar* imgptr, uchar* dimgptr)
 */
 void ophDepthMap::changeDepthQuanCPU()
 {
-	int pnx = context_.pixel_number[0];
-	int pny = context_.pixel_number[1];
+	int pnx = context_.pixel_number[_X];
+	int pny = context_.pixel_number[_Y];
 
 	Real temp_depth, d1, d2;
+	//int dtr;
 	int tdepth;
 
-	for (uint dtr = 0; dtr < dm_config_.num_of_depth; dtr++)
+
+	for (uint dtr = 0; dtr < dm_config_.num_of_depth; ++dtr)
 	{
 		temp_depth = dlevel[dtr];
 		d1 = temp_depth - dstep / 2.0;
 		d2 = temp_depth + dstep / 2.0;
 
 		int p;
-#pragma omp parallel for private(p)
-		for (p = 0; p < pnx * pny; p++)
+#pragma omp	parallel for private(p)
+		for (p = 0; p < pnx * pny; ++p)
 		{
+#if 1
 			if (dtr < dm_config_.num_of_depth - 1)
 				tdepth = (dmap[p] >= d1 ? 1 : 0) * (dmap[p] < d2 ? 1 : 0);
 			else
 				tdepth = (dmap[p] >= d1 ? 1 : 0) * (dmap[p] <= d2 ? 1 : 0);
-
+#else
+			int nVal = (dtr < dm_config_.num_of_depth - 1) ? 1 : 0;
+			int tdepth = (dmap[p] >= d1 ? 1 : 0) * (dmap[p] <= d2 - nVal ? 1 : 0);
+#endif
 			depth_index[p] += tdepth * (dtr + 1);
 		}
 	}
-
 	//writeIntensity_gray8_bmp("test.bmp", pnx, pny, depth_index_);
 }
 
@@ -510,10 +541,10 @@ void ophDepthMap::changeDepthQuanCPU()
 */
 void ophDepthMap::calcHoloCPU()
 {
-	int pnx = context_.pixel_number[0];
-	int pny = context_.pixel_number[1];
+	int pnx = context_.pixel_number[_X];
+	int pny = context_.pixel_number[_Y];
 
-	memset((*complex_H), 0.0, sizeof(Complex<Real>)*pnx*pny);
+	//memset((*complex_H), 0.0, sizeof(Complex<Real>)*pnx*pny);
 	size_t depth_sz = dm_config_.render_depth.size();
 
 	Complex<Real> *in = nullptr, *out = nullptr;
@@ -521,45 +552,50 @@ void ophDepthMap::calcHoloCPU()
 
 	int p = 0;
 #ifdef _OPENMP
-#pragma omp parallel for private(p)
-#endif
-	for (p = 0; p < depth_sz; ++p)
+#pragma omp parallel 
 	{
-		int dtr = dm_config_.render_depth[p];
-		Real temp_depth = (is_ViewingWindow) ? dlevel_transform[dtr - 1] : dlevel[dtr - 1];
-
-		Complex<Real>* u_o = (Complex<Real>*)malloc(sizeof(Complex<Real>)*pnx*pny);
-		memset(u_o, 0.0, sizeof(Complex<Real>)*pnx*pny);
-
-		Real sum = 0.0;
-		for (int i = 0; i < pnx * pny; i++)
+		int tid = omp_get_thread_num();
+#pragma omp for private(p)
+#endif
+		for (p = 0; p < depth_sz; ++p)
 		{
-			u_o[i]._Val[_RE] = img_src[i] * alpha_map[i] * (depth_index[i] == dtr ? 1.0 : 0.0);
-			sum += u_o[i]._Val[_RE];
-		}
+			int dtr = dm_config_.render_depth[p];
+			Real temp_depth = (is_ViewingWindow) ? dlevel_transform[dtr - 1] : dlevel[dtr - 1];
 
-		if (sum > 0.0)
-		{
-			LOG("Depth: %d of %d, z = %f mm\n", dtr, dm_config_.num_of_depth, -temp_depth * 1000);
+			Complex<Real>* u_o = (Complex<Real>*)malloc(sizeof(Complex<Real>)*pnx*pny);
+			memset(u_o, 0.0, sizeof(Complex<Real>)*pnx*pny);
 
-			Complex<Real> rand_phase_val;
-			getRandPhaseValue(rand_phase_val, dm_config_.RANDOM_PHASE);
-
-			Complex<Real> carrier_phase_delay(0, context_.k* temp_depth);
-			carrier_phase_delay.exp();
-
+			Real sum = 0.0;
 			for (int i = 0; i < pnx * pny; i++)
-				u_o[i] = u_o[i] * rand_phase_val * carrier_phase_delay;
+			{
+				u_o[i]._Val[_RE] = img_src[i] * alpha_map[i] * (depth_index[i] == dtr ? 1.0 : 0.0);
+				sum += u_o[i]._Val[_RE];
+			}
 
-			//if (dm_params_.Propagation_Method_ == 0) {
-			Openholo::fftwShift(u_o, u_o, pnx, pny, OPH_FORWARD, false);
-			propagationAngularSpectrum(u_o, -temp_depth);
-			//}
+			if (sum > 0.0)
+			{
+				//LOG("Depth: %d of %d, z = %f mm\n", dtr, dm_config_.num_of_depth, -temp_depth * 1000);
+
+				Complex<Real> rand_phase_val;
+				getRandPhaseValue(rand_phase_val, dm_config_.RANDOM_PHASE);
+
+				Complex<Real> carrier_phase_delay(0, context_.k* temp_depth);
+				carrier_phase_delay.exp();
+
+				for (int i = 0; i < pnx * pny; i++)
+					u_o[i] = u_o[i] * rand_phase_val * carrier_phase_delay;
+
+				//if (dm_params_.Propagation_Method_ == 0) {
+				Openholo::fftwShift(u_o, u_o, pnx, pny, OPH_FORWARD, false);
+				propagationAngularSpectrum(u_o, -temp_depth);
+				//}
+			}
+			else {
+				//LOG("Depth: %d of %d : Nothing here\n", dtr, dm_config_.num_of_depth);
+			}
+
+			free(u_o);
 		}
-		else
-			LOG("Depth: %d of %d : Nothing here\n", dtr, dm_config_.num_of_depth);
-
-		free(u_o);
 	}
 }
 

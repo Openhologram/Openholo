@@ -103,17 +103,22 @@ bool ophPointCloud::readConfig(const char* cfg_file)
 Real ophPointCloud::generateHologram(uint diff_flag)
 {
 	resetBuffer();
-	auto start_time = CUR_TIME;
 
-	LOG("1) Generate Hologram with %s\n", is_CPU ? 
+	MEMORYSTATUS memStatus;
+	GlobalMemoryStatus(&memStatus);
+	LOG("\n*Available Memory: %u (byte)\n", memStatus.dwAvailVirtual);
+
+	auto start_time = CUR_TIME;
+	LOG("1) Algorithm Method : Point Cloud\n");
+	LOG("2) Generate Hologram with %s\n", is_CPU ? 
 #ifdef _OPENMP
 		"Multi Core CPU" :
 #else
 		"Single Core CPU" :
 #endif
 		"GPU");
-	LOG("2) Transform Viewing Window : %s\n", is_ViewingWindow ? "ON" : "OFF");
-	LOG("3) Diffraction Method : %s\n", diff_flag == PC_DIFF_RS ? "R-S" : "Fresnel");
+	LOG("3) Transform Viewing Window : %s\n", is_ViewingWindow ? "ON" : "OFF");
+	LOG("4) Diffraction Method : %s\n", diff_flag == PC_DIFF_RS ? "R-S" : "Fresnel");
 
 	// Create CGH Fringe Pattern by 3D Point Cloud
 	if (is_CPU) { //Run CPU
@@ -252,10 +257,6 @@ void ophPointCloud::transVW(int nSize, Real *dst, Real *src)
 
 void ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 {
-	MEMORYSTATUS memStatus;
-	GlobalMemoryStatus(&memStatus);
-	LOG("Available Memory: %u (byte)\n", memStatus.dwAvailVirtual);
-
 	// Output Image Size
 	ivec2 pn;
 	pn[_X] = context_.pixel_number[_X];
@@ -276,6 +277,8 @@ void ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 	vec2 ss;
 	ss[_X] = context_.ss[_X];
 	ss[_Y] = context_.ss[_Y];
+
+	double waveLength = context_.wave_length[0];
 
 	int j; // private variable for Multi Threading
 #ifdef _OPENMP
@@ -420,7 +423,7 @@ void ophPointCloud::diffractNotEncodedRS(ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Re
 #pragma omp atomic
 				complex_H[nColor][xxtr + yytr * pn[_X]][_IM] += res_imag;
 #else
-#pragma omp atomic
+#pragma omp atomic // 공유자원 변경 시, 동기화
 				(*complex_H)[xxtr + yytr * pn[_X]][_RE] += res_real;
 #pragma omp atomic
 				(*complex_H)[xxtr + yytr * pn[_X]][_IM] += res_imag;

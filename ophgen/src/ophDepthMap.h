@@ -143,6 +143,9 @@ public:
 	*/
 	void setViewingWindow(bool is_ViewingWindow);
 
+	ivec2 getRGBImgSize() { return m_vecRGBImg; };
+	ivec2 getDepthImgSize() { return m_vecDepthImg; };
+
 public:
 	inline void setFieldLens(Real fieldlens) { dm_config_.fieldLength = fieldlens; }
 	inline void setNearDepth(Real neardepth) { dm_config_.near_depthmap = neardepth; }
@@ -187,7 +190,8 @@ private:
 	bool					is_ViewingWindow;
 	unsigned char*			depth_img;
 	unsigned char*			rgb_img;
-
+	ivec2					m_vecRGBImg;
+	ivec2					m_vecDepthImg;
 	unsigned char*			img_src_gpu;						///< GPU variable - image source data, values are from 0 to 255.
 	unsigned char*			dimg_src_gpu;						///< GPU variable - depth map data, values are from 0 to 255.
 	Real*					depth_index_gpu;					///< GPU variable - quantized depth map data.

@@ -469,7 +469,7 @@ void Openholo::fftFree(void)
 void Openholo::fftwShift(Complex<Real>* src, Complex<Real>* dst, int nx, int ny, int type, bool bNormalized)
 {
 	Complex<Real>* tmp = new Complex<Real>[nx*ny];
-	memset(tmp, 0, sizeof(Complex<Real>)*nx*ny);
+	memset(tmp, 0., sizeof(Complex<Real>)*nx*ny);
 	fftShift(nx, ny, src, tmp);
 
 	fftw_complex *in = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * nx * ny);
