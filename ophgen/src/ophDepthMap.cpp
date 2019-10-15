@@ -540,16 +540,17 @@ void ophDepthMap::calcHoloCPU()
 	Complex<Real> *in = nullptr, *out = nullptr;
 	fft2(ivec2(pnX, pnY), in, OPH_FORWARD, OPH_ESTIMATE);
 
-	
-
 	int p = 0;
 #ifdef _OPENMP
 #pragma omp parallel 
 	{
-#pragma omp master
-		LOG("Threads Num: %d\nThread Memory: %u (byte)\nTotal Memory: %u (byte)\n",
-			omp_get_num_threads(), sizeof(Complex<Real>) * pnX * pnY,
-			omp_get_num_threads() * sizeof(Complex<Real>) * pnX * pnY);
+#pragma omp master // 한 개의 스레드에서만 실행
+		{
+			int nThreads = omp_get_num_threads();
+			LOG("Threads Num: %d\nThread Memory: %u (byte)\nTotal Memory: %u (byte)\n",
+				nThreads, sizeof(Complex<Real>) * pnX * pnY,
+				nThreads * sizeof(Complex<Real>) * pnX * pnY);
+		}
 		int tid = omp_get_thread_num();
 #pragma omp for private(p)
 #endif

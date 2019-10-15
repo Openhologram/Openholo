@@ -532,32 +532,47 @@ void ophGen::propagationAngularSpectrum(Complex<Real>* input_u, Real propagation
 	Real ppy = context_.pixel_pitch[_Y];
 	Real ssx = context_.ss[_X];
 	Real ssy = context_.ss[_Y];
+
+#ifndef USE_3CHANNEL
 	Real lambda = context_.wave_length[0];
+#endif
+#ifdef USE_3CHANNEL
+	for (int k = 0; k < nColor; k++) {
+		Real lambda = context_.wave_length[k];
+#endif
+		for (int i = 0; i < pnx * pny; i++) {
+			Real x = i % pnx;
+			Real y = i / pnx;
 
-	for (int i = 0; i < pnx * pny; i++)
-	{
-		Real x = i % pnx;
-		Real y = i / pnx;
+			Real fxx = (-1.0 / (2.0*ppx)) + (1.0 / ssx) * x;
+			Real fyy = (1.0 / (2.0*ppy)) - (1.0 / ssy) - (1.0 / ssy) * y;
 
-		Real fxx = (-1.0 / (2.0*ppx)) + (1.0 / ssx) * x;
-		Real fyy = (1.0 / (2.0*ppy)) - (1.0 / ssy) - (1.0 / ssy) * y;
+			Real sval = sqrt(1 - (lambda*fxx)*(lambda*fxx) - (lambda*fyy)*(lambda*fyy));
+			sval *= context_.k * propagation_dist;
+			Complex<Real> kernel(0, sval);
+			kernel.exp();
 
-		Real sval = sqrt(1 - (lambda*fxx)*(lambda*fxx) - (lambda*fyy)*(lambda*fyy));
-		sval *= context_.k * propagation_dist;
-		Complex<Real> kernel(0, sval);
-		kernel.exp();
+			int prop_mask = ((fxx * fxx + fyy * fyy) < (context_.k *context_.k)) ? 1 : 0;
 
-		int prop_mask = ((fxx * fxx + fyy * fyy) < (context_.k *context_.k)) ? 1 : 0;
-
-		Complex<Real> u_frequency;
-		if (prop_mask == 1)
-			u_frequency = kernel * input_u[i];
+			Complex<Real> u_frequency;
+			if (prop_mask == 1)
+				u_frequency = kernel * input_u[i];
+#ifdef USE_3CHANNEL
 #pragma omp atomic
-		(*complex_H)[i][_RE] += u_frequency[_RE];
+			complex_H[k][i][_RE] += u_frequency[_RE];
 #pragma omp atomic
-		(*complex_H)[i][_IM] += u_frequency[_IM];
+			complex_H[k][i][_IM] += u_frequency[_IM];
 
+#else
+#pragma omp atomic
+			(*complex_H)[i][_RE] += u_frequency[_RE];
+#pragma omp atomic
+			(*complex_H)[i][_IM] += u_frequency[_IM];
+#endif
+		}
+#ifdef USE_3CHANNEL
 	}
+#endif
 }
 
 void ophGen::normalize(void)
