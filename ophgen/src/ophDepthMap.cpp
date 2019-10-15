@@ -249,36 +249,15 @@ Real ophDepthMap::generateHologram(void)
 	else
 		prepareInputdataGPU(rgb_img, depth_img);
 	getDepthValues();
-	LOG("<1> getDepthValues %lf / %lf\n", (*complex_H)[0][_RE], (*complex_H)[0][_IM]);
 	if(is_ViewingWindow)
 		transVW();
 	calcHoloByDepth();
-	LOG("<2> calcHoloByDepth %lf / %lf\n", (*complex_H)[0][_RE], (*complex_H)[0][_IM]);
 
 	auto end_time = CUR_TIME;
 
 	auto during_time = ((std::chrono::duration<Real>)(end_time - start_time)).count();
 
-	LOG("Implement time : %.5lf sec\n", during_time);
-#ifdef TEST_MODE
-	HWND hwndNotepad = NULL;
-	hwndNotepad = ::FindWindow(NULL, "test.txt - 메모장");
-	if (hwndNotepad) {
-		hwndNotepad = FindWindowEx(hwndNotepad, NULL, "edit", NULL);
-
-		char *pBuf = NULL;
-		int nLen = SendMessage(hwndNotepad, WM_GETTEXTLENGTH, 0, 0);
-		pBuf = new char[nLen + 100];
-		
-		SendMessage(hwndNotepad, WM_GETTEXT, nLen+1, (LPARAM)pBuf);
-		//sprintf(pBuf, "%s%.5lf\r\n", pBuf, during_time);
-		sprintf(pBuf, "%s : RE: %.5lf / IM: %.5lf\r\n",
-			is_CPU ? "CPU" : "GPU", (*complex_H)[0][0], (*complex_H)[0][1]);
-
-		SendMessage(hwndNotepad, WM_SETTEXT, 0, (LPARAM)pBuf);
-		delete[] pBuf;
-	}
-#endif
+	LOG("Total Elapsed Time: %lf (sec)\n", during_time);
 
 	return during_time;
 }
@@ -473,17 +452,27 @@ bool ophDepthMap::prepareInputdataCPU(uchar* imgptr, uchar* dimgptr)
 	memset(depth_index, 0, sizeof(Real)*pnx * pny);
 	memset(dmap, 0, sizeof(Real)*pnx * pny);
 
-	int k = 0;
-#pragma omp parallel for private(k)
-	for (k = 0; k < pnx*pny; k++)
-	{
-		img_src[k] = Real(imgptr[k]) / 255.0;
-		dmap_src[k] = Real(dimgptr[k]) / 255.0;
-		alpha_map[k] = (imgptr[k] > 0 ? 1 : 0);
-		dmap[k] = (1 - dmap_src[k])*(dm_config_.far_depthmap - dm_config_.near_depthmap) + dm_config_.near_depthmap;
+	Real nearDepth = dm_config_.near_depthmap;
 
-		if (dm_config_.FLAG_CHANGE_DEPTH_QUANTIZATION == 0)
-			depth_index[k] = dm_config_.DEFAULT_DEPTH_QUANTIZATION - Real(dimgptr[k]);
+	int k = 0;
+#pragma omp parallel
+	{
+		int tid = omp_get_thread_num();
+#pragma omp for private(k) 
+		for (k = 0; k < pnx*pny; k++)
+		{
+			Real rgbVal = Real(imgptr[k]) / 255.0;
+			img_src[k] = rgbVal;
+			Real dVal = Real(dimgptr[k]) / 255.0;
+			dmap_src[k] = dVal;
+			int alphaVal = (imgptr[k] > 0 ? 1 : 0);
+			alpha_map[k] = alphaVal;			
+
+			if (dm_config_.FLAG_CHANGE_DEPTH_QUANTIZATION == 0) {
+				Real imgVal = Real(dimgptr[k]);
+				depth_index[k] = dm_config_.DEFAULT_DEPTH_QUANTIZATION - imgVal;
+			}
+		}
 	}
 }
 
@@ -501,7 +490,6 @@ void ophDepthMap::changeDepthQuanCPU()
 	//int dtr;
 	int tdepth;
 
-
 	for (uint dtr = 0; dtr < dm_config_.num_of_depth; ++dtr)
 	{
 		temp_depth = dlevel[dtr];
@@ -509,19 +497,21 @@ void ophDepthMap::changeDepthQuanCPU()
 		d2 = temp_depth + dstep / 2.0;
 
 		int p;
-#pragma omp	parallel for private(p)
-		for (p = 0; p < pnx * pny; ++p)
+#pragma omp	parallel
 		{
-#if 1
-			if (dtr < dm_config_.num_of_depth - 1)
-				tdepth = (dmap[p] >= d1 ? 1 : 0) * (dmap[p] < d2 ? 1 : 0);
-			else
-				tdepth = (dmap[p] >= d1 ? 1 : 0) * (dmap[p] <= d2 ? 1 : 0);
-#else
-			int nVal = (dtr < dm_config_.num_of_depth - 1) ? 1 : 0;
-			int tdepth = (dmap[p] >= d1 ? 1 : 0) * (dmap[p] <= d2 - nVal ? 1 : 0);
-#endif
-			depth_index[p] += tdepth * (dtr + 1);
+			int tid = omp_get_thread_num();
+#pragma omp for private(p)
+			for (p = 0; p < pnx * pny; ++p)
+			{
+				Real dmap = (1.0 - dmap_src[p])*(dm_config_.far_depthmap - dm_config_.near_depthmap) + dm_config_.near_depthmap;
+
+				if (dtr < dm_config_.num_of_depth - 1)
+					tdepth = (dmap >= d1 ? 1 : 0) * (dmap < d2 ? 1 : 0);
+				else
+					tdepth = (dmap >= d1 ? 1 : 0) * (dmap <= d2 ? 1 : 0);
+
+				depth_index[p] += tdepth * (dtr + 1);
+			}
 		}
 	}
 	//writeIntensity_gray8_bmp("test.bmp", pnx, pny, depth_index_);
@@ -541,19 +531,25 @@ void ophDepthMap::changeDepthQuanCPU()
 */
 void ophDepthMap::calcHoloCPU()
 {
-	int pnx = context_.pixel_number[_X];
-	int pny = context_.pixel_number[_Y];
+	int pnX = context_.pixel_number[_X];
+	int pnY = context_.pixel_number[_Y];
 
-	//memset((*complex_H), 0.0, sizeof(Complex<Real>)*pnx*pny);
+	//memset((*complex_H), 0.0, sizeof(Complex<Real>)*pnX*pnY);
 	size_t depth_sz = dm_config_.render_depth.size();
 
 	Complex<Real> *in = nullptr, *out = nullptr;
-	fft2(ivec2(pnx, pny), in, OPH_FORWARD, OPH_ESTIMATE);
+	fft2(ivec2(pnX, pnY), in, OPH_FORWARD, OPH_ESTIMATE);
+
+	
 
 	int p = 0;
 #ifdef _OPENMP
 #pragma omp parallel 
 	{
+#pragma omp master
+		LOG("Threads Num: %d\nThread Memory: %u (byte)\nTotal Memory: %u (byte)\n",
+			omp_get_num_threads(), sizeof(Complex<Real>) * pnX * pnY,
+			omp_get_num_threads() * sizeof(Complex<Real>) * pnX * pnY);
 		int tid = omp_get_thread_num();
 #pragma omp for private(p)
 #endif
@@ -562,11 +558,11 @@ void ophDepthMap::calcHoloCPU()
 			int dtr = dm_config_.render_depth[p];
 			Real temp_depth = (is_ViewingWindow) ? dlevel_transform[dtr - 1] : dlevel[dtr - 1];
 
-			Complex<Real>* u_o = (Complex<Real>*)malloc(sizeof(Complex<Real>)*pnx*pny);
-			memset(u_o, 0.0, sizeof(Complex<Real>)*pnx*pny);
+			Complex<Real>* u_o = (Complex<Real>*)malloc(sizeof(Complex<Real>)*pnX*pnY);
+			memset(u_o, 0.0, sizeof(Complex<Real>)*pnX*pnY);
 
 			Real sum = 0.0;
-			for (int i = 0; i < pnx * pny; i++)
+			for (int i = 0; i < pnX * pnY; i++)
 			{
 				u_o[i]._Val[_RE] = img_src[i] * alpha_map[i] * (depth_index[i] == dtr ? 1.0 : 0.0);
 				sum += u_o[i]._Val[_RE];
@@ -582,11 +578,11 @@ void ophDepthMap::calcHoloCPU()
 				Complex<Real> carrier_phase_delay(0, context_.k* temp_depth);
 				carrier_phase_delay.exp();
 
-				for (int i = 0; i < pnx * pny; i++)
+				for (int i = 0; i < pnX * pnY; i++)
 					u_o[i] = u_o[i] * rand_phase_val * carrier_phase_delay;
 
 				//if (dm_params_.Propagation_Method_ == 0) {
-				Openholo::fftwShift(u_o, u_o, pnx, pny, OPH_FORWARD, false);
+				Openholo::fftwShift(u_o, u_o, pnX, pnY, OPH_FORWARD, false);
 				propagationAngularSpectrum(u_o, -temp_depth);
 				//}
 			}
@@ -602,4 +598,14 @@ void ophDepthMap::calcHoloCPU()
 void ophDepthMap::ophFree(void)
 {
 
+}
+
+void ophDepthMap::setResolution(ivec2 resolution)
+{	
+	// 해상도 변경이 있을 시, 버퍼를 재생성 한다.
+	if (context_.pixel_number != resolution) {
+		ophGen::setResolution(resolution);
+		initCPU();
+		initGPU();
+	}
 }

@@ -146,6 +146,11 @@ public:
 	ivec2 getRGBImgSize() { return m_vecRGBImg; };
 	ivec2 getDepthImgSize() { return m_vecDepthImg; };
 
+	void setConfig(OphDepthMapConfig config) {
+		dm_config_ = config;
+	};
+	void setResolution(ivec2 resolution);
+
 public:
 	inline void setFieldLens(Real fieldlens) { dm_config_.fieldLength = fieldlens; }
 	inline void setNearDepth(Real neardepth) { dm_config_.near_depthmap = neardepth; }

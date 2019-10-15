@@ -291,49 +291,41 @@ int ophLF::loadLF()
 void ophLF::generateHologram() 
 {
 	resetBuffer();
+	MEMORYSTATUS memStatus;
+	GlobalMemoryStatus(&memStatus);
+	LOG("\n*Available Memory: %u (byte)\n", memStatus.dwAvailVirtual);
+	LOG("1) Algorithm Method : Light Field\n");
+	LOG("2) Generate Hologram with %s\n", is_CPU ?
+#ifdef _OPENMP
+		"Multi Core CPU" :
+#else
+		"Single Core CPU" :
+#endif
+		"GPU");
+	LOG("3) Transform Viewing Window : %s\n", is_ViewingWindow ? "ON" : "OFF");
+
 	auto start = CUR_TIME;
-	LOG(">>> Transform Viewing Window : %s\n", is_ViewingWindow ? "ON" : "OFF");
-	LOG(">>> Acceleration : %s\n", is_CPU ? "CPU" : "GPU");
-	LOG("initialize() ... %.5lfsec\n", ((std::chrono::duration<Real>)(CUR_TIME - start)).count());
 	if (is_CPU)
 	{
 		convertLF2ComplexField();
-		LOG("convertLF2ComplexField() ... %.5lfsec\n", ((std::chrono::duration<Real>)(CUR_TIME - start)).count());
+		//LOG("convertLF2ComplexField() ... %.5lfsec\n", ((std::chrono::duration<Real>)(CUR_TIME - start)).count());
 		fresnelPropagation(RSplane_complex_field, (*complex_H), distanceRS2Holo);
-		LOG("fresnelPropagation() ... %.5lfsec\n", ((std::chrono::duration<Real>)(CUR_TIME - start)).count());
+		//LOG("fresnelPropagation() ... %.5lfsec\n", ((std::chrono::duration<Real>)(CUR_TIME - start)).count());
 	}
 	else
 	{
 		prepareInputdataGPU();
-		LOG("prepareInputdataGPU() ... %.5lfsec\n", ((std::chrono::duration<Real>)(CUR_TIME-start)).count());
+		//LOG("prepareInputdataGPU() ... %.5lfsec\n", ((std::chrono::duration<Real>)(CUR_TIME-start)).count());
 		convertLF2ComplexField_GPU();
-		LOG("convertLF2ComplexField_GPU() ... %.5lfsec\n", ((std::chrono::duration<Real>)(CUR_TIME-start)).count());
+		//LOG("convertLF2ComplexField_GPU() ... %.5lfsec\n", ((std::chrono::duration<Real>)(CUR_TIME-start)).count());
 		fresnelPropagation_GPU();
-		LOG("fresnelPropagation_GPU() ... %.5lfsec\n", ((std::chrono::duration<Real>)(CUR_TIME - start)).count());
+		//LOG("fresnelPropagation_GPU() ... %.5lfsec\n", ((std::chrono::duration<Real>)(CUR_TIME - start)).count());
 
 	}
 
 	auto end = CUR_TIME;
 	auto during = ((std::chrono::duration<Real>)(end - start)).count();
-	LOG("Total Elapsed Time: %.5lf(sec)\n", during);
-
-#ifdef TEST_MODE
-	HWND hwndNotepad = NULL;
-	hwndNotepad = ::FindWindow(NULL, "test.txt - ¸Þ¸ðÀå");
-	if (hwndNotepad) {
-		hwndNotepad = FindWindowEx(hwndNotepad, NULL, "edit", NULL);
-
-		char *pBuf = NULL;
-		int nLen = SendMessage(hwndNotepad, WM_GETTEXTLENGTH, 0, 0);
-		pBuf = new char[nLen + 100];
-
-		SendMessage(hwndNotepad, WM_GETTEXT, nLen + 1, (LPARAM)pBuf);
-		sprintf(pBuf, "%s%lf\r\n", pBuf, during);
-
-		SendMessage(hwndNotepad, WM_SETTEXT, 0, (LPARAM)pBuf);
-		delete[] pBuf;
-	}
-#endif
+	LOG("Total Elapsed Time: %lf (sec)\n", during);
 }
 
 //int ophLF::saveAsOhc(const char * fname)

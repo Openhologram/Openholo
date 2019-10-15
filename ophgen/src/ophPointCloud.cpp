@@ -132,30 +132,7 @@ Real ophPointCloud::generateHologram(uint diff_flag)
 
 	auto during_time = ((std::chrono::duration<Real>)(end_time - start_time)).count();
 
-	LOG("Implement time : %.5lf sec\n", during_time);
-#ifdef TEST_MODE
-	HWND hwndNotepad = NULL;
-	hwndNotepad = ::FindWindow(NULL, "test.txt - 메모장");
-	if (!hwndNotepad) {
-		ShellExecute(NULL, "open", "d:\\test.txt", NULL, NULL, SW_SHOW);
-		Sleep(200);
-		hwndNotepad = ::FindWindow(NULL, "test.txt - 메모장");
-	}
-	if (hwndNotepad) {
-		hwndNotepad = FindWindowEx(hwndNotepad, NULL, "edit", NULL);
-
-		char *pBuf = NULL;
-		int nLen = SendMessage(hwndNotepad, WM_GETTEXTLENGTH, 0, 0);
-		pBuf = new char[nLen + 100];
-
-		SendMessage(hwndNotepad, WM_GETTEXT, nLen + 1, (LPARAM)pBuf);
-		//sprintf(pBuf, "%s%.5lf\r\n", pBuf, during_time);
-		sprintf(pBuf, "%s : RE: %.5lf / IM: %.5lf\r\n", 
-			is_CPU ? "CPU" : "GPU", (*complex_H)[0][0], (*complex_H)[0][1]);
-		SendMessage(hwndNotepad, WM_SETTEXT, 0, (LPARAM)pBuf);
-		delete[] pBuf;
-	}
-#endif
+	LOG("Total Elapsed Time: %lf (sec)\n", during_time);
 	return during_time;
 }
 
@@ -277,8 +254,6 @@ void ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 	vec2 ss;
 	ss[_X] = context_.ss[_X];
 	ss[_Y] = context_.ss[_Y];
-
-	double waveLength = context_.wave_length[0];
 
 	int j; // private variable for Multi Threading
 #ifdef _OPENMP

@@ -477,9 +477,24 @@ vec3 vecCross(const vec3& a, const vec3& b)
 
 void ophTri::generateMeshHologram(uint SHADING_FLAG) 
 {
-	cout << "Hologram Generation ..." << endl;
-	auto start = CUR_TIME;
 	resetBuffer();
+	MEMORYSTATUS memStatus;
+	GlobalMemoryStatus(&memStatus);
+	LOG("\n*Available Memory: %u (byte)\n", memStatus.dwAvailVirtual);
+
+	auto start_time = CUR_TIME;
+	LOG("1) Algorithm Method : Tri Mesh\n");
+	LOG("2) Generate Hologram with %s\n", true ?
+#ifdef _OPENMP
+		"Multi Core CPU" :
+#else
+		"Single Core CPU" :
+#endif
+		"GPU");
+	LOG("3) Transform Viewing Window : %s\n", is_ViewingWindow ? "ON" : "OFF");
+
+
+	auto start = CUR_TIME;
 	initializeAS();
 	generateAS(SHADING_FLAG);
 
@@ -492,24 +507,7 @@ void ophTri::generateMeshHologram(uint SHADING_FLAG)
 	auto end = CUR_TIME;
 	auto during = ((std::chrono::duration<Real>)(end - start)).count();
 
-	LOG("%.5lfsec...hologram generated..\n", during);
-#ifdef TEST_MODE
-	HWND hwndNotepad = NULL;
-	hwndNotepad = ::FindWindow(NULL, "test.txt - ¸Þ¸ðÀå");
-	if (hwndNotepad) {
-		hwndNotepad = FindWindowEx(hwndNotepad, NULL, "edit", NULL);
-
-		char *pBuf = NULL;
-		int nLen = SendMessage(hwndNotepad, WM_GETTEXTLENGTH, 0, 0);
-		pBuf = new char[nLen + 10];
-
-		SendMessage(hwndNotepad, WM_GETTEXT, nLen + 1, (LPARAM)pBuf);
-		sprintf(pBuf, "%s%.5lf\r\n", pBuf, during);
-
-		SendMessage(hwndNotepad, WM_SETTEXT, 0, (LPARAM)pBuf);
-		delete[] pBuf;
-	}
-#endif
+	LOG("Total Elapsed Time: %lf (sec)\n", during);
 }
 
 void ophTri::generateMeshHologram() {
@@ -526,7 +524,7 @@ void ophTri::generateMeshHologram() {
 	auto end = CUR_TIME;
 	auto during = ((std::chrono::duration<Real>)(end - start)).count();
 
-	LOG("%.5lfsec...hologram generated..\n", during);
+	LOG("Total Elapsed Time: %lf (sec)\n", during);
 }
 
 

@@ -386,7 +386,7 @@ bool ophGen::readConfig(const char* fname, OphDepthMapConfig & config)
 		return false;
 	}
 
-	next = xml_node->FirstChildElement("RandomPahse");
+	next = xml_node->FirstChildElement("RandomPhase");
 	if (!next || tinyxml2::XML_SUCCESS != next->QueryBoolText(&config.RANDOM_PHASE))
 		return false;
 	//(xml_node->FirstChildElement("RandomPahse"))->QueryBoolText(&config.RANDOM_PHASE);
