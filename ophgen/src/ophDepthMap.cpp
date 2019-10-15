@@ -255,11 +255,11 @@ Real ophDepthMap::generateHologram(void)
 
 	auto end_time = CUR_TIME;
 
-	auto during_time = ((std::chrono::duration<Real>)(end_time - start_time)).count();
+	elapsedTime = ((std::chrono::duration<Real>)(end_time - start_time)).count();
 
-	LOG("Total Elapsed Time: %lf (sec)\n", during_time);
+	LOG("Total Elapsed Time: %lf (s)\n", elapsedTime);
 
-	return during_time;
+	return elapsedTime;
 }
 
 void ophDepthMap::encodeHologram(void)

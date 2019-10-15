@@ -213,6 +213,7 @@ protected:
 	ivec2 encode_size;
 	int ENCODE_METHOD;
 	int SSB_PASSBAND;
+	Real elapsedTime;
 
 private:
 	bool bCarried;
@@ -223,6 +224,7 @@ public:
 	void setSSBPassBand(int in){ SSB_PASSBAND = in; }
 	ivec2& getEncodeSize(void) { return encode_size; }
 	void setResolution(ivec2 resolution);
+	Real getElapsedTime() { return elapsedTime; };
 
 public:
 	/**

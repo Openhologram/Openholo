@@ -130,10 +130,10 @@ Real ophPointCloud::generateHologram(uint diff_flag)
 
 	auto end_time = CUR_TIME;
 
-	auto during_time = ((std::chrono::duration<Real>)(end_time - start_time)).count();
+	elapsedTime = ((std::chrono::duration<Real>)(end_time - start_time)).count();
 
-	LOG("Total Elapsed Time: %lf (sec)\n", during_time);
-	return during_time;
+	LOG("Total Elapsed Time: %lf (s)\n", elapsedTime);
+	return elapsedTime;
 }
 
 void ophPointCloud::encodeHologram(const vec2 band_limit, const vec2 spectrum_shift)

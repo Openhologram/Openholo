@@ -505,9 +505,9 @@ void ophTri::generateMeshHologram(uint SHADING_FLAG)
 	//fresnelPropagation(*(complex_H), *(complex_H), objShift[_Z]);
 
 	auto end = CUR_TIME;
-	auto during = ((std::chrono::duration<Real>)(end - start)).count();
+	elapsedTime = ((std::chrono::duration<Real>)(end - start)).count();
 
-	LOG("Total Elapsed Time: %lf (sec)\n", during);
+	LOG("Total Elapsed Time: %lf (s)\n", elapsedTime);
 }
 
 void ophTri::generateMeshHologram() {

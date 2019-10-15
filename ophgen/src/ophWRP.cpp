@@ -391,9 +391,9 @@ void ophWRP::generateHologram(void)
 	m_end = CUR_TIME;
 
 	auto during = ((std::chrono::duration<Real>)(m_end - begin)).count();
-	auto total = ((std::chrono::duration<Real>)(m_end - m_begin)).count();
+	elapsedTime = ((std::chrono::duration<Real>)(m_end - m_begin)).count();
 	LOG("%s(%d) => Elapsed Time : %lf (sec)\n", __FUNCTION__, __LINE__, during);
-	LOG("Total Elapsed Time: %lf (sec)\n", total);
+	LOG("Total Elapsed Time: %lf (s)\n", elapsedTime);
 }
 
 oph::Complex<Real>** ophWRP::calculateMWRP(void)

@@ -324,8 +324,8 @@ void ophLF::generateHologram()
 	}
 
 	auto end = CUR_TIME;
-	auto during = ((std::chrono::duration<Real>)(end - start)).count();
-	LOG("Total Elapsed Time: %lf (sec)\n", during);
+	elapsedTime = ((std::chrono::duration<Real>)(end - start)).count();
+	LOG("Total Elapsed Time: %lf (sec)\n", elapsedTime);
 }
 
 //int ophLF::saveAsOhc(const char * fname)

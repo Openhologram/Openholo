@@ -59,6 +59,7 @@ ophGen::ophGen(void)
 	, holo_normalized(nullptr)
 	, bCarried(false)
 	, m_nWave(0)
+	, elapsedTime(0.0)
 {
 	// 1 channel ?
 #ifndef USE_3CHANNEL
