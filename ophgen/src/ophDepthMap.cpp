@@ -571,7 +571,7 @@ void ophDepthMap::calcHoloCPU()
 			if (sum > 0.0)
 			{
 				//LOG("Depth: %d of %d, z = %f mm\n", dtr, dm_config_.num_of_depth, -temp_depth * 1000);
-
+				LOG("%d\n", dtr);
 				Complex<Real> rand_phase_val;
 				getRandPhaseValue(rand_phase_val, dm_config_.RANDOM_PHASE);
 
