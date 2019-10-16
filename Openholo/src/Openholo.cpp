@@ -308,6 +308,7 @@ void Openholo::imgScaleBilnear(unsigned char * src, unsigned char * dst, int w, 
 
 		}
 	}
+	LOG("Scaled img size: (%d/%d) => (%d/%d)\n", w, h, neww, newh);
 }
 
 void Openholo::convertToFormatGray8(unsigned char * src, unsigned char * dst, int w, int h, int bytesperpixel)

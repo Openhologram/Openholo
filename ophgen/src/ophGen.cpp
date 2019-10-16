@@ -526,26 +526,25 @@ bool ophGen::readConfig(const char* fname, OphWRPConfig& configdata)
 */
 void ophGen::propagationAngularSpectrum(Complex<Real>* input_u, Real propagation_dist)
 {
-	int pnx = context_.pixel_number[_X];
-	int pny = context_.pixel_number[_Y];
-	Real ppx = context_.pixel_pitch[_X];
-	Real ppy = context_.pixel_pitch[_Y];
-	Real ssx = context_.ss[_X];
-	Real ssy = context_.ss[_Y];
+	int pnX = context_.pixel_number[_X];
+	int pnY = context_.pixel_number[_Y];
+	Real ppX = context_.pixel_pitch[_X];
+	Real ppY = context_.pixel_pitch[_Y];
+	Real ssX = context_.ss[_X];
+	Real ssY = context_.ss[_Y];
 
 #ifndef USE_3CHANNEL
 	Real lambda = context_.wave_length[0];
-#endif
-#ifdef USE_3CHANNEL
+#else
 	for (int k = 0; k < nColor; k++) {
 		Real lambda = context_.wave_length[k];
 #endif
-		for (int i = 0; i < pnx * pny; i++) {
-			Real x = i % pnx;
-			Real y = i / pnx;
+		for (int i = 0; i < pnX * pnY; i++) {
+			Real x = i % pnX;
+			Real y = i / pnX;
 
-			Real fxx = (-1.0 / (2.0*ppx)) + (1.0 / ssx) * x;
-			Real fyy = (1.0 / (2.0*ppy)) - (1.0 / ssy) - (1.0 / ssy) * y;
+			Real fxx = (-1.0 / (2.0*ppX)) + (1.0 / ssX) * x;
+			Real fyy = (1.0 / (2.0*ppY)) - (1.0 / ssY) - (1.0 / ssY) * y;
 
 			Real sval = sqrt(1 - (lambda*fxx)*(lambda*fxx) - (lambda*fyy)*(lambda*fyy));
 			sval *= context_.k * propagation_dist;
@@ -562,7 +561,6 @@ void ophGen::propagationAngularSpectrum(Complex<Real>* input_u, Real propagation
 			complex_H[k][i][_RE] += u_frequency[_RE];
 #pragma omp atomic
 			complex_H[k][i][_IM] += u_frequency[_IM];
-
 #else
 #pragma omp atomic
 			(*complex_H)[i][_RE] += u_frequency[_RE];
@@ -1252,7 +1250,7 @@ void ophGen::testSLM(const char* encodedIMG, unsigned int SLM_TYPE, Real pixelPi
 
 	encode_size[_X] = hInfo.width;
 	encode_size[_Y] = hInfo.height;
-	
+		
 	oph::uchar *img_tmp;
 	if (hInfo.imagesize == 0) {
 		img_tmp = new uchar[hInfo.width*hInfo.height*(hInfo.bitsperpixel / 8)];
@@ -1269,15 +1267,17 @@ void ophGen::testSLM(const char* encodedIMG, unsigned int SLM_TYPE, Real pixelPi
 	Complex<Real>* encodedSLM = new Complex<Real>[encode_size[_X]*encode_size[_Y]];
 	memset(encodedSLM, (0,0), sizeof(Complex<Real>) * encode_size[_X] * encode_size[_Y]);
 
+	uint encode_sizeXY = (uint)encode_size[_X] * (uint)encode_size[_Y];
+
 	switch (SLM_TYPE)
 	{
 	case SLM_AMPLITUDE:
-		for (uint i = 0; i < encode_size[_X] * encode_size[_Y]; i++) {
+		for (uint i = 0; i < encode_sizeXY; i++) {
 			encodedSLM[i][_RE] = (Real)img_tmp[i] / 255;
 		}
 		break;
 	case SLM_PHASE:
-		for (uint i = 0; i < encode_size[_X] * encode_size[_Y]; i++) {
+		for (uint i = 0; i < encode_sizeXY; i++) {
 			Complex<Real> temp(0, 0);
 			temp[_IM] = -M_PI + 2 * M_PI*(Real)img_tmp[i] / 255;
 			encodedSLM[i] = exp(temp);

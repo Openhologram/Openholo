@@ -552,9 +552,9 @@ void ophTri::generateAS(uint SHADING_FLAG)
 	convol = new Complex<Real>[px[_X] * px[_Y]];
 
 	findNormals(SHADING_FLAG);
-
-	int tid;
+	
 #if 0
+	int tid;
 	int j;
 #ifdef _OPENMP
 	int num_threads = 0;
@@ -637,7 +637,7 @@ void ophTri::generateAS(uint SHADING_FLAG)
 			continue;
 
 		char szLog[MAX_PATH];
-		sprintf(szLog, "%d / %d\n", j + 1, meshData->n_faces);
+		sprintf_s(szLog, "%d / %u\n", j + 1, meshData->n_faces);
 		LOG(szLog);
 	}
 #endif
@@ -991,7 +991,7 @@ void ophTri::randPhaseDist(Complex<Real>* AS)
 	ivec2 px = context_.pixel_number;
 
 	fft2(px, AS, OPH_FORWARD, OPH_ESTIMATE);
-	fftwShift(AS, ASTerm, px[_X], px[_Y], OPH_FORWARD, OPH_ESTIMATE);
+	fftwShift(AS, ASTerm, px[_X], px[_Y], OPH_FORWARD, (bool)OPH_ESTIMATE);
 	//fftExecute(ASTerm);
 
 	Real randVal;
@@ -1005,14 +1005,14 @@ void ophTri::randPhaseDist(Complex<Real>* AS)
 	);
 
 	fft2(px, phaseTerm, OPH_FORWARD, OPH_ESTIMATE);
-	fftwShift(phaseTerm, randTerm, px[_X], px[_Y], OPH_FORWARD, OPH_ESTIMATE);
+	fftwShift(phaseTerm, randTerm, px[_X], px[_Y], OPH_FORWARD, (bool)OPH_ESTIMATE);
 	//fftExecute(randTerm);
 
 	for_i(px[_X] * px[_Y],
 		convol[i] = ASTerm[i] * randTerm[i];);
 
 	fft2(px, convol, OPH_BACKWARD, OPH_ESTIMATE);
-	fftwShift(convol, AS, px[_X], px[_Y], OPH_BACKWARD, OPH_ESTIMATE);
+	fftwShift(convol, AS, px[_X], px[_Y], OPH_BACKWARD, (bool)OPH_ESTIMATE);
 	//fftExecute(AS);
 
 }
