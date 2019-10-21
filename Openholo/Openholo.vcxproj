@@ -32,6 +32,7 @@
     <ClInclude Include="src\function.h" />
     <ClInclude Include="src\ImgCodecDefine.h" />
     <ClInclude Include="src\ImgCodecOhc.h" />
+    <ClInclude Include="src\ImgEncoder.h" />
     <ClInclude Include="src\include.h" />
     <ClInclude Include="src\ivec.h" />
     <ClInclude Include="src\mat.h" />
@@ -51,6 +52,7 @@
   <ItemGroup>
     <ClCompile Include="src\epsilon.cpp" />
     <ClCompile Include="src\ImgCodecOhc.cpp" />
+    <ClCompile Include="src\ImgEncoder.cpp" />
     <ClCompile Include="src\Openholo.cpp" />
     <ClCompile Include="src\PLYparser.cpp" />
     <ClCompile Include="src\sys.cpp" />
@@ -113,6 +115,7 @@
     <OutDir>$(ProjectDir)bin\$(Platform)\$(Configuration)\</OutDir>
     <IncludePath>$(SolutionDir)\include;$(IncludePath)</IncludePath>
     <IntDir>$(ProjectDir)bin\$(Platform)\$(Configuration)\</IntDir>
+    <TargetName>$(ProjectName)_d</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>$(ProjectDir)bin\$(Platform)\$(Configuration)\</OutDir>
@@ -137,11 +140,26 @@
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;OPH_EXPORT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <PostBuildEvent>
-      <Command>xcopy /y "$(TargetDir)$(ProjectName).lib" "$(SolutionDir)Reference\lib\"
-xcopy /y "$(TargetDir)$(ProjectName).dll" "$(SolutionDir)Reference\dll\"
+      <Command>xcopy /y "$(TargetDir)$(ProjectName)_d.lib" "$(SolutionDir)Reference\lib\"
+xcopy /y "$(TargetDir)$(ProjectName)_d.dll" "$(SolutionDir)Reference\dll\"
 xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)Reference\include\"
+xcopy /y "$(ProjectDir)src\*.cuh" "$(SolutionDir)Reference\include\"
 xcopy /y "$(ProjectDir)lib\*.lib" "$(SolutionDir)Reference\lib\"
-xcopy /y "$(ProjectDir)lib\*.lib" "$(SolutionDir)ophgen\lib\"</Command>
+xcopy /y "$(ProjectDir)lib\*.lib" "$(SolutionDir)ophgen\lib\"
+
+xcopy /y "$(TargetDir)$(ProjectName)_d.dll" "$(USERPROFILE)\source\repos\OpenholoRefAppGUI\x64\Debug\"
+xcopy /y "$(TargetDir)$(ProjectName)_d.lib" "$(USERPROFILE)\source\repos\OpenholoRefAppGUI\Reference\lib\"
+xcopy /y "$(TargetDir)$(ProjectName)_d.dll" "$(USERPROFILE)\source\repos\OpenholoRefAppGUI\Reference\dll\"
+
+xcopy /y "$(ProjectDir)src\*.h" "$(USERPROFILE)\source\repos\OpenholoRefAppGUI\Reference\include\"
+xcopy /y "$(ProjectDir)src\*.cuh" "$(USERPROFILE)\source\repos\OpenholoRefAppGUI\Reference\\include\"
+
+xcopy /y "$(TargetDir)$(ProjectName)_d.dll" "$(USERPROFILE)\source\repos\OpenholoRefApp\bin\x64\Debug\"
+xcopy /y "$(TargetDir)$(ProjectName)_d.lib" "$(USERPROFILE)\source\repos\OpenholoRefApp\Reference\lib\"
+xcopy /y "$(TargetDir)$(ProjectName)_d.dll" "$(USERPROFILE)\source\repos\OpenholoRefApp\Reference\dll\"
+
+xcopy /y "$(ProjectDir)src\*.h" "$(USERPROFILE)\source\repos\OpenholoRefApp\Reference\include\"
+xcopy /y "$(ProjectDir)src\*.cuh" "$(USERPROFILE)\source\repos\OpenholoRefApp\Reference\\include\"</Command>
     </PostBuildEvent>
     <Link>
       <AdditionalDependencies>libfftw3-3.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -178,7 +196,7 @@ xcopy /y "$(ProjectDir)lib\*.lib" "$(SolutionDir)ophgen\lib\"</Command>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>cudart.lib;cufft.lib;cuda.lib;libfftw3-3.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>cudart.lib;cufft.lib;cuda.lib;libfftw3-3.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;d3d9.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(ProjectDir)lib\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>/FORCE:multiple %(AdditionalOptions)</AdditionalOptions>
     </Link>
@@ -188,7 +206,21 @@ xcopy /y "$(TargetDir)$(ProjectName).dll" "$(SolutionDir)Reference\dll\"
 xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)Reference\include\"
 xcopy /y "$(ProjectDir)src\*.cuh" "$(SolutionDir)Reference\include\"
 xcopy /y "$(ProjectDir)lib\*.lib" "$(SolutionDir)Reference\lib\"
-xcopy /y "$(ProjectDir)lib\*.lib" "$(SolutionDir)ophgen\lib\"</Command>
+xcopy /y "$(ProjectDir)lib\*.lib" "$(SolutionDir)ophgen\lib\"
+
+xcopy /y "$(TargetDir)$(ProjectName).dll" "$(USERPROFILE)\source\repos\OpenholoRefAppGUI\x64\Release\"
+xcopy /y "$(TargetDir)$(ProjectName).lib" "$(USERPROFILE)\source\repos\OpenholoRefAppGUI\Reference\lib\"
+xcopy /y "$(TargetDir)$(ProjectName).dll" "$(USERPROFILE)\source\repos\OpenholoRefAppGUI\Reference\dll\"
+
+xcopy /y "$(ProjectDir)src\*.h" "$(USERPROFILE)\source\repos\OpenholoRefAppGUI\Reference\include\"
+xcopy /y "$(ProjectDir)src\*.cuh" "$(USERPROFILE)\source\repos\OpenholoRefAppGUI\Reference\\include\"
+
+xcopy /y "$(TargetDir)$(ProjectName).dll" "$(USERPROFILE)\source\repos\OpenholoRefApp\bin\x64\Release\"
+xcopy /y "$(TargetDir)$(ProjectName).lib" "$(USERPROFILE)\source\repos\OpenholoRefApp\Reference\lib\"
+xcopy /y "$(TargetDir)$(ProjectName).dll" "$(USERPROFILE)\source\repos\OpenholoRefApp\Reference\dll\"
+
+xcopy /y "$(ProjectDir)src\*.h" "$(USERPROFILE)\source\repos\OpenholoRefApp\Reference\include\"
+xcopy /y "$(ProjectDir)src\*.cuh" "$(USERPROFILE)\source\repos\OpenholoRefApp\Reference\\include\"</Command>
     </PostBuildEvent>
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>

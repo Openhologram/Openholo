@@ -51,6 +51,7 @@
 #include "sys.h"
 
 #include "ImgCodecOhc.h"
+#include "ImgEncoder.h"
 
 Openholo::Openholo(void)
 	: Base()
@@ -100,9 +101,13 @@ int Openholo::saveAsImg(const char * fname, uint8_t bitsperpixel, uchar* src, in
 	int _pixelbytesize = _height * _width * bitsperpixel / 8;
 	int _filesize = _pixelbytesize + sizeof(bitmap);
 
-	FILE *fp;
-	fopen_s(&fp, fname, "wb");
-	if (fp == nullptr) return -1;
+	bool bConvert = false;
+	if (checkExtension(fname, ".jpg") ||
+		checkExtension(fname, ".jpeg") ||
+		checkExtension(fname, ".png") ||
+		checkExtension(fname, ".gif")) {
+		bConvert = true;
+	}
 
 	bitmap *pbitmap = (bitmap*)calloc(1, sizeof(bitmap));
 	memset(pbitmap, 0x00, sizeof(bitmap));
@@ -128,10 +133,27 @@ int Openholo::saveAsImg(const char * fname, uint8_t bitsperpixel, uchar* src, in
 	pbitmap->bitmapinfoheader.ypixelpermeter = Y_PIXEL_PER_METER;
 	pbitmap->bitmapinfoheader.xpixelpermeter = X_PIXEL_PER_METER;
 	pbitmap->bitmapinfoheader.numcolorspallette = 256;
-	fwrite(pbitmap, 1, sizeof(bitmap), fp);
+	
+	if (!bConvert) {
+		FILE *fp;
+		fopen_s(&fp, fname, "wb");
+		if (fp == nullptr) return -1;
 
-	fwrite(src, 1, _pixelbytesize, fp);
-	fclose(fp);
+		fwrite(pbitmap, 1, sizeof(bitmap), fp);
+
+		fwrite(src, 1, _pixelbytesize, fp);
+		fclose(fp);
+	}
+	else {
+		if (checkExtension(fname, ".jpg") ||
+			checkExtension(fname, ".jpeg"))
+			ImgEncoder::getInstance()->SaveJPG(fname, (BYTE *)pbitmap, sizeof(bitmap));
+		else if(checkExtension(fname, ".png"))
+			ImgEncoder::getInstance()->SavePNG(fname, (BYTE *)pbitmap, sizeof(bitmap));
+		else if (checkExtension(fname, ".gif"))
+			ImgEncoder::getInstance()->SaveGIF(fname, (BYTE *)pbitmap, sizeof(bitmap));
+	}
+
 	free(pbitmap);
 
 	auto end = CUR_TIME;
@@ -330,8 +352,10 @@ void Openholo::fft1(int n, Complex<Real>* in, int sign, uint flag)
 	pnx = n;
 	bool bIn = true;
 
-	fft_in = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * n);
-	fft_out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * n);
+	if (fft_in == nullptr)
+		fft_in = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * n);
+	if (fft_out == nullptr)
+		fft_out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * n);
 
 	if (!in){
 		in = new Complex<Real>[pnx];
@@ -362,9 +386,10 @@ void Openholo::fft2(oph::ivec2 n, Complex<Real>* in, int sign, uint flag)
 {
 	pnx = n[_X], pny = n[_Y];
 	bool bIn = true;
-
-	fft_in = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * pnx * pny);
-	fft_out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * pnx * pny);
+	if(fft_in == nullptr)
+		fft_in = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * pnx * pny);
+	if(fft_out == nullptr)
+		fft_out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * pnx * pny);
 
 	if (!in) {
 		in = new Complex<Real>[pnx * pny];
@@ -395,9 +420,10 @@ void Openholo::fft3(oph::ivec3 n, Complex<Real>* in, int sign, uint flag)
 {
 	pnx = n[_X], pny = n[_Y], pnz = n[_Z];
 	bool bIn = true;
-
-	fft_in = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * pnx * pny * pnz);
-	fft_out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * pnx * pny * pnz);
+	if (fft_in == nullptr)
+		fft_in = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * pnx * pny * pnz);
+	if (fft_out == nullptr)
+		fft_out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * pnx * pny * pnz);
 
 	if (!in) {
 		in = new Complex<Real>[pnx * pny * pnz];
@@ -493,7 +519,7 @@ void Openholo::fftwShift(Complex<Real>* src, Complex<Real>* dst, int nx, int ny,
 			fftw_execute_dft(plan_bwd, in, out);
 	}
 
-	int normalF = 1;
+	Real normalF = 1;
 	if (bNormalized) normalF = nx * ny;
 	memset(tmp, 0, sizeof(Complex<Real>)*nx*ny);
 

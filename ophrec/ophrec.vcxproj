@@ -57,6 +57,7 @@
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(ProjectDir)bin\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(ProjectDir)bin\$(Platform)\$(Configuration)\</IntDir>
+    <TargetName>$(ProjectName)_d</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>$(ProjectDir)bin\$(Platform)\$(Configuration)\</OutDir>
@@ -72,12 +73,27 @@
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>cudart.lib;Openholo.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>cudart.lib;openholo.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(ProjectDir)lib;$(SolutionDir)Reference\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command>echo copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"
-copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
+copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"
+copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"
+
+xcopy /y "$(TargetDir)$(ProjectName)_d.lib" "$(SolutionDir)Reference\lib\"
+xcopy /y "$(TargetDir)$(ProjectName)_d.dll" "$(SolutionDir)Reference\dll\"
+xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)Reference\include\"
+
+xcopy /y "$(TargetDir)$(ProjectName)_d.dll" "$(USERPROFILE)\source\repos\OpenholoRefAppGUI\x64\Debug\"
+xcopy /y "$(TargetDir)$(ProjectName)_d.lib" "$(USERPROFILE)\source\repos\OpenholoRefAppGUI\Reference\lib\"
+xcopy /y "$(TargetDir)$(ProjectName)_d.dll" "$(USERPROFILE)\source\repos\OpenholoRefAppGUI\Reference\dll\"
+xcopy /y "$(ProjectDir)src\*.h" "$(USERPROFILE)\source\repos\OpenholoRefAppGUI\Reference\include\"
+
+xcopy /y "$(TargetDir)$(ProjectName)_d.dll" "$(USERPROFILE)\source\repos\OpenholoRefApp\bin\x64\Debug\"
+xcopy /y "$(TargetDir)$(ProjectName)_d.lib" "$(USERPROFILE)\source\repos\OpenholoRefApp\Reference\lib\"
+xcopy /y "$(TargetDir)$(ProjectName)_d.dll" "$(USERPROFILE)\source\repos\OpenholoRefApp\Reference\dll\"
+xcopy /y "$(ProjectDir)src\*.h" "$(USERPROFILE)\source\repos\OpenholoRefApp\Reference\include\"</Command>
     </PostBuildEvent>
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
@@ -109,7 +125,16 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"
 xcopy /y "$(TargetDir)$(ProjectName).lib" "$(SolutionDir)Reference\lib\"
 xcopy /y "$(TargetDir)$(ProjectName).dll" "$(SolutionDir)Reference\dll\"
 xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)Reference\include\"
-</Command>
+xcopy /y "$(TargetDir)$(ProjectName).dll" "$(USERPROFILE)\source\repos\OpenholoRefAppGUI\x64\Release\"
+xcopy /y "$(TargetDir)$(ProjectName).lib" "$(USERPROFILE)\source\repos\OpenholoRefAppGUI\Reference\lib\"
+xcopy /y "$(TargetDir)$(ProjectName).dll" "$(USERPROFILE)\source\repos\OpenholoRefAppGUI\Reference\dll\"
+
+xcopy /y "$(ProjectDir)src\*.h" "$(USERPROFILE)\source\repos\OpenholoRefAppGUI\Reference\include\"
+
+xcopy /y "$(TargetDir)$(ProjectName).dll" "$(USERPROFILE)\source\repos\OpenholoRefApp\bin\x64\Release\"
+xcopy /y "$(TargetDir)$(ProjectName).lib" "$(USERPROFILE)\source\repos\OpenholoRefApp\Reference\lib\"
+xcopy /y "$(TargetDir)$(ProjectName).dll" "$(USERPROFILE)\source\repos\OpenholoRefApp\Reference\dll\"
+xcopy /y "$(ProjectDir)src\*.h" "$(USERPROFILE)\source\repos\OpenholoRefApp\Reference\include\"</Command>
     </PostBuildEvent>
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
