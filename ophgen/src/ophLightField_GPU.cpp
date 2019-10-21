@@ -52,130 +52,152 @@ void cudaFFT(CUstream_st* stream, int nx, int ny, cufftDoubleComplex* in_filed, 
 
 void ophLF::prepareInputdataGPU()
 {
-	int nx = num_image[_X];
-	int ny = num_image[_Y];
-	int rx = resolution_image[_X];
-	int ry = resolution_image[_Y];
+#ifdef CHECK_PROC_TIME
+	auto begin = CUR_TIME;
+#endif
+	const int nX = num_image[_X];
+	const int nY = num_image[_Y];
+	const int nXY = nX * nY;
+	const int rX = resolution_image[_X];
+	const int rY = resolution_image[_Y];
+	const int rXY = rX * rY;
 
 	if (!streamLF)
 		cudaStreamCreate(&streamLF);
 
 	if (LF_gpu) cudaFree(LF_gpu);
 	if (LFData_gpu) {
-		for (int i = 0; i < nx*ny; i++)
+		for (int i = 0; i < nXY; i++)
 			cudaFree(LFData_gpu[i]);
 		free(LFData_gpu);
 	}
 
-	HANDLE_ERROR(cudaMalloc(&LF_gpu, sizeof(uchar1*)*nx*ny));
-	LFData_gpu = (uchar**)malloc(sizeof(uchar*)*nx*ny);
+	HANDLE_ERROR(cudaMalloc(&LF_gpu, sizeof(uchar1*) * nXY));
+	LFData_gpu = (uchar**)malloc(sizeof(uchar*) * nXY);
 
-	for (int i = 0; i < nx*ny; i++) {
-		HANDLE_ERROR(cudaMalloc(&LFData_gpu[i], sizeof(uchar1)*rx*ry));
-		HANDLE_ERROR(cudaMemset(LFData_gpu[i], 0, sizeof(uchar1) * rx * ry));
-		HANDLE_ERROR(cudaMemcpyAsync(LFData_gpu[i], LF[i], sizeof(uchar)*rx*ry, cudaMemcpyHostToDevice), streamLF);
+	for (int i = 0; i < nXY; i++) {
+		HANDLE_ERROR(cudaMalloc(&LFData_gpu[i], sizeof(uchar1) * rXY));
+		HANDLE_ERROR(cudaMemset(LFData_gpu[i], 0, sizeof(uchar1) * rXY));
+		HANDLE_ERROR(cudaMemcpyAsync(LFData_gpu[i], LF[i], sizeof(uchar) * rXY, cudaMemcpyHostToDevice), streamLF);
 	}
 
-	HANDLE_ERROR(cudaMemcpy(LF_gpu, LFData_gpu, sizeof(uchar*)*nx*ny, cudaMemcpyHostToDevice));
+	HANDLE_ERROR(cudaMemcpy(LF_gpu, LFData_gpu, sizeof(uchar*) * nXY, cudaMemcpyHostToDevice));
 
 	if (RSplane_complex_field_gpu)
 		cudaFree(RSplane_complex_field_gpu);
-	HANDLE_ERROR(cudaMalloc((void**)&RSplane_complex_field_gpu, sizeof(cufftDoubleComplex)*rx*ry*nx*ny));
+	HANDLE_ERROR(cudaMalloc((void**)&RSplane_complex_field_gpu, sizeof(cufftDoubleComplex) * nXY * rXY));
+#ifdef CHECK_PROC_TIME
+	auto end = CUR_TIME;
+	LOG("\n%s : %lf(s)\n\n", __FUNCTION__, ((std::chrono::duration<Real>)(end - begin)).count());
+#endif
 }
 
 void ophLF::convertLF2ComplexField_GPU()
 {
-	auto start = CUR_TIME;
-	int nx = num_image[_X];
-	int ny = num_image[_Y];
-	int rx = resolution_image[_X];
-	int ry = resolution_image[_Y];
+#ifdef CHECK_PROC_TIME
+	auto begin = CUR_TIME;
+#endif
+	const int nX = num_image[_X];
+	const int nY = num_image[_Y];
+	const int nXY = nX * nY;
+	const int rX = resolution_image[_X];
+	const int rY = resolution_image[_Y];
+	const int rXY = rX * rY;
 
 	cufftDoubleComplex *complexLF_gpu;
 	cufftDoubleComplex *FFTLF_temp_gpu;
 
-	HANDLE_ERROR(cudaMalloc((void**)&complexLF_gpu, sizeof(cufftDoubleComplex)*rx*ry*nx*ny));
-	HANDLE_ERROR(cudaMalloc((void**)&FFTLF_temp_gpu, sizeof(cufftDoubleComplex)*rx*ry*nx*ny));
-	HANDLE_ERROR(cudaMemsetAsync(complexLF_gpu, 0, sizeof(cufftDoubleComplex)*rx*ry*nx*ny, streamLF));
-	HANDLE_ERROR(cudaMemsetAsync(FFTLF_temp_gpu, 0, sizeof(cufftDoubleComplex)*rx*ry*nx*ny, streamLF));
-	HANDLE_ERROR(cudaMemsetAsync(RSplane_complex_field_gpu, 0, sizeof(cufftDoubleComplex)*rx*ry*nx*ny, streamLF));
+	HANDLE_ERROR(cudaMalloc((void**)&complexLF_gpu, sizeof(cufftDoubleComplex) * nXY * rXY));
+	HANDLE_ERROR(cudaMalloc((void**)&FFTLF_temp_gpu, sizeof(cufftDoubleComplex) * nXY * rXY));
+	HANDLE_ERROR(cudaMemsetAsync(complexLF_gpu, 0, sizeof(cufftDoubleComplex) * nXY * rXY, streamLF));
+	HANDLE_ERROR(cudaMemsetAsync(FFTLF_temp_gpu, 0, sizeof(cufftDoubleComplex) * nXY * rXY, streamLF));
+	HANDLE_ERROR(cudaMemsetAsync(RSplane_complex_field_gpu, 0, sizeof(cufftDoubleComplex) * nXY * rXY, streamLF));
 
-	cudaConvertLF2ComplexField_Kernel(streamLF, nx, ny, rx, ry, LF_gpu, complexLF_gpu);
-	LOG("\tcudaConvertLF2ComplexField_Kernel() ... %.5lfsec\n", ((std::chrono::duration<Real>)(CUR_TIME - start)).count());
+	cudaConvertLF2ComplexField_Kernel(streamLF, nX, nY, rX, rY, LF_gpu, complexLF_gpu);
 	cufftHandle fftplan;
-	if (cufftPlan2d(&fftplan, ny, nx, CUFFT_Z2Z) != CUFFT_SUCCESS)
+	if (cufftPlan2d(&fftplan, nY, nX, CUFFT_Z2Z) != CUFFT_SUCCESS)
 	{
 		LOG("FAIL in creating cufft plan");
 		return;
 	};
-	LOG("\tcufftPlan2d() ... %.5lfsec\n", ((std::chrono::duration<Real>)(CUR_TIME - start)).count());
-
 	cufftDoubleComplex* in, *out;
 #if 0
-	for (int k = 0; k < nx*ny; k++)
+	for (int k = 0; k < nXY; k++)
 	{
-		int offset = rx * ry * k;
+		int offset = rX * rY * k;
 		in = complexLF_gpu + offset;
 		out = FFTLF_temp_gpu + offset;
-		cudaFFT_LF(&fftplan, streamLF, rx, ry, in, out, -1);
+		cudaFFT_LF(&fftplan, streamLF, rX, rY, in, out, -1);
 	}
 #else
-	for (int k = 0; k < rx*ry; k++)
+	for (int k = 0; k < rXY; k++)
 	{
-		int offset = nx * ny*k;
+		int offset = nX * nY * k;
 		in = complexLF_gpu + offset;
 		out = FFTLF_temp_gpu + offset;
-		cudaFFT_LF(&fftplan, streamLF, nx, ny, in, out, -1);
+		cudaFFT_LF(&fftplan, streamLF, nX, nY, in, out, -1);
 	}
 #endif
-	LOG("\tcudaFFT_LF() ... %.5lfsec\n", ((std::chrono::duration<Real>)(CUR_TIME - start)).count());
 	cufftDestroy(fftplan);
 
-	procMultiplyPhase(streamLF, nx, ny, rx, ry, FFTLF_temp_gpu, RSplane_complex_field_gpu, CUDART_PI);
-
-	LOG("\tprocMultiplyPhase() ... %.5lfsec\n", ((std::chrono::duration<Real>)(CUR_TIME - start)).count());
+	procMultiplyPhase(streamLF, nX, nY, rX, rY, FFTLF_temp_gpu, RSplane_complex_field_gpu, CUDART_PI);
 	cudaFree(complexLF_gpu);
 	cudaFree(FFTLF_temp_gpu);
+#ifdef CHECK_PROC_TIME
+	auto end = CUR_TIME;
+	LOG("\n%s : %lf(s)\n\n", __FUNCTION__, ((std::chrono::duration<Real>)(end - begin)).count());
+#endif
 }
 
 void ophLF::fresnelPropagation_GPU()
 {
-	int Nx = context_.pixel_number[_X];
-	int Ny = context_.pixel_number[_Y];
+#ifdef CHECK_PROC_TIME
+	auto begin = CUR_TIME;
+#endif
+	const int nX = context_.pixel_number[_X];
+	const int nY = context_.pixel_number[_Y];
+	const int nXY = nX * nY;
 
 	cufftDoubleComplex *in2x;
 	cufftDoubleComplex *temp;
 
-	HANDLE_ERROR(cudaMalloc((void**)&in2x, sizeof(cufftDoubleComplex)*Nx*Ny * 4));
-	HANDLE_ERROR(cudaMalloc((void**)&temp, sizeof(cufftDoubleComplex)*Nx*Ny * 4));
-	HANDLE_ERROR(cudaMemsetAsync(in2x, 0, sizeof(cufftDoubleComplex)*Nx*Ny * 4, streamLF));
-	HANDLE_ERROR(cudaMemsetAsync(temp, 0, sizeof(cufftDoubleComplex)*Nx*Ny * 4, streamLF));
+	HANDLE_ERROR(cudaMalloc((void**)&in2x, sizeof(cufftDoubleComplex) * nXY * 4));
+	HANDLE_ERROR(cudaMalloc((void**)&temp, sizeof(cufftDoubleComplex) * nXY * 4));
+	HANDLE_ERROR(cudaMemsetAsync(in2x, 0, sizeof(cufftDoubleComplex) * nXY * 4, streamLF));
+	HANDLE_ERROR(cudaMemsetAsync(temp, 0, sizeof(cufftDoubleComplex) * nXY * 4, streamLF));
 
-	procMoveToin2x(streamLF, Nx, Ny, RSplane_complex_field_gpu, in2x);
+	procMoveToin2x(streamLF, nX, nY, RSplane_complex_field_gpu, in2x);
 
-	cudaFFT(streamLF, Nx * 2, Ny * 2, in2x, temp, -1, false);
+	cudaFFT(streamLF, nX * 2, nY * 2, in2x, temp, -1, false);
 
 	Real wavelength = context_.wave_length[0];
 	vec2 pp = context_.pixel_pitch;
 
-	procMultiplyProp(streamLF, Nx * 2, Ny * 2, temp, CUDART_PI, distanceRS2Holo, wavelength, pp.v[0], pp.v[1]);
+	procMultiplyProp(streamLF, nX * 2, nY * 2, temp, CUDART_PI, distanceRS2Holo, wavelength, pp.v[0], pp.v[1]);
 
-	HANDLE_ERROR(cudaMemsetAsync(in2x, 0, sizeof(cufftDoubleComplex)*Nx*Ny * 4, streamLF));
-	cudaFFT(streamLF, Nx * 2, Ny * 2, temp, in2x, 1, false);
+	HANDLE_ERROR(cudaMemsetAsync(in2x, 0, sizeof(cufftDoubleComplex)*nX*nY * 4, streamLF));
+	cudaFFT(streamLF, nX * 2, nY * 2, temp, in2x, 1, false);
 
-	HANDLE_ERROR(cudaMemsetAsync(RSplane_complex_field_gpu, 0, sizeof(cufftDoubleComplex)*Nx*Ny, streamLF));
-	procCopyToOut(streamLF, Nx, Ny, in2x, RSplane_complex_field_gpu);
+	HANDLE_ERROR(cudaMemsetAsync(RSplane_complex_field_gpu, 0, sizeof(cufftDoubleComplex) * nXY, streamLF));
+	procCopyToOut(streamLF, nX, nY, in2x, RSplane_complex_field_gpu);
 
-	cufftDoubleComplex* output = (cufftDoubleComplex*)malloc(sizeof(cufftDoubleComplex)*Nx*Ny);
-	memset(output, 0.0, sizeof(cufftDoubleComplex)*Nx*Ny);
-	HANDLE_ERROR(cudaMemcpyAsync(output, RSplane_complex_field_gpu, sizeof(cufftDoubleComplex)*Nx*Ny, cudaMemcpyDeviceToHost), streamLF);
-	for (int i = 0; i < Nx*Ny; ++i)
+	cufftDoubleComplex* output = (cufftDoubleComplex*)malloc(sizeof(cufftDoubleComplex) * nXY);
+	memset(output, 0.0, sizeof(cufftDoubleComplex) * nXY);
+	HANDLE_ERROR(cudaMemcpyAsync(output, RSplane_complex_field_gpu, sizeof(cufftDoubleComplex) * nXY, cudaMemcpyDeviceToHost), streamLF);
+	for (int i = 0; i < nXY; ++i)
 	{
+		if (i == 0) {
+			LOG("complex_H[0]: %lf / %lf\n", output[i].x, output[i].y);
+		}
 		// 1-channel로 코딩. 추후 변경
 		(*complex_H)[i][_RE] = output[i].x;
 		(*complex_H)[i][_IM] = output[i].y;
 	}
-
+	free(output);
 	cudaFree(in2x);
 	cudaFree(temp);
+#ifdef CHECK_PROC_TIME
+	auto end = CUR_TIME;
+	LOG("\n%s : %lf(s)\n\n", __FUNCTION__, ((std::chrono::duration<Real>)(end - begin)).count());
+#endif
 }

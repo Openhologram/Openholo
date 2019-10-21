@@ -203,6 +203,7 @@ private:
 	Real distanceRS2Holo;					/// Distance from Ray Sampling plane to Hologram plane
 	Real fieldLens;
 	bool is_ViewingWindow;
+	int nImages;
 };
 
 
