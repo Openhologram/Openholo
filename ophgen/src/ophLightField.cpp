@@ -365,6 +365,10 @@ void ophLF::convertLF2ComplexField()
 	const int rY = resolution_image[_Y];
 	const int rXY = rX * rY;
 
+	if (RSplane_complex_field) {
+		delete[] RSplane_complex_field;
+		RSplane_complex_field = nullptr;
+	}
 	RSplane_complex_field = new Complex<Real>[nXY * rXY];
 
 	Complex<Real>* complexLF = new Complex<Real>[rXY];
