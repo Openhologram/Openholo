@@ -58,6 +58,7 @@ ophLF::ophLF(void)
 	, distanceRS2Holo(0.0)
 	, is_CPU(true)
 	, is_ViewingWindow(false)
+	, LF(nullptr)
 {
 }
 
@@ -176,7 +177,7 @@ int ophLF::readLFConfig(const char* LF_config) {
 	auto end = CUR_TIME;
 
 	auto during = ((std::chrono::duration<Real>)(end - start)).count();
-
+	initialize();
 	LOG("%.5lfsec...done\n", during);
 	return true;
 }
@@ -304,27 +305,21 @@ void ophLF::generateHologram()
 		"GPU");
 	LOG("3) Transform Viewing Window : %s\n", is_ViewingWindow ? "ON" : "OFF");
 
-	auto start = CUR_TIME;
+	auto begin = CUR_TIME;
 	if (is_CPU)
 	{
 		convertLF2ComplexField();
-		//LOG("convertLF2ComplexField() ... %.5lfsec\n", ((std::chrono::duration<Real>)(CUR_TIME - start)).count());
 		fresnelPropagation(RSplane_complex_field, (*complex_H), distanceRS2Holo);
-		//LOG("fresnelPropagation() ... %.5lfsec\n", ((std::chrono::duration<Real>)(CUR_TIME - start)).count());
 	}
 	else
 	{
 		prepareInputdataGPU();
-		//LOG("prepareInputdataGPU() ... %.5lfsec\n", ((std::chrono::duration<Real>)(CUR_TIME-start)).count());
 		convertLF2ComplexField_GPU();
-		//LOG("convertLF2ComplexField_GPU() ... %.5lfsec\n", ((std::chrono::duration<Real>)(CUR_TIME-start)).count());
 		fresnelPropagation_GPU();
-		//LOG("fresnelPropagation_GPU() ... %.5lfsec\n", ((std::chrono::duration<Real>)(CUR_TIME - start)).count());
-
 	}
 
 	auto end = CUR_TIME;
-	elapsedTime = ((std::chrono::duration<Real>)(end - start)).count();
+	elapsedTime = ((std::chrono::duration<Real>)(end - begin)).count();
 	LOG("Total Elapsed Time: %lf (sec)\n", elapsedTime);
 }
 
@@ -338,58 +333,84 @@ void ophLF::generateHologram()
 //}
 
 
-void ophLF::initializeLF() {
-	cout << "initialize LF..." << endl;
+void ophLF::initializeLF()
+{
+	if (LF) {
+		for (int i = 0; i < nImages; i++) {
+			if (LF[i]) delete[] LF[i];
+		}
+		delete[] LF;
+		LF = nullptr;
+	}
+
 	LF = new uchar*[num_image[_X] * num_image[_Y]];
-
-	for_i(num_image[_X] * num_image[_Y],
-		LF[i] = new uchar[resolution_image[_X] * resolution_image[_Y]];);
-
+	for (int i = 0; i < num_image[_X] * num_image[_Y]; i++) {
+		LF[i] = new uchar[resolution_image[_X] * resolution_image[_Y]];
+		memset(LF[i], 0, resolution_image[_X] * resolution_image[_Y]);
+	}
+	nImages = num_image[_X] * num_image[_Y];
 	cout << "The Number of the Images : " << num_image[_X] * num_image[_Y] << endl;
 }
 
 
 void ophLF::convertLF2ComplexField()
 {
-	int nx = num_image[_X];
-	int ny = num_image[_Y];
-	int rx = resolution_image[_X];
-	int ry = resolution_image[_Y];
+#ifdef CHECK_PROC_TIME
+	auto begin = CUR_TIME;
+#endif
+	const int nX = num_image[_X];
+	const int nY = num_image[_Y];
+	const int nXY = nX * nY;
+	const int rX = resolution_image[_X];
+	const int rY = resolution_image[_Y];
+	const int rXY = rX * rY;
 
-	RSplane_complex_field = new Complex<Real>[nx*ny*rx*ry];
+	RSplane_complex_field = new Complex<Real>[nXY * rXY];
 
-	Complex<Real>* complexLF = new Complex<Real>[rx*ry];
+	Complex<Real>* complexLF = new Complex<Real>[rXY];
 
-	Complex<Real>* FFTLF = new Complex<Real>[rx*ry];
+	Complex<Real>* FFTLF = new Complex<Real>[rXY];
 
 	Real randVal;
 	Complex<Real> phase(0.0, 0.0);
-	for (int idxRx = 0; idxRx < rx; idxRx++) {
-		for (int idxRy = 0; idxRy < ry; idxRy++) {
 
-			for (int idxNy = 0; idxNy < ny; idxNy++) {
-				for (int idxNx = 0; idxNx < nx; idxNx++) {
-
-					(*(complexLF + (idxNx + nx*idxNy))) = (Real)*(*(LF + (idxNx + nx*idxNy)) + (idxRx + rx*idxRy));
+	for (int idxrX = 0; idxrX < rX; idxrX++) { // 192
+		for (int idxrY = 0; idxrY < rY; idxrY++) { // 108
+#if 0
+			complexLF[idxnX + nX*idxnY]
+#else
+			for (int idxnY = 0; idxnY < nY; idxnY++) { // 10
+				for (int idxnX = 0; idxnX < nX; idxnX++) { // 10
+					(*(complexLF + (idxnX + nX*idxnY))) = (Real)*(*(LF + (idxnX + nX*idxnY)) + (idxrX + rX*idxrY));
 				}
 			}
+#endif
 			fft2(num_image, complexLF, OPH_FORWARD, OPH_ESTIMATE);
-			fftwShift(complexLF, FFTLF, nx, ny, OPH_FORWARD);
+#if 1
+			fftwShift(complexLF, FFTLF, nX, nY, OPH_FORWARD);
+#else
+			fftwShift(complexLF, FFTLF, rX, rY, OPH_FORWARD);
+#endif
 			//fftExecute(FFTLF);
 
-			for (int idxNx = 0; idxNx < nx; idxNx++) {
-				for (int idxNy = 0; idxNy < ny; idxNy++) {
+			for (int idxnX = 0; idxnX < nX; idxnX++) { // 10
+				for (int idxnY = 0; idxnY < nY; idxnY++) { // 10
 
-					randVal = rand((Real)0, (Real)1, idxRx*idxRy);
+					randVal = rand((Real)0, (Real)1, idxrX*idxrY);
 					phase(0, 2 * M_PI*randVal);
 
-					*(RSplane_complex_field + nx*rx*ny*idxRy + nx*rx*idxNy + nx*idxRx + idxNx) = *(FFTLF + (idxNx + nx*idxNy))*exp(phase);
+					*(RSplane_complex_field + nXY*rX*idxrY + nX*rX*idxnY + nX*idxrX + idxnX) = *(FFTLF + (idxnX + nX*idxnY))*exp(phase);
 
 				}
 			}		
 		}
 	}
 	delete[] complexLF, FFTLF;
+	fftFree();
+#ifdef CHECK_PROC_TIME
+	auto end = CUR_TIME;
+	LOG("\n%s : %lf(s)\n\n", __FUNCTION__, ((std::chrono::duration<Real>)(end - begin)).count());
+#endif
 }
 
 void ophLF::writeIntensity_gray8_bmp(const char* fileName, int nx, int ny, Complex<Real>* complexvalue, int k)

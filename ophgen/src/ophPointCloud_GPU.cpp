@@ -57,28 +57,32 @@ void ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 	HANDLE_ERROR(cudaGetDeviceProperties(&devProp, devID));
 
 #ifdef __DEBUG_LOG_GPU_SPEC_
-	std::cout << "GPU Spec : " << devProp.name << std::endl;
-	std::cout << "	- Global Memory : " << devProp.totalGlobalMem << std::endl;
-	std::cout << "	- Const Memory : " << devProp.totalConstMem << std::endl;
-	std::cout << "	- Shared Memory / SM : " << devProp.sharedMemPerMultiprocessor << std::endl;
-	std::cout << "	- Shared Memory / Block : " << devProp.sharedMemPerBlock << std::endl;
-	std::cout << "	- SM Counter : " << devProp.multiProcessorCount << std::endl;
-	std::cout << "	- Maximum Threads / SM : " << devProp.maxThreadsPerMultiProcessor << std::endl;
-	std::cout << "	- Maximum Threads / Block : " << devProp.maxThreadsPerBlock << std::endl;
-	std::cout << "	- Maximum Threads of each Dimension of a Block, X : " << devProp.maxThreadsDim[0] << ", Y : " << devProp.maxThreadsDim[1] << ", Z : " << devProp.maxThreadsDim[2] << std::endl;
-	std::cout << "	- Maximum Blocks of each Dimension of a Grid, X : " << devProp.maxGridSize[0] << ", Y : " << devProp.maxGridSize[1] << ", Z : " << devProp.maxGridSize[2] << std::endl;
-	std::cout << "	- Device supports allocating Managed Memory on this system : " << devProp.managedMemory << std::endl;
-	std::cout << std::endl;
+	cout << "GPU Spec : " << devProp.name << endl;
+	cout << " - Global Memory : " << devProp.totalGlobalMem << endl;
+	cout << " - Const Memory : " << devProp.totalConstMem << endl;	
+	cout << "  - MP(Multiprocessor) Count : " << devProp.multiProcessorCount << endl;
+	cout << "  - Maximum Threads per MP : " << devProp.maxThreadsPerMultiProcessor << endl;
+	cout << "  - Shared Memory per MP : " << devProp.sharedMemPerMultiprocessor << endl;
+	cout << "   - Block per MP : " << devProp.maxThreadsPerMultiProcessor/devProp.maxThreadsPerBlock << endl;
+	
+	cout << "   - Shared Memory per Block : " << devProp.sharedMemPerBlock << endl;
+	cout << "   - Maximum Threads per Block : " << devProp.maxThreadsPerBlock << endl;
+	printf("   - Maximum Threads of each Dimension of a Block (X: %d / Y: %d / Z: %d)\n", 
+		devProp.maxThreadsDim[0], devProp.maxThreadsDim[1], devProp.maxThreadsDim[2]);
+	printf("   - Maximum Blocks of each Dimension of a Grid, (X: %d / Y: %d / Z: %d)\n", 
+		devProp.maxGridSize[0], devProp.maxGridSize[1], devProp.maxGridSize[2]);
+	cout << "   - Device supports allocating Managed Memory on this system : " << devProp.managedMemory << endl;
+	cout << endl;
 #endif
 
 	bool bSupportDouble = false;
 
 	const ulonglong n_pixels = this->context_.pixel_number[_X] * this->context_.pixel_number[_Y];
-	const int blockSize = 512; //n_threads
+	const int blockSize = 512; //n_threads // blockSize < devProp.maxThreadsPerBlock
 	const ulonglong gridSize = (n_pixels + blockSize - 1) / blockSize; //n_blocks
 
-	std::cout << ">>> All " << blockSize * gridSize << " threads in CUDA" << std::endl;
-	std::cout << ">>> " << blockSize << " threads/block, " << gridSize << " blocks/grid" << std::endl;
+	cout << ">>> All " << blockSize * gridSize << " threads in CUDA" << endl;
+	cout << ">>> " << blockSize << " threads/block, " << gridSize << " blocks/grid" << endl;
 
 	//const int n_streams = OPH_CUDA_N_STREAM;
 	int n_streams;
@@ -181,9 +185,14 @@ void ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 		}
 
 		int stream_points = this->n_points / n_streams;
+		int remainder = this->n_points % n_streams;
+
 		int offset = 0;
 		for (int i = 0; i < n_streams; ++i) {
 			offset = i * stream_points;
+			if (i == n_streams - 1) { // 마지막 스트림 연산 시,
+				stream_points += remainder;
+			}
 
 #ifdef USE_ASYNC
 			HANDLE_ERROR(cudaMemcpyAsync(device_pc_data + 3 * offset, host_pc_data + 3 * offset, stream_points * 3 * sizeof(Real), cudaMemcpyHostToDevice));
@@ -212,7 +221,7 @@ void ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 					(*complex_H)[n][_IM] += host_dst[n + n_pixels];
 #endif
 					if (n == 0) {
-						LOG("GPU > %f / %f\n", host_dst[n], host_dst[n + n_pixels]);
+						LOG("GPU > %.16f / %.16f\n", host_dst[n], host_dst[n + n_pixels]);
 					}
 				}
 				break;

@@ -526,19 +526,21 @@ bool ophGen::readConfig(const char* fname, OphWRPConfig& configdata)
 */
 void ophGen::propagationAngularSpectrum(Complex<Real>* input_u, Real propagation_dist)
 {
-	int pnX = context_.pixel_number[_X];
-	int pnY = context_.pixel_number[_Y];
-	Real ppX = context_.pixel_pitch[_X];
-	Real ppY = context_.pixel_pitch[_Y];
-	Real ssX = context_.ss[_X];
-	Real ssY = context_.ss[_Y];
+	const int pnX = context_.pixel_number[_X];
+	const int pnY = context_.pixel_number[_Y];
+	const Real ppX = context_.pixel_pitch[_X];
+	const Real ppY = context_.pixel_pitch[_Y];
+	const Real ssX = context_.ss[_X];
+	const Real ssY = context_.ss[_Y];
 
 #ifndef USE_3CHANNEL
-	Real lambda = context_.wave_length[0];
+	int k = 0;
+	Real lambda = context_.wave_length[k];
 #else
 	for (int k = 0; k < nColor; k++) {
 		Real lambda = context_.wave_length[k];
 #endif
+
 		for (int i = 0; i < pnX * pnY; i++) {
 			Real x = i % pnX;
 			Real y = i / pnX;
@@ -556,17 +558,10 @@ void ophGen::propagationAngularSpectrum(Complex<Real>* input_u, Real propagation
 			Complex<Real> u_frequency;
 			if (prop_mask == 1)
 				u_frequency = kernel * input_u[i];
-#ifdef USE_3CHANNEL
 #pragma omp atomic
 			complex_H[k][i][_RE] += u_frequency[_RE];
 #pragma omp atomic
 			complex_H[k][i][_IM] += u_frequency[_IM];
-#else
-#pragma omp atomic
-			(*complex_H)[i][_RE] += u_frequency[_RE];
-#pragma omp atomic
-			(*complex_H)[i][_IM] += u_frequency[_IM];
-#endif
 		}
 #ifdef USE_3CHANNEL
 	}
@@ -592,6 +587,12 @@ int ophGen::save(const char * fname, uint8_t bitsperpixel, uchar* src, uint px, 
 
 	if (checkExtension(fname, ".bmp")) 	// when the extension is bmp
 		return Openholo::saveAsImg(fname, bitsperpixel, source, p[_X], p[_Y]);
+	else if (
+		checkExtension(fname, ".jpg") ||
+		checkExtension(fname, ".gif") || 
+		checkExtension(fname, ".png")) {
+		return Openholo::saveAsImg(fname, bitsperpixel, source, p[_X], p[_Y]);
+	}
 	else {									// when extension is not .ohf, .bmp - force bmp
 		char buf[256];
 		memset(buf, 0x00, sizeof(char) * 256);
@@ -658,8 +659,8 @@ int ophGen::loadAsOhc(const char * fname)
 
 void ophGen::resetBuffer()
 {
-	uint nWidth = context_.pixel_number[_X];
-	uint nHeight = context_.pixel_number[_Y];
+	const uint pnX = context_.pixel_number[_X];
+	const uint pnY = context_.pixel_number[_Y];
 #ifdef USE_3CHANNEL
 	for (uint i = 0; i < context_.waveNum; i++) {
 		if(complex_H[i])
@@ -667,7 +668,7 @@ void ophGen::resetBuffer()
 	}
 #else
 	if((*complex_H))
-		memset((*complex_H), 0., sizeof(Complex<Real>) * nWidth * nHeight);
+		memset((*complex_H), 0., sizeof(Complex<Real>) * pnX * pnY);
 	if(holo_encoded)
 		memset(holo_encoded, 0., sizeof(Real) * encode_size[_X] * encode_size[_Y]);
 	if(holo_normalized)
@@ -1160,70 +1161,80 @@ void ophGen::fresnelPropagation(OphConfig context, Complex<Real>* in, Complex<Re
 	delete[] temp3;
 }
 
-void ophGen::fresnelPropagation(Complex<Real>* in, Complex<Real>* out, Real distance) {
+void ophGen::fresnelPropagation(Complex<Real>* in, Complex<Real>* out, Real distance)
+{
+	LOG("CPU => %lf / %lf\n", in[0][_RE], in[0][_IM]);
+#ifdef CHECK_PROC_TIME
+	auto begin = CUR_TIME;
+#endif
+	const int nX = context_.pixel_number[_X];
+	const int nY = context_.pixel_number[_Y];
+	const int nXY = nX * nY;
 
-	int Nx = context_.pixel_number[_X];
-	int Ny = context_.pixel_number[_Y];
-
-	Complex<Real>* in2x = new Complex<Real>[Nx*Ny * 4];
+	Complex<Real>* in2x = new Complex<Real>[nXY * 4];
 	Complex<Real> zero(0, 0);
-	oph::memsetArr<Complex<Real>>(in2x, zero, 0, Nx*Ny * 4 - 1);
+	oph::memsetArr<Complex<Real>>(in2x, zero, 0, nXY * 4 - 1);
 
 	uint idxIn = 0;
 
-	for (int idxNy = Ny / 2; idxNy < Ny + (Ny / 2); idxNy++) {
-		for (int idxNx = Nx / 2; idxNx < Nx + (Nx / 2); idxNx++) {
+	for (int idxnY = nY / 2; idxnY < nY + (nY / 2); idxnY++) {
+		for (int idxnX = nX / 2; idxnX < nX + (nX / 2); idxnX++) {
 
-			in2x[idxNy*Nx * 2 + idxNx] = in[idxIn];
+			in2x[idxnY*nX * 2 + idxnX] = in[idxIn];
 			idxIn++;
 		}
 	}
 
-	Complex<Real>* temp1 = new Complex<Real>[Nx*Ny * 4];
+	Complex<Real>* temp1 = new Complex<Real>[nXY * 4];
 
-	fft2({ Nx * 2, Ny * 2 }, in2x, OPH_FORWARD, OPH_ESTIMATE);
-	fftwShift(in2x, temp1, Nx*2, Ny*2, OPH_FORWARD, false);
+	fft2({ nX * 2, nY * 2 }, in2x, OPH_FORWARD, OPH_ESTIMATE);
+	fftwShift(in2x, temp1, nX*2, nY*2, OPH_FORWARD, false);
 
-	Real* fx = new Real[Nx*Ny * 4];
-	Real* fy = new Real[Nx*Ny * 4];
+	Real* fx = new Real[nXY * 4];
+	Real* fy = new Real[nXY * 4];
 
 	uint i = 0;
-	for (int idxFy = -Ny; idxFy < Ny; idxFy++) {
-		for (int idxFx = -Nx; idxFx < Nx; idxFx++) {
-			fx[i] = idxFx / (2 * Nx*context_.pixel_pitch[_X]);
-			fy[i] = idxFy / (2 * Ny*context_.pixel_pitch[_Y]);
+	for (int idxFy = -nY; idxFy < nY; idxFy++) {
+		for (int idxFx = -nX; idxFx < nX; idxFx++) {
+			fx[i] = idxFx / (2 * nX*context_.pixel_pitch[_X]);
+			fy[i] = idxFy / (2 * nY*context_.pixel_pitch[_Y]);
 			i++;
 		}
 	}
 
-	Complex<Real>* prop = new Complex<Real>[Nx*Ny * 4];
-	oph::memsetArr<Complex<Real>>(prop, zero, 0, Nx*Ny * 4 - 1);
+	Complex<Real>* prop = new Complex<Real>[nXY * 4];
+	oph::memsetArr<Complex<Real>>(prop, zero, 0, nXY * 4 - 1);
 
 	Real sqrtPart;
 
-	Complex<Real>* temp2 = new Complex<Real>[Nx*Ny * 4];
+	Complex<Real>* temp2 = new Complex<Real>[nXY * 4];
 
-	for (int i = 0; i < Nx*Ny * 4; i++) {
+	for (int i = 0; i < nXY * 4; i++) {
 		sqrtPart = sqrt(1 / (context_.wave_length[0]*context_.wave_length[0]) - fx[i] * fx[i] - fy[i] * fy[i]);
 		prop[i][_IM] = 2 * M_PI * distance;
 		prop[i][_IM] *= sqrtPart;
 		temp2[i] = temp1[i] * exp(prop[i]);
 	}
 
-	Complex<Real>* temp3 = new Complex<Real>[Nx*Ny * 4];
-	fft2({ Nx * 2, Ny * 2 }, temp2, OPH_BACKWARD, OPH_ESTIMATE);
-	fftwShift(temp2, temp3, Nx * 2, Ny * 2, OPH_BACKWARD, false);
+	Complex<Real>* temp3 = new Complex<Real>[nXY * 4];
+	fft2({ nX * 2, nY * 2 }, temp2, OPH_BACKWARD, OPH_ESTIMATE);
+	fftwShift(temp2, temp3, nX * 2, nY * 2, OPH_BACKWARD, false);
 
 	uint idxOut = 0;
-
-	for (int idxNy = Ny / 2; idxNy < Ny + (Ny / 2); idxNy++) {
-		for (int idxNx = Nx / 2; idxNx < Nx + (Nx / 2); idxNx++) {
-
-			out[idxOut] = temp3[idxNy*Nx * 2 + idxNx];
-			idxOut++;
+	// 540 ~ 1620
+	// 960 ~ 2880
+	// 540 * 1920 * 2 + 960
+	for (int idxnY = nY / 2; idxnY < nY + (nY / 2); idxnY++) {
+		for (int idxnX = nX / 2; idxnX < nX + (nX / 2); idxnX++) {
+			if (idxOut == 0) {
+				LOG("complex_H[0]: %lf / %lf\n",
+					temp3[idxnY * nX * 2 + idxnX][_RE],
+					temp3[idxnY * nX * 2 + idxnX][_IM]);
+			}
+			out[idxOut++] = temp3[idxnY*nX * 2 + idxnX];
 		}
 	}
-
+	delete[] in;
 	delete[] in2x;
 	delete[] temp1;
 	delete[] fx;
@@ -1231,6 +1242,10 @@ void ophGen::fresnelPropagation(Complex<Real>* in, Complex<Real>* out, Real dist
 	delete[] prop;
 	delete[] temp2;
 	delete[] temp3;
+#ifdef CHECK_PROC_TIME
+	auto end = CUR_TIME;
+	LOG("\n%s : %lf(s)\n\n", __FUNCTION__, ((std::chrono::duration<Real>)(end - begin)).count());
+#endif
 }
 
 void ophGen::testSLM(const char* encodedIMG, unsigned int SLM_TYPE, Real pixelPitch, Real waveLength, Real distance) {
@@ -1314,7 +1329,8 @@ void ophGen::testSLM(const char* encodedIMG, unsigned int SLM_TYPE, Real pixelPi
 	fresnelPropagation(encodedSLM, reconData, distance);
 
 	initialize();
-	for (uint i = 0; i < context_.pixel_number[_X] * context_.pixel_number[_Y]; i++) {
+	ulonglong pnXY = context_.pixel_number[_X] * context_.pixel_number[_Y];
+	for (ulonglong i = 0; i < pnXY; i++) {
 		holo_encoded[i] = sqrt(reconData[i]._Val[_RE] * reconData[i]._Val[_RE] + reconData[i]._Val[_IM] * reconData[i]._Val[_IM]);
 	}
 

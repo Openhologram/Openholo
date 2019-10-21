@@ -66,16 +66,20 @@ void ophWRP::setViewingWindow(bool is_ViewingWindow)
 
 void ophWRP::autoScaling()
 {
-	LOG(">>> Transform Viewing Window : %s\n", is_ViewingWindow ? "ON" : "OFF");
-	m_begin = CUR_TIME;
-	long long int Nx = context_.pixel_number.v[0];
-	long long int Ny = context_.pixel_number.v[1];
-
+#ifdef CHECK_PROC_TIME
+	auto begin = CUR_TIME;
+#endif
+	const uint pnX = context_.pixel_number[_X];
+	const uint pnY = context_.pixel_number[_Y];
+#ifndef USE_3CHANNEL
 	Real wave_len = context_.wave_length[0];
-	Real wpx = context_.pixel_pitch.v[0];//wrp pitch
-	Real wpy = context_.pixel_pitch.v[1];
+#else
 
-	Real size = Ny * wpy * 0.8 / 2;
+#endif
+	const Real ppX = context_.pixel_pitch[_X];//wrp pitch
+	const Real ppY = context_.pixel_pitch[_Y];
+
+	Real size = pnY * ppY * 0.8 / 2.0;
 
 	OphPointCloudData pc = obj_;
 
@@ -104,29 +108,21 @@ void ophWRP::autoScaling()
 #endif
 		for (j = 0; j < n_points; ++j) { //Create Fringe Pattern
 			uint idx = 3 * j;
-			if (xmax > ymax)
-			{
-				pc.vertex[idx + _X] = pc.vertex[idx + _X] / xmax * size;
-				pc.vertex[idx + _Y] = pc.vertex[idx + _Y] / xmax * size;
-			}
-			else
-			{
-				pc.vertex[idx + _X] = pc.vertex[idx + _X] / ymax * size;
-				pc.vertex[idx + _Y] = pc.vertex[idx + _Y] / ymax * size;
-			}
+			Real maxXY = (xmax > ymax) ? xmax : ymax;
+			pc.vertex[idx + _X] = pc.vertex[idx + _X] / maxXY * size;
+			pc.vertex[idx + _Y] = pc.vertex[idx + _Y] / maxXY * size;
 			pc.vertex[idx + _Z] = pc.vertex[idx + _Z] / zmax * size;
 			z[j] = pc.vertex[idx + _Z];
-
 		}
 #ifdef _OPENMP
 	}
 	std::cout << ">>> All " << num_threads << " threads" << std::endl;
 #endif
 	zmax_ = maxOfArr(z, n_points);
-
-	auto time_finish = CUR_TIME;
-	auto during = ((std::chrono::duration<Real>)(time_finish - m_begin)).count();
-	LOG("%s(%d) => Elapsed Time : %.5lf (s)\n", __FUNCTION__, __LINE__, during);
+#ifdef CHECK_PROC_TIME
+	auto end = CUR_TIME;
+	LOG("\n%s : %lf(s)\n\n", __FUNCTION__, ((std::chrono::duration<Real>)(end - begin)).count());
+#endif
 }
 
 int ophWRP::loadPointCloud(const char* pc_file)
@@ -141,7 +137,7 @@ bool ophWRP::readConfig(const char* cfg_file)
 {
 	if (!ophGen::readConfig(cfg_file, pc_config_))
 		return false;
-
+	initialize();
 	return true;
 }
 
@@ -264,28 +260,24 @@ void ophWRP::calculateWRP()
 	{
 		calculateWRPGPU();
 	}
-	LOG("***** %.5lf / %.5lf\n", p_wrp_[0]._Val[_RE], p_wrp_[0]._Val[_IM]);
-
 }
 
 double ophWRP::calculateWRPCPU(void)
 {
-	resetBuffer();
-	auto time_start = CUR_TIME;
+#ifdef CHECK_PROC_TIME
+	auto begin = CUR_TIME;
+#endif
 	Real wave_num = context_.k;   // wave_number
 	Real wave_len = context_.wave_length[0];  //wave_length
 
-	int Nx = context_.pixel_number.v[0]; //slm_pixelNumberX
-	int Ny = context_.pixel_number.v[1]; //slm_pixelNumberY
-
-	encode_size = context_.pixel_number;
-
-	Real wpx = context_.pixel_pitch.v[0];//wrp pitch
-	Real wpy = context_.pixel_pitch.v[1];
+	const uint pnX = context_.pixel_number[_X]; //slm_pixelNumberX
+	const uint pnY = context_.pixel_number[_Y]; //slm_pixelNumberY
+	const Real ppX = context_.pixel_pitch[_X]; //wrp pitch
+	const Real ppY = context_.pixel_pitch[_Y];
 
 
-	int Nx_h = Nx >> 1;
-	int Ny_h = Ny >> 1;
+	int pnX_h = pnX >> 1;
+	int pnY_h = pnY >> 1;
 
 	OphPointCloudData pc = obj_;
 	Real wrp_d = pc_config_.wrp_location;
@@ -317,21 +309,21 @@ double ophWRP::calculateWRPCPU(void)
 			Real amplitude = pc.color[color_idx];
 
 			float dz = wrp_d - z;
-			float tw = (int)fabs(wave_len*dz / wpx / wpx / 2 + 0.5) * 2 - 1;
-			//	float tw = fabs(dz)*wave_len / wpx / wpx / 2;
+			float tw = (int)fabs(wave_len*dz / ppX / ppX / 2 + 0.5) * 2 - 1;
+			//	float tw = fabs(dz)*wave_len / ppX / ppX / 2;
 
 			int w = (int)tw;
 
-			int tx = (int)(x / wpx) + Nx_h;
-			int ty = (int)(y / wpy) + Ny_h;
+			int tx = (int)(x / ppX) + pnX_h;
+			int ty = (int)(y / ppY) + pnY_h;
 
 			//cout << "num = " << k << ", tx = " << tx << ", ty = " << ty << ", w = " << w << endl;
 
 			for (int wy = -w; wy < w; wy++) {
 				for (int wx = -w; wx < w; wx++) {//WRP coordinate
 
-					double dx = wx * wpx;
-					double dy = wy * wpy;
+					double dx = wx * ppX;
+					double dy = wy * ppY;
 					double dz = wrp_d - z;
 
 					double sign = (dz > 0.0) ? (1.0) : (-1.0);
@@ -341,7 +333,7 @@ double ophWRP::calculateWRPCPU(void)
 					oph::Complex<Real> tmp;
 					tmp._Val[_RE] = (amplitude * cosf(wave_num*r) * cosf(wave_num*wave_len*rand(0, 1))) / r;
 					tmp._Val[_IM] = (-amplitude * sinf(wave_num*r) * sinf(wave_num*wave_len*rand(0, 1))) / r;
-					if (tx + wx >= 0 && tx + wx < Nx && ty + wy >= 0 && ty + wy < Ny)
+					if (tx + wx >= 0 && tx + wx < pnX && ty + wy >= 0 && ty + wy < pnY)
 						addPixel2WRP(wx + tx, wy + ty, tmp);
 				}
 			}
@@ -351,12 +343,11 @@ double ophWRP::calculateWRPCPU(void)
 	std::cout << ">>> All " << num_threads << " threads" << std::endl;
 #endif
 
-	auto time_finish = CUR_TIME;
-
-	auto during = ((std::chrono::duration<Real>)(time_finish - time_start)).count();
-	LOG("%s(%d) => Elapsed Time : %.5lf (s)\n", __FUNCTION__, __LINE__, during);
-	return during;
-
+#ifdef CHECK_PROC_TIME
+	auto end = CUR_TIME;
+	LOG("\n%s : %lf(s)\n\n", __FUNCTION__, ((std::chrono::duration<Real>)(end - begin)).count());
+#endif
+	return 0.;
 }
 
 void ophWRP::generateHologram(void)
@@ -379,20 +370,15 @@ void ophWRP::generateHologram(void)
 	LOG("3) Transform Viewing Window : %s\n", is_ViewingWindow ? "ON" : "OFF");
 
 	auto begin = CUR_TIME;
-	Real distance = pc_config_.propagation_distance;
-	if(is_CPU)
-	{
-		fresnelPropagation(p_wrp_, (*complex_H), distance);
-	}
-	else
-	{
-		fresnelPropagation(p_wrp_, (*complex_H), distance);
-	}
-	m_end = CUR_TIME;
 
-	auto during = ((std::chrono::duration<Real>)(m_end - begin)).count();
-	elapsedTime = ((std::chrono::duration<Real>)(m_end - m_begin)).count();
-	LOG("%s(%d) => Elapsed Time : %lf (sec)\n", __FUNCTION__, __LINE__, during);
+	autoScaling();
+	is_CPU ? calculateWRPCPU() : calculateWRPGPU();
+	Real distance = pc_config_.propagation_distance;
+	
+	fresnelPropagation(p_wrp_, (*complex_H), distance);
+	auto end = CUR_TIME;
+	elapsedTime = ((std::chrono::duration<Real>)(end - begin)).count();
+
 	LOG("Total Elapsed Time: %lf (s)\n", elapsedTime);
 }
 

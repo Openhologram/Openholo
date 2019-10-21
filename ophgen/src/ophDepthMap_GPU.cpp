@@ -99,13 +99,19 @@ void ophDepthMap::initGPU()
 */
 bool ophDepthMap::prepareInputdataGPU(uchar* imgptr, uchar* dimgptr)
 {
+#ifdef CHECK_PROC_TIME
+	auto begin = CUR_TIME;
+#endif
 	uint pnX = context_.pixel_number[_X];
 	uint pnY = context_.pixel_number[_Y];
 	const ulonglong pnXY = pnX * pnY;
 	
 	HANDLE_ERROR(cudaMemcpyAsync(img_src_gpu, imgptr, sizeof(uchar1)*pnXY, cudaMemcpyHostToDevice), stream_);
 	HANDLE_ERROR(cudaMemcpyAsync(dimg_src_gpu, dimgptr, sizeof(uchar1)*pnXY, cudaMemcpyHostToDevice), stream_);
-	
+#ifdef CHECK_PROC_TIME
+	auto end = CUR_TIME;
+	LOG("\n%s : %lf(s)\n\n", __FUNCTION__, ((std::chrono::duration<Real>)(end - begin)).count());
+#endif
 	return true;
 }
 
@@ -116,14 +122,17 @@ bool ophDepthMap::prepareInputdataGPU(uchar* imgptr, uchar* dimgptr)
 */
 void ophDepthMap::changeDepthQuanGPU()
 {
-	int pnX = context_.pixel_number[_X];
-	int pnY = context_.pixel_number[_Y];
+#ifdef CHECK_PROC_TIME
+	auto begin = CUR_TIME;
+#endif
+	const uint pnX = context_.pixel_number[_X];
+	const uint pnY = context_.pixel_number[_Y];
 
 	Real temp_depth, d1, d2;
 
 	HANDLE_ERROR(cudaMemsetAsync(depth_index_gpu, 0, sizeof(Real)*pnX*pnY, stream_));
 
-	for (oph::uint dtr = 0; dtr < dm_config_.num_of_depth; dtr++)
+	for (uint dtr = 0; dtr < dm_config_.num_of_depth; dtr++)
 	{
 		temp_depth = dlevel[dtr];
 		d1 = temp_depth - dstep / 2.0;
@@ -132,6 +141,10 @@ void ophDepthMap::changeDepthQuanGPU()
 		cudaChangeDepthQuanKernel(stream_, pnX, pnY, depth_index_gpu, dimg_src_gpu, 
 			dtr, d1, d2, dm_config_.num_of_depth, dm_config_.far_depthmap, dm_config_.near_depthmap);
 	}
+#ifdef CHECK_PROC_TIME
+	auto end = CUR_TIME;
+	LOG("\n%s : %lf(s)\n\n", __FUNCTION__, ((std::chrono::duration<Real>)(end - begin)).count());
+#endif
 }
 
 /**
@@ -149,6 +162,9 @@ void ophDepthMap::changeDepthQuanGPU()
 */
 void ophDepthMap::calcHoloGPU(void)
 {
+#ifdef CHECK_PROC_TIME
+	auto begin = CUR_TIME;
+#endif
 	if (!stream_)
 		cudaStreamCreate(&stream_);
 
@@ -194,6 +210,10 @@ void ophDepthMap::calcHoloGPU(void)
 	}
 
 	delete[] p_holo_gen;
+#ifdef CHECK_PROC_TIME;
+	auto end = CUR_TIME;
+	LOG("\n%s : %lf(s)\n\n", __FUNCTION__, ((std::chrono::duration<Real>)(end - begin)).count());
+#endif
 }
 
 /**

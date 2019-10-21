@@ -54,7 +54,6 @@
 
 #include	"include.h"
 
-//#define CHANGE_CALC
 /** 
 * @brief Constructor
 * @details Initialize variables.
@@ -453,6 +452,9 @@ void ophDepthMap::initCPU()
 */
 bool ophDepthMap::prepareInputdataCPU(uchar* imgptr, uchar* dimgptr)
 {
+#ifdef CHECK_PROC_TIME
+	auto begin = CUR_TIME;
+#endif
 	const int pnX = context_.pixel_number[_X];
 	const int pnY = context_.pixel_number[_Y];
 
@@ -464,7 +466,6 @@ bool ophDepthMap::prepareInputdataCPU(uchar* imgptr, uchar* dimgptr)
 
 	Real nearDepth = dm_config_.near_depthmap;
 
-	auto begin = CUR_TIME;
 	int k = 0;
 #ifdef _OPENMP
 #pragma omp parallel
@@ -488,11 +489,14 @@ bool ophDepthMap::prepareInputdataCPU(uchar* imgptr, uchar* dimgptr)
 #ifdef _OPENMP
 	}
 #endif
+#ifdef CHECK_PROC_TIME
 	auto end = CUR_TIME;
 	LOG("\n%s : %lf(s)\n\n", __FUNCTION__, ((std::chrono::duration<Real>)(end - begin)).count());
+#endif
 	return true;
 }
 
+#define DOUBLE_PARALLEL
 /**
 * @brief Quantize depth map on the CPU, when the number of depth quantization is not the default value (i.e. FLAG_CHANGE_DEPTH_QUANTIZATION == 1 ).
 * @details Calculate the value of 'depth_index_'.
@@ -500,24 +504,26 @@ bool ophDepthMap::prepareInputdataCPU(uchar* imgptr, uchar* dimgptr)
 */
 void ophDepthMap::changeDepthQuanCPU()
 {
-	const int pnX = context_.pixel_number[_X];
-	const int pnY = context_.pixel_number[_Y];
+#ifdef CHECK_PROC_TIME
+	auto begin = CUR_TIME;
+#endif
+	const uint pnX = context_.pixel_number[_X];
+	const uint pnY = context_.pixel_number[_Y];
 	ulonglong pnXY = pnX * pnY;
-#ifdef CHANGE_CALC
+
+#ifdef DOUBLE_PARALLEL
 	int dtr;
 #else
 	Real temp_depth, d1, d2;
 #endif
 	//int tdepth;
 
-	auto begin = CUR_TIME;
 #ifdef _OPENMP
-#ifdef CHANGE_CALC
+#ifdef DOUBLE_PARALLEL
 #pragma omp	parallel
 	{
 		int tid = omp_get_thread_num();
 #pragma omp for private(dtr)
-
 		for (dtr = 0; dtr < dm_config_.num_of_depth; ++dtr) {
 #else
 		for (uint dtr = 0; dtr < dm_config_.num_of_depth; ++dtr) {
@@ -525,7 +531,7 @@ void ophDepthMap::changeDepthQuanCPU()
 #else
 		for (uint dtr = 0; dtr < dm_config_.num_of_depth; ++dtr) {
 #endif
-#ifdef CHANGE_CALC
+#ifdef DOUBLE_PARALLEL
 			Real temp_depth = dlevel[dtr];
 			Real d1 = temp_depth - dstep / 2.0;
 			Real d2 = temp_depth + dstep / 2.0;
@@ -535,7 +541,7 @@ void ophDepthMap::changeDepthQuanCPU()
 			d2 = temp_depth + dstep / 2.0;
 #endif
 #ifdef _OPENMP
-#ifndef CHANGE_CALC
+#ifndef DOUBLE_PARALLEL
 		int p;
 #pragma omp	parallel
 		{
@@ -548,21 +554,31 @@ void ophDepthMap::changeDepthQuanCPU()
 #else
 			for (ulonglong p = 0; p < pnXY; ++p) {
 #endif
+#ifdef DOUBLE_PARALLEL
+				Real dmap = 0.;
+#pragma omp atomic
+				dmap += (1.0 - dmap_src[p])*(dm_config_.far_depthmap - dm_config_.near_depthmap) + dm_config_.near_depthmap;
+#else
 				Real dmap = (1.0 - dmap_src[p])*(dm_config_.far_depthmap - dm_config_.near_depthmap) + dm_config_.near_depthmap;
+#endif
 				int tdepth;
 				if (dtr < dm_config_.num_of_depth - 1)
 					tdepth = (dmap >= d1 ? 1 : 0) * (dmap < d2 ? 1 : 0);
 				else
 					tdepth = (dmap >= d1 ? 1 : 0) * (dmap <= d2 ? 1 : 0);
-
+#ifdef DOUBLE_PARALLEL
+#pragma omp atomic
+#endif
 				depth_index[p] += tdepth * (dtr + 1);
 			}
 		}
 #ifdef _OPENMP
 	}
 #endif
+#ifdef CHECK_PROC_TIME
 	auto end = CUR_TIME;
 	LOG("\n%s : %lf(s)\n\n", __FUNCTION__, ((std::chrono::duration<Real>)(end - begin)).count());
+#endif
 	//writeIntensity_gray8_bmp("test.bmp", pnX, pnY, depth_index_);
 }
 
@@ -580,16 +596,20 @@ void ophDepthMap::changeDepthQuanCPU()
 */
 void ophDepthMap::calcHoloCPU()
 {
-	const int pnX = context_.pixel_number[_X];
-	const int pnY = context_.pixel_number[_Y];
+#ifdef CHECK_PROC_TIME
+	auto begin = CUR_TIME;
+#endif
+	const uint pnX = context_.pixel_number[_X];
+	const uint pnY = context_.pixel_number[_Y];
 
 	size_t depth_sz = dm_config_.render_depth.size();
 
 	Complex<Real> *in = nullptr, *out = nullptr;
 	fft2(ivec2(pnX, pnY), in, OPH_FORWARD, OPH_ESTIMATE);
-	int total = 0;
 	int p = 0;
+
 #ifdef _OPENMP
+
 #pragma omp parallel
 	{
 #pragma omp master // 한 개의 스레드에서만 실행
@@ -602,43 +622,30 @@ void ophDepthMap::calcHoloCPU()
 				nThreads * sizeof(Complex<Real>) * pnX * pnY);
 		}
 		int tid = omp_get_thread_num();
-#pragma omp for private(p) reduction(+:total)
+#pragma omp for private(p)
 #endif
 		for (p = 0; p < depth_sz; ++p)
 		{
 			int dtr = dm_config_.render_depth[p];
+#ifdef _OPENMP
+			Real temp_depth = 0.0;
+#pragma omp atomic
+			temp_depth += (is_ViewingWindow) ? dlevel_transform[dtr - 1] : dlevel[dtr - 1];
+#else
 			Real temp_depth = (is_ViewingWindow) ? dlevel_transform[dtr - 1] : dlevel[dtr - 1];
-		
+#endif	
 			Complex<Real>* u_o = (Complex<Real>*)malloc(sizeof(Complex<Real>)*pnX*pnY);
 			memset(u_o, 0.0, sizeof(Complex<Real>)*pnX*pnY);
 
 			Real sum = 0.0;
 			for (int i = 0; i < pnX * pnY; i++)
 			{
-#if 0
-				Real locSum = 0.0;
-#ifdef _OPENMP
-#pragma omp atomic
-#endif
-				locSum += img_src[i] * alpha_map[i] * (depth_index[i] == dtr ? 1.0 : 0.0);
-
-				u_o[i]._Val[_RE] = locSum;
-				
-#else
 				u_o[i]._Val[_RE] = img_src[i] * alpha_map[i] * (depth_index[i] == dtr ? 1.0 : 0.0);
-#endif
-				//if (p == 128 && (u_o[i]._Val[_RE] > 0.0)) {
-				//	LOG("(%d) %lf / %d / %lf / %d\n", i, img_src[i], alpha_map[i], depth_index[i], dtr);
-				//}
 				sum += u_o[i]._Val[_RE];
-			}
-			if (p == 128) {
-				LOG("%lf\n", sum);
 			}
 
 			if (sum > 0.0)
 			{
-				total += 1;
 				//LOG("Depth: %d of %d, z = %f mm\n", dtr, dm_config_.num_of_depth, -temp_depth * 1000);
 				Complex<Real> rand_phase_val;
 				getRandPhaseValue(rand_phase_val, dm_config_.RANDOM_PHASE);
@@ -663,7 +670,10 @@ void ophDepthMap::calcHoloCPU()
 #ifdef _OPENMP
 	}
 #endif
-	LOG("%d\n", total);
+#ifdef CHECK_PROC_TIME
+	auto end = CUR_TIME;
+	LOG("\n%s : %lf(s)\n\n", __FUNCTION__, ((std::chrono::duration<Real>)(end - begin)).count());
+#endif
 }
 
 void ophDepthMap::ophFree(void)

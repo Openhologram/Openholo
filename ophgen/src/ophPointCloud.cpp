@@ -108,7 +108,7 @@ Real ophPointCloud::generateHologram(uint diff_flag)
 	GlobalMemoryStatus(&memStatus);
 	LOG("\n*Available Memory: %u (byte)\n", memStatus.dwAvailVirtual);
 
-	auto start_time = CUR_TIME;
+	auto begin = CUR_TIME;
 	LOG("1) Algorithm Method : Point Cloud\n");
 	LOG("2) Generate Hologram with %s\n", is_CPU ? 
 #ifdef _OPENMP
@@ -128,9 +128,9 @@ Real ophPointCloud::generateHologram(uint diff_flag)
 		genCghPointCloudGPU(diff_flag);
 	}
 
-	auto end_time = CUR_TIME;
+	auto end = CUR_TIME;
 
-	elapsedTime = ((std::chrono::duration<Real>)(end_time - start_time)).count();
+	elapsedTime = ((std::chrono::duration<Real>)(end - begin)).count();
 
 	LOG("Total Elapsed Time: %lf (s)\n", elapsedTime);
 	return elapsedTime;
@@ -234,6 +234,9 @@ void ophPointCloud::transVW(int nSize, Real *dst, Real *src)
 
 void ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 {
+#ifdef CHECK_PROC_TIME
+	auto begin = CUR_TIME;
+#endif
 	// Output Image Size
 	ivec2 pn;
 	pn[_X] = context_.pixel_number[_X];
@@ -309,6 +312,10 @@ void ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 #endif
 	}
 	std::cout << ">>> All " << num_threads << " threads" << std::endl;
+#endif
+#ifdef CHECK_PROC_TIME
+	auto end = CUR_TIME;
+	LOG("\n%s : %lf(s)\n\n", __FUNCTION__, ((std::chrono::duration<Real>)(end - begin)).count());
 #endif
 }
 

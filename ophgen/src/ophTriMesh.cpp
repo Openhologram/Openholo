@@ -270,6 +270,7 @@ int ophTri::readMeshConfig(const char* mesh_config) {
 	setPixelNumberOHC(context_.pixel_number);
 	setPixelPitchOHC(context_.pixel_pitch);
 	setWavelengthOHC(context_.wave_length[0], LenUnit::m);
+	initialize();
 
 	auto end = CUR_TIME;
 

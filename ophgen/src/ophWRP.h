@@ -233,8 +233,6 @@ protected:
 	OphWRPConfig pc_config_;      ///< structure variable for WRP hologram configuration
 
 private:
-	std::chrono::time_point<std::chrono::system_clock> m_begin;
-	std::chrono::time_point<std::chrono::system_clock> m_end;
 	bool is_ViewingWindow;
 	bool is_CPU;
 	Real zmax_;
