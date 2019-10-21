@@ -1234,7 +1234,7 @@ void ophGen::fresnelPropagation(Complex<Real>* in, Complex<Real>* out, Real dist
 			out[idxOut++] = temp3[idxnY*nX * 2 + idxnX];
 		}
 	}
-	delete[] in;
+	//delete[] in;
 	delete[] in2x;
 	delete[] temp1;
 	delete[] fx;
