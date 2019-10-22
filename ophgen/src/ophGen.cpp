@@ -410,7 +410,7 @@ bool ophGen::readConfig(const char* fname, OphDepthMapConfig & config)
 		return false;
 	next = xml_node->FirstChildElement("FarOfDepth");
 	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&config.far_depthmap))
-		return false;
+		return false; 
 #else
 	next = xml_node->FirstChildElement("FieldLens");
 	if (!next || tinyxml2::XML_SUCCESS != next->QueryFloatText(&config.fieldLength))
@@ -797,6 +797,10 @@ void ophGen::encoding(unsigned int ENCODE_FLAG, Complex<Real>* holo) {
 		LOG("error: PUT PASSBAND\n");
 		cin.get();
 		return;
+	case ENCODE_SYMMETRIZATION:
+		LOG("Symmetrization Encoding..");
+		encodeSymmetrization((holo), holo_encoded, ivec2(0, 1));
+		break;
 	default:
 		LOG("error: WRONG ENCODE_FLAG\n");
 		cin.get();
@@ -904,6 +908,10 @@ void ophGen::encoding() {
 		cout << "Off-axis Single Side Band Encoding.." << endl;
 		freqShift((*complex_H), (*complex_H), context_.pixel_number, 0, 100);
 		singleSideBand((*complex_H), holo_encoded, context_.pixel_number, SSB_PASSBAND);
+		break;
+	case ENCODE_SYMMETRIZATION:
+		cout << "Symmetrization Encoding.." << endl;
+		encodeSymmetrization((*complex_H), holo_encoded, ivec2(0, 1));
 		break;
 	default:
 		cout << "error: WRONG ENCODE_FLAG" << endl;
@@ -1503,6 +1511,74 @@ extern "C"
 	*/
 	void cudaGetFringe(CUstream_st* stream, int pnx, int pny, cufftDoubleComplex* in_field, cufftDoubleComplex* out_field, int sig_locationx, int sig_locationy,
 		Real ssx, Real ssy, Real ppx, Real ppy, Real PI);
+}
+
+void ophGen::encodeSymmetrization(oph::Complex<Real>* holo, Real* encoded, const ivec2 sig_loc)
+{
+	const int pnX = context_.pixel_number[_X];
+	const int pnY = context_.pixel_number[_Y];
+	const int pnXY = pnX * pnY;
+
+	int cropx1, cropx2, cropx, cropy1, cropy2, cropy;
+	if (sig_loc[1] == 0) //Left or right half
+	{
+		cropy1 = 1;
+		cropy2 = pnY;
+
+	}
+	else {
+
+		cropy = floor(pnY / 2);
+		cropy1 = cropy - floor(cropy / 2);
+		cropy2 = cropy1 + cropy - 1;
+	}
+
+	if (sig_loc[0] == 0) // Upper or lower half
+	{
+		cropx1 = 1;
+		cropx2 = pnX;
+
+	}
+	else {
+
+		cropx = floor(pnX / 2);
+		cropx1 = cropx - floor(cropx / 2);
+		cropx2 = cropx1 + cropx - 1;
+	}
+
+	cropx1 -= 1;
+	cropx2 -= 1;
+	cropy1 -= 1;
+	cropy2 -= 1;
+
+	Complex<Real>* h_crop = new Complex<Real >[pnXY];
+	memset(h_crop, 0.0, sizeof(Complex<Real>) * pnXY);
+	int i;
+#ifdef _OPENMP
+#pragma omp parallel for private(i)
+#endif
+	for (i = 0; i < pnXY; i++) {
+		int x = i % pnX;
+		int y = i / pnX;
+		if (x >= cropx1 && x <= cropx2 && y >= cropy1 && y <= cropy2)
+			h_crop[i] = holo[i];
+	}
+	fftw_complex *in, *out;
+	fftw_plan plan = fftw_plan_dft_2d(pnX, pnY, in, out, FFTW_BACKWARD, FFTW_ESTIMATE);
+	fftwShift(h_crop, h_crop, pnX, pnY, -1, true);
+	fftw_destroy_plan(plan);
+	fftw_cleanup();
+
+#ifdef _OPENMP
+#pragma omp parallel for private(i)
+#endif
+	for (i = 0; i < pnXY; i++) {
+		Complex<Real> shift_phase(1, 0);
+		getShiftPhaseValue(shift_phase, i, sig_loc);
+		encoded[i] = (h_crop[i] * shift_phase)._Val[_RE];
+	}
+
+	delete[] h_crop;
 }
 
 void ophGen::encodeSideBand_GPU(int cropx1, int cropx2, int cropy1, int cropy2, oph::ivec2 sig_location)

@@ -84,6 +84,7 @@ public:
 		ENCODE_TWOPHASE,
 		ENCODE_SSB,
 		ENCODE_OFFSSB,
+		ENCODE_SYMMETRIZATION
 	};
 
 public:
@@ -264,7 +265,7 @@ protected:
 	void twoPhaseEncoding(oph::Complex<Real>* holo, Real* encoded, const int size);
 	void burckhardt(oph::Complex<Real>* holo, Real* encoded, const int size);
 	void singleSideBand(oph::Complex<Real>* holo, Real* encoded, const ivec2 holosize, int passband);
-
+	void encodeSymmetrization(oph::Complex<Real>* holo, Real* encoded, const ivec2 sig_loc);
 	/**
 	* @brief	Frequency shift
 	*/
@@ -409,7 +410,7 @@ struct GEN_DLL OphDepthMapConfig {
 	oph::uint			NUMBER_OF_DEPTH_QUANTIZATION;
 	bool				RANDOM_PHASE;
 
-	OphDepthMapConfig() :fieldLength(0), near_depthmap(0), far_depthmap(0), num_of_depth(0) {}
+	OphDepthMapConfig() :fieldLength(0), near_depthmap(0), far_depthmap(0), num_of_depth(0){}
 };
 
 /**

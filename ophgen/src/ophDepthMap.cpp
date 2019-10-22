@@ -78,6 +78,7 @@ ophDepthMap::ophDepthMap()
 	depth_index = 0;
 	dmap = 0;
 	dstep = 0;
+	propagation_method = 1;
 	dlevel.clear();
 	setViewingWindow(FALSE);
 }
@@ -280,6 +281,7 @@ void ophDepthMap::encodeHologram(void)
 
 void ophDepthMap::encoding(unsigned int ENCODE_FLAG)
 {
+#if 0
 	fft2(context_.pixel_number, *complex_H, OPH_BACKWARD);
 	Complex<Real>* dst = new Complex<Real>[context_.pixel_number[_X] * context_.pixel_number[_Y]];
 	fftwShift(*complex_H, dst, context_.pixel_number[_X], context_.pixel_number[_Y], OPH_BACKWARD);
@@ -287,6 +289,9 @@ void ophDepthMap::encoding(unsigned int ENCODE_FLAG)
 	ophGen::encoding(ENCODE_FLAG, dst);
 
 	delete[] dst;
+#else
+	ophGen::encoding(ENCODE_FLAG);
+#endif
 }
 
 void ophDepthMap::encoding(unsigned int ENCODE_FLAG, unsigned int SSB_PASSBAND)
@@ -656,10 +661,13 @@ void ophDepthMap::calcHoloCPU()
 				for (int i = 0; i < pnX * pnY; i++)
 					u_o[i] = u_o[i] * rand_phase_val * carrier_phase_delay;
 
-				//if (dm_params_.Propagation_Method_ == 0) {
-				Openholo::fftwShift(u_o, u_o, pnX, pnY, OPH_FORWARD, false);
-				propagationAngularSpectrum(u_o, -temp_depth);
-				//}
+				if (propagation_method == 1) { // angular spectrum
+					Openholo::fftwShift(u_o, u_o, pnX, pnY, OPH_FORWARD, false);
+					propagationAngularSpectrum(u_o, -temp_depth);
+				}
+				else { // none
+					memcpy((*complex_H), u_o, sizeof(Complex<Real>) * pnX * pnY);
+				}
 			}
 			else {
 				//LOG("Depth: %d of %d : Nothing here\n", dtr, dm_config_.num_of_depth);

@@ -168,11 +168,11 @@ void ophDepthMap::calcHoloGPU(void)
 	if (!stream_)
 		cudaStreamCreate(&stream_);
 
-	int pnX = context_.pixel_number[_X];
-	int pnY = context_.pixel_number[_Y];
-	int N = pnX * pnY;
+	const int pnX = context_.pixel_number[_X];
+	const int pnY = context_.pixel_number[_Y];
+	const int pnNY = pnX * pnY;
 
-	HANDLE_ERROR(cudaMemsetAsync(u_complex_gpu_, 0, sizeof(cufftDoubleComplex)*N, stream_));
+	HANDLE_ERROR(cudaMemsetAsync(u_complex_gpu_, 0, sizeof(cufftDoubleComplex) * pnNY, stream_));
 	size_t depth_sz = dm_config_.render_depth.size();
 
 	for (int p = 0; p < depth_sz; ++p)
@@ -185,25 +185,26 @@ void ophDepthMap::calcHoloGPU(void)
 		oph::Complex<Real> carrier_phase_delay(0, context_.k* temp_depth);
 		carrier_phase_delay.exp();
 
-		HANDLE_ERROR(cudaMemsetAsync(u_o_gpu_, 0, sizeof(cufftDoubleComplex)*N, stream_));
+		HANDLE_ERROR(cudaMemsetAsync(u_o_gpu_, 0, sizeof(cufftDoubleComplex) * pnNY, stream_));
 
 		cudaDepthHoloKernel(stream_, pnX, pnY, u_o_gpu_, img_src_gpu, dimg_src_gpu, depth_index_gpu, 
 			dtr, rand_phase_val[_RE], rand_phase_val[_IM], carrier_phase_delay[_RE], carrier_phase_delay[_IM], dm_config_.FLAG_CHANGE_DEPTH_QUANTIZATION, dm_config_.DEFAULT_DEPTH_QUANTIZATION);
 
-		//if (dm_params_.Propagation_Method_ == 0)
-		//{
-		HANDLE_ERROR(cudaMemsetAsync(k_temp_d_, 0, sizeof(cufftDoubleComplex)*N, stream_));
-		cudaFFT(stream_, pnX, pnY, u_o_gpu_, k_temp_d_, -1);
-
-		propagationAngularSpectrumGPU(u_o_gpu_, -temp_depth);
-		//}
+		if (propagation_method == 1) { // angular spectrum
+			HANDLE_ERROR(cudaMemsetAsync(k_temp_d_, 0, sizeof(cufftDoubleComplex) * pnNY, stream_));
+			cudaFFT(stream_, pnX, pnY, u_o_gpu_, k_temp_d_, -1);
+			propagationAngularSpectrumGPU(u_o_gpu_, -temp_depth);
+		}
+		else { // none
+			memcpy(u_complex_gpu_, u_o_gpu_, sizeof(cufftDoubleComplex) * pnNY);
+		}
 		//LOG("Depth: %3d of %d, z = %6.5lf mm\n", dtr, dm_config_.num_of_depth, -temp_depth * 1000);
 	}
 
-	cufftDoubleComplex* p_holo_gen = new cufftDoubleComplex[N];
-	cudaMemcpy(p_holo_gen, u_complex_gpu_, sizeof(cufftDoubleComplex) * pnX * pnY, cudaMemcpyDeviceToHost);
+	cufftDoubleComplex* p_holo_gen = new cufftDoubleComplex[pnNY];
+	cudaMemcpy(p_holo_gen, u_complex_gpu_, sizeof(cufftDoubleComplex) * pnNY, cudaMemcpyDeviceToHost);
 
-	for (int n = 0; n < N; n++)
+	for (int n = 0; n < pnNY; n++)
 	{
 		(*complex_H)[n][_RE] = p_holo_gen[n].x;
 		(*complex_H)[n][_IM] = p_holo_gen[n].y;
@@ -225,16 +226,16 @@ void ophDepthMap::calcHoloGPU(void)
 */
 void ophDepthMap::propagationAngularSpectrumGPU(cufftDoubleComplex* input_u, Real propagation_dist)
 {
-	int pnx = context_.pixel_number[0];
-	int pny = context_.pixel_number[1];
-	int N = pnx* pny;
-	Real ppx = context_.pixel_pitch[0];
-	Real ppy = context_.pixel_pitch[1];
-	Real ssx = context_.ss[0];
-	Real ssy = context_.ss[1];
+	const int pnX = context_.pixel_number[_X];
+	const int pnY = context_.pixel_number[_Y];
+	const int pnXY = pnX * pnY;
+	const Real ppx = context_.pixel_pitch[_X];
+	const Real ppy = context_.pixel_pitch[_Y];
+	const Real ssx = context_.ss[_X];
+	const Real ssy = context_.ss[_Y];
 	Real lambda = context_.wave_length[0];
 
-	cudaPropagation_AngularSpKernel(stream_, pnx, pny, k_temp_d_, u_complex_gpu_,
+	cudaPropagation_AngularSpKernel(stream_, pnX, pnY, k_temp_d_, u_complex_gpu_,
 		ppx, ppy, ssx, ssy, lambda, context_.k, propagation_dist);
 }
 

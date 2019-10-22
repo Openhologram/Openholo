@@ -150,6 +150,7 @@ public:
 		dm_config_ = config;
 	};
 	void setResolution(ivec2 resolution);
+	void setPropagationMethod(int idx) { propagation_method = idx; };
 
 public:
 	inline void setFieldLens(Real fieldlens) { dm_config_.fieldLength = fieldlens; }
@@ -213,6 +214,7 @@ private:
 	std::vector<Real>		dlevel_transform;					///< transfomed dlevel variable
 
 	OphDepthMapConfig		dm_config_;							///< structure variable for depthmap hologram configuration.
+	int						propagation_method;
 };
 
 #endif //>__ophDepthMap_h
