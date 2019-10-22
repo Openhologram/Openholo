@@ -281,7 +281,6 @@ void ophDepthMap::encodeHologram(void)
 
 void ophDepthMap::encoding(unsigned int ENCODE_FLAG)
 {
-#if 0
 	fft2(context_.pixel_number, *complex_H, OPH_BACKWARD);
 	Complex<Real>* dst = new Complex<Real>[context_.pixel_number[_X] * context_.pixel_number[_Y]];
 	fftwShift(*complex_H, dst, context_.pixel_number[_X], context_.pixel_number[_Y], OPH_BACKWARD);
@@ -289,9 +288,6 @@ void ophDepthMap::encoding(unsigned int ENCODE_FLAG)
 	ophGen::encoding(ENCODE_FLAG, dst);
 
 	delete[] dst;
-#else
-	ophGen::encoding(ENCODE_FLAG);
-#endif
 }
 
 void ophDepthMap::encoding(unsigned int ENCODE_FLAG, unsigned int SSB_PASSBAND)
