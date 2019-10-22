@@ -530,8 +530,8 @@ void ophGen::propagationAngularSpectrum(Complex<Real>* input_u, Real propagation
 	const int pnY = context_.pixel_number[_Y];
 	const Real ppX = context_.pixel_pitch[_X];
 	const Real ppY = context_.pixel_pitch[_Y];
-	const Real ssX = context_.ss[_X];
-	const Real ssY = context_.ss[_Y];
+	const Real ssX = context_.ss[_X] = pnX * ppX;
+	const Real ssY = context_.ss[_Y] = pnY * ppY;
 
 #ifndef USE_3CHANNEL
 	int k = 0;
@@ -1583,37 +1583,37 @@ void ophGen::encodeSymmetrization(oph::Complex<Real>* holo, Real* encoded, const
 
 void ophGen::encodeSideBand_GPU(int cropx1, int cropx2, int cropy1, int cropy2, oph::ivec2 sig_location)
 {
-	int pnx = context_.pixel_number[0];
-	int pny = context_.pixel_number[1];
-	Real ppx = context_.pixel_pitch[0];
-	Real ppy = context_.pixel_pitch[1];
-	Real ssx = context_.ss[0];
-	Real ssy = context_.ss[1];
+	const int pnX = context_.pixel_number[_X];
+	const int pnY = context_.pixel_number[_Y];
+	const Real ppX = context_.pixel_pitch[_X];
+	const Real ppY = context_.pixel_pitch[_Y];
+	const Real ssX = context_.ss[_X] = pnX * ppX;
+	const Real ssY = context_.ss[_Y] = pnY * ppY;
 
 	cufftDoubleComplex *k_temp_d_, *u_complex_gpu_;
 	cudaStream_t stream_;
 	cudaStreamCreate(&stream_);
 
-	cudaMalloc((void**)&u_complex_gpu_, sizeof(cufftDoubleComplex) * pnx * pny);
-	cudaMalloc((void**)&k_temp_d_, sizeof(cufftDoubleComplex) * pnx * pny);
-	cudaMemcpy(u_complex_gpu_, (*complex_H), sizeof(cufftDoubleComplex) * pnx * pny, cudaMemcpyHostToDevice);
+	cudaMalloc((void**)&u_complex_gpu_, sizeof(cufftDoubleComplex) * pnX * pnY);
+	cudaMalloc((void**)&k_temp_d_, sizeof(cufftDoubleComplex) * pnX * pnY);
+	cudaMemcpy(u_complex_gpu_, (*complex_H), sizeof(cufftDoubleComplex) * pnX * pnY, cudaMemcpyHostToDevice);
 
-	cudaMemsetAsync(k_temp_d_, 0, sizeof(cufftDoubleComplex)*pnx*pny, stream_);
-	cudaCropFringe(stream_, pnx, pny, u_complex_gpu_, k_temp_d_, cropx1, cropx2, cropy1, cropy2);
+	cudaMemsetAsync(k_temp_d_, 0, sizeof(cufftDoubleComplex)*pnX*pnY, stream_);
+	cudaCropFringe(stream_, pnX, pnY, u_complex_gpu_, k_temp_d_, cropx1, cropx2, cropy1, cropy2);
 
-	cudaMemsetAsync(u_complex_gpu_, 0, sizeof(cufftDoubleComplex)*pnx*pny, stream_);
-	cudaFFT(stream_, pnx, pny, k_temp_d_, u_complex_gpu_, 1, true);
+	cudaMemsetAsync(u_complex_gpu_, 0, sizeof(cufftDoubleComplex)*pnX*pnY, stream_);
+	cudaFFT(stream_, pnX, pnY, k_temp_d_, u_complex_gpu_, 1, true);
 
-	cudaMemsetAsync(k_temp_d_, 0, sizeof(cufftDoubleComplex)*pnx*pny, stream_);
-	cudaGetFringe(stream_, pnx, pny, u_complex_gpu_, k_temp_d_, sig_location[0], sig_location[1], ssx, ssy, ppx, ppy, M_PI);
+	cudaMemsetAsync(k_temp_d_, 0, sizeof(cufftDoubleComplex)*pnX*pnY, stream_);
+	cudaGetFringe(stream_, pnX, pnY, u_complex_gpu_, k_temp_d_, sig_location[0], sig_location[1], ssX, ssY, ppX, ppY, M_PI);
 
-	cufftDoubleComplex* sample_fd = (cufftDoubleComplex*)malloc(sizeof(cufftDoubleComplex)*pnx*pny);
-	memset(sample_fd, 0.0, sizeof(cufftDoubleComplex)*pnx*pny);
+	cufftDoubleComplex* sample_fd = (cufftDoubleComplex*)malloc(sizeof(cufftDoubleComplex)*pnX*pnY);
+	memset(sample_fd, 0.0, sizeof(cufftDoubleComplex)*pnX*pnY);
 
-	cudaMemcpyAsync(sample_fd, k_temp_d_, sizeof(cufftDoubleComplex)*pnx*pny, cudaMemcpyDeviceToHost), stream_;
-	memset(holo_encoded, 0.0, sizeof(Real)*pnx*pny);
+	cudaMemcpyAsync(sample_fd, k_temp_d_, sizeof(cufftDoubleComplex)*pnX*pnY, cudaMemcpyDeviceToHost), stream_;
+	memset(holo_encoded, 0.0, sizeof(Real)*pnX*pnY);
 
-	for (int i = 0; i < pnx * pny; i++)
+	for (int i = 0; i < pnX * pnY; i++)
 		holo_encoded[i] = sample_fd[i].x;
 
 	cudaFree(sample_fd);
@@ -1622,24 +1622,24 @@ void ophGen::encodeSideBand_GPU(int cropx1, int cropx2, int cropy1, int cropy2, 
 
 void ophGen::getShiftPhaseValue(oph::Complex<Real>& shift_phase_val, int idx, oph::ivec2 sig_location)
 {
-	int pnx = context_.pixel_number[0];
-	int pny = context_.pixel_number[1];
-	Real ppx = context_.pixel_pitch[0];
-	Real ppy = context_.pixel_pitch[1];
-	Real ssx = context_.ss[0];
-	Real ssy = context_.ss[1];
+	const int pnX = context_.pixel_number[_X];
+	const int pnY = context_.pixel_number[_Y];
+	const Real ppX = context_.pixel_pitch[_X];
+	const Real ppY = context_.pixel_pitch[_Y];
+	const Real ssX = context_.ss[_X] = pnX * ppX;
+	const Real ssY = context_.ss[_Y] = pnY * ppY;
 
 	if (sig_location[1] != 0)
 	{
-		int r = idx / pnx;
-		int c = idx % pnx;
-		Real yy = (ssy / 2.0) - (ppy)*r - ppy;
+		int r = idx / pnX;
+		int c = idx % pnX;
+		Real yy = (ssY / 2.0) - (ppY)*r - ppY;
 
 		oph::Complex<Real> val;
 		if (sig_location[1] == 1)
-			val[_IM] = 2 * M_PI * (yy / (4 * ppy));
+			val[_IM] = 2 * M_PI * (yy / (4 * ppY));
 		else
-			val[_IM] = 2 * M_PI * (-yy / (4 * ppy));
+			val[_IM] = 2 * M_PI * (-yy / (4 * ppY));
 
 		val.exp();
 		shift_phase_val *= val;
@@ -1647,15 +1647,15 @@ void ophGen::getShiftPhaseValue(oph::Complex<Real>& shift_phase_val, int idx, op
 
 	if (sig_location[0] != 0)
 	{
-		int r = idx / pnx;
-		int c = idx % pnx;
-		Real xx = (-ssx / 2.0) - (ppx)*c - ppx;
+		int r = idx / pnX;
+		int c = idx % pnX;
+		Real xx = (-ssX / 2.0) - (ppX)*c - ppX;
 
 		oph::Complex<Real> val;
 		if (sig_location[0] == -1)
-			val[_IM] = 2 * M_PI * (-xx / (4 * ppx));
+			val[_IM] = 2 * M_PI * (-xx / (4 * ppX));
 		else
-			val[_IM] = 2 * M_PI * (xx / (4 * ppx));
+			val[_IM] = 2 * M_PI * (xx / (4 * ppX));
 
 		val.exp();
 		shift_phase_val *= val;

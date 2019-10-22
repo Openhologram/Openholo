@@ -229,14 +229,14 @@ void ophDepthMap::propagationAngularSpectrumGPU(cufftDoubleComplex* input_u, Rea
 	const int pnX = context_.pixel_number[_X];
 	const int pnY = context_.pixel_number[_Y];
 	const int pnXY = pnX * pnY;
-	const Real ppx = context_.pixel_pitch[_X];
-	const Real ppy = context_.pixel_pitch[_Y];
-	const Real ssx = context_.ss[_X];
-	const Real ssy = context_.ss[_Y];
+	const Real ppX = context_.pixel_pitch[_X];
+	const Real ppY = context_.pixel_pitch[_Y];
+	const Real ssX = context_.ss[_X] = pnX * ppX;
+	const Real ssY = context_.ss[_Y] = pnY * ppY;
 	Real lambda = context_.wave_length[0];
 
 	cudaPropagation_AngularSpKernel(stream_, pnX, pnY, k_temp_d_, u_complex_gpu_,
-		ppx, ppy, ssx, ssy, lambda, context_.k, propagation_dist);
+		ppX, ppY, ssX, ssY, lambda, context_.k, propagation_dist);
 }
 
 void ophDepthMap::free_gpu()

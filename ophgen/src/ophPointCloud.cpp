@@ -148,6 +148,8 @@ void ophPointCloud::encodeHologram(const vec2 band_limit, const vec2 spectrum_sh
 	ivec2 pn = context_.pixel_number;
 	encode_size = pn;
 	vec2 pp = context_.pixel_pitch;
+	context_.ss[_X] = pn[_X] * pp[_X];
+	context_.ss[_Y] = pn[_Y] * pp[_Y];
 	vec2 ss = context_.ss;
 
 	Real cropx = floor(pn[_X] * band_limit[_X]);
@@ -255,8 +257,8 @@ void ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 
 	// Length (Width) of complex field at eyepiece plane (by simple magnification)
 	vec2 ss;
-	ss[_X] = context_.ss[_X];
-	ss[_Y] = context_.ss[_Y];
+	ss[_X] = context_.ss[_X] = pn[_X] * pp[_X];
+	ss[_Y] = context_.ss[_Y] = pn[_Y] * pp[_Y];
 
 	int j; // private variable for Multi Threading
 #ifdef _OPENMP
