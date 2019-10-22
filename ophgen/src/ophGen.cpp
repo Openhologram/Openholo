@@ -800,6 +800,7 @@ void ophGen::encoding(unsigned int ENCODE_FLAG, Complex<Real>* holo) {
 	case ENCODE_SYMMETRIZATION:
 		LOG("Symmetrization Encoding..");
 		encodeSymmetrization((holo), holo_encoded, ivec2(0, 1));
+		LOG("Done.\n.");
 		break;
 	default:
 		LOG("error: WRONG ENCODE_FLAG\n");
