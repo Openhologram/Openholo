@@ -50,7 +50,7 @@
 #include <sstream>
 #include <fstream>
 #include <map>
-
+#include <typeinfo>
 #include "include.h"
 
 

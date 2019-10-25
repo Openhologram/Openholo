@@ -1030,10 +1030,7 @@ void oph::ImgEncoderOhc::clearWavelength()
 }
 
 void oph::ImgEncoderOhc::addWavelength(const Real wavlen) 
-{	
-#ifndef USE_3CHANNEL
-	WavLeng.clear(); // 1-channel Àü¿ë
-#endif
+{
 	WavLeng.push_back(wavlen);
 	this->setNumOfWavlen((uint32_t)WavLeng.size());
 }

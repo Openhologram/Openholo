@@ -218,7 +218,7 @@ protected:
 
 private:
 	bool bCarried;
-	uint m_nWave;
+	int nOldWave;
 
 public:
 	void setEncodeMethod(int in) { ENCODE_METHOD = in; }
@@ -237,7 +237,7 @@ public:
 	* @brief	Complex field file load
 	* @details	Just used for the reference
 	*/
-	void loadComplex(char* real_file, char* imag_file, int n_x, int n_y);
+	void loadComplex(char* real_file, char* imag_file, const uint pnX, const uint pnY);
 	/**
 	* @brief	Normalize the encoded hologram
 	* @details	Considering the encoded hologram size

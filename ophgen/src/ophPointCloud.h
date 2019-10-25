@@ -682,17 +682,11 @@ private:
 	*/
 	void genCghPointCloudCPU(uint diff_flag);
 	void diffractEncodedRS(ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Real k, Real amplitude, vec2 theta);
-#ifdef USE_3CHANNEL
-	void diffractNotEncodedRS(uint nColor, ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Real k, Real amplitude, Real lambda);
-#else
-	void diffractNotEncodedRS(ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Real k, Real amplitude, Real lambda);
-#endif
+	void diffractNotEncodedRS(uint channel, ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Real k, Real amplitude, Real lambda);
+
 	void diffractEncodedFrsn(void);
-#ifdef USE_3CHANNEL
-	void diffractNotEncodedFrsn(uint nColor, ivec2 pn, vec2 pp, vec3 pc, Real amplitude, Real lambda, vec2 theta);
-#else
-	void diffractNotEncodedFrsn(ivec2 pn, vec2 pp, vec3 pc, Real amplitude, Real lambda, vec2 theta);
-#endif
+	void diffractNotEncodedFrsn(uint channel, ivec2 pn, vec2 pp, vec3 pc, Real amplitude, Real lambda, vec2 theta);
+
 	inline Real transVW(Real pt) {
 		Real fieldLens = this->getFieldLens();
 		return -fieldLens * pt / (pt - fieldLens);

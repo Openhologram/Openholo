@@ -129,9 +129,7 @@ Real ophPointCloud::generateHologram(uint diff_flag)
 	}
 
 	auto end = CUR_TIME;
-
 	elapsedTime = ((std::chrono::duration<Real>)(end - begin)).count();
-
 	LOG("Total Elapsed Time: %lf (s)\n", elapsedTime);
 	return elapsedTime;
 }
@@ -246,9 +244,7 @@ void ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 
 	// Tilt Angle
 	Real thetaX = RADIAN(pc_config_.tilt_angle[_X]);
-	Real thetaY = RADIAN(pc_config_.tilt_angle[_Y]);	
-
-	Real k = context_.k;
+	Real thetaY = RADIAN(pc_config_.tilt_angle[_Y]);
 
 	// Pixel pitch at eyepiece lens plane (by simple magnification) ==> SLM pitch
 	vec2 pp;
@@ -260,61 +256,47 @@ void ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 	ss[_X] = context_.ss[_X] = pn[_X] * pp[_X];
 	ss[_Y] = context_.ss[_Y] = pn[_Y] * pp[_Y];
 
-	int j; // private variable for Multi Threading
-#ifdef _OPENMP
-	int num_threads = 0;
-#ifdef USE_3CHANNEL
-	for (uint nColor = 0; nColor < context_.waveNum; nColor++) {
+	int i; // private variable for Multi Threading
+
+	int num_threads = 1;
+	for (uint channel = 0; channel < context_.waveNum; channel++) {
 		// Wave Number (2 * PI / lambda(wavelength))
-		Real k = context_.k = (2 * M_PI / context_.wave_length[nColor]);
-#endif
+		Real k = context_.k = (2 * M_PI / context_.wave_length[channel]);
 
-#pragma omp parallel
-	{
-		num_threads = omp_get_num_threads(); // get number of Multi Threading
-		int tid = omp_get_thread_num();
-#pragma omp for private(j)
-#endif
-		for (j = 0; j < n_points; ++j) { //Create Fringe Pattern
-			uint idx = 3 * j;
-			uint color_idx = pc_data_.n_colors * j;
-			Real pcx = (is_ViewingWindow) ? transVW(pc_data_.vertex[idx + _X]) : pc_data_.vertex[idx + _X];
-			Real pcy = (is_ViewingWindow) ? transVW(pc_data_.vertex[idx + _Y]) : pc_data_.vertex[idx + _Y];
-			Real pcz = (is_ViewingWindow) ? transVW(pc_data_.vertex[idx + _Z]) : pc_data_.vertex[idx + _Z];
-			pcx *= pc_config_.scale[_X];
-			pcy *= pc_config_.scale[_Y];
-			pcz *= pc_config_.scale[_Z];
-			pcz += pc_config_.offset_depth;
-			Real amplitude = pc_data_.color[color_idx];
-		
-			switch (diff_flag)
-			{
-#ifdef USE_3CHANNEL
-			case PC_DIFF_RS:
-				diffractNotEncodedRS(nColor, pn, pp, ss, vec3(pcx, pcy, pcz), k, amplitude, context_.wave_length[nColor]);
-				break;
-			case PC_DIFF_FRESNEL:
-				diffractNotEncodedFrsn(nColor, pn, pp, vec3(pcx, pcy, pcz), amplitude, context_.wave_length[nColor], vec2(thetaX, thetaY));
-				break;
-			}
-#else
-			case PC_DIFF_RS:
-				diffractNotEncodedRS(pn, pp, ss, vec3(pcx, pcy, pcz), k, amplitude, context_.wave_length[0]);
-				break;
-			case PC_DIFF_FRESNEL:
-				diffractNotEncodedFrsn(pn, pp, vec3(pcx, pcy, pcz), amplitude, context_.wave_length[0], vec2(thetaX, thetaY));
-				break;
-			}
-#endif
-		}
 #ifdef _OPENMP
+#pragma omp parallel
+		{
+			num_threads = omp_get_num_threads(); // get number of Multi Threading
+			int tid = omp_get_thread_num();
+#pragma omp for private(i)
+#endif
+			for (i = 0; i < n_points; ++i) { //Create Fringe Pattern
+				uint idx = 3 * i;
+				uint color_idx = pc_data_.n_colors * i;
+				Real pcx = (is_ViewingWindow) ? transVW(pc_data_.vertex[idx + _X]) : pc_data_.vertex[idx + _X];
+				Real pcy = (is_ViewingWindow) ? transVW(pc_data_.vertex[idx + _Y]) : pc_data_.vertex[idx + _Y];
+				Real pcz = (is_ViewingWindow) ? transVW(pc_data_.vertex[idx + _Z]) : pc_data_.vertex[idx + _Z];
+				pcx *= pc_config_.scale[_X];
+				pcy *= pc_config_.scale[_Y];
+				pcz *= pc_config_.scale[_Z];
+				pcz += pc_config_.offset_depth;
+				Real amplitude = pc_data_.color[color_idx];
 
-#ifdef USE_3CHANNEL
-	}
+				switch (diff_flag)
+				{
+				case PC_DIFF_RS:
+					diffractNotEncodedRS(channel, pn, pp, ss, vec3(pcx, pcy, pcz), k, amplitude, context_.wave_length[channel]);
+					break;
+				case PC_DIFF_FRESNEL:
+					diffractNotEncodedFrsn(channel, pn, pp, vec3(pcx, pcy, pcz), amplitude, context_.wave_length[channel], vec2(thetaX, thetaY));
+					break;
+				}
+			}
+#ifdef _OPENMP
+		}
 #endif
 	}
 	std::cout << ">>> All " << num_threads << " threads" << std::endl;
-#endif
 #ifdef CHECK_PROC_TIME
 	auto end = CUR_TIME;
 	LOG("\n%s : %lf(s)\n\n", __FUNCTION__, ((std::chrono::duration<Real>)(end - begin)).count());
@@ -335,18 +317,11 @@ void ophPointCloud::diffractEncodedRS(ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Real 
 			Real res = amplitude * cos(p);
 
 			holo_encoded[xxtr + yytr * pn[_X]] += res;
-
-			//LOG("(%3d, %3d) [%7d] : ", xxtr, yytr, xxtr + yytr * pn[_X]);
-			//LOG("holo=(%15.5lf)\n", holo_encoded[xxtr + yytr * pn[_X]]);
 		}
 	}
 }
 
-#ifdef USE_3CHANNEL
-void ophPointCloud::diffractNotEncodedRS(uint nColor, ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Real k, Real amplitude, Real lambda)
-#else
-void ophPointCloud::diffractNotEncodedRS(ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Real k, Real amplitude, Real lambda)
-#endif
+void ophPointCloud::diffractNotEncodedRS(uint channel, ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Real k, Real amplitude, Real lambda)
 {
 	Real tx = lambda / (2 * pp[_X]);
 	Real ty = lambda / (2 * pp[_Y]);
@@ -362,23 +337,23 @@ void ophPointCloud::diffractNotEncodedRS(ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Re
 	};
 
 	Real Xbound[2] = {
-		floor((_xbound[0] + ss[_X] / 2) / pp[_X]) + 1,
-		floor((_xbound[1] + ss[_X] / 2) / pp[_X]) + 1
+		floor((_xbound[_X] + ss[_X] / 2) / pp[_X]) + 1,
+		floor((_xbound[_Y] + ss[_X] / 2) / pp[_X]) + 1
 	};
 
 	Real Ybound[2] = {
-		pn[_Y] - floor((_ybound[1] + ss[_Y] / 2) / pp[_Y]),
-		pn[_Y] - floor((_ybound[0] + ss[_Y] / 2) / pp[_Y])
+		pn[_Y] - floor((_ybound[_Y] + ss[_Y] / 2) / pp[_Y]),
+		pn[_Y] - floor((_ybound[_X] + ss[_Y] / 2) / pp[_Y])
 	};
 
-	if (Xbound[0] > pn[_X])	Xbound[0] = pn[_X];
-	if (Xbound[1] < 0)		Xbound[1] = 0;
-	if (Ybound[0] > pn[_Y]) Ybound[0] = pn[_Y];
-	if (Ybound[1] < 0)		Ybound[1] = 0;
+	if (Xbound[_X] > pn[_X])	Xbound[_X] = pn[_X];
+	if (Xbound[_Y] < 0)		Xbound[_Y] = 0;
+	if (Ybound[_X] > pn[_Y]) Ybound[_X] = pn[_Y];
+	if (Ybound[_Y] < 0)		Ybound[_Y] = 0;
 
-	for (int xxtr = Xbound[1]; xxtr < Xbound[0]; xxtr++)
+	for (int xxtr = Xbound[_Y]; xxtr < Xbound[_X]; xxtr++)
 	{
-		for (int yytr = Ybound[1]; yytr < Ybound[0]; yytr++)
+		for (int yytr = Ybound[_Y]; yytr < Ybound[_X]; yytr++)
 		{
 
 			Real xxx = (-ss[_X] / 2) + ((xxtr - 1) * pp[_X]);
@@ -396,22 +371,15 @@ void ophPointCloud::diffractNotEncodedRS(ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Re
 				pc[_Y] - abs(ty / sqrt(1 - (ty * ty)) * sqrt((xxx - pc[_X]) * (xxx - pc[_X]) + (pc[_Z] * pc[_Z])))
 			};
 
-			if (((xxx < range_x[0]) && (xxx > range_x[1])) && ((yyy < range_y[0]) && (yyy > range_y[1]))) {
+			if (((xxx < range_x[_X]) && (xxx > range_x[_Y])) && ((yyy < range_y[_X]) && (yyy > range_y[_Y]))) {
 				Real kr = k * r;
 
 				Real res_real = (amplitude * pc[_Z] * sin(kr)) / (lambda * r * r);
 				Real res_imag = (-amplitude * pc[_Z] * cos(kr)) / (lambda * r * r);
-#ifdef USE_3CHANNEL
 #pragma omp atomic
-				complex_H[nColor][xxtr + yytr * pn[_X]][_RE] += res_real;
+				complex_H[channel][xxtr + yytr * pn[_X]][_RE] += res_real;
 #pragma omp atomic
-				complex_H[nColor][xxtr + yytr * pn[_X]][_IM] += res_imag;
-#else
-#pragma omp atomic // 공유자원 변경 시, 동기화
-				(*complex_H)[xxtr + yytr * pn[_X]][_RE] += res_real;
-#pragma omp atomic
-				(*complex_H)[xxtr + yytr * pn[_X]][_IM] += res_imag;
-#endif
+				complex_H[channel][xxtr + yytr * pn[_X]][_IM] += res_imag;
 			}
 		}
 	}
@@ -421,11 +389,7 @@ void ophPointCloud::diffractEncodedFrsn(void)
 {
 }
 
-#ifdef USE_3CHANNEL
-void ophPointCloud::diffractNotEncodedFrsn(uint nColor, ivec2 pn, vec2 pp, vec3 pc, Real amplitude, Real lambda, vec2 theta)
-#else
-void ophPointCloud::diffractNotEncodedFrsn(ivec2 pn, vec2 pp, vec3 pc, Real amplitude, Real lambda, vec2 theta)
-#endif
+void ophPointCloud::diffractNotEncodedFrsn(uint channel, ivec2 pn, vec2 pp, vec3 pc, Real amplitude, Real lambda, vec2 theta)
 {
 	Real k = context_.k;
 	vec2 ss = context_.ss;
@@ -441,23 +405,23 @@ void ophPointCloud::diffractNotEncodedFrsn(ivec2 pn, vec2 pp, vec3 pc, Real ampl
 	};
 
 	Real Xbound[2] = {
-		floor((_xbound[0] + ss[_X] / 2) / pp[_X]) + 1,
-		floor((_xbound[1] + ss[_X] / 2) / pp[_X]) + 1
+		floor((_xbound[_X] + ss[_X] / 2) / pp[_X]) + 1,
+		floor((_xbound[_Y] + ss[_X] / 2) / pp[_X]) + 1
 	};
 
 	Real Ybound[2] = {
-		pn[_Y] - floor((_ybound[1] + ss[_Y] / 2) / pp[_Y]),
-		pn[_Y] - floor((_ybound[0] + ss[_Y] / 2) / pp[_Y])
+		pn[_Y] - floor((_ybound[_Y] + ss[_Y] / 2) / pp[_Y]),
+		pn[_Y] - floor((_ybound[_X] + ss[_Y] / 2) / pp[_Y])
 	};
 
-	if (Xbound[0] > pn[_X])	Xbound[0] = pn[_X];
-	if (Xbound[1] < 0)		Xbound[1] = 0;
-	if (Ybound[0] > pn[_Y]) Ybound[0] = pn[_Y];
-	if (Ybound[1] < 0)		Ybound[1] = 0;
+	if (Xbound[_X] > pn[_X])	Xbound[_X] = pn[_X];
+	if (Xbound[_Y] < 0)		Xbound[_Y] = 0;
+	if (Ybound[_X] > pn[_Y]) Ybound[_X] = pn[_Y];
+	if (Ybound[_Y] < 0)		Ybound[_Y] = 0;
 
-	for (int yytr = Ybound[1]; yytr < Ybound[0]; yytr++)
+	for (int yytr = Ybound[_Y]; yytr < Ybound[_X]; yytr++)
 	{
-		for (int xxtr = Xbound[1]; xxtr < Xbound[0]; xxtr++)
+		for (int xxtr = Xbound[_Y]; xxtr < Xbound[_X]; xxtr++)
 		{
 			Real xxx = ((-ss[_X]) / 2 + (xxtr - 1) * pp[_X]) - pc[_X];
 			Real yyy = ((-ss[_Y]) / 2 + (pn[_Y] - yytr) * pp[_Y]) - pc[_Y];
@@ -465,17 +429,11 @@ void ophPointCloud::diffractNotEncodedFrsn(ivec2 pn, vec2 pp, vec3 pc, Real ampl
 
 			Real res_real = amplitude * sin(p) / (lambda * pc[_Z]);
 			Real res_imag = amplitude * (-cos(p)) / (lambda * pc[_Z]);
-#ifdef USE_3CHANNEL
+
 #pragma omp atomic
-			complex_H[nColor][xxtr + yytr * pn[_X]][_RE] += res_real;
+			complex_H[channel][xxtr + yytr * pn[_X]][_RE] += res_real;
 #pragma omp atomic
-			complex_H[nColor][xxtr + yytr * pn[_X]][_IM] += res_imag;
-#else
-#pragma omp atomic
-			(*complex_H)[xxtr + yytr * pn[_X]][_RE] += res_real;
-#pragma omp atomic
-			(*complex_H)[xxtr + yytr * pn[_X]][_IM] += res_imag;
-#endif
+			complex_H[channel][xxtr + yytr * pn[_X]][_IM] += res_imag;
 		}
 	}
 }

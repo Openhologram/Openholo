@@ -71,11 +71,6 @@ void ophWRP::autoScaling()
 #endif
 	const uint pnX = context_.pixel_number[_X];
 	const uint pnY = context_.pixel_number[_Y];
-#ifndef USE_3CHANNEL
-	Real wave_len = context_.wave_length[0];
-#else
-
-#endif
 	const Real ppX = context_.pixel_pitch[_X];//wrp pitch
 	const Real ppY = context_.pixel_pitch[_Y];
 
@@ -99,8 +94,8 @@ void ophWRP::autoScaling()
 	Real zmax = maxOfArr(z, n_points);
 
 	int j;
+	int num_threads = 1;
 #ifdef _OPENMP
-	int num_threads = 0;
 #pragma omp parallel
 	{
 		num_threads = omp_get_num_threads(); // get number of Multi Threading
@@ -112,13 +107,18 @@ void ophWRP::autoScaling()
 			pc.vertex[idx + _X] = pc.vertex[idx + _X] / maxXY * size;
 			pc.vertex[idx + _Y] = pc.vertex[idx + _Y] / maxXY * size;
 			pc.vertex[idx + _Z] = pc.vertex[idx + _Z] / zmax * size;
-			z[j] = pc.vertex[idx + _Z];
+			//z[j] = pc.vertex[idx + _Z];
 		}
 #ifdef _OPENMP
 	}
-	std::cout << ">>> All " << num_threads << " threads" << std::endl;
 #endif
+	cout << ">>> All " << num_threads << " threads" << endl;
+
 	zmax_ = maxOfArr(z, n_points);
+
+	delete[] x;
+	delete[] y;
+	delete[] z;
 #ifdef CHECK_PROC_TIME
 	auto end = CUR_TIME;
 	LOG("\n%s : %lf(s)\n\n", __FUNCTION__, ((std::chrono::duration<Real>)(end - begin)).count());
@@ -382,35 +382,25 @@ void ophWRP::generateHologram(void)
 	LOG("Total Elapsed Time: %lf (s)\n", elapsedTime);
 }
 
-oph::Complex<Real>** ophWRP::calculateMWRP(void)
+Complex<Real>** ophWRP::calculateMWRP(void)
 {
 	int wrp_num = pc_config_.num_wrp;
 
 	if (wrp_num < 1)
 		return nullptr;
 
-	oph::Complex<Real>** wrp_list = nullptr;
+	Complex<Real>** wrp_list = nullptr;
 
-	Real wave_num = context_.k;   // wave_number
-	Real wave_len = context_.wave_length[0];  //wave_length
+	Real k = context_.k;   // wave_number
+	Real lambda = context_.wave_length[0];  //wave_length
 
-	int Nx = context_.pixel_number.v[0]; //slm_pixelNumberX
-	int Ny = context_.pixel_number.v[1]; //slm_pixelNumberY
+	const uint pnX = context_.pixel_number[_X]; //slm_pixelNumberX
+	const uint pnY = context_.pixel_number[_Y]; //slm_pixelNumberY
+	const uint pnXY = pnX * pnY;
+	const Real ppX = context_.pixel_pitch[_X];//wrp pitch
+	const Real ppY = context_.pixel_pitch[_Y];
 
-	Real wpx = context_.pixel_pitch.v[0];//wrp pitch
-	Real wpy = context_.pixel_pitch.v[1];
-
-
-	int Nx_h = Nx >> 1;
-	int Ny_h = Ny >> 1;
-
-	oph::Complex<Real>* wrp = nullptr;
-
-	// Memory Location for Result Image
-	if (wrp != nullptr) free(wrp);
-	wrp = (oph::Complex<Real>*)calloc(1, sizeof(oph::Complex<Real>) * Nx * Ny);
-
-//	double wrp_d = pc_config_.offset_depth / wrp_num;
+	Complex<Real>* wrp = new Complex<Real>[pnXY];
 
 	OphPointCloudData pc = obj_;
 

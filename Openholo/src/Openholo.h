@@ -65,9 +65,7 @@ struct OPH_DLL OphConfig
 
 	Real			k;							//< 2 * PI / lambda(wavelength)
 	vec2			ss;							//< pn * pp
-#ifdef USE_3CHANNEL
 	uint			waveNum;					// wave num
-#endif
 	Real*			wave_length;				//< wave length
 };
 

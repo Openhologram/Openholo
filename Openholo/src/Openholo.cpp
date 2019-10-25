@@ -554,7 +554,7 @@ void Openholo::fftShift(int nx, int ny, Complex<Real>* input, Complex<Real>* out
 
 void Openholo::ophFree(void)
 {
-#ifdef USE_3CHANNEL
+	LOG("\n%s\n\n", __FUNCTION__);
 	ohcHeader header;
 	OHC_encoder->getOHCheader(header);
 	auto wavelength_num = header.fieldInfo.wavlenNum;
@@ -562,9 +562,6 @@ void Openholo::ophFree(void)
 		if (complex_H[i]) 
 			delete[] complex_H[i];
 	}
-#else
-	if ((*complex_H)) delete[](*complex_H);
-#endif
 	if (complex_H) delete[] complex_H;
 
 	if (context_.wave_length) delete[] context_.wave_length;
