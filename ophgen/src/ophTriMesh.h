@@ -189,7 +189,7 @@ public:
 	* @param	SHADING_FLAG : SHADING_FLAT, SHADING_CONTINUOUS
 	* @overload
 	*/
-	void generateMeshHologram(uint SHADING_FLAG);
+	void generateHologram(uint SHADING_FLAG);
 	void generateMeshHologram();
 	
 	//virtual int saveAsOhc(const char* fname);

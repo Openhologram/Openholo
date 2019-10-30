@@ -217,8 +217,12 @@ void ophTri::initializeAS()
 }
 
 
-void ophTri::objNormCenter() {
-
+void ophTri::objNormCenter()
+{
+	if (normalizedMeshData) {
+		delete[] normalizedMeshData;
+		normalizedMeshData = nullptr;
+	}
 	normalizedMeshData = new Real[meshData->n_faces * 9];
 
 	Real* x_point = new Real[meshData->n_faces * 3];
@@ -262,14 +266,15 @@ void ophTri::objNormCenter() {
 	);
 
 	delete[] centered, x_point, y_point, z_point;
-
-	cout << "Normalization Finished.." << endl;
 }
 
 
 void ophTri::objScaleShift()
 {
-	LOG(">>> Transform Viewing Window : %s\n", is_ViewingWindow ? "ON" : "OFF");
+	if (scaledMeshData) {
+		delete[] scaledMeshData;
+		scaledMeshData = nullptr;
+	}
 	scaledMeshData = new Real[meshData->n_faces * 9];
 	
 	objNormCenter();
@@ -397,7 +402,7 @@ vec3 vecCross(const vec3& a, const vec3& b)
 }
 
 
-void ophTri::generateMeshHologram(uint SHADING_FLAG) 
+void ophTri::generateHologram(uint SHADING_FLAG) 
 {
 	resetBuffer();
 	MEMORYSTATUS memStatus;
@@ -417,6 +422,7 @@ void ophTri::generateMeshHologram(uint SHADING_FLAG)
 
 
 	auto start = CUR_TIME;
+	objScaleShift();
 	initializeAS();
 	generateAS(SHADING_FLAG);
 
@@ -738,8 +744,8 @@ void ophTri::calGlobalFrequency()
 	fy = new Real[pnXY];
 	fz = new Real[pnXY];
 	uint i = 0;
-
-	for (uint ch = 0; ch < nChannel; ch++) {
+	
+	for (uint ch = 0; ch < 1; ch++) {
 		Real lambda = context_.wave_length[ch];
 		for (int idxFy = pnY / 2; idxFy > -pnY / 2; idxFy--) {
 			for (int idxFx = -pnX / 2; idxFx < pnX / 2; idxFx++) {

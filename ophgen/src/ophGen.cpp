@@ -893,7 +893,6 @@ void ophGen::fresnelPropagation(OphConfig context, Complex<Real>* in, Complex<Re
 
 void ophGen::fresnelPropagation(Complex<Real>* in, Complex<Real>* out, Real distance, uint channel)
 {
-	LOG("CPU => %lf / %lf\n", in[0][_RE], in[0][_IM]);
 #ifdef CHECK_PROC_TIME
 	auto begin = CUR_TIME;
 #endif
@@ -912,7 +911,6 @@ void ophGen::fresnelPropagation(Complex<Real>* in, Complex<Real>* out, Real dist
 
 	for (int idxnY = pnY / 2; idxnY < pnY + (pnY / 2); idxnY++) {
 		for (int idxnX = pnX / 2; idxnX < pnX + (pnX / 2); idxnX++) {
-
 			in2x[idxnY * pnX * 2 + idxnX] = in[idxIn++];
 		}
 	}

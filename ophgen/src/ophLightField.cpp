@@ -59,6 +59,7 @@ ophLF::ophLF(void)
 	, is_CPU(true)
 	, is_ViewingWindow(false)
 	, LF(nullptr)
+	, RSplane_complex_field(nullptr)
 {
 }
 
@@ -285,7 +286,10 @@ void ophLF::initializeLF()
 {
 	if (LF) {
 		for (int i = 0; i < nImages; i++) {
-			if (LF[i]) delete[] LF[i];
+			if (LF[i]) {
+				delete[] LF[i];
+				LF[i] = nullptr;
+			}
 		}
 		delete[] LF;
 		LF = nullptr;
@@ -306,55 +310,61 @@ void ophLF::convertLF2ComplexField()
 #ifdef CHECK_PROC_TIME
 	auto begin = CUR_TIME;
 #endif
-	const int nX = num_image[_X];
-	const int nY = num_image[_Y];
-	const int nXY = nX * nY;
-	const int rX = resolution_image[_X];
-	const int rY = resolution_image[_Y];
-	const int rXY = rX * rY;
+	const uint nX = num_image[_X];
+	const uint nY = num_image[_Y];
+	const uint nXY = nX * nY;
+	const uint rX = resolution_image[_X];
+	const uint rY = resolution_image[_Y];
+	const uint rXY = rX * rY;
 
 	if (RSplane_complex_field) {
 		delete[] RSplane_complex_field;
 		RSplane_complex_field = nullptr;
 	}
 	RSplane_complex_field = new Complex<Real>[nXY * rXY];
+	memset(RSplane_complex_field, 0.0, sizeof(Complex<Real>) * nXY * rXY);
 
-	Complex<Real>* complexLF = new Complex<Real>[rXY];
+	//Complex<Real>* complexLF = new Complex<Real>[rXY];
+	Complex<Real>* complexLF = new Complex<Real>[nXY];
 
-	Complex<Real>* FFTLF = new Complex<Real>[rXY];
+	Complex<Real>* FFTLF = new Complex<Real>[nXY];
 
 	Real randVal;
 	Complex<Real> phase(0.0, 0.0);
 
-	for (int idxrX = 0; idxrX < rX; idxrX++) { // 192
+	int idxrX;
+	int idxImg = 0;
+
+	for (idxrX = 0; idxrX < rX; idxrX++) { // 192
 		for (int idxrY = 0; idxrY < rY; idxrY++) { // 108
-#if 0
-			complexLF[idxnX + nX*idxnY]
-#else
+			memset(complexLF, 0.0, sizeof(Complex<Real>) * nXY);
+			memset(FFTLF, 0.0, sizeof(Complex<Real>) * nXY);
+
 			for (int idxnY = 0; idxnY < nY; idxnY++) { // 10
 				for (int idxnX = 0; idxnX < nX; idxnX++) { // 10
-					(*(complexLF + (idxnX + nX*idxnY))) = (Real)*(*(LF + (idxnX + nX*idxnY)) + (idxrX + rX*idxrY));
+					// LF[img idx][pixel idx]
+					complexLF[idxnX + nX * idxnY] = (Real)(LF[idxnX + nX * idxnY][idxrX + rX * idxrY]);
 				}
 			}
-#endif
+
 			fft2(num_image, complexLF, OPH_FORWARD, OPH_ESTIMATE);
-#if 1
 			fftwShift(complexLF, FFTLF, nX, nY, OPH_FORWARD);
-#else
-			fftwShift(complexLF, FFTLF, rX, rY, OPH_FORWARD);
-#endif
 			//fftExecute(FFTLF);
 
 			for (int idxnX = 0; idxnX < nX; idxnX++) { // 10
 				for (int idxnY = 0; idxnY < nY; idxnY++) { // 10
+					randVal = rand((Real)0, (Real)1, idxrX * idxrY);
+					phase(0, 2 * M_PI * randVal); // random phase
 
-					randVal = rand((Real)0, (Real)1, idxrX*idxrY);
-					phase(0, 2 * M_PI*randVal);
-
-					*(RSplane_complex_field + nXY*rX*idxrY + nX*rX*idxnY + nX*idxrX + idxnX) = *(FFTLF + (idxnX + nX*idxnY))*exp(phase);
-
+					//*(RSplane_complex_field + nXY * rX*idxrY + nX * rX*idxnY + nX * idxrX + idxnX) = *(FFTLF + (idxnX + nX * idxnY))*exp(phase);
+					// 100 * 192 * 107 + 10 * 192 * 107 + 10 * 191 + 9
+					RSplane_complex_field[nXY * rX*idxrY + nX * rX*idxnY + nX * idxrX + idxnX] =
+						FFTLF[idxnX + nX * idxnY] * exp(phase);
+					//
+					// (20/5) (x:5/y:8) => 165
 				}
-			}		
+			}
+			idxImg++;
 		}
 	}
 	delete[] complexLF, FFTLF;
