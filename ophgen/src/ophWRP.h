@@ -136,15 +136,16 @@ protected:
 	virtual ~ophWRP(void);
 
 public:
-	const vec3& getScale() { return pc_config_.scale; }
-	const Real& getLocation() { return pc_config_.wrp_location; }
-	const Real& getDistance() { return pc_config_.propagation_distance; }
-	const int& getNumOfWRP() { return pc_config_.num_wrp; }
-	const int& getFieldLens() { return pc_config_.fieldLength; }
-	void setScale(vec3 scale) { pc_config_.scale = scale; }
-	void setLocation(Real location) { pc_config_.wrp_location = location; }
-	void setDistance(Real distance) { pc_config_.propagation_distance; }
+	const vec3& getScale() { return wrp_config_.scale; }
+	const Real& getLocation() { return wrp_config_.wrp_location; }
+	const Real& getDistance() { return wrp_config_.propagation_distance; }
+	const int& getNumOfWRP() { return wrp_config_.num_wrp; }
+	const int& getFieldLens() { return wrp_config_.fieldLength; }
+	void setScale(vec3 scale) { wrp_config_.scale = scale; }
+	void setLocation(Real location) { wrp_config_.wrp_location = location; }
+	void setDistance(Real distance) { wrp_config_.propagation_distance; }
 	void autoScaling();
+	int getNumOfPoints() { return n_points; }
 
 	/**
 	* @brief override
@@ -166,8 +167,7 @@ public:
 	/**
 	* @param InputConfigFile Specification Config(*.config) file path
 	*/
-	virtual bool readConfig(const char* cfg_file);
-	virtual void normalize(void);
+	virtual bool readConfig(const char* fname);
 
 //	void encodeHologram(void);
 	/**
@@ -191,9 +191,9 @@ public:
 	* @brief Generate multiple wavefront recording planes, main funtion.
 	* @return multiple WRP (sec)
 	*/
-	oph::Complex<Real>** calculateMWRP(void);
+	Complex<Real>** calculateMWRP(void);
 
-	inline oph::Complex<Real>* getWRPBuff(void) { return p_wrp_; };
+	inline Complex<Real>* getWRPBuff(void) { return p_wrp_; };
 
 	/**
 	* @brief Set the value of a variable is_ViewingWindow(true or false)
@@ -230,7 +230,7 @@ protected:
 
 	OphPointCloudData obj_;       ///< Input Pointcloud Data
 
-	OphWRPConfig pc_config_;      ///< structure variable for WRP hologram configuration
+	OphWRPConfig wrp_config_;      ///< structure variable for WRP hologram configuration
 
 private:
 	bool is_ViewingWindow;

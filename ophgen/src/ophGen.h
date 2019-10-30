@@ -100,8 +100,8 @@ protected:
 	virtual ~ophGen(void) = 0;
 
 public:
-	inline Real* getEncodedBuffer(void) { return holo_encoded; }
-	inline uchar* getNormalizedBuffer(void) { return holo_normalized; }
+	inline Real** getEncodedBuffer(void) { return holo_encoded; }
+	inline uchar** getNormalizedBuffer(void) { return holo_normalized; }
 
 	/**
 	* @brief Initialize variables for Hologram complex field, encoded data, normalized data
@@ -115,22 +115,11 @@ public:
 	*/
 	int loadPointCloud(const char* pc_file, OphPointCloudData *pc_data_);
 
-	/**
-	* @param const char* Input file name
-	* @param OphPointCloudConfig& Config structures variable can get configuration data
-	*/
-	bool readConfig(const char* fname, OphPointCloudConfig& config);
-
-	/**
-	* @param const char* Input file name
-	* @param OphDepthMapConfig& Config structures variable can get configuration data
-	*/
-	bool readConfig(const char* fname, OphDepthMapConfig& config);
-	bool readConfig(const char* fname, OphWRPConfig& config);
+	bool readConfig(const char* fname);
 
 	/**
 	*/
-	void propagationAngularSpectrum(Complex<Real>* input_u, Real propagation_dist);
+	void propagationAngularSpectrum(int ch, Complex<Real>* input_u, Real propagation_dist, Real k, Real lambda);
 
 	/**
 	* @brief Normalization function to save as image file after hologram creation
@@ -159,8 +148,8 @@ protected:
 	int save(const char* fname, uint8_t bitsperpixel, uint px, uint py, uint fnum, uchar* args ...);
 
 protected:
-	Real*					holo_encoded;
-	oph::uchar*				holo_normalized;
+	Real**					holo_encoded;
+	uchar**					holo_normalized;
 
 public:
 	/**
@@ -179,7 +168,7 @@ public:
 	*	else - (holosizeX, holosizeY)
 	* @overload
 	*/
-	virtual void encoding(unsigned int ENCODE_FLAG, Complex<Real>* holo = nullptr);
+	virtual void encoding(unsigned int ENCODE_FLAG, Complex<Real>* holo = nullptr, bool bShift = false);
 	/*
 	* @brief	Encoding Functions
 	* @details
@@ -193,9 +182,6 @@ public:
 	enum SSB_PASSBAND { SSB_LEFT, SSB_RIGHT, SSB_TOP, SSB_BOTTOM };
 
 public:
-	enum SLM_TYPE { SLM_PHASE, SLM_AMPLITUDE };
-	void testSLM(const char* encodedImage, unsigned int SLM_TYPE, Real pixelPitch, Real waveLength, Real distance);
-
 	/**
 	* @brief	Wave carry
 	* @param	Real	carryingAngleX		Wave carrying angle in horizontal direction
@@ -218,7 +204,7 @@ protected:
 
 private:
 	bool bCarried;
-	int nOldWave;
+	int nOldChannel;
 
 public:
 	void setEncodeMethod(int in) { ENCODE_METHOD = in; }
@@ -265,7 +251,7 @@ protected:
 	void twoPhaseEncoding(oph::Complex<Real>* holo, Real* encoded, const int size);
 	void burckhardt(oph::Complex<Real>* holo, Real* encoded, const int size);
 	void singleSideBand(oph::Complex<Real>* holo, Real* encoded, const ivec2 holosize, int passband);
-	void encodeSymmetrization(oph::Complex<Real>* holo, Real* encoded, const ivec2 sig_loc);
+	void encodeSymmetrization(Complex<Real>* holo, Real* encoded, const ivec2 sig_loc);
 	/**
 	* @brief	Frequency shift
 	*/
@@ -280,7 +266,7 @@ public:
 	* @return	out
 	*/
 	void fresnelPropagation(OphConfig context, Complex<Real>* in, Complex<Real>* out, Real distance);
-	void fresnelPropagation(Complex<Real>* in, Complex<Real>* out, Real distance);
+	void fresnelPropagation(Complex<Real>* in, Complex<Real>* out, Real distance, uint channel);
 protected:
 	/** 
 	* @brief Encode the CGH according to a signal location parameter.
@@ -327,7 +313,6 @@ protected:
 	virtual void ophFree(void);
 };
 
-
 /**
 * @param oph::vec3 Scaling factor of coordinate of point cloud
 * @param Real Offset value of point cloud
@@ -341,17 +326,17 @@ protected:
 struct GEN_DLL OphPointCloudConfig {
 	Real fieldLength;
 	int n_streams;
-	oph::vec3 scale;
+	vec3 scale;
 	Real offset_depth;
 
 	int8_t* filter_shape_flag;
-	oph::vec2 filter_width;
+	vec2 filter_width;
 
 	Real focal_length_lens_in;
 	Real focal_length_lens_out;
 	Real focal_length_lens_eye_piece;
 
-	oph::vec2 tilt_angle;
+	vec2 tilt_angle;
 
 	OphPointCloudConfig() 
 		: n_streams(0), scale(0, 0, 0), offset_depth(0), filter_shape_flag(0), focal_length_lens_in(0), focal_length_lens_out(0), focal_length_lens_eye_piece(0), tilt_angle(0, 0)

@@ -131,8 +131,8 @@ public:
 	void encodeHologram(void);
 	virtual void encoding(unsigned int ENCODE_FLAG);
 	virtual void encoding(unsigned int ENCODE_FLAG, unsigned int SSB_PASSBAND);
-
-	virtual int save(const char* fname, uint8_t bitsperpixel = 24);/**
+	
+	/**
 	* @brief Set the value of a variable is_ViewingWindow(true or false)
 	* @details <pre>
 	if is_ViewingWindow == true
@@ -184,7 +184,7 @@ private:
 	void calcHoloByDepth(void);
 	void calcHoloCPU(void);
 	void calcHoloGPU(void);
-	void propagationAngularSpectrumGPU(cufftDoubleComplex* input_u, Real propagation_dist);
+	void propagationAngularSpectrumGPU(uint channel, cufftDoubleComplex* input_u, Real propagation_dist);
 
 protected:
 	void free_gpu(void);
@@ -210,8 +210,8 @@ private:
 	Real*					dmap;								///< CPU variable - physical distances of depth map.
 
 	Real					dstep;								///< the physical increment of each depth map layer.
-	std::vector<Real>		dlevel;								///< the physical value of all depth map layer.
-	std::vector<Real>		dlevel_transform;					///< transfomed dlevel variable
+	vector<Real>			dlevel;								///< the physical value of all depth map layer.
+	vector<Real>			dlevel_transform;					///< transfomed dlevel variable
 
 	OphDepthMapConfig		dm_config_;							///< structure variable for depthmap hologram configuration.
 	int						propagation_method;

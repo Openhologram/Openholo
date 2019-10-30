@@ -95,11 +95,29 @@ int Openholo::saveAsImg(const char * fname, uint8_t bitsperpixel, uchar* src, in
 {
 	LOG("Saving...%s...", fname);
 	auto start = CUR_TIME;
-
 	int _width = pic_width, _height = pic_height;
 
 	int _pixelbytesize = _height * _width * bitsperpixel / 8;
-	int _filesize = _pixelbytesize + sizeof(bitmap);
+	int _filesize = _pixelbytesize;
+	bool hasColorTable = (bitsperpixel <= 8) ? true : false;
+	int _headersize = sizeof(bitmap);
+	int _iColor = (hasColorTable) ? 256 : 0;
+	
+	if (hasColorTable)
+		_headersize += _iColor * sizeof(rgbquad);
+	_filesize += _headersize;
+
+	rgbquad *table = nullptr;
+
+	if (hasColorTable) {
+		table = new rgbquad[_iColor];
+		memset(table, 0, sizeof(rgbquad) * _iColor);
+		for (int i = 0; i < _iColor; i++) {
+			table[i].rgbBlue = i;
+			table[i].rgbGreen = i;
+			table[i].rgbRed = i;
+		}
+	}
 
 	bool bConvert = false;
 	if (checkExtension(fname, ".jpg") ||
@@ -109,53 +127,63 @@ int Openholo::saveAsImg(const char * fname, uint8_t bitsperpixel, uchar* src, in
 		bConvert = true;
 	}
 
-	bitmap *pbitmap = (bitmap*)calloc(1, sizeof(bitmap));
-	memset(pbitmap, 0x00, sizeof(bitmap));
+	unsigned char *pBitmap = new unsigned char[_filesize];
+	memset(pBitmap, 0x00, _filesize);
 
-	pbitmap->fileheader.signature[0] = 'B';
-	pbitmap->fileheader.signature[1] = 'M';
-	pbitmap->fileheader.filesize = _filesize;
-	pbitmap->fileheader.fileoffset_to_pixelarray = sizeof(bitmap);
+	bitmap bitmap;
+	memset(&bitmap, 0, sizeof(bitmap));
+	int iCur = 0;
 
-	for (int i = 0; i < 256; i++) {
-		pbitmap->rgbquad[i].rgbBlue = i;
-		pbitmap->rgbquad[i].rgbGreen = i;
-		pbitmap->rgbquad[i].rgbRed = i;
+	bitmap.fileheader.signature[0] = 'B';
+	bitmap.fileheader.signature[1] = 'M';
+	bitmap.fileheader.filesize = _filesize;
+	bitmap.fileheader.fileoffset_to_pixelarray = _headersize;
+
+	bitmap.bitmapinfoheader.dibheadersize = sizeof(bitmapinfoheader);
+	bitmap.bitmapinfoheader.width = _width;
+	bitmap.bitmapinfoheader.height = _height;
+	bitmap.bitmapinfoheader.planes = OPH_PLANES;
+	bitmap.bitmapinfoheader.bitsperpixel = bitsperpixel;
+	bitmap.bitmapinfoheader.compression = OPH_COMPRESSION; //(=BI_RGB)
+	bitmap.bitmapinfoheader.imagesize = _pixelbytesize;
+	bitmap.bitmapinfoheader.ypixelpermeter = Y_PIXEL_PER_METER;
+	bitmap.bitmapinfoheader.xpixelpermeter = X_PIXEL_PER_METER;
+	bitmap.bitmapinfoheader.numcolorspallette = _iColor;
+	
+	memcpy(&pBitmap[iCur], &bitmap.fileheader, sizeof(fileheader));
+	iCur += sizeof(fileheader);
+	memcpy(&pBitmap[iCur], &bitmap.bitmapinfoheader, sizeof(bitmapinfoheader));
+	iCur += sizeof(bitmapinfoheader);
+	
+	if (hasColorTable) {
+		memcpy(&pBitmap[iCur], table, sizeof(rgbquad) * _iColor);
+		iCur += sizeof(rgbquad) * _iColor;
 	}
 
-	pbitmap->bitmapinfoheader.dibheadersize = sizeof(bitmapinfoheader);
-	pbitmap->bitmapinfoheader.width = _width;
-	pbitmap->bitmapinfoheader.height = _height;
-	pbitmap->bitmapinfoheader.planes = OPH_PLANES;
-	pbitmap->bitmapinfoheader.bitsperpixel = bitsperpixel;
-	pbitmap->bitmapinfoheader.compression = OPH_COMPRESSION;
-	pbitmap->bitmapinfoheader.imagesize = _pixelbytesize;
-	pbitmap->bitmapinfoheader.ypixelpermeter = Y_PIXEL_PER_METER;
-	pbitmap->bitmapinfoheader.xpixelpermeter = X_PIXEL_PER_METER;
-	pbitmap->bitmapinfoheader.numcolorspallette = 256;
-	
+	memcpy(&pBitmap[iCur], src, _pixelbytesize);
+	iCur += _pixelbytesize;
+
+
 	if (!bConvert) {
 		FILE *fp;
 		fopen_s(&fp, fname, "wb");
 		if (fp == nullptr) return -1;
-
-		fwrite(pbitmap, 1, sizeof(bitmap), fp);
-
-		fwrite(src, 1, _pixelbytesize, fp);
+		if (iCur != _filesize) return -2;
+		fwrite(pBitmap, 1, _filesize, fp);
 		fclose(fp);
 	}
 	else {
 		if (checkExtension(fname, ".jpg") ||
 			checkExtension(fname, ".jpeg"))
-			ImgEncoder::getInstance()->SaveJPG(fname, (BYTE *)pbitmap, sizeof(bitmap));
+			ImgEncoder::getInstance()->SaveJPG(fname, pBitmap, _filesize);
 		else if(checkExtension(fname, ".png"))
-			ImgEncoder::getInstance()->SavePNG(fname, (BYTE *)pbitmap, sizeof(bitmap));
+			ImgEncoder::getInstance()->SavePNG(fname, pBitmap, _filesize);
 		else if (checkExtension(fname, ".gif"))
-			ImgEncoder::getInstance()->SaveGIF(fname, (BYTE *)pbitmap, sizeof(bitmap));
+			ImgEncoder::getInstance()->SaveGIF(fname, pBitmap, _filesize);
 	}
 
-	free(pbitmap);
-
+	if(hasColorTable && table) delete[] table;
+	delete[] pBitmap;
 	auto end = CUR_TIME;
 
 	auto during = ((std::chrono::duration<Real>)(end - start)).count();
@@ -395,8 +423,11 @@ void Openholo::fft2(oph::ivec2 n, Complex<Real>* in, int sign, uint flag)
 		in = new Complex<Real>[pnx * pny];
 		bIn = false;
 	}
-
-	for (int i = 0; i < pnx * pny; i++) {
+	int i;
+#ifdef _OPENMP
+#pragma omp parallel for private(i)
+#endif
+	for (i = 0; i < pnx * pny; i++) {
 		fft_in[i][_RE] = in[i].real();
 		fft_in[i][_IM] = in[i].imag();
 	}

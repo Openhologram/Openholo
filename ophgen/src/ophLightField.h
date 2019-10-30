@@ -147,7 +147,7 @@ public:
 	* @return	context_.pixel_number
 	* @return	context_.lambda
 	*/
-	int readLFConfig(const char* LF_config);
+	bool readConfig(const char* fname);
 
 	/**
 	* @brief	Light Field images load

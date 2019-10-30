@@ -87,7 +87,7 @@ void ophWRP::prepareInputdataGPU()
 
 	bool bSupportDouble = false;
 
-	const ulonglong n_points = this->obj_.n_points;
+	const ulonglong n_points = obj_.n_points;
 
 	const int blockSize = 512; //n_threads
 							   //	const ulonglong gridSize = (n_pixels + blockSize - 1) / blockSize; //n_blocks
@@ -102,13 +102,13 @@ void ophWRP::prepareInputdataGPU()
 	//const ulonglong bufferSize = n_pixels * sizeof(Real);
 
 	//Host Memory Location
-	const int n_colors = this->obj_.n_colors;
-	Real* host_pc_data = this->obj_.vertex;
+	const int n_colors = obj_.n_colors;
+	Real* host_pc_data = obj_.vertex;
 	Real* host_amp_data = obj_.color;
 
 
-	float wz = this->pc_config_.wrp_location - zmax_;
-	float wm = round(fabs(wz*tan(this->context_.wave_length[0] / (2 * this->context_.pixel_pitch[_X])) / this->context_.pixel_pitch[_X]));
+	float wz = wrp_config_.wrp_location - zmax_;
+	float wm = round(fabs(wz*tan(context_.wave_length[0] / (2 * context_.pixel_pitch[_X])) / context_.pixel_pitch[_X]));
 
 
 	//	Real* host_dst = new Real[n_pixels * 2];
@@ -117,26 +117,26 @@ void ophWRP::prepareInputdataGPU()
 	Real* pc_index = new Real[obj_.n_points * 3];
 	memset(pc_index, 0.0, sizeof(Real) * obj_.n_points * 3);
 
-	Real ppx = this->context_.pixel_pitch[_X];
+	Real ppx = context_.pixel_pitch[_X];
 
 	WRPGpuConst* host_config = new WRPGpuConst(
-		this->obj_.n_points, n_colors, 1,
-		this->context_.pixel_number,
-		this->context_.pixel_pitch,
-		this->pc_config_.wrp_location,
-		this->pc_config_.propagation_distance, this->zmax_,
-		this->context_.k, this->context_.wave_length[0]
+		obj_.n_points, n_colors, 1,
+		context_.pixel_number,
+		context_.pixel_pitch,
+		wrp_config_.wrp_location,
+		wrp_config_.propagation_distance, zmax_,
+		context_.k, context_.wave_length[0]
 	);
 
 	//Device(GPU) Memory Location
 	Real* device_pc_data;
-	HANDLE_ERROR(cudaMalloc((void**)&device_pc_data, this->n_points * 3 * sizeof(Real)));
+	HANDLE_ERROR(cudaMalloc((void**)&device_pc_data, n_points * 3 * sizeof(Real)));
 
 	Real* device_amp_data;
-	HANDLE_ERROR(cudaMalloc((void**)&device_amp_data, this->n_points * n_colors * sizeof(Real)));
+	HANDLE_ERROR(cudaMalloc((void**)&device_amp_data, n_points * n_colors * sizeof(Real)));
 
 	Real* device_pc_xindex;
-	HANDLE_ERROR(cudaMalloc((void**)&device_pc_xindex, this->n_points * 3 * sizeof(Real)));
+	HANDLE_ERROR(cudaMalloc((void**)&device_pc_xindex, n_points * 3 * sizeof(Real)));
 
 	WRPGpuConst* device_config = nullptr;
 
@@ -157,7 +157,7 @@ void ophWRP::prepareInputdataGPU()
 	// calculates WRP with CUDA
 
 	//cuda obj dst
-	const ulonglong n_pixels = this->context_.pixel_number[_X] * this->context_.pixel_number[_Y];
+	const ulonglong n_pixels = context_.pixel_number[_X] * context_.pixel_number[_Y];
 	const ulonglong bufferSize = n_pixels * sizeof(Real);
 
 

@@ -591,13 +591,13 @@ bool ophSig::save(const char *real, const char *imag)
 			imagdata = (oph::uchar*)malloc(sizeof(oph::uchar) * _width * _height);
 			_filesize = _pixelbytesize + sizeof(bitmap);
 
-			bitmap *pbitmap = (bitmap*)calloc(1, sizeof(bitmap));
-			memset(pbitmap, 0x00, sizeof(bitmap));
+			bitmap8bit *pbitmap = (bitmap8bit*)calloc(1, sizeof(bitmap8bit));
+			memset(pbitmap, 0x00, sizeof(bitmap8bit));
 
 			pbitmap->fileheader.signature[0] = 'B';
 			pbitmap->fileheader.signature[1] = 'M';
 			pbitmap->fileheader.filesize = _filesize;
-			pbitmap->fileheader.fileoffset_to_pixelarray = sizeof(bitmap);
+			pbitmap->fileheader.fileoffset_to_pixelarray = sizeof(bitmap8bit);
 
 			for (int i = 0; i < 256; i++) {
 				pbitmap->rgbquad[i].rgbBlue = i;
@@ -677,10 +677,10 @@ bool ophSig::save(const char *real, const char *imag)
 			pbitmap->bitmapinfoheader.xpixelpermeter = 0;
 			pbitmap->bitmapinfoheader.numcolorspallette = 256;
 
-			fwrite(pbitmap, 1, sizeof(bitmap), freal);
+			fwrite(pbitmap, 1, sizeof(bitmap8bit), freal);
 			fwrite(realdata, 1, _pixelbytesize, freal);
 
-			fwrite(pbitmap, 1, sizeof(bitmap), fimag);
+			fwrite(pbitmap, 1, sizeof(bitmap8bit), fimag);
 			fwrite(imagdata, 1, _pixelbytesize, fimag);
 
 			fclose(freal);

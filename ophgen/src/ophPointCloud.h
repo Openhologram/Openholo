@@ -681,7 +681,7 @@ private:
 	* @return implement time (sec)
 	*/
 	void genCghPointCloudCPU(uint diff_flag);
-	void diffractEncodedRS(ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Real k, Real amplitude, vec2 theta);
+	void diffractEncodedRS(uint channel, ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Real k, Real amplitude, vec2 theta);
 	void diffractNotEncodedRS(uint channel, ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Real k, Real amplitude, Real lambda);
 
 	void diffractEncodedFrsn(void);

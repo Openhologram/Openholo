@@ -325,7 +325,7 @@ int ophPAS::save(const char * fname, uint8_t bitsperpixel, uchar* src, uint px, 
 	ivec2 p(px, py);
 
 	if (src == nullptr)
-		source = holo_normalized;
+		source = holo_normalized[0];
 	if (px == 0 && py == 0)
 		p = ivec2(context_.pixel_number[_X], context_.pixel_number[_Y]);
 

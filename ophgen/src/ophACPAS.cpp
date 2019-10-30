@@ -344,20 +344,25 @@ int ophACPAS::save(const char * fname, uint8_t bitsperpixel, uchar* src, uint px
 
 	uchar* source = src;
 	ivec2 p(px, py);
+	const uint pnX = context_.pixel_number[_X];
+	const uint pnY = context_.pixel_number[_Y];
+	const uint nChannel = context_.waveNum;
 
-	if (src == nullptr)
-		source = holo_normalized;
-	if (px == 0 && py == 0)
-		p = ivec2(context_.pixel_number[_X], context_.pixel_number[_Y]);
+	for (uint ch = 0; ch < nChannel; ch++) {
+		if (src == nullptr)
+			source = holo_normalized[ch];
+		if (px == 0 && py == 0)
+			p = ivec2(pnX, pnY);
 
-	if (checkExtension(fname, ".bmp")) 	// when the extension is bmp
-		return Openholo::saveAsImg(fname, bitsperpixel, source, p[_X], p[_Y]);
-	else {									// when extension is not .ohf, .bmp - force bmp
-		char buf[256];
-		memset(buf, 0x00, sizeof(char) * 256);
-		sprintf_s(buf, "%s.bmp", fname);
+		if (checkExtension(fname, ".bmp")) 	// when the extension is bmp
+			return Openholo::saveAsImg(fname, bitsperpixel, source, p[_X], p[_Y]);
+		else {									// when extension is not .ohf, .bmp - force bmp
+			char buf[256];
+			memset(buf, 0x00, sizeof(char) * 256);
+			sprintf_s(buf, "%s.bmp", fname);
 
-		return Openholo::saveAsImg(buf, bitsperpixel, source, p[_X], p[_Y]);
+			return Openholo::saveAsImg(buf, bitsperpixel, source, p[_X], p[_Y]);
+		}
 	}
 }
 

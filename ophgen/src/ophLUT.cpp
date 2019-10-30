@@ -419,19 +419,19 @@ int ophLUT::saveAsImg(const char * fname, uint8_t bitsperpixel, void * src, int 
 	int _width = pic_width, _height = pic_height;
 
 	int _pixelbytesize = _height * _width * bitsperpixel / 8;
-	int _filesize = _pixelbytesize + sizeof(bitmap);
+	int _filesize = _pixelbytesize + sizeof(bitmap8bit);
 
 	FILE *fp;
 	fopen_s(&fp, fname, "wb");
 	if (fp == nullptr) return -1;
 
-	bitmap *pbitmap = (bitmap*)calloc(1, sizeof(bitmap));
-	memset(pbitmap, 0x00, sizeof(bitmap));
+	bitmap8bit *pbitmap = (bitmap8bit*)calloc(1, sizeof(bitmap8bit));
+	memset(pbitmap, 0x00, sizeof(bitmap8bit));
 
 	pbitmap->fileheader.signature[0] = 'B';
 	pbitmap->fileheader.signature[1] = 'M';
 	pbitmap->fileheader.filesize = _filesize;
-	pbitmap->fileheader.fileoffset_to_pixelarray = sizeof(bitmap);
+	pbitmap->fileheader.fileoffset_to_pixelarray = sizeof(bitmap8bit);
 
 	for (int i = 0; i < 256; i++) {
 		pbitmap->rgbquad[i].rgbBlue = i;
@@ -449,7 +449,7 @@ int ophLUT::saveAsImg(const char * fname, uint8_t bitsperpixel, void * src, int 
 	//pbitmap->bitmapinfoheader.ypixelpermeter = _ypixelpermeter;
 	//pbitmap->bitmapinfoheader.xpixelpermeter = _xpixelpermeter;
 	pbitmap->bitmapinfoheader.numcolorspallette = 256;
-	fwrite(pbitmap, 1, sizeof(bitmap), fp);
+	fwrite(pbitmap, 1, sizeof(bitmap8bit), fp);
 
 	fwrite(src, 1, _pixelbytesize, fp);
 	fclose(fp);

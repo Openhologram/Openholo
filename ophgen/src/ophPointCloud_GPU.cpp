@@ -121,10 +121,10 @@ void ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 		memset(host_dst, 0., bufferSize * 2);
 	}
 
-	for (uint channel = 0; channel < context_.waveNum; channel++)
+	for (uint ch = 0; ch < context_.waveNum; ch++)
 	{
 		memset(host_dst, 0., bufferSize * 2);
-		context_.k = (2 * M_PI) / context_.wave_length[channel];
+		context_.k = (2 * M_PI) / context_.wave_length[ch];
 
 		GpuConst* host_config = new GpuConst(
 			n_points, n_colors, pc_config_.n_streams,
@@ -151,13 +151,13 @@ void ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 		GpuConst* device_config = nullptr;
 		switch (diff_flag) {
 		case PC_DIFF_RS/*_NOT_ENCODED*/: {
-			host_config = new GpuConstNERS(*host_config, context_.wave_length[channel]);
+			host_config = new GpuConstNERS(*host_config, context_.wave_length[ch]);
 			HANDLE_ERROR(cudaMalloc((void**)&device_config, sizeof(GpuConstNERS)));
 			HANDLE_ERROR(cudaMemcpy(device_config, host_config, sizeof(GpuConstNERS), cudaMemcpyHostToDevice));
 			break;
 		}
 		case PC_DIFF_FRESNEL/*_NOT_ENCODED*/: {
-			host_config = new GpuConstNEFR(*host_config, context_.wave_length[channel]);
+			host_config = new GpuConstNEFR(*host_config, context_.wave_length[ch]);
 			HANDLE_ERROR(cudaMalloc((void**)&device_config, sizeof(GpuConstNEFR)));
 			HANDLE_ERROR(cudaMemcpy(device_config, host_config, sizeof(GpuConstNEFR), cudaMemcpyHostToDevice));
 			break;
@@ -184,8 +184,8 @@ void ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 				HANDLE_ERROR(cudaMemset(device_dst, 0., bufferSize * 2));
 
 				for (ulonglong n = 0; n < pnXY; ++n) {
-					complex_H[channel][n][_RE] += host_dst[n];
-					complex_H[channel][n][_IM] += host_dst[n + pnXY];
+					complex_H[ch][n][_RE] += host_dst[n];
+					complex_H[ch][n][_IM] += host_dst[n + pnXY];
 					if (n == 0) { // for debug
 						LOG("GPU > %.16f / %.16f\n", host_dst[n], host_dst[n + pnXY]);
 					}
@@ -198,8 +198,8 @@ void ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 				HANDLE_ERROR(cudaMemset(device_dst, 0., bufferSize * 2));
 
 				for (ulonglong n = 0; n < pnXY; ++n) {
-					complex_H[channel][n][_RE] += host_dst[n];
-					complex_H[channel][n][_IM] += host_dst[n + pnXY];
+					complex_H[ch][n][_RE] += host_dst[n];
+					complex_H[ch][n][_IM] += host_dst[n + pnXY];
 				}
 				break;
 			} // case

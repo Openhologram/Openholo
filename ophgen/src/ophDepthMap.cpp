@@ -51,7 +51,7 @@
 #include	<io.h>
 #include	<direct.h>
 #include    "sys.h"
-
+#include	"tinyxml2.h"
 #include	"include.h"
 
 /** 
@@ -114,8 +114,91 @@ void ophDepthMap::setViewingWindow(bool is_ViewingWindow)
 */
 bool ophDepthMap::readConfig(const char * fname)
 {
-	if (!ophGen::readConfig(fname, dm_config_))
+	if (!ophGen::readConfig(fname))
 		return false;
+
+	LOG("Reading....%s...", fname);
+	auto start = CUR_TIME;
+	/*XML parsing*/
+
+	using namespace tinyxml2;
+	tinyxml2::XMLDocument xml_doc;
+	XMLNode *xml_node = nullptr;
+
+	if (checkExtension(fname, ".xml") == 0)
+	{
+		LOG("file's extension is not 'xml'\n");
+		return false;
+	}
+	auto ret = xml_doc.LoadFile(fname);
+	if (ret != XML_SUCCESS)
+	{
+		LOG("Failed to load file \"%s\"\n", fname);
+		return false;
+	}
+
+	xml_node = xml_doc.FirstChild();
+	auto next = xml_node->FirstChildElement("FlagChangeDepthQuantization");
+	if (!next || XML_SUCCESS != next->QueryBoolText(&dm_config_.FLAG_CHANGE_DEPTH_QUANTIZATION))
+		return false;
+	next = xml_node->FirstChildElement("DefaultDepthQuantization");
+	if (!next || XML_SUCCESS != next->QueryUnsignedText(&dm_config_.DEFAULT_DEPTH_QUANTIZATION))
+		return false;
+	next = xml_node->FirstChildElement("NumberOfDepthQuantization");
+	if (!next || XML_SUCCESS != next->QueryUnsignedText(&dm_config_.NUMBER_OF_DEPTH_QUANTIZATION))
+		return false;
+	if (dm_config_.FLAG_CHANGE_DEPTH_QUANTIZATION == 0)
+		dm_config_.num_of_depth = dm_config_.DEFAULT_DEPTH_QUANTIZATION;
+	else
+		dm_config_.num_of_depth = dm_config_.NUMBER_OF_DEPTH_QUANTIZATION;
+
+	string render_depth;
+	next = xml_node->FirstChildElement("RenderDepth");
+	if (!next || XML_SUCCESS != next->QueryBoolText(&dm_config_.FLAG_CHANGE_DEPTH_QUANTIZATION))
+		return false;
+	else render_depth = (xml_node->FirstChildElement("RenderDepth"))->GetText();
+
+	size_t found = render_depth.find(':');
+	if (found != string::npos)
+	{
+		string s = render_depth.substr(0, found);
+		string e = render_depth.substr(found + 1);
+		int start = stoi(s);
+		int end = stoi(e);
+		dm_config_.render_depth.clear();
+		for (int k = start; k <= end; k++)
+			dm_config_.render_depth.push_back(k);
+	}
+	else
+	{
+		stringstream ss(render_depth);
+		int render;
+
+		while (ss >> render)
+			dm_config_.render_depth.push_back(render);
+	}
+
+	if (dm_config_.render_depth.empty()) {
+		LOG("not found Render Depth Parameter\n");
+		return false;
+	}
+
+	next = xml_node->FirstChildElement("RandomPhase");
+	if (!next || XML_SUCCESS != next->QueryBoolText(&dm_config_.RANDOM_PHASE))
+		return false;
+	next = xml_node->FirstChildElement("FieldLength");
+	if (!next || XML_SUCCESS != next->QueryDoubleText(&dm_config_.fieldLength))
+		return false;
+	next = xml_node->FirstChildElement("NearOfDepth");
+	if (!next || XML_SUCCESS != next->QueryDoubleText(&dm_config_.near_depthmap))
+		return false;
+	next = xml_node->FirstChildElement("FarOfDepth");
+	if (!next || XML_SUCCESS != next->QueryDoubleText(&dm_config_.far_depthmap))
+		return false;
+
+	auto end = CUR_TIME;
+	auto during = ((chrono::duration<Real>)(end - start)).count();
+	LOG("%lf (s)...done\n", during);
 
 	initialize();
 	return true;
@@ -281,60 +364,44 @@ void ophDepthMap::encodeHologram(void)
 
 void ophDepthMap::encoding(unsigned int ENCODE_FLAG)
 {
-	fft2(context_.pixel_number, *complex_H, OPH_BACKWARD);
-	Complex<Real>* dst = new Complex<Real>[context_.pixel_number[_X] * context_.pixel_number[_Y]];
-	fftwShift(*complex_H, dst, context_.pixel_number[_X], context_.pixel_number[_Y], OPH_BACKWARD);
-
-	ophGen::encoding(ENCODE_FLAG, dst);
-
-	delete[] dst;
+	ophGen::encoding(ENCODE_FLAG, nullptr, true);
 }
 
 void ophDepthMap::encoding(unsigned int ENCODE_FLAG, unsigned int SSB_PASSBAND)
 {
-	fft2(context_.pixel_number, *complex_H, OPH_BACKWARD);
-	Complex<Real>* dst = new Complex<Real>[context_.pixel_number[_X] * context_.pixel_number[_Y]];
-	fftwShift(*complex_H, dst, context_.pixel_number[_X], context_.pixel_number[_Y], OPH_BACKWARD);
+	const uint pnX = context_.pixel_number[_X];
+	const uint pnY = context_.pixel_number[_Y];
+	const uint nChannel = context_.waveNum;
+	Complex<Real>* dst = new Complex<Real>[pnX * pnY];
 
-	
-	if (ENCODE_FLAG == ophGen::ENCODE_SSB) {
-		ivec2 location;
-		switch (SSB_PASSBAND) {
-		case SSB_TOP:
-			location = ivec2(0, 1);
-			break;
-		case SSB_BOTTOM:
-			location = ivec2(0, -1);
-			break;
-		case SSB_LEFT:
-			location = ivec2(-1, 0);
-			break;
-		case SSB_RIGHT:
-			location = ivec2(1, 0);
-			break;
+	for (uint ch = 0; ch < nChannel; ch++) {
+		fft2(context_.pixel_number, complex_H[ch], OPH_BACKWARD);
+		fftwShift(complex_H[ch], dst, pnX, pnY, OPH_BACKWARD);
+
+		if (ENCODE_FLAG == ophGen::ENCODE_SSB) {
+			ivec2 location;
+			switch (SSB_PASSBAND) {
+			case SSB_TOP:
+				location = ivec2(0, 1);
+				break;
+			case SSB_BOTTOM:
+				location = ivec2(0, -1);
+				break;
+			case SSB_LEFT:
+				location = ivec2(-1, 0);
+				break;
+			case SSB_RIGHT:
+				location = ivec2(1, 0);
+				break;
+			}
+
+			encodeSideBand(is_CPU, location);
 		}
-
-		encodeSideBand(is_CPU, ivec2(0, 1));
+		else ophGen::encoding(ENCODE_FLAG, SSB_PASSBAND, dst);
 	}
-	else ophGen::encoding(ENCODE_FLAG, SSB_PASSBAND, dst);
-
 	delete[] dst;
 }
 
-int ophDepthMap::save(const char * fname, uint8_t bitsperpixel)
-{
-	std::string resName = std::string(fname);
-	if (resName.find(".bmp") == std::string::npos && resName.find(".BMP") == std::string::npos) resName.append(".bmp");
-
-	int pnx = context_.pixel_number[_X];
-	int pny = context_.pixel_number[_Y];
-	int px = pnx;//static_cast<int>(pnx / 3);
-	int py = pny;
-
-	ophGen::save(resName.c_str(), bitsperpixel, holo_normalized, px, py);
-
-	return 1;
-}
 
 /**
 * @brief Initialize variables for CPU and GPU implementation.
@@ -569,6 +636,8 @@ void ophDepthMap::calcHoloCPU()
 #endif
 	const uint pnX = context_.pixel_number[_X];
 	const uint pnY = context_.pixel_number[_Y];
+	const uint pnXY = pnX * pnY;
+	const int nChannel = context_.waveNum;
 
 	size_t depth_sz = dm_config_.render_depth.size();
 
@@ -576,71 +645,64 @@ void ophDepthMap::calcHoloCPU()
 	fft2(ivec2(pnX, pnY), in, OPH_FORWARD, OPH_ESTIMATE);
 	int p = 0;
 
-#ifdef _OPENMP
+	for (int ch = 0; ch < nChannel; ch++) {
+		Real lambda = context_.wave_length[ch];
+		Real k = context_.k = (2 * M_PI / lambda);
 
+#ifdef _OPENMP
 #pragma omp parallel
-	{
-#pragma omp master // 한 개의 스레드에서만 실행
 		{
-			int nThreads = omp_get_num_threads();
-			LOG("Threads Num: %d\n", nThreads);
-			LOG("Requirements Memory per Thread : %u(byte)\n", 
-				sizeof(Complex<Real>) * pnX * pnY);
-			LOG("Maximum Requirements Memory : %u(byte)\n", 
-				nThreads * sizeof(Complex<Real>) * pnX * pnY);
-		}
-		int tid = omp_get_thread_num();
+			int tid = omp_get_thread_num();
 #pragma omp for private(p)
 #endif
-		for (p = 0; p < depth_sz; ++p)
-		{
-			int dtr = dm_config_.render_depth[p];
+			for (p = 0; p < depth_sz; ++p) {
+				int dtr = dm_config_.render_depth[p];
+
+				Real temp_depth = (is_ViewingWindow) ? dlevel_transform[dtr - 1] : dlevel[dtr - 1];
+
+				Complex<Real> *input = new Complex<Real>[pnXY];
+				memset(input, 0.0, sizeof(Complex<Real>) * pnXY);
+				//Complex<Real> *output = new Complex<Real>[pnXY];
+				//memset(output, 0.0, sizeof(Complex<Real>) * pnXY);
+
+				Real sum = 0.0;
+				for (int i = 0; i < pnXY; i++)
+				{
+					input[i][_RE] += img_src[i] * alpha_map[i] * (depth_index[i] == dtr ? 1.0 : 0.0);
+					sum += input[i][_RE];
+				}
+
+				if (sum > 0.0)
+				{
+					//LOG("Depth: %d of %d, z = %f mm\n", dtr, dm_config_.num_of_depth, -temp_depth * 1000);
+					Complex<Real> rand_phase_val;
+					getRandPhaseValue(rand_phase_val, dm_config_.RANDOM_PHASE);
+
+					Complex<Real> carrier_phase_delay(0, k * temp_depth);
+					carrier_phase_delay.exp();
+
+					for (int i = 0; i < pnXY; i++)
+						input[i] = input[i] * rand_phase_val * carrier_phase_delay;
+
+					if (propagation_method == 1) { // angular spectrum
+						Openholo::fftwShift(input, input, pnX, pnY, OPH_FORWARD, false);
+						propagationAngularSpectrum(ch, input, -temp_depth, k, lambda);
+					}
+					else { // none
+					//	memcpy((*complex_H), u_o, sizeof(Complex<Real>) * pnXY);
+					}
+				}
+				else {
+					//LOG("Depth: %d of %d : Nothing here\n", dtr, dm_config_.num_of_depth);
+				}
+				delete[] input;
+			}
 #ifdef _OPENMP
-			Real temp_depth = 0.0;
-#pragma omp atomic
-			temp_depth += (is_ViewingWindow) ? dlevel_transform[dtr - 1] : dlevel[dtr - 1];
-#else
-			Real temp_depth = (is_ViewingWindow) ? dlevel_transform[dtr - 1] : dlevel[dtr - 1];
-#endif	
-			Complex<Real>* u_o = (Complex<Real>*)malloc(sizeof(Complex<Real>)*pnX*pnY);
-			memset(u_o, 0.0, sizeof(Complex<Real>)*pnX*pnY);
-
-			Real sum = 0.0;
-			for (int i = 0; i < pnX * pnY; i++)
-			{
-				u_o[i]._Val[_RE] = img_src[i] * alpha_map[i] * (depth_index[i] == dtr ? 1.0 : 0.0);
-				sum += u_o[i]._Val[_RE];
-			}
-
-			if (sum > 0.0)
-			{
-				//LOG("Depth: %d of %d, z = %f mm\n", dtr, dm_config_.num_of_depth, -temp_depth * 1000);
-				Complex<Real> rand_phase_val;
-				getRandPhaseValue(rand_phase_val, dm_config_.RANDOM_PHASE);
-
-				Complex<Real> carrier_phase_delay(0, context_.k* temp_depth);
-				carrier_phase_delay.exp();
-
-				for (int i = 0; i < pnX * pnY; i++)
-					u_o[i] = u_o[i] * rand_phase_val * carrier_phase_delay;
-
-				if (propagation_method == 1) { // angular spectrum
-					Openholo::fftwShift(u_o, u_o, pnX, pnY, OPH_FORWARD, false);
-					propagationAngularSpectrum(u_o, -temp_depth);
-				}
-				else { // none
-					memcpy((*complex_H), u_o, sizeof(Complex<Real>) * pnX * pnY);
-				}
-			}
-			else {
-				//LOG("Depth: %d of %d : Nothing here\n", dtr, dm_config_.num_of_depth);
-			}
-
-			free(u_o);
 		}
-#ifdef _OPENMP
-	}
 #endif
+
+		LOG("\n%s (%d/%d) : %lf(s)\n\n", __FUNCTION__, ch+1, nChannel, ((std::chrono::duration<Real>)(CUR_TIME - begin)).count());
+	}
 #ifdef CHECK_PROC_TIME
 	auto end = CUR_TIME;
 	LOG("\n%s : %lf(s)\n\n", __FUNCTION__, ((std::chrono::duration<Real>)(end - begin)).count());

@@ -129,154 +129,66 @@ bool ophTri::loadMeshData(const char* fileName, const char* ext) {
 	return true;
 }
 
-int ophTri::readMeshConfig(const char* mesh_config) {
-	LOG("Reading....%s...", mesh_config);
+bool ophTri::readConfig(const char* fname)
+{
+	if (!ophGen::readConfig(fname))
+		return false;
+
+	LOG("Reading....%s...", fname);
 
 	auto start = CUR_TIME;
 
+	using namespace tinyxml2;
 	/*XML parsing*/
 	tinyxml2::XMLDocument xml_doc;
-	tinyxml2::XMLNode *xml_node;
+	XMLNode *xml_node;
 
-	if (checkExtension(mesh_config, ".xml") == 0)
+	if (checkExtension(fname, ".xml") == 0)
 	{
 		LOG("file's extension is not 'xml'\n");
 		return false;
 	}
-	auto ret = xml_doc.LoadFile(mesh_config);
-	if (ret != tinyxml2::XML_SUCCESS)
+	if (xml_doc.LoadFile(fname) != XML_SUCCESS)
 	{
-		LOG("Failed to load file \"%s\"\n", mesh_config);
+		LOG("Failed to load file \"%s\"\n", fname);
 		return false;
 	}
 
 	xml_node = xml_doc.FirstChild();
 
-#if REAL_IS_DOUBLE & true
-	auto next = xml_node->FirstChildElement("FieldLens");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&fieldLength))
+	// about viewing window
+	auto next = xml_node->FirstChildElement("FieldLength");
+	if (!next || XML_SUCCESS != next->QueryDoubleText(&fieldLength))
 		return false;
+
+	// about object
 	next = xml_node->FirstChildElement("ObjectSize");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&objSize))
+	if (!next || XML_SUCCESS != next->QueryDoubleText(&objSize))
 		return false;
 	next = xml_node->FirstChildElement("ObjectShiftX");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&objShift[_X]))
+	if (!next || XML_SUCCESS != next->QueryDoubleText(&objShift[_X]))
 		return false;
 	next = xml_node->FirstChildElement("ObjectShiftY");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&objShift[_Y]))
+	if (!next || XML_SUCCESS != next->QueryDoubleText(&objShift[_Y]))
 		return false;
 	next = xml_node->FirstChildElement("ObjectShiftZ");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&objShift[_Z]))
+	if (!next || XML_SUCCESS != next->QueryDoubleText(&objShift[_Z]))
 		return false;
 	next = xml_node->FirstChildElement("LampDirectionX");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&illumination[_X]))
+	if (!next || XML_SUCCESS != next->QueryDoubleText(&illumination[_X]))
 		return false;
 	next = xml_node->FirstChildElement("LampDirectionY");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&illumination[_Y]))
+	if (!next || XML_SUCCESS != next->QueryDoubleText(&illumination[_Y]))
 		return false;
 	next = xml_node->FirstChildElement("LampDirectionZ");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&illumination[_Z]))
+	if (!next || XML_SUCCESS != next->QueryDoubleText(&illumination[_Z]))
 		return false;
-	next = xml_node->FirstChildElement("SLMPixelPitchX");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&context_.pixel_pitch[_X]))
-		return false;
-	next = xml_node->FirstChildElement("SLMPixelPitchY");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&context_.pixel_pitch[_Y]))
-		return false;
-	next = xml_node->FirstChildElement("WavelengthofLaser");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&context_.wave_length[0]))
-		return false;
-	//(xml_node->FirstChildElement("ObjectSize"))->QueryDoubleText(&objSize);
-	//(xml_node->FirstChildElement("ObjectShiftX"))->QueryDoubleText(&objShift[_X]);
-	//(xml_node->FirstChildElement("ObjectShiftY"))->QueryDoubleText(&objShift[_Y]);
-	//(xml_node->FirstChildElement("ObjectShiftZ"))->QueryDoubleText(&objShift[_Z]);
-	////(xml_node->FirstChildElement("CarrierWaveVectorX"))->QueryDoubleText(&carrierWave[_X]);
-	////(xml_node->FirstChildElement("CarrierWaveVectorY"))->QueryDoubleText(&carrierWave[_Y]);
-	////(xml_node->FirstChildElement("CarrierWaveVectorZ"))->QueryDoubleText(&carrierWave[_Z]);
-	//(xml_node->FirstChildElement("LampDirectionX"))->QueryDoubleText(&illumination[_X]);
-	//(xml_node->FirstChildElement("LampDirectionY"))->QueryDoubleText(&illumination[_Y]);
-	//(xml_node->FirstChildElement("LampDirectionZ"))->QueryDoubleText(&illumination[_Z]);
-	//(xml_node->FirstChildElement("SLMPixelPitchX"))->QueryDoubleText(&context_.pixel_pitch[_X]);
-	//(xml_node->FirstChildElement("SLMPixelPitchY"))->QueryDoubleText(&context_.pixel_pitch[_Y]);
-	//(xml_node->FirstChildElement("WavelengthofLaser"))->QueryDoubleText(&context_.wave_length[0]);
-#else
-	auto next = xml_node->FirstChildElement("ObjectSize");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryFloatText(&objSize))
-		return false;
-	next = xml_node->FirstChildElement("ObjectShiftX");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryFloatText(&objShift[_X]))
-		return false;
-	next = xml_node->FirstChildElement("ObjectShiftY");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryFloatText(&objShift[_Y]))
-		return false;
-	next = xml_node->FirstChildElement("ObjectShiftZ");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryFloatText(&objShift[_Z]))
-		return false;
-	next = xml_node->FirstChildElement("LampDirectionX");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryFloatText(&illumination[_X]))
-		return false;
-	next = xml_node->FirstChildElement("LampDirectionY");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryFloatText(&illumination[_Y]))
-		return false;
-	next = xml_node->FirstChildElement("LampDirectionZ");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryFloatText(&illumination[_Z]))
-		return false;
-	next = xml_node->FirstChildElement("SLMPixelPitchX");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryFloatText(&context_.pixel_pitch[_X]))
-		return false;
-	next = xml_node->FirstChildElement("SLMPixelPitchY");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryFloatText(&context_.pixel_pitch[_Y]))
-		return false;
-	next = xml_node->FirstChildElement("WavelengthofLaser");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryFloatText(&context_.wave_length[0]))
-		return false;
-	//(xml_node->FirstChildElement("ObjectSize"))->QueryFloatText(&objSize);
-	//(xml_node->FirstChildElement("ObjectShiftX"))->QueryFloatText(&objShift[_X]);
-	//(xml_node->FirstChildElement("ObjectShiftY"))->QueryFloatText(&objShift[_Y]);
-	//(xml_node->FirstChildElement("ObjectShiftZ"))->QueryFloatText(&objShift[_Z]);
-	////(xml_node->FirstChildElement("CarrierWaveVectorX"))->QueryFloatText(&carrierWave[_X]);
-	////(xml_node->FirstChildElement("CarrierWaveVectorY"))->QueryFloatText(&carrierWave[_Y]);
-	////(xml_node->FirstChildElement("CarrierWaveVectorZ"))->QueryFloatText(&carrierWave[_Z]);
-	//(xml_node->FirstChildElement("LampDirectionX"))->QueryFloatText(&illumination[_X]);
-	//(xml_node->FirstChildElement("LampDirectionY"))->QueryFloatText(&illumination[_Y]);
-	//(xml_node->FirstChildElement("LampDirectionZ"))->QueryFloatText(&illumination[_Z]);
-	//(xml_node->FirstChildElement("SLMPixelPitchX"))->QueryFloatText(&context_.pixel_pitch[_X]);
-	//(xml_node->FirstChildElement("SLMPixelPitchY"))->QueryFloatText(&context_.pixel_pitch[_Y]);
-	//(xml_node->FirstChildElement("WavelengthofLaser"))->QueryFloatText(&context_.wave_length[0]);
-#endif
-	next = xml_node->FirstChildElement("SLMPixelNumX");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryIntText(&context_.pixel_number[_X]))
-		return false;
-	next = xml_node->FirstChildElement("SLMPixelNumY");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryIntText(&context_.pixel_number[_Y]))
-		return false;
-
-	//(xml_node->FirstChildElement("MeshShadingType"))->QueryIntText(&SHADING_TYPE);
-	//(xml_node->FirstChildElement("EncodingMethod"))->QueryIntText(&ENCODE_METHOD);
-	//if (ENCODE_METHOD == ENCODE_SSB || ENCODE_METHOD == ENCODE_OFFSSB)
-	//	(xml_node->FirstChildElement("SingleSideBandPassBand"))->QueryIntText(&SSB_PASSBAND);
-
-	context_.k = (2 * M_PI) / context_.wave_length[0];
-	context_.ss[_X] = context_.pixel_number[_X] * context_.pixel_pitch[_X];
-	context_.ss[_Y] = context_.pixel_number[_Y] * context_.pixel_pitch[_Y];
-
-	cout << "pixel num: " << context_.pixel_number[_X] << ", " << context_.pixel_number[_Y] << endl;
-	cout << "pixel pit: " << context_.pixel_pitch[_X] << ", " << context_.pixel_pitch[_Y] << endl;
-	cout << "lambda: " << context_.wave_length[0] << endl;
-	cout << "illu: " << illumination[_X] << ", " << illumination[_Y] << ", " << illumination[_Z] << endl;
-	cout << "size: " << objSize << endl;
-	cout << "shift: " << objShift[_X] << ", " << objShift[_Y] << ", " << objShift[_Z] << endl;
-
-	setPixelNumberOHC(context_.pixel_number);
-	setPixelPitchOHC(context_.pixel_pitch);
-	setWavelengthOHC(context_.wave_length[0], LenUnit::m);
-	initialize();
 
 	auto end = CUR_TIME;
+	auto during = ((chrono::duration<Real>)(end - start)).count();
+	LOG("%lf (s)..done\n", during);
 
-	auto during = ((std::chrono::duration<Real>)(end - start)).count();
-
-	LOG("%.5lfsec...done\n", during);
+	initialize();
 	return true;
 }
 
@@ -290,9 +202,18 @@ int ophTri::readMeshConfig(const char* mesh_config) {
 //	return 0;
 //}
 
-void ophTri::initializeAS() {
-	angularSpectrum = new Complex<Real>[context_.pixel_number[_X] * context_.pixel_number[_Y]];
-	memset(angularSpectrum, 0, context_.pixel_number[_X] * context_.pixel_number[_Y]);
+void ophTri::initializeAS()
+{
+	const uint pnX = context_.pixel_number[_X];
+	const uint pnY = context_.pixel_number[_Y];
+	const uint pnXY = pnX * pnY;
+
+	if (angularSpectrum) {
+		delete[] angularSpectrum;
+		angularSpectrum = nullptr;
+	}
+	angularSpectrum = new Complex<Real>[pnXY];
+	memset(angularSpectrum, 0, sizeof(Complex<Real>) * pnXY);
 }
 
 
@@ -535,22 +456,24 @@ void ophTri::generateAS(uint SHADING_FLAG)
 	Real mesh[9] = { 0.0, };
 	calGlobalFrequency();
 
-	ivec2 px = context_.pixel_number;
+	const uint pnX = context_.pixel_number[_X];
+	const uint pnY = context_.pixel_number[_Y];
+	const uint pnXY = pnX * pnY;
 
 	//mesh_local = new Real[9];
-	flx = new Real[px[_X] * px[_Y]];
-	fly = new Real[px[_X] * px[_Y]];
-	flz = new Real[px[_X] * px[_Y]];
+	flx = new Real[pnXY];
+	fly = new Real[pnXY];
+	flz = new Real[pnXY];
 
-	freqTermX = new Real[px[_X] * px[_Y]];
-	freqTermY = new Real[px[_X] * px[_Y]];
+	freqTermX = new Real[pnXY];
+	freqTermY = new Real[pnXY];
 
-	refAS = new Complex<Real>[px[_X] * px[_Y]];
+	refAS = new Complex<Real>[pnXY];
 
-	ASTerm = new Complex<Real>[px[_X] * px[_Y]];
-	randTerm = new Complex<Real>[px[_X] * px[_Y]];
-	phaseTerm = new Complex<Real>[px[_X] * px[_Y]];
-	convol = new Complex<Real>[px[_X] * px[_Y]];
+	ASTerm = new Complex<Real>[pnXY];
+	randTerm = new Complex<Real>[pnXY];
+	phaseTerm = new Complex<Real>[pnXY];
+	convol = new Complex<Real>[pnXY];
 
 	findNormals(SHADING_FLAG);
 	
@@ -802,36 +725,44 @@ uint ophTri::findGeometricalRelations(Real* mesh, vec3 no)
 	return 1;
 }
 
-void ophTri::calGlobalFrequency() {
-	int Nx = context_.pixel_number[_X];
-	int Ny = context_.pixel_number[_Y];
-	
-	Real dfx = 1 / context_.pixel_pitch[_X] / Nx;
-	Real dfy = 1 / context_.pixel_pitch[_Y] / Ny;
-	fx = new Real[Nx*Ny];
-	fy = new Real[Nx*Ny];
-	fz = new Real[Nx*Ny];
-	uint i = 0;
-	for (int idxFy = Ny / 2; idxFy > -Ny / 2; idxFy--) {
-		for (int idxFx = -Nx / 2; idxFx < Nx / 2; idxFx++) {
-			fx[i] = idxFx*dfx;
-			fy[i] = idxFy*dfy;
-			fz[i] = sqrt((1 / context_.wave_length[0])*(1 / context_.wave_length[0]) - fx[i] * fx[i] - fy[i] * fy[i]);
+void ophTri::calGlobalFrequency()
+{
+	const uint pnX = context_.pixel_number[_X];
+	const uint pnY = context_.pixel_number[_Y];
+	const uint pnXY = pnX * pnY;
+	const uint nChannel = context_.waveNum;
 
-			i++;
+	Real dfx = 1 / context_.pixel_pitch[_X] / pnX;
+	Real dfy = 1 / context_.pixel_pitch[_Y] / pnY;
+	fx = new Real[pnXY];
+	fy = new Real[pnXY];
+	fz = new Real[pnXY];
+	uint i = 0;
+
+	for (uint ch = 0; ch < nChannel; ch++) {
+		Real lambda = context_.wave_length[ch];
+		for (int idxFy = pnY / 2; idxFy > -pnY / 2; idxFy--) {
+			for (int idxFx = -pnX / 2; idxFx < pnX / 2; idxFx++) {
+				fx[i] = idxFx * dfx;
+				fy[i] = idxFy * dfy;
+				fz[i] = sqrt((1 / lambda)*(1 / lambda) - fx[i] * fx[i] - fy[i] * fy[i]);
+
+				i++;
+			}
 		}
 	}
 }
 
-uint ophTri::calFrequencyTerm() {
-	
-	int Nx = context_.pixel_number[_X];
-	int Ny = context_.pixel_number[_Y];
+uint ophTri::calFrequencyTerm()
+{	
+	const uint pnX = context_.pixel_number[_X];
+	const uint pnY = context_.pixel_number[_Y];
+	const uint pnXY = pnX * pnY;
 
-	Real* flxShifted = new Real[Nx*Ny];
-	Real* flyShifted = new Real[Nx*Ny];
+	Real* flxShifted = new Real[pnXY];
+	Real* flyShifted = new Real[pnXY];
 
-	for_i(Nx*Ny,
+	for_i(pnXY,
 		flx[i] = geom.glRot[0] * fx[i] + geom.glRot[1] * fy[i] + geom.glRot[2] * fz[i];
 		fly[i] = geom.glRot[3] * fx[i] + geom.glRot[4] * fy[i] + geom.glRot[5] * fz[i];
 		flz[i] = sqrt((1 / context_.wave_length[0])*(1 / context_.wave_length[0]) - flx[i] * flx[i] - fly[i] * fly[i]);
@@ -848,7 +779,7 @@ uint ophTri::calFrequencyTerm() {
 	invLoRot[2] = -(1 / det)*geom.loRot[1];
 	invLoRot[3] = (1 / det)*geom.loRot[0];
 
-	for_i(Nx*Ny,
+	for_i(pnXY,
 		freqTermX[i] = invLoRot[0] * flxShifted[i] + invLoRot[1] * flyShifted[i];
 		freqTermY[i] = invLoRot[2] * flxShifted[i] + invLoRot[3] * flyShifted[i];
 		);
@@ -859,9 +790,11 @@ uint ophTri::calFrequencyTerm() {
 	return 1;
 }
 
-uint ophTri::refAS_Flat(vec3 no) {
-	int Nx = context_.pixel_number[_X];
-	int Ny = context_.pixel_number[_Y];
+uint ophTri::refAS_Flat(vec3 no)
+{
+	const uint pnX = context_.pixel_number[_X];
+	const uint pnY = context_.pixel_number[_Y];
+	const uint pnXY = pnX * pnY;
 
 	n = no / norm(no);
 		
@@ -877,7 +810,7 @@ uint ophTri::refAS_Flat(vec3 no) {
 		if (shadingFactor < 0)
 			shadingFactor = 0;		
 	}
-	for (int i = 0; i < Nx*Ny; i++) {
+	for (int i = 0; i < pnXY; i++) {
 		if (freqTermX[i] == -freqTermY[i] && freqTermY[i] != 0) {
 			refTerm1[_IM] = 2 * M_PI*freqTermY[i];
 			refTerm2[_IM] = 1;
@@ -908,9 +841,11 @@ uint ophTri::refAS_Flat(vec3 no) {
 	return 1;
 }
 
-uint ophTri::refAS_Continuous(uint n) {
-	int Nx = context_.pixel_number[_X];
-	int Ny = context_.pixel_number[_Y];
+uint ophTri::refAS_Continuous(uint n)
+{
+	const uint pnX = context_.pixel_number[_X];
+	const uint pnY = context_.pixel_number[_Y];
+	const uint pnXY = pnX * pnY;
 
 	vec3 av(0, 0, 0);
 	av[0] = nv[3 * n + 0][0] * illumination[0] + nv[3 * n + 0][1] * illumination[1] + nv[3 * n + 0][2] * illumination[2] + 0.1;
@@ -925,7 +860,7 @@ uint ophTri::refAS_Continuous(uint n) {
 	refTerm2(0, 0);
 	refTerm3(0, 0);
 	
-	for (int i = 0; i < Nx*Ny; i++) {
+	for (int i = 0; i < pnXY; i++) {
 		if (freqTermX[i] == 0 && freqTermY[i] == 0) {
 			D1((Real)1 / (Real)3, 0);
 			D2((Real)1 / (Real)5, 0);

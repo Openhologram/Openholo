@@ -72,113 +72,60 @@ void ophLF::setViewingWindow(bool is_ViewingWindow)
 	this->is_ViewingWindow = is_ViewingWindow;
 }
 
-int ophLF::readLFConfig(const char* LF_config) {
-	LOG("Reading....%s...\n", LF_config);
+bool ophLF::readConfig(const char* fname) 
+{
+	if (!ophGen::readConfig(fname))
+		return false;
+
+	LOG("Reading....%s...", fname);
 
 	auto start = CUR_TIME;
 
+	using namespace tinyxml2;
 	/*XML parsing*/
 	tinyxml2::XMLDocument xml_doc;
-	tinyxml2::XMLNode *xml_node;
+	XMLNode *xml_node;
 
-	if (checkExtension(LF_config, ".xml") == 0)
+	if (checkExtension(fname, ".xml") == 0)
 	{
 		LOG("file's extension is not 'xml'\n");
 		return false;
 	}
-	auto ret = xml_doc.LoadFile(LF_config);
-	if (ret != tinyxml2::XML_SUCCESS)
+	if (xml_doc.LoadFile(fname) != XML_SUCCESS)
 	{
-		LOG("Failed to load file \"%s\"\n", LF_config);
+		LOG("Failed to load file \"%s\"\n", fname);
 		return false;
 	}
 
 	xml_node = xml_doc.FirstChild();
 
-	//LF_directory = (xml_node->FirstChildElement("LightFieldImageDirectory"))->GetText();
-	//ext = (xml_node->FirstChildElement("LightFieldImageExtention"))->GetText();
-#if REAL_IS_DOUBLE & true
-	auto next = xml_node->FirstChildElement("FieldLens");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&fieldLens))
-		return false;		
-	next = xml_node->FirstChildElement("DistanceRS2Holo");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&distanceRS2Holo))
+	// about viewing window
+	auto next = xml_node->FirstChildElement("FieldLength");
+	if (!next || XML_SUCCESS != next->QueryDoubleText(&fieldLens))
 		return false;
-	next = xml_node->FirstChildElement("SLMPixelPitchX");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&context_.pixel_pitch[_X]))
-		return false;
-	next = xml_node->FirstChildElement("SLMPixelPitchY");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&context_.pixel_pitch[_Y]))
-		return false;
-	next = xml_node->FirstChildElement("WavelengthofLaser");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&context_.wave_length[0]))
-		return false;
-	//(xml_node->FirstChildElement("DistanceRS2Holo"))->QueryDoubleText(&distanceRS2Holo);
-	//(xml_node->FirstChildElement("SLMPixelPitchX"))->QueryDoubleText(&context_.pixel_pitch[_X]);
-	//(xml_node->FirstChildElement("SLMPixelPitchY"))->QueryDoubleText(&context_.pixel_pitch[_Y]);
-	//(xml_node->FirstChildElement("WavelengthofLaser"))->QueryDoubleText(&context_.wave_length[0]);
-#else
-	auto next = xml_node->FirstChildElement("DistanceRS2Holo");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryFloatText(&distanceRS2Holo))
-		return false;
-	next = xml_node->FirstChildElement("SLMPixelPitchX");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryFloatText(&context_.pixel_pitch[_X]))
-		return false;
-	next = xml_node->FirstChildElement("SLMPixelPitchY");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryFloatText(&context_.pixel_pitch[_Y]))
-		return false;
-	next = xml_node->FirstChildElement("WavelengthofLaser");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryFloatText(&context_.wave_length[0]))
-		return false;
-	//(xml_node->FirstChildElement("DistanceRS2Holo"))->QueryFloatText(&distanceRS2Holo);
-	//(xml_node->FirstChildElement("SLMPixelPitchX"))->QueryFloatText(&context_.pixel_pitch[_X]);
-	//(xml_node->FirstChildElement("SLMPixelPitchY"))->QueryFloatText(&context_.pixel_pitch[_Y]);
-	//(xml_node->FirstChildElement("WavelengthofLaser"))->QueryFloatText(&context_.wave_length[0]);
-#endif
-	next = xml_node->FirstChildElement("NumberofImagesXofLF");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryIntText(&num_image[_X]))
-		return false;
-	next = xml_node->FirstChildElement("NumberofImagesYofLF");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryIntText(&num_image[_Y]))
-		return false;
-	next = xml_node->FirstChildElement("NumberofPixelXofLF");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryIntText(&resolution_image[_X]))
-		return false;
-	next = xml_node->FirstChildElement("NumberofPixelYofLF");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryIntText(&resolution_image[_Y]))
-		return false;
-	//(xml_node->FirstChildElement("NumberofImagesXofLF"))->QueryIntText(&num_image[_X]);
-	//(xml_node->FirstChildElement("NumberofImagesYofLF"))->QueryIntText(&num_image[_Y]);
-	//(xml_node->FirstChildElement("NumberofPixelXofLF"))->QueryIntText(&resolution_image[_X]);
-	//(xml_node->FirstChildElement("NumberofPixelYofLF"))->QueryIntText(&resolution_image[_Y]);
-	//(xml_node->FirstChildElement("EncodingMethod"))->QueryIntText(&ENCODE_METHOD);
-	//(xml_node->FirstChildElement("SingleSideBandPassBand"))->QueryIntText(&SSB_PASSBAND);
 
-	context_.pixel_number[_X] = num_image[_X] * resolution_image[_X];
-	context_.pixel_number[_Y] = num_image[_Y] * resolution_image[_Y];
-
-	context_.k = (2 * M_PI) / context_.wave_length[0];
-	context_.ss[_X] = context_.pixel_number[_X] * context_.pixel_pitch[_X];
-	context_.ss[_Y] = context_.pixel_number[_Y] * context_.pixel_pitch[_Y];
-
-	cout << endl;
-	cout << "SLM pixel pitch: " << context_.pixel_pitch[_X] << ", " << context_.pixel_pitch[_Y] << endl;
-	cout << "Wavelength of LASER: " << context_.wave_length[0] << endl;
-	cout << "Distance RS plane to Hologram plane: " << distanceRS2Holo << endl;
-	cout << "# of images: " << num_image[_X] << ", " << num_image[_Y] << endl;
-	cout << "Resolution of the images: " << resolution_image[_X] << ", " << resolution_image[_Y] << endl;
-	cout << "Resolution of hologram: " << context_.pixel_number[_X] << ", " << context_.pixel_number[_Y] << endl;
-	cout << endl;
-
-	setPixelNumberOHC(context_.pixel_number);
-	setPixelPitchOHC(context_.pixel_pitch);
-	addWaveLengthOHC(context_.wave_length[0]);
+	// about image
+	next = xml_node->FirstChildElement("Image_NumOfX");
+	if (!next || XML_SUCCESS != next->QueryIntText(&num_image[_X]))
+		return false;
+	next = xml_node->FirstChildElement("Image_NumOfY");
+	if (!next || XML_SUCCESS != next->QueryIntText(&num_image[_Y]))
+		return false;
+	next = xml_node->FirstChildElement("Image_Width");
+	if (!next || XML_SUCCESS != next->QueryIntText(&resolution_image[_X]))
+		return false;
+	next = xml_node->FirstChildElement("Image_Height");
+	if (!next || XML_SUCCESS != next->QueryIntText(&resolution_image[_Y]))
+		return false;
+	next = xml_node->FirstChildElement("Distance");
+	if (!next || XML_SUCCESS != next->QueryDoubleText(&distanceRS2Holo))
+		return false;
 
 	auto end = CUR_TIME;
+	auto during = ((chrono::duration<Real>)(end - start)).count();
+	LOG("%lf (s)..done\n", during);
 
-	auto during = ((std::chrono::duration<Real>)(end - start)).count();
 	initialize();
-	LOG("%.5lfsec...done\n", during);
 	return true;
 }
 
@@ -309,7 +256,8 @@ void ophLF::generateHologram()
 	if (is_CPU)
 	{
 		convertLF2ComplexField();
-		fresnelPropagation(RSplane_complex_field, (*complex_H), distanceRS2Holo);
+		for(uint ch = 0; ch < context_.waveNum; ch++) 
+			fresnelPropagation(RSplane_complex_field, complex_H[ch], distanceRS2Holo, ch);
 	}
 	else
 	{

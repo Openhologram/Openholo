@@ -160,7 +160,7 @@ public:
 	* @return	objSize
 	* @return	objShift
 	*/
-	int readMeshConfig(const char* mesh_config);
+	bool readConfig(const char* fname);
 
 	/**
 	* @brief	Mesh data load
