@@ -685,7 +685,7 @@ private:
 	void diffractNotEncodedRS(uint channel, ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Real k, Real amplitude, Real lambda);
 
 	void diffractEncodedFrsn(void);
-	void diffractNotEncodedFrsn(uint channel, ivec2 pn, vec2 pp, vec3 pc, Real amplitude, Real lambda, vec2 theta);
+	void diffractNotEncodedFrsn(uint channel, ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Real k, Real amplitude, Real lambda);
 
 	inline Real transVW(Real pt) {
 		Real fieldLens = this->getFieldLens();
