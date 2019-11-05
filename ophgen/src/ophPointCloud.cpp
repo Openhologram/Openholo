@@ -312,16 +312,12 @@ void ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 	int i; // private variable for Multi Threading
 	chrono::system_clock::time_point loop_begin;
 	chrono::system_clock::time_point loop_end;
-
-	uint nChannel = context_.waveNum;
-
 	int num_threads = 1;
-#if 0
+	
 	for (uint ch = 0; ch < context_.waveNum; ++ch) {
 		// Wave Number (2 * PI / lambda(wavelength))
 		Real lambda = context_.wave_length[ch];
 		Real k = context_.k = (2 * M_PI / lambda);
-#endif
 #ifdef _OPENMP
 #pragma omp parallel
 		{
@@ -330,6 +326,8 @@ void ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 #pragma omp for private(i)
 #endif
 			for (i = 0; i < n_points; ++i) { //Create Fringe Pattern
+				if(tid == 0 && i == 0) 
+					loop_begin = CUR_TIME;
 				uint idx = 3 * i;
 				uint color_idx = pc_data_.n_colors * i;
 				Real pcx = (is_ViewingWindow) ? transVW(pc_data_.vertex[idx + _X]) : pc_data_.vertex[idx + _X];
@@ -340,37 +338,27 @@ void ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 				pcz *= pc_config_.scale[_Z];
 				pcz += pc_config_.offset_depth;
 				Real amplitude = pc_data_.color[color_idx];
-				
-				for (uint ch = 0; ch < nChannel; ++ch) {
-					// Wave Number (2 * PI / lambda(wavelength))
-					Real lambda = context_.wave_length[ch];
-					Real k = context_.k = (2 * M_PI / lambda);
 
-					if (tid == 0 && i == 0)
-						loop_begin = CUR_TIME;
-
-					switch (diff_flag)
-					{
-					case PC_DIFF_RS:
-						diffractNotEncodedRS(ch, pn, pp, ss, vec3(pcx, pcy, pcz), k, amplitude, lambda);
-						break;
-					case PC_DIFF_FRESNEL:
-						diffractNotEncodedFrsn(ch, pn, pp, ss, vec3(pcx, pcy, pcz), k, amplitude, lambda);
-						break;
-					}
-					if (tid == 0 && i == 0) {
-						loop_end = CUR_TIME;
-						LOG("loop %lf(s)",
-							((chrono::duration<Real>)(loop_end - loop_begin)).count());
-					}
+				switch (diff_flag)
+				{
+				case PC_DIFF_RS:
+					diffractNotEncodedRS(ch, pn, pp, ss, vec3(pcx, pcy, pcz), k, amplitude, lambda);
+					break;
+				case PC_DIFF_FRESNEL:
+					diffractNotEncodedFrsn(ch, pn, pp, ss, vec3(pcx, pcy, pcz), k, amplitude, lambda);
+					break;
+				}
+				if (tid == 0 && i == 0) {
+					loop_end = CUR_TIME;
+					LOG("loop %lf(s)",
+						((chrono::duration<Real>)(loop_end - loop_begin)).count());
 				}
 			}
 #ifdef _OPENMP
 		}
 #endif
-#if 0
 	}
-#endif
+
 #ifdef CHECK_PROC_TIME
 	auto end = CUR_TIME;
 	LOG("\n%s : %lf(s) <%d threads>\n\n",
