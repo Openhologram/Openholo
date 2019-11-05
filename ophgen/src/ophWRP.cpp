@@ -229,8 +229,8 @@ void ophWRP::addPixel2WRP(int x, int y, Complex<Real> temp)
 
 	if (x >= 0 && x < pnX && y >= 0 && y < pnY) {
 		uint adr = x + y * pnX;
-		if (adr == 0) std::cout << ".0";
-#pragma omp atomic
+		if (adr == 0) 
+			std::cout << ".0";
 		p_wrp_[adr] = p_wrp_[adr] + temp;
 	}
 
@@ -399,8 +399,26 @@ double ophWRP::calculateWRPCPU(void)
 						Complex<Real> tmp;
 						tmp[_RE] = (amplitude * cosf(k * r) * cosf(k * lambda * rand(0, 1))) / r;
 						tmp[_IM] = (-amplitude * sinf(k * r) * sinf(k * lambda * rand(0, 1))) / r;
-						if (tx + wx >= 0 && tx + wx < pnX && ty + wy >= 0 && ty + wy < pnY)
-							addPixel2WRP(wx + tx, wy + ty, tmp);
+						if (tx + wx >= 0 && tx + wx < pnX && ty + wy >= 0 && ty + wy < pnY) {
+							int tmpX = wx + tx;
+							int tmpY = wy + ty;
+
+							if (tmpX >= 0 && tmpX < pnX && tmpY >= 0 && tmpY < pnY) {
+								uint adr = tmpX + tmpY * pnX;
+								if (adr == 0)
+									std::cout << ".0";
+
+
+#ifdef _OPENMP
+#pragma omp atomic
+								p_wrp_[adr][_RE] += tmp[_RE];
+#pragma omp atomic
+								p_wrp_[adr][_IM] += tmp[_IM];
+#else
+								p_wrp_[adr] += tmp;
+#endif								
+							}
+						}
 					}
 				}
 			}
