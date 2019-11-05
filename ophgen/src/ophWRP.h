@@ -140,7 +140,7 @@ public:
 	const Real& getLocation() { return wrp_config_.wrp_location; }
 	const Real& getDistance() { return wrp_config_.propagation_distance; }
 	const int& getNumOfWRP() { return wrp_config_.num_wrp; }
-	const int& getFieldLens() { return wrp_config_.fieldLength; }
+	const Real& getFieldLens() { return wrp_config_.fieldLength; }
 	void setScale(vec3 scale) { wrp_config_.scale = scale; }
 	void setLocation(Real location) { wrp_config_.wrp_location = location; }
 	void setDistance(Real distance) { wrp_config_.propagation_distance; }
@@ -176,7 +176,6 @@ public:
 	*/
 	void setMode(bool is_CPU);
 
-	void calculateWRP(void);
 	double calculateWRPCPU(void);
 	double calculateWRPGPU(void);
 
@@ -222,14 +221,16 @@ private:
 		Real fieldLens = this->getFieldLens();
 		return -fieldLens * pt / (pt - fieldLens);
 	}
+
+	void transVW(Real* dst, Real *src, int size);
 protected:
 
 	int n_points;                 ///< numbers of points
 
-	oph::Complex<Real>* p_wrp_;   ///< wrp buffer - complex type
+	Complex<Real>* p_wrp_;   ///< wrp buffer - complex type
 
 	OphPointCloudData obj_;       ///< Input Pointcloud Data
-
+	Real *scaledVertex;
 	OphWRPConfig wrp_config_;      ///< structure variable for WRP hologram configuration
 
 private:
