@@ -71,18 +71,18 @@ void ophWRP::prepareInputdataGPU()
 	HANDLE_ERROR(cudaGetDeviceProperties(&devProp, devID));
 
 #ifdef __DEBUG_LOG_GPU_SPEC_
-	std::cout << "GPU Spec : " << devProp.name << std::endl;
-	std::cout << "	- Global Memory : " << devProp.totalGlobalMem << std::endl;
-	std::cout << "	- Const Memory : " << devProp.totalConstMem << std::endl;
-	std::cout << "	- Shared Memory / SM : " << devProp.sharedMemPerMultiprocessor << std::endl;
-	std::cout << "	- Shared Memory / Block : " << devProp.sharedMemPerBlock << std::endl;
-	std::cout << "	- SM Counter : " << devProp.multiProcessorCount << std::endl;
-	std::cout << "	- Maximum Threads / SM : " << devProp.maxThreadsPerMultiProcessor << std::endl;
-	std::cout << "	- Maximum Threads / Block : " << devProp.maxThreadsPerBlock << std::endl;
-	std::cout << "	- Maximum Threads of each Dimension of a Block, X : " << devProp.maxThreadsDim[0] << ", Y : " << devProp.maxThreadsDim[1] << ", Z : " << devProp.maxThreadsDim[2] << std::endl;
-	std::cout << "	- Maximum Blocks of each Dimension of a Grid, X : " << devProp.maxGridSize[0] << ", Y : " << devProp.maxGridSize[1] << ", Z : " << devProp.maxGridSize[2] << std::endl;
-	std::cout << "	- Device supports allocating Managed Memory on this system : " << devProp.managedMemory << std::endl;
-	std::cout << std::endl;
+	cout << "GPU Spec : " << devProp.name << endl;
+	cout << "	- Global Memory : " << devProp.totalGlobalMem << endl;
+	cout << "	- Const Memory : " << devProp.totalConstMem << endl;
+	cout << "	- Shared Memory / SM : " << devProp.sharedMemPerMultiprocessor << endl;
+	cout << "	- Shared Memory / Block : " << devProp.sharedMemPerBlock << endl;
+	cout << "	- SM Counter : " << devProp.multiProcessorCount << endl;
+	cout << "	- Maximum Threads / SM : " << devProp.maxThreadsPerMultiProcessor << endl;
+	cout << "	- Maximum Threads / Block : " << devProp.maxThreadsPerBlock << endl;
+	cout << "	- Maximum Threads of each Dimension of a Block, X : " << devProp.maxThreadsDim[0] << ", Y : " << devProp.maxThreadsDim[1] << ", Z : " << devProp.maxThreadsDim[2] << endl;
+	cout << "	- Maximum Blocks of each Dimension of a Grid, X : " << devProp.maxGridSize[0] << ", Y : " << devProp.maxGridSize[1] << ", Z : " << devProp.maxGridSize[2] << endl;
+	cout << "	- Device supports allocating Managed Memory on this system : " << devProp.managedMemory << endl;
+	cout << endl;
 #endif
 
 	bool bSupportDouble = false;
@@ -94,10 +94,10 @@ void ophWRP::prepareInputdataGPU()
 	const ulonglong gridSize = (n_points + blockSize - 1) / blockSize; //n_blocks
 
 
-	std::cout << ">>> All " << blockSize * gridSize << " threads in CUDA" << std::endl;
-	std::cout << ">>> " << blockSize << " threads/block, " << gridSize << " blocks/grid" << std::endl;
+	cout << ">>> All " << blockSize * gridSize << " threads in CUDA" << endl;
+	cout << ">>> " << blockSize << " threads/block, " << gridSize << " blocks/grid" << endl;
 
-
+	cudaError_t error;
 	//threads number
 	//const ulonglong bufferSize = n_pixels * sizeof(Real);
 
@@ -105,10 +105,15 @@ void ophWRP::prepareInputdataGPU()
 	const int n_colors = obj_.n_colors;
 	Real* host_pc_data = obj_.vertex;
 	Real* host_amp_data = obj_.color;
-
+	const uint pnX = context_.pixel_number[_X];
+	const uint pnY = context_.pixel_number[_Y];
+	const uint pnXY = pnX * pnY;
+	const Real ppX = context_.pixel_pitch[_X];
+	const Real ppY = context_.pixel_pitch[_Y];
+	Real lambda = context_.wave_length[0];
 
 	float wz = wrp_config_.wrp_location - zmax_;
-	float wm = round(fabs(wz*tan(context_.wave_length[0] / (2 * context_.pixel_pitch[_X])) / context_.pixel_pitch[_X]));
+	float wm = round(fabs(wz * tan(lambda / (2 * ppX)) / ppX));
 
 
 	//	Real* host_dst = new Real[n_pixels * 2];
@@ -117,91 +122,80 @@ void ophWRP::prepareInputdataGPU()
 	Real* pc_index = new Real[obj_.n_points * 3];
 	memset(pc_index, 0.0, sizeof(Real) * obj_.n_points * 3);
 
-	Real ppx = context_.pixel_pitch[_X];
-
 	WRPGpuConst* host_config = new WRPGpuConst(
 		obj_.n_points, n_colors, 1,
 		context_.pixel_number,
 		context_.pixel_pitch,
 		wrp_config_.wrp_location,
 		wrp_config_.propagation_distance, zmax_,
-		context_.k, context_.wave_length[0]
+		context_.k, lambda
 	);
 
 	//Device(GPU) Memory Location
 	Real* device_pc_data;
 	HANDLE_ERROR(cudaMalloc((void**)&device_pc_data, n_points * 3 * sizeof(Real)));
-
 	Real* device_amp_data;
 	HANDLE_ERROR(cudaMalloc((void**)&device_amp_data, n_points * n_colors * sizeof(Real)));
-
 	Real* device_pc_xindex;
 	HANDLE_ERROR(cudaMalloc((void**)&device_pc_xindex, n_points * 3 * sizeof(Real)));
-
 	WRPGpuConst* device_config = nullptr;
 
 	HANDLE_ERROR(cudaMalloc((void**)&device_config, sizeof(WRPGpuConst)));
 	HANDLE_ERROR(cudaMemcpy(device_config, host_config, sizeof(WRPGpuConst), cudaMemcpyHostToDevice));
 
-
 	HANDLE_ERROR(cudaMemcpy(device_pc_data, host_pc_data, n_points * 3 * sizeof(Real), cudaMemcpyHostToDevice));
 	HANDLE_ERROR(cudaMemcpy(device_amp_data, host_amp_data, n_points * n_colors * sizeof(Real), cudaMemcpyHostToDevice));
-
 	cudaGenindexx(gridSize, blockSize, n_points, device_pc_data, device_pc_xindex, (WRPGpuConst*)device_config);
 
 	HANDLE_ERROR(cudaMemcpy(pc_index, device_pc_xindex, sizeof(Real) * 3 * n_points, cudaMemcpyDeviceToHost));
-
 	HANDLE_ERROR(cudaFree(device_pc_data));
-
 
 	// calculates WRP with CUDA
 
 	//cuda obj dst
-	const ulonglong n_pixels = context_.pixel_number[_X] * context_.pixel_number[_Y];
-	const ulonglong bufferSize = n_pixels * sizeof(Real);
+	const ulonglong bufferSize = pnXY * sizeof(Real);
 
+	Real *host_obj_dst = new Real[pnXY];
+	memset(host_obj_dst, 0., bufferSize);
 
-	Real *host_obj_dst = new Real[n_pixels];
-	std::memset(host_obj_dst, 0., bufferSize);
-
-	Real *host_amp_dst = new Real[n_pixels];
-	std::memset(host_amp_dst, 0., bufferSize);
+	Real *host_amp_dst = new Real[pnXY];
+	memset(host_amp_dst, 0., bufferSize);
 
 	Real *device_obj_dst;
-	HANDLE_ERROR(cudaMalloc((void**)&device_obj_dst, n_pixels * sizeof(Real)));
+	HANDLE_ERROR(cudaMalloc((void**)&device_obj_dst, bufferSize));
 	HANDLE_ERROR(cudaMemset(device_obj_dst, 0., bufferSize));
 
 	Real *device_amp_dst;
-	HANDLE_ERROR(cudaMalloc((void**)&device_amp_dst, n_pixels * sizeof(Real)));
+	HANDLE_ERROR(cudaMalloc((void**)&device_amp_dst, bufferSize));
 	HANDLE_ERROR(cudaMemset(device_amp_dst, 0., bufferSize));
 
-
 	cudaGetObjDst(gridSize, blockSize, n_points, device_pc_xindex, device_obj_dst, (WRPGpuConst*)device_config);
+	error = cudaDeviceSynchronize();
 	cudaGetAmpDst(gridSize, blockSize, n_points, device_pc_xindex, device_amp_data, device_amp_dst, (WRPGpuConst*)device_config);
-
+	error = cudaDeviceSynchronize();
 	HANDLE_ERROR(cudaMemcpy(host_obj_dst, device_obj_dst, bufferSize, cudaMemcpyDeviceToHost));
 	HANDLE_ERROR(cudaMemcpy(host_amp_dst, device_amp_dst, bufferSize, cudaMemcpyDeviceToHost));
 
-	const ulonglong gridSize2 = (n_pixels + blockSize - 1) / blockSize; //n_blocks
+	const ulonglong gridSize2 = (pnXY + blockSize - 1) / blockSize; //n_blocks
 
 	Real* device_dst;
-	HANDLE_ERROR(cudaMalloc((void**)&device_dst, n_pixels * 2 * sizeof(Real)));
+	HANDLE_ERROR(cudaMalloc((void**)&device_dst, bufferSize * 2));
 	HANDLE_ERROR(cudaMemset(device_dst, 0., bufferSize * 2));
 
-	Real* host_dst = new Real[n_pixels * 2];
-	std::memset(host_dst, 0., bufferSize * 2);
+	Real* host_dst = new Real[pnXY * 2];
+	memset(host_dst, 0., bufferSize * 2);
 
 
 	// cuda WRP
-	cudaGenWRP(gridSize2, blockSize, n_points, device_obj_dst, device_amp_dst, device_dst, device_dst + n_pixels, (WRPGpuConst*)device_config);
+	cudaGenWRP(gridSize2, blockSize, n_points, device_obj_dst, device_amp_dst, device_dst, device_dst + pnXY, (WRPGpuConst*)device_config);
 
 	HANDLE_ERROR(cudaMemcpy(host_dst, device_dst, bufferSize * 2, cudaMemcpyDeviceToHost));
 
-	for (ulonglong n = 0; n < n_pixels; ++n) {
+	for (ulonglong n = 0; n < pnXY; ++n) {
 		if (host_dst[n] != 0)
 		{
 			p_wrp_[n][_RE] = host_dst[n];
-			p_wrp_[n][_IM] = host_dst[n + n_pixels];
+			p_wrp_[n][_IM] = host_dst[n + pnXY];
 		}
 	}
 

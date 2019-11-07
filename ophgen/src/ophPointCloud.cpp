@@ -310,8 +310,6 @@ void ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 	ss[_Y] = context_.ss[_Y] = pn[_Y] * pp[_Y];
 
 	int i; // private variable for Multi Threading
-	chrono::system_clock::time_point loop_begin;
-	chrono::system_clock::time_point loop_end;
 	int num_threads = 1;
 	
 	for (uint ch = 0; ch < context_.waveNum; ++ch) {
@@ -326,8 +324,6 @@ void ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 #pragma omp for private(i)
 #endif
 			for (i = 0; i < n_points; ++i) { //Create Fringe Pattern
-				if(tid == 0 && i == 0) 
-					loop_begin = CUR_TIME;
 				uint idx = 3 * i;
 				uint color_idx = pc_data_.n_colors * i;
 				Real pcx = (is_ViewingWindow) ? transVW(pc_data_.vertex[idx + _X]) : pc_data_.vertex[idx + _X];
@@ -347,11 +343,6 @@ void ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 				case PC_DIFF_FRESNEL:
 					diffractNotEncodedFrsn(ch, pn, pp, ss, vec3(pcx, pcy, pcz), k, amplitude, lambda);
 					break;
-				}
-				if (tid == 0 && i == 0) {
-					loop_end = CUR_TIME;
-					LOG("loop %lf(s)",
-						((chrono::duration<Real>)(loop_end - loop_begin)).count());
 				}
 			}
 #ifdef _OPENMP
