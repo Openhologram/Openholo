@@ -90,7 +90,8 @@ void ophWRP::prepareInputdataGPU()
 	const ulonglong n_points = obj_.n_points;
 
 	const int blockSize = 512; //n_threads
-							   //	const ulonglong gridSize = (n_pixels + blockSize - 1) / blockSize; //n_blocks
+
+
 	const ulonglong gridSize = (n_points + blockSize - 1) / blockSize; //n_blocks
 
 
@@ -99,11 +100,10 @@ void ophWRP::prepareInputdataGPU()
 
 	cudaError_t error;
 	//threads number
-	//const ulonglong bufferSize = n_pixels * sizeof(Real);
 
 	//Host Memory Location
 	const int n_colors = obj_.n_colors;
-	Real* host_pc_data = obj_.vertex;
+	Real* host_pc_data = scaledVertex;//obj_.vertex;
 	Real* host_amp_data = obj_.color;
 	const uint pnX = context_.pixel_number[_X];
 	const uint pnY = context_.pixel_number[_Y];
@@ -116,9 +116,6 @@ void ophWRP::prepareInputdataGPU()
 	float wm = round(fabs(wz * tan(lambda / (2 * ppX)) / ppX));
 
 
-	//	Real* host_dst = new Real[n_pixels * 2];
-	//	std::memset(host_dst, 0., bufferSize * 2);
-
 	Real* pc_index = new Real[obj_.n_points * 3];
 	memset(pc_index, 0.0, sizeof(Real) * obj_.n_points * 3);
 
@@ -130,6 +127,7 @@ void ophWRP::prepareInputdataGPU()
 		wrp_config_.propagation_distance, zmax_,
 		context_.k, lambda
 	);
+
 
 	//Device(GPU) Memory Location
 	Real* device_pc_data;
@@ -150,8 +148,6 @@ void ophWRP::prepareInputdataGPU()
 	HANDLE_ERROR(cudaMemcpy(pc_index, device_pc_xindex, sizeof(Real) * 3 * n_points, cudaMemcpyDeviceToHost));
 	HANDLE_ERROR(cudaFree(device_pc_data));
 
-	// calculates WRP with CUDA
-
 	//cuda obj dst
 	const ulonglong bufferSize = pnXY * sizeof(Real);
 
@@ -168,14 +164,14 @@ void ophWRP::prepareInputdataGPU()
 	Real *device_amp_dst;
 	HANDLE_ERROR(cudaMalloc((void**)&device_amp_dst, bufferSize));
 	HANDLE_ERROR(cudaMemset(device_amp_dst, 0., bufferSize));
-
+	
 	cudaGetObjDst(gridSize, blockSize, n_points, device_pc_xindex, device_obj_dst, (WRPGpuConst*)device_config);
 	error = cudaDeviceSynchronize();
 	cudaGetAmpDst(gridSize, blockSize, n_points, device_pc_xindex, device_amp_data, device_amp_dst, (WRPGpuConst*)device_config);
 	error = cudaDeviceSynchronize();
 	HANDLE_ERROR(cudaMemcpy(host_obj_dst, device_obj_dst, bufferSize, cudaMemcpyDeviceToHost));
 	HANDLE_ERROR(cudaMemcpy(host_amp_dst, device_amp_dst, bufferSize, cudaMemcpyDeviceToHost));
-
+	
 	const ulonglong gridSize2 = (pnXY + blockSize - 1) / blockSize; //n_blocks
 
 	Real* device_dst;
