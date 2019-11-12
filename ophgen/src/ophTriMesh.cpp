@@ -61,6 +61,11 @@
 #define _Y3 7
 #define _Z3 8
 
+void ophTri::setMode(bool isCPU)
+{
+	is_CPU = isCPU;
+}
+
 void ophTri::setViewingWindow(bool is_ViewingWindow)
 {
 	this->is_ViewingWindow = is_ViewingWindow;
@@ -411,7 +416,7 @@ void ophTri::generateHologram(uint SHADING_FLAG)
 
 	auto start_time = CUR_TIME;
 	LOG("1) Algorithm Method : Tri Mesh\n");
-	LOG("2) Generate Hologram with %s\n", true ?
+	LOG("2) Generate Hologram with %s\n", is_CPU ?
 #ifdef _OPENMP
 		"Multi Core CPU" :
 #else
@@ -423,13 +428,14 @@ void ophTri::generateHologram(uint SHADING_FLAG)
 
 	auto start = CUR_TIME;
 	objScaleShift();
-	initializeAS();
-	generateAS(SHADING_FLAG);
+	(is_CPU) ? initializeAS() : initialize_GPU();
+	(is_CPU) ? generateAS(SHADING_FLAG) : generateAS_GPU(SHADING_FLAG);
 
-	fft2(context_.pixel_number, angularSpectrum, OPH_BACKWARD, OPH_ESTIMATE);
-	fftwShift(angularSpectrum, (*complex_H), context_.pixel_number[_X], context_.pixel_number[_Y], OPH_BACKWARD);
-	/*fftExecute((*complex_H));*/
-
+	if (is_CPU) {
+		fft2(context_.pixel_number, angularSpectrum, OPH_BACKWARD, OPH_ESTIMATE);
+		fftwShift(angularSpectrum, (*complex_H), context_.pixel_number[_X], context_.pixel_number[_Y], OPH_BACKWARD);
+		/*fftExecute((*complex_H));*/
+	}
 	//fresnelPropagation(*(complex_H), *(complex_H), objShift[_Z]);
 
 	auto end = CUR_TIME;
@@ -458,7 +464,6 @@ void ophTri::generateMeshHologram() {
 
 void ophTri::generateAS(uint SHADING_FLAG)
 {
-	//Real* mesh = new Real[9];
 	Real mesh[9] = { 0.0, };
 	calGlobalFrequency();
 
@@ -466,7 +471,6 @@ void ophTri::generateAS(uint SHADING_FLAG)
 	const uint pnY = context_.pixel_number[_Y];
 	const uint pnXY = pnX * pnY;
 
-	//mesh_local = new Real[9];
 	flx = new Real[pnXY];
 	fly = new Real[pnXY];
 	flz = new Real[pnXY];
@@ -535,13 +539,8 @@ void ophTri::generateAS(uint SHADING_FLAG)
 #else
 	//int j; // private variable for Multi Threading
 	for (int j = 0; j < meshData->n_faces; j++) {
-#if 0
-		for_i(9,
-			mesh[i] = scaledMeshData[9 * j + i];
-		);
-#else
 		memcpy(mesh, &scaledMeshData[9 * j], sizeof(Real) * 9);
-#endif
+
 		if (checkValidity(mesh, *(no + j)) != 1)
 			continue;
 
