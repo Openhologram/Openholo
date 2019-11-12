@@ -138,8 +138,6 @@ __global__ void cudaKernel_GetObjDst(Real* pc_index, Real* obj_dst, const WRPGpu
 	ulonglong tid = blockIdx.x * blockDim.x + threadIdx.x;
 	//ulonglong tid_offset = blockDim.x * gridDim.x;
 
-	ulong pnX = config->pn_X;
-
 	if (tid < n_points_stream)
 	{
 		ulonglong ox, oy, oz, o_index;
@@ -147,13 +145,9 @@ __global__ void cudaKernel_GetObjDst(Real* pc_index, Real* obj_dst, const WRPGpu
 		ox = pc_index[3 * tid];
 		oy = pc_index[3 * tid + 1];
 		oz = pc_index[3 * tid + 2];
-		o_index = ox + oy * pnX;
-
-		if (tid == 0 || tid == 100) {
-			printf("%d %d %d %d = %d\n", ox, oy, oz, pnX, o_index);
-		}
-
-		obj_dst[o_index] = oz;
+		o_index = ox + oy * config->pn_X;
+		if(o_index >= 0 && o_index < (config->pn_X * config->pn_Y))
+			obj_dst[o_index] = oz;
 
 	}
 	__syncthreads();
@@ -175,7 +169,8 @@ __global__ void cudaKernel_GetAmpDst(Real* pc_index, Real* pc_amp, Real* amp_dst
 		oy = pc_index[3 * tid + 1];
 		o_index = ox + oy * config->pn_X;
 
-		amp_dst[o_index] = pc_amp[3 * tid];
+		if (o_index >= 0 && o_index < (config->pn_X * config->pn_Y))
+			amp_dst[o_index] = pc_amp[3 * tid];
 	}
 	__syncthreads();
 }
