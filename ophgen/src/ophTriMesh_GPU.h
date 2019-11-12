@@ -1,4 +1,3 @@
-#pragma once
 /*M///////////////////////////////////////////////////////////////////////////////////////
 //
 //  IMPORTANT: READ BEFORE DOWNLOADING, COPYING, INSTALLING OR USING.
@@ -44,15 +43,18 @@
 //
 //M*/
 
-//#ifndef __ophTriMesh_GPU_h
-//#define __ophTriMesh_GPU_h
+#ifndef __ophTriMesh_GPU_h
+#define __ophTriMesh_GPU_h
 
 #include "ophTriMesh.h"
 
-#define __DEBUG_LOG_GPU_SPEC_
+#include    "sys.h"
+#include	<stdio.h>
+#include	<cuda_runtime.h>
+#include	<cufft.h>
+#include	<curand.h>
+#include	<math_constants.h>
 
-#include <cuda_runtime.h>
-#include <cufft.h>
 
 static void HandleError(cudaError_t err,
 	const char *file,
@@ -67,32 +69,31 @@ static void HandleError(cudaError_t err,
 
 
 #define HANDLE_NULL( a ) {if (a == NULL) { \
-                            printf( "Host memory failed in %s at line %d\n", \
-                                    __FILE__, __LINE__ ); \
-                            exit( EXIT_FAILURE );}} 
+     printf( "Host memory failed in %s at line %d\n", __FILE__, __LINE__ ); \
+     exit( EXIT_FAILURE );}} 
 
+#define CUDA_CALL(x) { if((x)!=cudaSuccess) { \
+    printf("Error at %s:%d\n",__FILE__,__LINE__);\
+    exit( EXIT_FAILURE ); }}
+#define CURAND_CALL(x) { if((x)!=CURAND_STATUS_SUCCESS) { \
+    printf("Error at %s:%d\n",__FILE__,__LINE__);\
+	exit( EXIT_FAILURE ); }}
 
-cufftDoubleComplex * k_input_d;
-cufftDoubleComplex * k_output_d;
-cufftDoubleComplex * k_temp_d;
+cufftDoubleComplex *angularSpectrum_GPU;
+cufftDoubleComplex *ffttemp;
 
-cudaStream_t	stream_;
-cudaEvent_t		start, stop;
-
-extern float kCGHGenerationTime;
+cudaStream_t	streamTriMesh;
 
 extern "C"
 {
-	void cudaGetFringeFromGPUKernel(CUstream_st* stream, int N, double* save_a_d_, double* save_b_d_, int nx, int ny, cufftDoubleComplex* in_filed, cufftDoubleComplex* output_field, bool isCrop, int SignalLoc1, int SignalLoc2, int direction);
+	void call_cudaKernel_refAS(cufftDoubleComplex* output, int nx, int ny, double px, double py, unsigned int SHADING_FLAG, int idx, 
+		double waveLength, double pi, double shadingFactor, double av0, double av1, double av2,
+		double glRot0, double glRot1, double glRot2, double glRot3, double glRot4, double glRot5, double glRot6, double glRot7, double glRot8,
+		double loRot0, double loRot1, double loRot2, double loRot3, double glShiftX, double glShiftY, double glShiftZ,
+		double carrierWaveX, double carrierWaveY, double carrierWaveZ, double min_double, double tolerence, CUstream_st* streamTriMesh);
 
-	void cudaPolygonKernel(CUstream_st* stream, int N, double* real_part_hologram, double* imagery_part_hologram, double* intensities, cufftDoubleComplex* temp_term,
-		int vertex_idx, int nx, int ny, double px, double py, double ss1, double ss2, double lambda, double pi, double tolerence,
-		double del_fxx, double del_fyy, double f_cx, double f_cy, double f_cz, bool is_multiple_carrier_wave, double cw_amp,
-		double t_Coff00, double t_Coff01, double t_Coff02, double t_Coff10, double t_Coff11, double t_Coff12,
-		double detAff, double R_31, double R_32, double R_33, double T1, double T2, double T3);
+	void call_fftGPU(int nx, int ny, cufftDoubleComplex* input, cufftDoubleComplex* output, CUstream_st* streamTriMesh);
 
-	void cudaTranslationMatrixKernel(CUstream_st* stream_, int N, cufftDoubleComplex* temp_term, double* save_a_d_, double* save_b_d_, int nx, int ny, double px, double py, double ss1, double ss2, double lambda,
-		int disp_x, int disp_y, double cw_amp, double R_31, double R_32, double R_33);
-
-	void cudaFFT(CUstream_st* stream, int N, int nx, int ny, cufftDoubleComplex* in_filed, cufftDoubleComplex* output_field, int direction);
 }
+
+#endif

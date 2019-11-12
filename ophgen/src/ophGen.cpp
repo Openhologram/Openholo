@@ -969,7 +969,10 @@ void ophGen::fresnelPropagation(Complex<Real>* in, Complex<Real>* out, Real dist
 	delete[] temp3;
 #ifdef CHECK_PROC_TIME
 	auto end = CUR_TIME;
-	LOG("\n%s : %lf(s)\n\n", __FUNCTION__, ((std::chrono::duration<Real>)(end - begin)).count());
+	LOG("\n%s : %lf(s)\n\n",
+		__FUNCTION__,
+		((chrono::duration<Real>)(end - begin)).count()
+		);
 #endif
 }
 

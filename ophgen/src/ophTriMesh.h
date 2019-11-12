@@ -104,7 +104,11 @@ public:
 	* @brief Constructor
 	*/
 	explicit ophTri(void) {
-		setViewingWindow(false);
+		is_ViewingWindow = false;
+		is_CPU = true;
+		scaledMeshData = nullptr;
+		normalizedMeshData = nullptr;
+		angularSpectrum = nullptr;
 	}
 
 protected:
@@ -121,6 +125,9 @@ private:
 	Real* triMeshArray;						/// Original triangular mesh array (N*9)
 	Complex<Real>* angularSpectrum;			/// Angular spectrum of the hologram
 	OphMeshData* meshData;					/// OphMeshData type data structure pointer
+
+	// ==== GPU Variables ===============================================
+	bool	is_CPU;
 
 private:
 	Real fieldLength;
@@ -149,6 +156,7 @@ public:
 	const vec3& getObjShift(void) { return objShift; }
 	const vec3&	getIllumination(void) { return illumination; }
 	const Real& getFieldLens(void) { return fieldLength; }
+	void setMode(bool is_CPU);
 public:
 	/**
 	* @brief	Triangular mesh basc CGH configuration file load
@@ -227,6 +235,9 @@ private:
 		Real transPt = -fieldLength * pt / (pt - fieldLength);
 		return transPt;
 	}
+	void initialize_GPU();
+	void generateAS_GPU(uint SHADING_FLAG);
+	void refAS_GPU(int idx, uint SHADING_FLAG);
 private:
 
 	Real* normalizedMeshData;				/// Normalized mesh array / Data structure : N*9
@@ -253,7 +264,7 @@ private:
 	vec3 n;
 	Real shadingFactor;
 	geometric geom;
-	//Real* mesh_local;
+	Real* mesh_local;
 	Real* flx;
 	Real* fly;
 	Real* flz;

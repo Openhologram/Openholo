@@ -42,208 +42,22 @@
 // Check whether software you use contains licensed software.
 //
 //M*/
+#pragma once
+#ifndef ophTriMeshKernel_cu__
+#define ophTriMeshKernel_cu__
 
-/**
-* @file		ophPCKernel.cu
-* @brief	Openholo Point Cloud based CGH generation with CUDA GPGPU
-* @author	Hyeong-Hak Ahn
-* @date		2018/09
-*/
+#include "ophKernel.cuh"
 
-#ifndef OphTriMeshKernel_cu__
-#define OphTriMeshKernel_cu__
 #include <cuda_runtime.h>
 #include <cuComplex.h>
 #include <cuda.h>
-#include <vector>
 #include <device_launch_parameters.h>
+#include <device_functions.h>
 #include <cufft.h>
+#include <vector>
 
-static const int kBlockThreads = 512;
 
-//% Possible values : [1 0], [-1 0], [0 1], [0 - 1], [1 1], [-1 1], [-1 - 1], [1 - 1]
-
-__global__ void convertToCufftComplex(int N, int nx, int ny, double* save_a_d_, double* save_b_d_, cufftDoubleComplex* in_filed, bool isCrop, int SignalLoc1, int SignalLoc2)
-{
-	int tid = threadIdx.x + blockIdx.x*blockDim.x;
-
-	if (tid < N)
-	{
-		int i = tid % nx;
-		int j = tid / nx;
-
-		double real_v = save_a_d_[i + j * nx];
-		double img_v = save_b_d_[i + j * nx];
-
-		if (isCrop == 0)
-		{
-			in_filed[tid].x = real_v;
-			in_filed[tid].y = img_v;
-
-			return;
-		}
-
-		int start_x, end_x, start_y, end_y, xmove, ymove;
-
-		if (SignalLoc2 == 0)
-		{
-			start_y = 0;
-			end_y = ny - 1;
-			ymove = 0;
-
-		}
-		else {
-
-			start_y = ny / 4 - 1;
-			end_y = ny / 2 + ny / 4 - 2;
-
-			if (SignalLoc2 == 1)
-				ymove = -(ny / 4 - 1);
-			else
-				ymove = (ny / 4 + 1);
-		}
-
-		if (SignalLoc1 == 0)
-		{
-			start_x = 0;
-			end_x = nx - 1;
-			xmove = 0;
-
-		}
-		else {
-
-			start_x = nx / 4 - 1;
-			end_x = nx / 2 + nx / 4 - 1;
-
-			if (SignalLoc1 == -1)
-				xmove = -(nx / 4 - 1);
-			else
-				xmove = nx / 4 + 1;
-
-		}
-
-		if (i >= start_x && i <= end_x && j >= start_y && j <= end_y)
-		{
-			int idx = (i + xmove) + (j + ymove)*nx;
-
-			in_filed[idx].x = real_v;
-			in_filed[idx].y = img_v;
-
-		}
-	}
-}
-
-__global__ void cropFringe(int N, int nx, int ny, cufftDoubleComplex* in_filed, cufftDoubleComplex* out_filed, int SignalLoc1, int SignalLoc2)
-{
-	int tid = threadIdx.x + blockIdx.x*blockDim.x;
-
-	if (tid < N)
-	{
-		int i = tid % nx;
-		int j = tid / nx;
-
-		cufftDoubleComplex src_v = in_filed[i + j * nx];
-
-		int start_x, end_x, start_y, end_y, xmove, ymove;
-
-		if (SignalLoc2 == 0)
-		{
-			start_y = 0;
-			end_y = ny - 1;
-			ymove = 0;
-
-		}
-		else {
-
-			start_y = ny / 4 - 1;
-			end_y = ny / 2 + ny / 4 - 2;
-
-			if (SignalLoc2 == 1)
-				ymove = -(ny / 4 - 1);
-			else
-				ymove = (ny / 4 + 1);
-		}
-
-		if (SignalLoc1 == 0)
-		{
-			start_x = 0;
-			end_x = nx - 1;
-			xmove = 0;
-
-		}
-		else {
-
-			start_x = nx / 4 - 1;
-			end_x = nx / 2 + nx / 4 - 1;
-
-			if (SignalLoc1 == -1)
-				xmove = -(nx / 4 - 1);
-			else
-				xmove = nx / 4 + 1;
-
-		}
-
-		if (i >= start_x + xmove && i <= end_x + xmove && j >= start_y + ymove && j <= end_y + ymove)
-		{
-			int idx = (i - xmove) + (j - ymove)*nx;
-
-			if ((i + xmove) >= nx / 2 - 1 - 2 && (i + xmove) <= nx / 2 - 1 + 2 && (j + ymove) >= ny / 2 - 1 - 2 && (j + ymove) <= ny / 2 - 1 + 2)
-			{
-				out_filed[idx].x = 0.0;
-				out_filed[idx].y = 0.0;
-
-			}
-			else
-				out_filed[idx] = src_v;
-
-		}
-	}
-}
-
-__global__ void fftShift(int N, int nx, int ny, cufftDoubleComplex* input, cufftDoubleComplex* output)
-{
-	int tid = threadIdx.x + blockIdx.x*blockDim.x;
-
-	while (tid < N)
-	{
-		int i = tid % nx;
-		int j = tid / nx;
-
-		int ti = i - nx / 2; if (ti < 0) ti += nx;
-		int tj = j - ny / 2; if (tj < 0) tj += ny;
-
-		int oindex = tj * nx + ti;
-
-		output[tid].x = input[oindex].x;
-		output[tid].y = input[oindex].y;
-
-		tid += blockDim.x * gridDim.x;
-	}
-}
-
-__global__ void fftShiftDouble(int N, int nx, int ny, cufftDoubleReal* input, cufftDoubleComplex* output)
-{
-	int tid = threadIdx.x + blockIdx.x*blockDim.x;
-
-	while (tid < N)
-	{
-		int i = tid % nx;
-		int j = tid / nx;
-
-		int ti = i - nx / 2; if (ti < 0) ti += nx;
-		int tj = j - ny / 2; if (tj < 0) tj += ny;
-
-		int oindex = tj * nx + ti;
-
-		cuDoubleComplex value = make_cuDoubleComplex(input[oindex], 0);
-
-		output[tid] = value;
-
-		tid += blockDim.x * gridDim.x;
-	}
-}
-
-__device__  void exponent_complex(cuDoubleComplex* val)
+__device__  void exponent_complex_mesh(cuDoubleComplex* val)
 {
 	double exp_val = exp(val->x);
 	double cos_v;
@@ -252,571 +66,18 @@ __device__  void exponent_complex(cuDoubleComplex* val)
 
 	val->x = exp_val * cos_v;
 	val->y = exp_val * sin_v;
-
 }
 
-__device__  double sinc_ft(double v, double pi)
+void cudaFFT_Mesh(CUstream_st* stream, int nx, int ny, cufftDoubleComplex* in_field, cufftDoubleComplex* output_field, int direction)
 {
-	if (v == 0.0)
-		return 1.0;
+	unsigned int nblocks = (nx*ny + kBlockThreads - 1) / kBlockThreads;
+	int N = nx * ny;
+	fftShift << <nblocks, kBlockThreads, 0, stream >> > (N, nx, ny, in_field, output_field, false);
 
-	return (sin(v*pi) / (v*pi));
-}
-
-
-__global__ void polygon_reconstruct_kernel(cufftDoubleComplex* input_term, cufftDoubleComplex* output_term, double temp_z, int nx, int ny, double px, double py, double ss1, double ss2, double lambda, double pi)
-{
-	int tid = threadIdx.x + blockIdx.x*blockDim.x;
-
-	double f_xx, f_yy, f_zz;
-	if (tid < nx*ny) {
-
-		int col = tid % nx;
-		int row = tid / ny;
-
-		f_xx = ((-1.0 / px) / 2.0) + ((double)col*(1.0 / ss1));
-		f_yy = (((1.0 / py) / 2.0) - (1.0 / ss2)) - ((double)row * (1.0 / ss2));
-		f_zz = sqrt(1.0 / (lambda*lambda) - f_xx * f_xx - f_yy * f_yy);
-
-		cuDoubleComplex value2 = make_cuDoubleComplex(0, 2 * pi*f_zz*temp_z);
-		exponent_complex(&value2);
-
-		cuDoubleComplex value1 = input_term[tid];
-
-		output_term[tid] = cuCmul(value1, value2);
-
-	}
-}
-
-
-__global__ void polygon_sources_kernel(double* real_part_hologram, double* imagery_part_hologram, double* intensities, cufftDoubleComplex* temp_term,
-	int vertex_idx, int nx, int ny, double px, double py, double ss1, double ss2, double lambda, double pi, double tolerence,
-	double del_fxx, double del_fyy, double f_cx, double f_cy, double f_cz, bool is_multiple_carrier_wave, double cw_amp,
-	double t_Coff00, double t_Coff01, double t_Coff02, double t_Coff10, double t_Coff11, double t_Coff12,
-	double detAff, double R_31, double R_32, double R_33, double t1, double t2, double t3)
-{
-	int tid = threadIdx.x + blockIdx.x*blockDim.x;
-
-	//double r = 1.0, g = 0.0, b = 0.0;
-
-	double f_xx, f_yy, f_zz, f_ref_x, f_ref_y;
-	if (tid < nx*ny) {
-
-		int col = tid % nx;
-		int row = tid / ny;
-
-		//if (col != 0 || row != 0)
-		//	return;
-
-
-		double Bx = 1 / px;  double By = 1 / py;
-		double wx = px * nx;
-		double wy = py * ny;
-
-		f_xx = ((-1.0 / px) / 2.0) + ((double)col*(1.0 / ss1));
-		f_yy = (((1.0 / py) / 2.0) - (1.0 / ss2)) - ((double)row * (1.0 / ss2));
-		f_zz = sqrt(1.0 / (lambda*lambda) - f_xx * f_xx - f_yy * f_yy);
-
-		//if (f_zz > 1508030.0 && f_zz <= 1508030.9201776853)
-		//	g = 1.0;
-		//else
-		//	r = 1.0;
-
-
-
-		f_ref_x = t_Coff00 * (f_xx - f_cx) + t_Coff01 * (f_yy - f_cy) + t_Coff02 * (f_zz - f_cz);
-		f_ref_y = t_Coff10 * (f_xx - f_cx) + t_Coff11 * (f_yy - f_cy) + t_Coff12 * (f_zz - f_cz);
-
-		cuDoubleComplex D_1 = make_cuDoubleComplex(0, 0);
-		cuDoubleComplex D_2 = make_cuDoubleComplex(0, 0);
-		cuDoubleComplex D_3 = make_cuDoubleComplex(0, 0);
-
-		int casenum = 0;
-		if (abs(f_ref_x) <= tolerence && abs(f_ref_y) <= tolerence)
-		{
-			casenum = 1;
-			D_1 = make_cuDoubleComplex(1.0 / 3.0, 0);
-			D_2 = make_cuDoubleComplex(1.0 / 6.0, 0);
-			D_3 = make_cuDoubleComplex(1.0 / 2.0, 0);
-
-		}
-		else if (abs(f_ref_x) > tolerence && abs(f_ref_y) <= tolerence)
-		{
-			casenum = 2;
-
-			cuDoubleComplex value1 = make_cuDoubleComplex(0, -2.0 * pi*f_ref_x);
-			exponent_complex(&value1);
-
-			cuDoubleComplex value2 = make_cuDoubleComplex(0, 2 * (pi*pi)*(f_ref_x*f_ref_x));
-			cuDoubleComplex value3 = make_cuDoubleComplex(2 * pi*f_ref_x, 0);
-			cuDoubleComplex value4 = make_cuDoubleComplex(0, 1);
-			cuDoubleComplex value5 = cuCadd(value2, value3);
-			cuDoubleComplex value6 = cuCsub(value5, value4);
-
-			double value7 = 4 * (pi * pi * pi)*(f_ref_x * f_ref_x * f_ref_x);
-
-			cuDoubleComplex value8 = make_cuDoubleComplex(4 * (pi *pi*pi)*(f_ref_x * f_ref_x* f_ref_x), 0);
-			cuDoubleComplex value9 = cuCdiv(value4, value8);
-
-			cuDoubleComplex value10 = cuCmul(value1, value6);
-			value10 = cuCdiv(value10, make_cuDoubleComplex(value7, 0));
-
-			D_1 = cuCadd(value10, value9);
-
-			//exp(-j * 2 * pi*f_ref_x(case_2))  .*		// value1
-			//(j * 2 * (pi ^ 2)*(f_ref_x(case_2). ^ 2)   +   2 * pi*f_ref_x(case_2) - j )  . /   // value 6
-			//(4 * (pi ^ 3)*(f_ref_x(case_2). ^ 3))  +	// value 7						===> value10
-			//j. / (4 * (pi ^ 3).*(f_ref_x(case_2). ^ 3));		// value 9
-
-
-			value7 = 8 * (pi * pi * pi)*(f_ref_x * f_ref_x * f_ref_x);
-
-			value8 = make_cuDoubleComplex(8 * (pi *pi*pi)*(f_ref_x * f_ref_x* f_ref_x), 0);
-			value9 = cuCdiv(value4, value8);
-
-			value10 = cuCmul(value1, value6);
-			value10 = cuCdiv(value10, make_cuDoubleComplex(value7, 0));
-
-			D_2 = cuCadd(value10, value9);
-
-			//exp(-j * 2 * pi*f_ref_x(case_2)) .*		// value1
-			//(j * 2 * (pi ^ 2)*(f_ref_x(case_2). ^ 2) + 2 * pi*f_ref_x(case_2) - j) . /	// value6
-			//(8 * (pi ^ 3)*(f_ref_x(case_2). ^ 3)) +		// value7          ====> value10
-			//j. / (8 * (pi ^ 3).*(f_ref_x(case_2). ^ 3));	// value9
-
-			value6 = make_cuDoubleComplex(0, 2 * pi*f_ref_x);
-			value6 = cuCadd(make_cuDoubleComplex(1, 0), value6);
-
-			value7 = 4 * (pi *pi)*(f_ref_x* f_ref_x);
-
-			double value11 = 4 * (pi * pi)*(f_ref_x * f_ref_x);
-			value11 = -1.0 / value11;
-
-			value10 = cuCmul(value1, value6);
-			value10 = cuCdiv(value10, make_cuDoubleComplex(value7, 0));
-
-			D_3 = cuCadd(value10, make_cuDoubleComplex(value11, 0));
-
-			//exp(-j * 2 * pi*f_ref_x(case_2)) .*				// value1
-			//(1 + j * 2 * pi*f_ref_x(case_2)) . /			// value6
-			//(4 * (pi ^ 2)*(f_ref_x(case_2). ^ 2)) +			// value7    ==> value10
-			//(-1). / (4 * (pi ^ 2).*(f_ref_x(case_2). ^ 2));	// value11
-
-		}
-		else if (abs(f_ref_x) <= tolerence && abs(f_ref_y) > tolerence)
-		{
-			casenum = 3;
-
-			cuDoubleComplex value1 = make_cuDoubleComplex(0, -2.0 * pi*f_ref_y);
-			exponent_complex(&value1);
-
-			double value2 = -2 * pi*f_ref_y;
-			cuDoubleComplex value3 = make_cuDoubleComplex(0, 1);
-			value3 = cuCadd(make_cuDoubleComplex(value2, 0), value3);
-
-			double value4 = 8 * (pi * pi * pi)*(f_ref_y* f_ref_y* f_ref_y);
-
-			cuDoubleComplex value5 = make_cuDoubleComplex(0, 2 * (pi*pi)*(f_ref_y* f_ref_y));
-			cuDoubleComplex value6 = make_cuDoubleComplex(0, -1);
-			cuDoubleComplex value7 = cuCsub(value6, value5);
-
-			double value8 = 8 * (pi*pi*pi)*(f_ref_y*f_ref_y*f_ref_y);
-
-			value7 = cuCdiv(value7, make_cuDoubleComplex(value8, 0));
-
-			cuDoubleComplex value10 = cuCmul(value1, value3);
-			value10 = cuCdiv(value10, make_cuDoubleComplex(value4, 0));
-
-			D_1 = cuCadd(value10, value7);
-
-			//exp(-j * 2 * pi*f_ref_y(case_3)) .*				// value1
-			//(-2 * pi*f_ref_y(case_3) + j) . /				// value3
-			//(8 * (pi ^ 3).*(f_ref_y(case_3). ^ 3))  +		// value4    ===> value10
-			//(-j - j * 2 * (pi ^ 2).*(f_ref_y(case_3). ^ 2)) . /		// value7
-			//(8 * (pi ^ 3).*(f_ref_y(case_3). ^ 3));			// value8        ===> value7
-
-
-			value3 = make_cuDoubleComplex(0, 2);
-			value3 = cuCadd(make_cuDoubleComplex(value2, 0), value3);
-
-			value10 = cuCmul(value1, value3);
-			value10 = cuCdiv(value10, make_cuDoubleComplex(value4, 0));
-
-			value5 = make_cuDoubleComplex(2 * pi*f_ref_y, 0);
-			value6 = make_cuDoubleComplex(0, -2);
-			value7 = cuCsub(value6, value5);
-
-			value7 = cuCdiv(value7, make_cuDoubleComplex(value8, 0));
-
-			D_2 = cuCadd(value10, value7);
-
-			//exp(-j * 2 * pi*f_ref_y(case_3)) .*				// value1
-			//(-2 * pi*f_ref_y(case_3) + 2 * j) . /			// value3
-			//(8 * (pi ^ 3).*(f_ref_y(case_3). ^ 3)) +		// value4		===> value10
-			//(-2 * j - 2 * pi*f_ref_y(case_3)) . /			// value7
-			//(8 * (pi ^ 3).*(f_ref_y(case_3). ^ 3));			// value8   ====> value7
-
-
-			value3 = make_cuDoubleComplex(-1, 0);
-			value4 = 4 * (pi * pi)*(f_ref_y * f_ref_y);
-			value10 = cuCmul(value1, value3);
-			value10 = cuCdiv(value10, make_cuDoubleComplex(value4, 0));
-
-			value5 = make_cuDoubleComplex(0, 2 * pi*f_ref_y);
-			value5 = cuCsub(make_cuDoubleComplex(1, 0), value5);
-
-			value8 = 4 * (pi *pi)*(f_ref_y* f_ref_y);
-
-			value5 = cuCdiv(value5, make_cuDoubleComplex(value8, 0));
-
-			D_3 = cuCadd(value10, value5);
-
-			//exp(-j * 2 * pi*f_ref_y(case_3)) .*		// value1
-			//(-1) . /									// value3
-			//(4 * (pi ^ 2).*(f_ref_y(case_3). ^ 2)) +	// value4		===> value10
-			//(1 - j * 2 * pi*f_ref_y(case_3)) . /		// value5
-			//(4 * (pi ^ 2).*(f_ref_y(case_3). ^ 2));		// value8   ===> value5
-
-
-		}
-		else if (abs(f_ref_x) > tolerence && abs(f_ref_y) > tolerence && abs(f_ref_x + f_ref_y) <= tolerence)
-		{
-			casenum = 4;
-
-			cuDoubleComplex value1 = make_cuDoubleComplex(0, -2.0 * pi*f_ref_x);
-			exponent_complex(&value1);
-
-			double value2 = 2 * pi*f_ref_x;
-			cuDoubleComplex value3 = make_cuDoubleComplex(0, 1);
-			value3 = cuCsub(make_cuDoubleComplex(value2, 0), value3);
-
-			double value4 = 8 * (pi*pi*pi)*(f_ref_x*f_ref_x)*f_ref_y;
-
-			cuDoubleComplex value10 = cuCmul(value1, value3);
-			value10 = cuCdiv(value10, make_cuDoubleComplex(value4, 0));
-
-			cuDoubleComplex value5 = make_cuDoubleComplex(0, 2 * (pi*pi)*(f_ref_x*f_ref_x));
-			cuDoubleComplex value6 = make_cuDoubleComplex(0, 1);
-			cuDoubleComplex value7 = cuCadd(value5, value6);
-
-			double value8 = 8 * (pi*pi*pi)*(f_ref_x*f_ref_x)*f_ref_y;
-			value7 = cuCdiv(value7, make_cuDoubleComplex(value8, 0));
-
-			D_1 = cuCadd(value10, value7);
-
-			//exp(-j * 2 * pi*f_ref_x(case_4)) .*						// value1
-			//(2 * pi*f_ref_x(case_4) - j) . /							// value3
-			//(8 * (pi ^ 3)*(f_ref_x(case_4). ^ 2).*f_ref_y(case_4)) +	// value4    ===> value10
-			//(j * 2 * (pi ^ 2).*(f_ref_x(case_4). ^ 2) + j) . /		// value7
-			//(8 * (pi ^ 3).*(f_ref_x(case_4). ^ 2).*f_ref_y(case_4));	// value8    ===> value7
-
-			value3 = make_cuDoubleComplex(0, -1);
-			value2 = 8 * (pi*pi*pi)*f_ref_x*(f_ref_y*f_ref_y);
-
-			value10 = cuCmul(value1, value3);
-			value10 = cuCdiv(value10, make_cuDoubleComplex(value2, 0));
-
-			value5 = make_cuDoubleComplex(0, 2 * (pi*pi)*f_ref_x*f_ref_y);
-			value6 = make_cuDoubleComplex(0, 1);
-			value4 = 2 * pi*f_ref_x;
-			value8 = 8 * (pi*pi*pi)*f_ref_x*(f_ref_y*f_ref_y);
-
-			value5 = cuCadd(value5, make_cuDoubleComplex(value4, 0));
-			value7 = cuCadd(value5, value6);
-			value7 = cuCdiv(value7, make_cuDoubleComplex(value8, 0));
-
-			D_2 = cuCadd(value10, value7);
-
-			//exp(-j * 2 * pi*f_ref_x(case_4)) .*						// value1
-			//(-j) . /													// value3
-			//(8 * (pi ^ 3).*f_ref_x(case_4).*(f_ref_y(case_4). ^ 2)) +	// value2		===> value10
-			//( j * 2 * (pi ^ 2)*f_ref_x(case_4) .* f_ref_y(case_4) +	// value5
-			//  2 * pi*f_ref_x(case_4) +								// value4      
-			//  j ) . /													// value6       ===> value7
-			//(8 * (pi ^ 3)*f_ref_x(case_4).*(f_ref_y(case_4). ^ 2));	// value8       ===> value7
-
-
-			value2 = 4 * (pi*pi)*f_ref_x*f_ref_y;
-
-			value1 = cuCdiv(value1, make_cuDoubleComplex(value2, 0));
-
-			value3 = make_cuDoubleComplex(0, 2 * pi*f_ref_x);
-			value3 = cuCsub(value3, make_cuDoubleComplex(1, 0));
-
-			value4 = 4 * (pi*pi)*f_ref_x*f_ref_y;
-
-			value3 = cuCdiv(value3, make_cuDoubleComplex(value4, 0));
-
-			D_3 = cuCadd(value1, value3);
-
-			//exp(-j * 2 * pi*f_ref_x(case_4)) . /						// value1
-			//(4 * (pi ^ 2)*f_ref_x(case_4).*f_ref_y(case_4)) +			// value2		===> value1
-			//(j * 2 * pi*f_ref_x(case_4) - 1) . /						// value3
-			//(4 * (pi ^ 2)*f_ref_x(case_4).*f_ref_y(case_4));			// value4       ===> value3
-
-		}
-		else if (abs(f_ref_x) > tolerence  && abs(f_ref_y) > tolerence && abs(f_ref_x + f_ref_y) > tolerence)
-		{
-			casenum = 5;
-
-			cuDoubleComplex value1 = make_cuDoubleComplex(0, -2 * pi*(f_ref_x + f_ref_y));
-			exponent_complex(&value1);
-
-			double value2 = 2 * pi*(f_ref_x + f_ref_y);
-			cuDoubleComplex value3 = make_cuDoubleComplex(0, 1);
-			value3 = cuCsub(value3, make_cuDoubleComplex(value2, 0));
-
-			double value4 = 8 * (pi*pi*pi)*f_ref_y*((f_ref_x + f_ref_y)*(f_ref_x + f_ref_y));
-
-			cuDoubleComplex value5 = make_cuDoubleComplex(0, -2 * pi*f_ref_x);
-			exponent_complex(&value5);
-
-			double value6 = 2 * pi*f_ref_x;
-			cuDoubleComplex value7 = make_cuDoubleComplex(0, 1);
-			value7 = cuCsub(make_cuDoubleComplex(value6, 0), value7);
-
-			double value8 = 8 * (pi*pi*pi)*(f_ref_x * f_ref_x)*f_ref_y;
-
-			cuDoubleComplex value9 = make_cuDoubleComplex(0, 2 * f_ref_x + f_ref_y);
-
-			double value10 = 8 * (pi*pi*pi)*(f_ref_x * f_ref_x);
-			double value11 = (f_ref_x + f_ref_y)* (f_ref_x + f_ref_y);
-
-			cuDoubleComplex value12 = cuCmul(value1, value3);
-			value12 = cuCdiv(value12, make_cuDoubleComplex(value4, 0));
-
-			cuDoubleComplex value13 = cuCmul(value5, value7);
-			value13 = cuCdiv(value13, make_cuDoubleComplex(value8, 0));
-
-			value9 = cuCdiv(value9, make_cuDoubleComplex(value10 *value11, 0));
-
-			D_1 = cuCadd(value12, value13);
-			D_1 = cuCadd(D_1, value9);
-
-			//exp(-j * 2 * pi*(f_ref_x(case_5) + f_ref_y(case_5))) .*			// value1
-			//(j - 2 * pi*(f_ref_x(case_5) + f_ref_y(case_5))) . /				// value3
-			//(8 * (pi ^ 3)*f_ref_y(case_5).*((f_ref_x(case_5) + f_ref_y(case_5)). ^ 2)) +	// value4
-			//exp(-j * 2 * pi*f_ref_x(case_5)) .*								// value5
-			//(2 * pi*f_ref_x(case_5) - j) . /									// value7
-			//(8 * (pi ^ 3)*(f_ref_x(case_5). ^ 2).*f_ref_y(case_5)) +			// value8
-			//j*(2 * f_ref_x(case_5) + f_ref_y(case_5)). /						// value9		
-			//(  8 * (pi ^ 3)*(f_ref_x(case_5). ^ 2) .*							// value10
-			//   ((f_ref_x(case_5) + f_ref_y(case_5)). ^ 2)  );					// value11
-
-			value3 = make_cuDoubleComplex(0, f_ref_x + 2 * f_ref_y);
-			value4 = 2 * pi*f_ref_y*(f_ref_x + f_ref_y);
-			value3 = cuCsub(value3, make_cuDoubleComplex(value4, 0));
-
-			value6 = 8 * (pi*pi*pi)*(f_ref_y*f_ref_y)*((f_ref_x + f_ref_y)*(f_ref_x + f_ref_y));
-
-			value5 = make_cuDoubleComplex(0, -2 * pi*f_ref_x);
-			exponent_complex(&value5);
-
-			value7 = make_cuDoubleComplex(0, -1);
-
-			value8 = 8 * (pi*pi*pi)*f_ref_x*(f_ref_y* f_ref_y);
-
-			value9 = make_cuDoubleComplex(0, 1);
-			value10 = 8 * (pi*pi*pi)*f_ref_x*((f_ref_x + f_ref_y)*(f_ref_x + f_ref_y));
-			value9 = cuCdiv(value9, make_cuDoubleComplex(value10, 0));
-
-			value12 = cuCmul(value1, value3);
-			value12 = cuCdiv(value12, make_cuDoubleComplex(value6, 0));
-
-			value13 = cuCmul(value5, value7);
-			value13 = cuCdiv(value13, make_cuDoubleComplex(value8, 0));
-
-			D_2 = cuCadd(value12, value13);
-			D_2 = cuCadd(D_2, value9);
-
-			//exp(-j * 2 * pi*(f_ref_x(case_5) + f_ref_y(case_5))) .*					// value1
-			//(  j*(f_ref_x(case_5) + 2 * f_ref_y(case_5)) -							// value3 
-			//   2 * pi*f_ref_y(case_5).*(f_ref_x(case_5) + f_ref_y(case_5))  ) . /	// value4    ==> value3
-			//(8 * (pi ^ 3)*(f_ref_y(case_5). ^ 2).*((f_ref_x(case_5) + f_ref_y(case_5)). ^ 2)) +		// value6   ==> value12
-			//exp(-j * 2 * pi*f_ref_x(case_5)) .*								// value5
-			//(-j) . /														// value7   
-			//(8 * (pi ^ 3).*f_ref_x(case_5).*(f_ref_y(case_5). ^ 2)) +		// value8   ==> value13
-			//j. /															// value9
-			//(8 * (pi ^ 3).*f_ref_x(case_5).*((f_ref_x(case_5) + f_ref_y(case_5)). ^ 2));	// value10    ==> value9
-
-
-			value1 = cuCmul(value1, make_cuDoubleComplex(-1, 0));
-
-			value2 = 4 * (pi*pi)*f_ref_y*(f_ref_x + f_ref_y);
-
-			value3 = make_cuDoubleComplex(0, -2 * pi*f_ref_x);
-			exponent_complex(&value3);
-
-			value4 = 4 * (pi*pi)*f_ref_x*f_ref_y;
-
-			value6 = 4 * (pi*pi)*f_ref_x*(f_ref_x + f_ref_y);
-			value6 = 1 / value6;
-
-			value1 = cuCdiv(value1, make_cuDoubleComplex(value2, 0));
-
-			value3 = cuCdiv(value3, make_cuDoubleComplex(value4, 0));
-
-			D_3 = cuCadd(value1, value3);
-			D_3 = cuCsub(D_3, make_cuDoubleComplex(value6, 0));
-
-			//exp(-j * 2 * pi*(f_ref_x(case_5) + f_ref_y(case_5))).*					// value1
-			//(-1) . /                                                                              ===> value1
-			//(4 * (pi ^ 2).*f_ref_y(case_5).*(f_ref_x(case_5) + f_ref_y(case_5))) +	// value2   ===> value1
-			//exp(-j * 2 * pi*f_ref_x(case_5)). /										// value3
-			//(4 * (pi ^ 2).*f_ref_x(case_5).*f_ref_y(case_5)) -						// value4   ===> value3
-			//1 . / (4 * (pi ^ 2).*f_ref_x(case_5).*(f_ref_x(case_5) + f_ref_y(case_5))); // value6
-
-		}
-
-		cuDoubleComplex temp_U = make_cuDoubleComplex(0, 0);
-		cuDoubleComplex sec_term = make_cuDoubleComplex(0, 0);
-		cuDoubleComplex third_term = make_cuDoubleComplex(0, 0);
-		double first_term = 0.0;
-
-		if (casenum != 0)
-		{
-			double value1 = (f_xx - f_cx)*t1 + (f_yy - f_cy)*t2 + (f_zz - f_cz)*t3;
-
-			sec_term.y = -2 * pi* value1;
-			exponent_complex(&sec_term);
-			sec_term = cuCdiv(sec_term, make_cuDoubleComplex(detAff, 0));
-
-			//exp(-j * 2 * pi* ( (f_xx(all_cases) - f_cx)*T(1, 1) + 
-			//	               (f_yy(all_cases) - f_cy)*T(2, 1) + 
-			//				   (f_zz(all_cases) - f_cz)*T(3, 1) )
-			//) / det(Aff);
-
-			double a_v1 = intensities[vertex_idx];
-			double a_v2 = intensities[vertex_idx + 1];
-			double a_v3 = intensities[vertex_idx + 2];
-
-			cuDoubleComplex tmp1 = cuCmul(make_cuDoubleComplex(a_v2 - a_v1, 0), D_1);
-			cuDoubleComplex tmp2 = cuCmul(make_cuDoubleComplex(a_v3 - a_v2, 0), D_2);
-			cuDoubleComplex tmp3 = cuCmul(make_cuDoubleComplex(a_v1, 0), D_3);
-			third_term = cuCadd(tmp1, tmp2);
-			third_term = cuCadd(third_term, tmp3);
-
-			/*
-			cuDoubleComplex tmp1 = cuCmul(make_cuDoubleComplex(a_v2 - a_v1, 0), D_1);
-			cuDoubleComplex tmp2 = cuCmul(make_cuDoubleComplex(a_v3 - a_v2, 0), D_2);
-			cuDoubleComplex tmp3 = cuCmul(make_cuDoubleComplex(a_v1, 0), D_3);
-			cuDoubleComplex third_term = cuCadd(tmp1, tmp2);
-			third_term = cuCadd(third_term, tmp3);
-			*/
-
-		}
-
-		if (is_multiple_carrier_wave == 0)
-		{
-			if (casenum != 0)
-			{
-				//(a_v2 - a_v1)*D_1(all_cases) + (a_v3 - a_v2)*D_2(all_cases) + a_v1*D_3(all_cases);
-
-				double f_l_zz = R_31 * f_xx + R_32 * f_yy + R_33 * f_zz;
-
-				//R_(3, 1)*f_xx(all_cases) + R_(3, 2)*f_yy(all_cases) + R_(3, 3)*f_zz(all_cases);
-
-				first_term = f_l_zz / f_zz;
-
-				//f_l_zz(all_cases). / f_zz(all_cases);
-
-				temp_U = make_cuDoubleComplex(cw_amp*first_term, 0);
-				temp_U = cuCmul(temp_U, sec_term);
-
-				temp_U = cuCmul(temp_U, third_term);
-
-				//cw_amp*FIRST_TERM(all_cases).*SECOND_TERM(all_cases).*THIRD_TERM(all_cases);
-			}
-
-			int index = col + row * nx;
-
-
-			real_part_hologram[index] = real_part_hologram[index] + temp_U.x;
-			imagery_part_hologram[index] = imagery_part_hologram[index] + temp_U.y;
-
-			return;
-
-
-		}
-		else {
-
-			int index = col + row * nx;
-
-			temp_term[index] = cuCmul(sec_term, third_term);
-
-			return;
-		}
-	}
-}
-
-__global__ void translation_sources_kernel(cufftDoubleComplex* temp_term, double* real_part_hologram, double* imagery_part_hologram,
-	int nx, int ny, double px, double py, double ss1, double ss2, double lambda,
-	int disp_x, int disp_y, double cw_amp, double R_31, double R_32, double R_33)
-{
-	int tid = threadIdx.x + blockIdx.x*blockDim.x;
-
-	double f_xx, f_yy, f_zz;
-	if (tid < nx*ny) {
-
-		int col = tid % nx;
-		int row = tid / ny;
-		int index = col + row * nx;
-
-		int paste_x_start = (1 + disp_x < 1 ? 1 : 1 + disp_x);
-		int paste_x_end = (nx + disp_x > nx ? nx : nx + disp_x);
-		int paste_y_start = (1 - disp_y < 1 ? 1 : 1 - disp_y);
-		int paste_y_end = (ny - disp_y > ny ? ny : ny - disp_y);
-
-		if ((paste_x_end - paste_x_start < 0) || (paste_y_end - paste_y_start < 0))
-			return;
-
-		paste_x_start -= 1;
-		paste_x_end -= 1;
-		paste_y_start -= 1;
-		paste_y_end -= 1;
-
-		if (row < paste_y_start || row > paste_y_end || col < paste_x_start || col > paste_x_end)
-			return;
-
-		int crop_row = (row + disp_y) < 0 ? 0 : (row + disp_y) >= ny ? ny - 1 : row + disp_y;
-		int crop_col = (col - disp_x) < 0 ? 0 : (col - disp_x) >= nx ? nx - 1 : col - disp_x;
-
-		int crop_index = crop_col + crop_row * nx;
-
-		f_xx = ((-1.0 / px) / 2.0) + (col*(1.0 / ss1));
-		f_yy = (((1.0 / py) / 2.0) - (1.0 / ss2)) - ((double)row * (1.0 / ss2));
-		f_zz = sqrt(1.0 / (lambda*lambda) - f_xx * f_xx - f_yy * f_yy);
-
-		double f_l_zz = R_32 * f_xx + R_32 * f_yy + R_33 * f_zz;
-		double first_term = f_l_zz / f_zz;
-
-		//cuDoubleComplex temp_U_r = cuCmul(make_cuDoubleComplex(cw_amp*first_term, 0), temp_term[crop_index]);
-		//cuDoubleComplex temp_U_g = cuCmul(make_cuDoubleComplex(cw_amp*first_term, 0), temp_term[crop_index + 1]);
-		//cuDoubleComplex temp_U_b = cuCmul(make_cuDoubleComplex(cw_amp*first_term, 0), temp_term[crop_index + 2]);
-
-		cuDoubleComplex temp_U = cuCmul(make_cuDoubleComplex(cw_amp*first_term, 0), temp_term[crop_index]);
-
-		real_part_hologram[index] = real_part_hologram[index] + temp_U.x;
-
-		imagery_part_hologram[index] = imagery_part_hologram[index] + temp_U.y;
-
-	}
-}
-
-
-
-
-extern "C"
-void cudaFFT(CUstream_st* stream, int N, int nx, int ny, cufftDoubleComplex* in_field, cufftDoubleComplex* output_field, int direction)
-{
 	cufftHandle plan;
 
-	unsigned int nblocks = (N + kBlockThreads - 1) / kBlockThreads;
-
-	fftShift << <nblocks, kBlockThreads, 0, stream >> > (N, nx, ny, in_field, output_field);
-
 	// fft
-	if (cufftPlan2d(&plan, nx, ny, CUFFT_Z2Z) != CUFFT_SUCCESS)
+	if (cufftPlan2d(&plan, ny, nx, CUFFT_Z2Z) != CUFFT_SUCCESS)
 	{
 		//LOG("FAIL in creating cufft plan");
 		return;
@@ -835,56 +96,439 @@ void cudaFFT(CUstream_st* stream, int N, int nx, int ny, cufftDoubleComplex* in_
 		return;
 	}
 
-	fftShift << < nblocks, kBlockThreads, 0, stream >> > (N, nx, ny, in_field, output_field);
+	if (cudaDeviceSynchronize() != cudaSuccess) {
+		//LOG("Cuda error: Failed to synchronize\n");
+		return;
+	}
+
+	fftShift << < nblocks, kBlockThreads, 0, stream >> > (N, nx, ny, in_field, output_field, false);
 
 	cufftDestroy(plan);
+}
+
+
+__global__ void cudaKernel_refAS(cufftDoubleComplex* output, int nx, int ny, double px, double py, unsigned int sflag, int idx, double waveLength, 
+	double pi, double shadingFactor, double av0, double av1, double av2,
+	double glRot0, double glRot1, double glRot2, double glRot3, double glRot4, double glRot5, double glRot6, double glRot7, double glRot8,
+	double loRot0, double loRot1, double loRot2, double loRot3, double glShiftX, double glShiftY, double glShiftZ,
+	double carrierWaveX, double carrierWaveY, double carrierWaveZ, double min_double, double tolerence)
+{
+	int tid = threadIdx.x + blockIdx.x*blockDim.x;
+	   	
+	if (tid < nx*ny) {
+
+		int col = tid % nx;
+		int row = tid / nx;
+		
+		double flx, fly, flz, fx, fy, fz, flxShifted, flyShifted, freqTermX, freqTermY;
+		double dfx = (1.0 / px) / (double)nx;
+		double dfy = (1.0 / py) / (double)ny;
+
+		double det = loRot0 * loRot3 - loRot1 * loRot2;
+		if (det == 0)
+			return;
+
+		
+		double invLoRot0, invLoRot1, invLoRot2, invLoRot3;
+		invLoRot0 = (1 / det)*loRot3;
+		invLoRot1 = -(1 / det)*loRot2;
+		invLoRot2 = -(1 / det)*loRot1;
+		invLoRot3 = (1 / det)*loRot0;
+
+		cuDoubleComplex refTerm1 = make_cuDoubleComplex(0, 0);
+		cuDoubleComplex refTerm2 = make_cuDoubleComplex(0, 0);
+		cuDoubleComplex refTerm3 = make_cuDoubleComplex(0, 0);
+		cuDoubleComplex refAS = make_cuDoubleComplex(0, 0);
+		cuDoubleComplex term1 = make_cuDoubleComplex(0, 0);
+		cuDoubleComplex term2 = make_cuDoubleComplex(0, 0);
+
+		term1.y = -2 * pi / waveLength * (
+			carrierWaveX * (glRot0 * glShiftX + glRot3 * glShiftY + glRot6 * glShiftZ)
+			+ carrierWaveY * (glRot1 * glShiftX + glRot4 * glShiftY + glRot7 * glShiftZ)
+			+ carrierWaveZ * (glRot2 * glShiftX + glRot5 * glShiftY + glRot8 * glShiftZ));
+
+		
+		// calculate frequency term =======================================================================
+		int idxFx = -nx / 2 + col; 
+		int idxFy = nx / 2 - row;
+
+		fx = (double)idxFx * dfx;
+		fy = (double)idxFy * dfy;
+		fz = sqrt((1.0 / waveLength)*(1.0 / waveLength) - fx * fx - fy * fy);
+
+		flx = glRot0 * fx + glRot1 * fy + glRot2 * fz;
+		fly = glRot3 * fx + glRot4 * fy + glRot5 * fz;
+		flz = sqrt((1.0 / waveLength)*(1.0 / waveLength) - flx * flx - fly * fly);
+
+		flxShifted = flx - (1.0 / waveLength)*(glRot0 * carrierWaveX + glRot1 * carrierWaveY + glRot2 * carrierWaveZ);
+		flyShifted = fly - (1.0 / waveLength)*(glRot3 * carrierWaveX + glRot4 * carrierWaveY + glRot5 * carrierWaveZ);
+
+		freqTermX = invLoRot0 * flxShifted + invLoRot1 * flyShifted;
+		freqTermY = invLoRot2 * flxShifted + invLoRot3 * flyShifted;
+		
+		
+		//==============================================================================================
+		if (sflag == 0) // SHADING_FLAT
+		{
+			
+			//if (freqTermX == -freqTermY && freqTermY != 0) {
+			if (abs(freqTermX-freqTermY) <= tolerence && abs(freqTermY) > tolerence) {
+				refTerm1.y = 2 * pi *freqTermY;
+				refTerm2.y = 1;
+
+				//refAS = shadingFactor * (((Complex<Real>)1 - exp(refTerm1)) / (4 * pi*pi*freqTermY * freqTermY) + refTerm2 / (2 * pi*freqTermY));
+				exponent_complex_mesh(&refTerm1);
+				cuDoubleComplex value1 = make_cuDoubleComplex(1, 0);
+				cuDoubleComplex value2 = cuCsub(value1, refTerm1);
+				double value3 = 4 * pi*pi*freqTermY * freqTermY;
+				cuDoubleComplex value4 = cuCdiv(value2, make_cuDoubleComplex(value3, 0));
+				cuDoubleComplex value5 = cuCdiv(refTerm2, make_cuDoubleComplex(2 * pi*freqTermY, 0));
+				cuDoubleComplex value6 = cuCadd(value4, value5);
+				refAS = cuCmul(value6, make_cuDoubleComplex(shadingFactor, 0));
+			
+			//}else if (freqTermX == freqTermY && freqTermX == 0) {
+			} else if (abs(freqTermX-freqTermY) <= tolerence && abs(freqTermX) <= tolerence) {
+
+				//refAS = shadingFactor * 1 / 2;
+				refAS = make_cuDoubleComplex(shadingFactor*0.5, 0);
+			
+			//} else if (freqTermX != 0 && freqTermY == 0) {
+			} else if (abs(freqTermX) > tolerence && abs(freqTermY) <= tolerence) {
+								
+				refTerm1.y = -2 * pi*freqTermX;
+				refTerm2.y = 1;
+
+				//refAS = shadingFactor * ((exp(refTerm1) - (Complex<Real>)1) / (2 * M_PI*freqTermX * 2 * M_PI*freqTermX) + (refTerm2 * exp(refTerm1)) / (2 * M_PI*freqTermX));
+				exponent_complex_mesh(&refTerm1);
+				cuDoubleComplex value1 = make_cuDoubleComplex(1, 0);
+				cuDoubleComplex value2 = cuCsub(refTerm1, value1);
+				double value3 = 2 * pi*freqTermX * 2 * pi*freqTermX;
+				cuDoubleComplex value4 = cuCdiv(value2, make_cuDoubleComplex(value3, 0));
+
+				cuDoubleComplex value5 = cuCmul(refTerm2, refTerm1);
+				cuDoubleComplex value6 = cuCdiv(value5, make_cuDoubleComplex(2 * pi*freqTermX, 0));
+
+				cuDoubleComplex value7 = cuCadd(value4, value6);
+				refAS = cuCmul(value7, make_cuDoubleComplex(shadingFactor, 0));
+
+			//} else if (freqTermX == 0 && freqTermY != 0) {
+			} else if (abs(freqTermX) <= tolerence && abs(freqTermY) > tolerence) {
+
+				refTerm1.y = 2 * pi*freqTermY;
+				refTerm2.y = 1;
+				
+				//refAS = shadingFactor * (((Complex<Real>)1 - exp(refTerm1)) / (4 * M_PI*M_PI*freqTermY * freqTermY) - refTerm2 / (2 * M_PI*freqTermY));
+				exponent_complex_mesh(&refTerm1);
+				cuDoubleComplex value1 = make_cuDoubleComplex(1, 0);
+				cuDoubleComplex value2 = cuCsub(value1, refTerm1);
+				double value3 = 4 * pi*pi*freqTermY * freqTermY;
+				cuDoubleComplex value4 = cuCdiv(value2, make_cuDoubleComplex(value3, 0));
+				cuDoubleComplex value5 = cuCdiv(refTerm2, make_cuDoubleComplex(2 * pi*freqTermY, 0));
+				cuDoubleComplex value6 = cuCsub(value4, value5);
+				refAS = cuCmul(value6, make_cuDoubleComplex(shadingFactor, 0));
+		
+			} else {
+
+				refTerm1.y = -2 * pi*freqTermX;
+				refTerm2.y = -2 * pi*(freqTermX + freqTermY);
+
+				//refAS = shadingFactor * ((exp(refTerm1) - (Complex<Real>)1) / (4 * M_PI*M_PI*freqTermX * freqTermY) + ((Complex<Real>)1 - exp(refTerm2)) / (4 * M_PI*M_PI*freqTermY * (freqTermX + freqTermY)));
+				exponent_complex_mesh(&refTerm1);
+				cuDoubleComplex value1 = make_cuDoubleComplex(1, 0);
+				cuDoubleComplex value2 = cuCsub(refTerm1, value1);
+				double value3 = 4 * pi*pi*freqTermX * freqTermY;
+				cuDoubleComplex value4 = cuCdiv(value2, make_cuDoubleComplex(value3, 0));
+
+				exponent_complex_mesh(&refTerm2);
+				cuDoubleComplex value5 = cuCsub(make_cuDoubleComplex(1, 0), refTerm2);
+				double value6 = 4 * pi*pi*freqTermY * (freqTermX + freqTermY);
+				cuDoubleComplex value7 = cuCdiv(value5, make_cuDoubleComplex(value6, 0));
+
+				cuDoubleComplex value8 = cuCadd(value4, value7);
+				refAS = cuCmul(value8, make_cuDoubleComplex(shadingFactor, 0));
+
+
+			}
+			
+
+		} else if (sflag == 1) {  // SHADING_CONTINUOUS
+			
+			cuDoubleComplex D1 = make_cuDoubleComplex(0, 0);
+			cuDoubleComplex D2 = make_cuDoubleComplex(0, 0);
+			cuDoubleComplex D3 = make_cuDoubleComplex(0, 0);
+			
+
+			//if (freqTermX == 0.0 && freqTermY == 0.0) {
+			if (abs(freqTermX) <= tolerence && abs(freqTermY) <= tolerence) {
+
+				D1.x = (double)1.0 / (double)3.0;
+				D2.x = (double)1.0 / (double)5.0;
+				D3.x = (double)1.0 / (double)2.0;
+			
+			//}else if (freqTermX == 0.0 && freqTermY != 0.0) {
+			}else if (abs(freqTermX) <= tolerence && abs(freqTermY) > tolerence) {
+
+				refTerm1.y = -2 * pi*freqTermY;
+				refTerm2.y = 1;
+
+				//D1 = (refTerm1 - (Real)1)*refTerm1.exp() / (8 * M_PI*M_PI*M_PI*freqTermY * freqTermY * freqTermY)
+				//	- refTerm1 / (4 * M_PI*M_PI*M_PI*freqTermY * freqTermY * freqTermY);
+				
+				cuDoubleComplex refTerm1_exp = make_cuDoubleComplex(refTerm1.x, refTerm1.y);
+				exponent_complex_mesh(&refTerm1_exp);
+				cuDoubleComplex value1 = make_cuDoubleComplex(1, 0);
+				cuDoubleComplex value2 = cuCsub(refTerm1, value1);
+				cuDoubleComplex value3 = cuCmul(value2, refTerm1_exp);
+				cuDoubleComplex value4 = cuCdiv(value3, make_cuDoubleComplex(8 * pi*pi*pi*freqTermY * freqTermY * freqTermY, 0));
+				cuDoubleComplex value5 = cuCdiv(refTerm1, make_cuDoubleComplex(4 * pi*pi*pi*freqTermY * freqTermY * freqTermY, 0));
+
+				D1 = cuCsub(value4, value5);
+							   
+				//D2 = -(M_PI*freqTermY + refTerm2) / (4 * M_PI*M_PI*M_PI*freqTermY * freqTermY * freqTermY)*exp(refTerm1)
+				//	+ refTerm1 / (8 * M_PI*M_PI*M_PI*freqTermY * freqTermY * freqTermY);
+				cuDoubleComplex value6 = cuCadd(make_cuDoubleComplex(pi*freqTermY, 0), refTerm2);
+				cuDoubleComplex value7 = cuCmul(make_cuDoubleComplex(-1, 0), value6);
+				cuDoubleComplex value8 = cuCdiv(value7, make_cuDoubleComplex(4 * pi*pi*pi*freqTermY * freqTermY * freqTermY, 0));
+				cuDoubleComplex value9 = cuCmul(value8, refTerm1_exp);
+				cuDoubleComplex value10 = cuCdiv(refTerm1, make_cuDoubleComplex(8 * pi*pi*pi*freqTermY * freqTermY * freqTermY, 0));
+				D2 = cuCadd(value9, value10);
+
+				//D3 = exp(refTerm1) / (2 * M_PI*freqTermY) + ((Real)1 - refTerm2) / (2 * M_PI*freqTermY);
+				cuDoubleComplex value11 = cuCdiv(refTerm1_exp, make_cuDoubleComplex(2 * pi*freqTermY, 0));
+				cuDoubleComplex value12 = cuCsub(make_cuDoubleComplex(1, 0), refTerm2);
+				cuDoubleComplex value13 = cuCdiv(value12, make_cuDoubleComplex(2 * pi*freqTermY,0));
+
+				D3 = cuCadd(value11, value13);
+								
+			//} else if (freqTermX != 0.0 && freqTermY == 0.0) {
+			} else if (abs(freqTermX) > tolerence && abs(freqTermY) <= tolerence) {
+
+				refTerm1.y = 4 * pi*pi*freqTermX * freqTermX;
+				refTerm2.y = 1;
+				refTerm3.y = 2 * pi*freqTermX;
+
+				//D1 = (refTerm1 + 4 * M_PI*freqTermX - (Real)2 * refTerm2) / (8 * M_PI*M_PI*M_PI*freqTermY * freqTermY * freqTermY)*exp(-refTerm3)
+				//	+ refTerm2 / (4 * M_PI*M_PI*M_PI*freqTermX * freqTermX * freqTermX);
+
+				cuDoubleComplex refTerm3_exp = make_cuDoubleComplex(refTerm3.x, refTerm3.y);
+				exponent_complex_mesh(&refTerm3_exp);
+
+				cuDoubleComplex value1 = cuCadd(refTerm1, make_cuDoubleComplex(4 * pi*freqTermX, 0));
+				cuDoubleComplex value2 = cuCmul(make_cuDoubleComplex(2, 0), refTerm2);
+				cuDoubleComplex value3 = cuCsub(value1, value2);
+				cuDoubleComplex value4 = cuCdiv(value3, make_cuDoubleComplex(8 * pi*pi*pi*freqTermY * freqTermY * freqTermY, 0));
+				cuDoubleComplex value5 = cuCmul(value4, refTerm3_exp);
+				cuDoubleComplex value6 = cuCdiv(refTerm2, make_cuDoubleComplex(4 * pi*pi*pi*freqTermX * freqTermX * freqTermX, 0));
+
+				D1 = cuCadd(value5, value6);
+
+				//D2 = (Real)1 / (Real)2 * D1;
+				D2 = cuCmul(make_cuDoubleComplex(1.0 / 2.0, 0), D1);
+
+				//D3 = ((refTerm3 + (Real)1)*exp(-refTerm3) - (Real)1) / (4 * M_PI*M_PI*freqTermX * freqTermX);
+				cuDoubleComplex value7 = cuCadd(refTerm3, make_cuDoubleComplex(1.0, 0));
+				cuDoubleComplex value8 = cuCmul(refTerm3, make_cuDoubleComplex(-1.0, 0));
+				exponent_complex_mesh(&value8);
+				cuDoubleComplex value9 = cuCmul(value7, value8);
+				cuDoubleComplex value10 = cuCsub(value9, make_cuDoubleComplex(1.0, 0));
+				D3 = cuCdiv(value10, make_cuDoubleComplex(4 * pi*pi*freqTermX * freqTermX, 0));
+
+			//} else if (freqTermX == -freqTermY) {
+			} else if (abs(freqTermX+freqTermY) <= tolerence ) {
+
+				refTerm1.y = 1;
+				refTerm2.y = 2 * pi*freqTermX;
+				refTerm3.y = 2 * pi*pi*freqTermX * freqTermX;
+
+				//D1 = (-2 * M_PI*freqTermX + refTerm1) / (8 * M_PI*M_PI*M_PI*freqTermX * freqTermX * freqTermX)*exp(-refTerm2)
+				//	- (refTerm3 + refTerm1) / (8 * M_PI*M_PI*M_PI*freqTermX * freqTermX * freqTermX);
+				
+				cuDoubleComplex value1 = cuCadd(make_cuDoubleComplex(-2 * pi*freqTermX, 0), refTerm1);
+				cuDoubleComplex value2 = cuCdiv(value1, make_cuDoubleComplex(8 * pi*pi*pi*freqTermX * freqTermX * freqTermX, 0));
+				cuDoubleComplex value3 = cuCmul(refTerm2, make_cuDoubleComplex(-1.0, 0));
+				exponent_complex_mesh(&value3);
+				cuDoubleComplex value4 = cuCmul(value2, value3);
+
+				cuDoubleComplex value5 = cuCadd(refTerm3, refTerm1);
+				cuDoubleComplex value6 = cuCdiv(value5, make_cuDoubleComplex(8 * pi*pi*pi*freqTermX * freqTermX * freqTermX,0));
+
+				D1 = cuCsub(value4, value6);
+
+				//D2 = (-refTerm1) / (8 * M_PI*M_PI*M_PI*freqTermX * freqTermX * freqTermX)*exp(-refTerm2)
+				//	+ (-refTerm3 + refTerm1 + 2 * M_PI*freqTermX) / (8 * M_PI*M_PI*M_PI*freqTermX * freqTermX * freqTermX);
+
+				cuDoubleComplex value7 = cuCmul(refTerm1, make_cuDoubleComplex(-1.0, 0));
+				cuDoubleComplex value8 = cuCdiv(value7, make_cuDoubleComplex(8 * pi*pi*pi*freqTermX * freqTermX * freqTermX,0));
+				cuDoubleComplex value9 = cuCmul(value8, value3);
+
+				cuDoubleComplex value10 = cuCmul(refTerm3, make_cuDoubleComplex(-1.0, 0));
+				cuDoubleComplex value11 = cuCadd(value10, refTerm1);
+				cuDoubleComplex value12 = cuCadd(value11, make_cuDoubleComplex(2 * pi*freqTermX, 0));
+				cuDoubleComplex value13 = cuCdiv(value12, make_cuDoubleComplex(8 * pi*pi*pi*freqTermX * freqTermX * freqTermX,0));
+
+				D2 = cuCadd(value9, value13);
+
+				//D3 = (-refTerm1) / (4 * M_PI*M_PI*freqTermX * freqTermX)*exp(-refTerm2)
+				//	+ (-refTerm2 + (Real)1) / (4 * M_PI*M_PI*freqTermX * freqTermX);
+
+				cuDoubleComplex value14 = cuCdiv(value7, make_cuDoubleComplex(4 * pi*pi*freqTermX * freqTermX, 0));
+				cuDoubleComplex value15 = cuCmul(value14, value3);
+
+				cuDoubleComplex value16 = cuCmul(refTerm2, make_cuDoubleComplex(-1.0, 0));
+				cuDoubleComplex value17 = cuCadd(value16, make_cuDoubleComplex(1.0, 0));
+				cuDoubleComplex value18 = cuCdiv(value17, make_cuDoubleComplex(4 * pi*pi*freqTermX * freqTermX, 0));
+
+				D3 = cuCadd(value15, value18);
+
+			} else {
+
+				refTerm1.y = -2.0 * pi*(freqTermX + freqTermY);
+				refTerm2.y = 1.0;
+				refTerm3.y = -2.0 * pi*freqTermX;
+
+				//D1 = exp(refTerm1)*(refTerm2 - 2 * M_PI*(freqTermX + freqTermY)) / (8 * M_PI*M_PI*M_PI*freqTermY * (freqTermX + freqTermY)*(freqTermX + freqTermY))
+				//	+ exp(refTerm3)*(2 * M_PI*freqTermX - refTerm2) / (8 * M_PI*M_PI*M_PI*freqTermX * freqTermX * freqTermY)
+				//	+ ((2 * freqTermX + freqTermY)*refTerm2) / (8 * M_PI*M_PI*M_PI*freqTermX * freqTermX * (freqTermX + freqTermY)*(freqTermX + freqTermY));
+
+				cuDoubleComplex refTerm1_exp = make_cuDoubleComplex(refTerm1.x, refTerm1.y);
+				exponent_complex_mesh(&refTerm1_exp);
+
+				double val1 = 2.0 * pi*(freqTermX + freqTermY);
+				cuDoubleComplex value1 = cuCsub(refTerm2, make_cuDoubleComplex(val1, 0));
+				cuDoubleComplex value2 = cuCmul(refTerm1_exp, value1);
+				double val2 = 8.0 * pi*pi*pi*freqTermY * (freqTermX + freqTermY)*(freqTermX + freqTermY);
+				cuDoubleComplex value3 = cuCdiv(value2, make_cuDoubleComplex(val2,0));
+
+				cuDoubleComplex refTerm3_exp = make_cuDoubleComplex(refTerm3.x, refTerm3.y);
+				exponent_complex_mesh(&refTerm3_exp);
+
+				double val3 = 2.0 * pi*freqTermX;
+				cuDoubleComplex value4 = cuCsub(make_cuDoubleComplex(val3, 0), refTerm2);
+				cuDoubleComplex value5 = cuCmul(refTerm3_exp, value4);
+				double val4 = 8.0 * pi*pi*pi*freqTermX * freqTermX * freqTermY;
+				cuDoubleComplex value6 = cuCdiv(value5, make_cuDoubleComplex(val4,0));
+
+				double val5 = 2.0 * freqTermX + freqTermY;
+				cuDoubleComplex value7 = cuCmul(make_cuDoubleComplex(val5,0), refTerm2);
+				double val6 = 8.0 * pi*pi*pi*freqTermX * freqTermX * (freqTermX + freqTermY)*(freqTermX + freqTermY);
+				cuDoubleComplex value8 = cuCdiv(value7, make_cuDoubleComplex(val6,0));
+
+				cuDoubleComplex value9 = cuCadd(value3, value6);
+				D1 = cuCadd(value9, value8);
+
+				//D2 = exp(refTerm1)*(refTerm2*(freqTermX + 2 * freqTermY) - 2 * M_PI*freqTermY * (freqTermX + freqTermY)) / (8 * M_PI*M_PI*M_PI*freqTermY * freqTermY * (freqTermX + freqTermY)*(freqTermX + freqTermY))
+				//	+ exp(refTerm3)*(-refTerm2) / (8 * M_PI*M_PI*M_PI*freqTermX * freqTermY * freqTermY)
+				//	+ refTerm2 / (8 * M_PI*M_PI*M_PI*freqTermX * (freqTermX + freqTermY)* (freqTermX + freqTermY));
+							   
+				double val7 = freqTermX + 2.0 * freqTermY;
+				cuDoubleComplex value10 = cuCmul(refTerm2, make_cuDoubleComplex(val7,0));
+				double val8 = 2.0 * pi*freqTermY * (freqTermX + freqTermY);
+				cuDoubleComplex value11 = cuCsub(value10, make_cuDoubleComplex(val8,0));
+				cuDoubleComplex value12 = cuCmul(refTerm1_exp, value11);
+				double val9 = 8.0 * pi*pi*pi*freqTermY * freqTermY * (freqTermX + freqTermY)*(freqTermX + freqTermY);
+				cuDoubleComplex value13 = cuCdiv(value12, make_cuDoubleComplex(val9,0));
+				
+				cuDoubleComplex value14 = cuCmul(refTerm2, make_cuDoubleComplex(-1.0, 0));
+				cuDoubleComplex value15 = cuCmul(refTerm3_exp, value14);
+				double val10 = 8.0 * pi*pi*pi*freqTermX * freqTermY * freqTermY;
+				cuDoubleComplex value16 = cuCdiv(value15, make_cuDoubleComplex(val10,0));
+
+				double val11 = 8.0 * pi*pi*pi*freqTermX * (freqTermX + freqTermY)* (freqTermX + freqTermY);
+				cuDoubleComplex value17 = cuCdiv(refTerm2, make_cuDoubleComplex(val11,0));
+
+				cuDoubleComplex value18 = cuCadd(value13, value16);
+				D2 = cuCadd(value18, value17);
+				
+				//D3 = -exp(refTerm1) / (4 * M_PI*M_PI*freqTermY * (freqTermX + freqTermY))
+				//	+ exp(refTerm3) / (4 * M_PI*M_PI*freqTermX * freqTermY)
+				//	- (Real)1 / (4 * M_PI*M_PI*freqTermX * (freqTermX + freqTermY));
+
+				cuDoubleComplex value19 = cuCmul(refTerm1_exp, make_cuDoubleComplex(-1.0, 0));
+				double val12 = 4.0 * pi*pi*freqTermY * (freqTermX + freqTermY);
+				cuDoubleComplex value20 = cuCdiv(value19, make_cuDoubleComplex(val12,0));
+
+				double val13 = 4.0 * pi*pi*freqTermX * freqTermY;
+				cuDoubleComplex value21 = cuCdiv(refTerm3_exp, make_cuDoubleComplex(val13,0));
+
+				double val14 = 1.0 / (4.0 * pi*pi*freqTermX * (freqTermX + freqTermY));
+				cuDoubleComplex value22 = make_cuDoubleComplex(val14,0);
+
+				cuDoubleComplex value23 = cuCadd(value20, value21);
+				D3 = cuCsub(value23, value22);
+
+			}
+
+			//refAS = (av1 - av0)*D1 + (av2 - av1)*D2 + av0 * D3;
+	
+			double t1 = av1 - av0;
+			double t2 = av2 - av1;
+			cuDoubleComplex value_temp1 = cuCmul(make_cuDoubleComplex(t1, 0), D1);
+			cuDoubleComplex value_temp2 = cuCmul(make_cuDoubleComplex(t2, 0), D2);
+			cuDoubleComplex value_temp3 = cuCmul(make_cuDoubleComplex(av0, 0), D3);
+
+			cuDoubleComplex valeF = cuCadd(value_temp1, value_temp2);
+			refAS = cuCadd(valeF, value_temp3);
+	
+		}
+			
+		cuDoubleComplex temp;
+		if (abs(fz) <= tolerence)
+			temp = make_cuDoubleComplex(0, 0);
+		else {
+			term2.y = 2.0 * pi*(flx * glShiftX + fly * glShiftY + flz * glShiftZ);
+
+			//temp = refAS / det * exp(term1)* flz / fz * exp(term2);
+
+			exponent_complex_mesh(&term1);
+			exponent_complex_mesh(&term2);
+
+			cuDoubleComplex tmp1 = cuCdiv(refAS, make_cuDoubleComplex(det,0));
+			cuDoubleComplex tmp2 = cuCmul(tmp1, term1);
+			cuDoubleComplex tmp3 = cuCmul(tmp2, make_cuDoubleComplex(flz, 0));
+			cuDoubleComplex tmp4 = cuCdiv(tmp3, make_cuDoubleComplex(fz, 0));
+			temp = cuCmul(tmp4, term2);
+			
+		}
+
+		double absval = sqrt((temp.x*temp.x) + (temp.y*temp.y));
+		if (absval > min_double)
+		{
+		} else { 
+			temp = make_cuDoubleComplex(0, 0); 
+		}
+
+		//cuDoubleComplex addtmp = output[col + row * nx];
+		//output[col+row*nx] = cuCadd(addtmp,temp);
+
+		output[col + row * nx].x = output[col + row * nx].x + temp.x;
+		output[col + row * nx].y = output[col + row * nx].y + temp.y;
+		
+	}
 
 }
 
 extern "C"
-void cudaGetFringeFromGPUKernel(CUstream_st* stream, int N, double* save_a_d_, double* save_b_d_, int nx, int ny, cufftDoubleComplex* in_field, cufftDoubleComplex* output_field, bool isCrop, int SignalLoc1, int SignalLoc2, int direction)
+void call_cudaKernel_refAS(cufftDoubleComplex* output, int nx, int ny, double px, double py, unsigned int sflag, int idx, double waveLength, 
+	double pi, double shadingFactor, double av0, double av1, double av2,
+	double glRot0, double glRot1, double glRot2, double glRot3, double glRot4, double glRot5, double glRot6, double glRot7, double glRot8,
+	double loRot0, double loRot1, double loRot2, double loRot3, double glShiftX, double glShiftY, double glShiftZ,
+	double carrierWaveX, double carrierWaveY, double carrierWaveZ, double min_double, double tolerence, CUstream_st* streamTriMesh)
 {
-	unsigned int nblocks = (N + kBlockThreads - 1) / kBlockThreads;
+	dim3 grid((nx*ny + kBlockThreads - 1) / kBlockThreads, 1, 1);
+	cudaKernel_refAS << <grid, kBlockThreads, 0, streamTriMesh >> > (output, nx, ny, px, py, sflag, idx, waveLength, pi, shadingFactor, av0, av1, av2,
+		glRot0, glRot1, glRot2, glRot3, glRot4, glRot5, glRot6, glRot7, glRot8,
+		loRot0, loRot1, loRot2, loRot3, glShiftX, glShiftY, glShiftZ,
+		carrierWaveX, carrierWaveY, carrierWaveZ, min_double, tolerence);
 
-	convertToCufftComplex << < nblocks, kBlockThreads, 0, stream >> > (N, nx, ny, save_a_d_, save_b_d_, in_field, isCrop, SignalLoc1, SignalLoc2);
-
-	cudaFFT(stream, N, nx, ny, in_field, output_field, direction);
+	   	 
 }
 
 extern "C"
-void cudaCropFringe(CUstream_st* stream, int N, int nx, int ny, cufftDoubleComplex* in_field, cufftDoubleComplex* out_field, int SignalLoc1, int SignalLoc2)
+void call_fftGPU(int nx, int ny, cufftDoubleComplex* input, cufftDoubleComplex* output, CUstream_st* streamTriMesh)
 {
-	unsigned int nblocks = (N + kBlockThreads - 1) / kBlockThreads;
-
-	cropFringe << < nblocks, kBlockThreads, 0, stream >> > (N, nx, ny, in_field, out_field, SignalLoc1, SignalLoc2);
-
-}
-
-extern "C"
-void cudaPolygonKernel(CUstream_st* stream, int N, double* real_part_hologram, double* imagery_part_hologram, double* intensities, cufftDoubleComplex* temp_term,
-	int vertex_idx, int nx, int ny, double px, double py, double ss1, double ss2, double lambda, double pi, double tolerence,
-	double del_fxx, double del_fyy, double f_cx, double f_cy, double f_cz, bool is_multiple_carrier_wave, double cw_amp,
-	double t_Coff00, double t_Coff01, double t_Coff02, double t_Coff10, double t_Coff11, double t_Coff12,
-	double detAff, double R_31, double R_32, double R_33, double T1, double T2, double T3)
-{
-	dim3 grid((N + kBlockThreads - 1) / kBlockThreads, 1, 1);
-	polygon_sources_kernel << <grid, kBlockThreads, 0, stream >> > (real_part_hologram, imagery_part_hologram, intensities, temp_term, vertex_idx, nx, ny, px, py, ss1, ss2, lambda, pi, tolerence,
-		del_fxx, del_fyy, f_cx, f_cy, f_cz, is_multiple_carrier_wave, cw_amp, t_Coff00, t_Coff01, t_Coff02, t_Coff10, t_Coff11, t_Coff12,
-		detAff, R_31, R_32, R_33, T1, T2, T3);
-
-}
-
-extern "C"
-void cudaTranslationMatrixKernel(CUstream_st* stream, int N, cufftDoubleComplex* temp_term, double* real_part_hologram, double* imagery_part_hologram, int nx, int ny, double px, double py, double ss1, double ss2, double lambda,
-	int disp_x, int disp_y, double cw_amp, double R_31, double R_32, double R_33)
-{
-
-	dim3 grid((N + kBlockThreads - 1) / kBlockThreads, 1, 1);
-	translation_sources_kernel << <grid, kBlockThreads, 0, stream >> > (temp_term, real_part_hologram, imagery_part_hologram, nx, ny, px, py, ss1, ss2, lambda,
-		disp_x, disp_y, cw_amp, R_31, R_32, R_33);
+	
+	cudaFFT_Mesh(streamTriMesh, nx, ny, input, output, 1);
 	   
 }
 
-
-
-#endif // !OphTriMeshKernel_cu__
+#endif // !ophTriMeshKernel_cu__

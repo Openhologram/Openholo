@@ -78,7 +78,6 @@ ophDepthMap::ophDepthMap()
 	depth_index = 0;
 	dmap = 0;
 	dstep = 0;
-	propagation_method = 1;
 	dlevel.clear();
 	setViewingWindow(FALSE);
 }
@@ -683,14 +682,9 @@ void ophDepthMap::calcHoloCPU()
 
 					for (int i = 0; i < pnXY; i++)
 						input[i] = input[i] * rand_phase_val * carrier_phase_delay;
-
-					if (propagation_method == 1) { // angular spectrum
-						Openholo::fftwShift(input, input, pnX, pnY, OPH_FORWARD, false);
-						propagationAngularSpectrum(ch, input, -temp_depth, k, lambda);
-					}
-					else { // none
-					//	memcpy((*complex_H), u_o, sizeof(Complex<Real>) * pnXY);
-					}
+									
+					Openholo::fftwShift(input, input, pnX, pnY, OPH_FORWARD, false);
+					propagationAngularSpectrum(ch, input, -temp_depth, k, lambda);					
 				}
 				else {
 					//LOG("Depth: %d of %d : Nothing here\n", dtr, dm_config_.num_of_depth);

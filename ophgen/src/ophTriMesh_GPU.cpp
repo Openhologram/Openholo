@@ -43,256 +43,120 @@
 //
 //M*/
 
-#include "ophTriMesh.h"
 #include "ophTriMesh_GPU.h"
 
-#include <sys.h> //for LOG() macro
 
-void ophTri::initDev()
+void ophTri::initialize_GPU()
 {
-	const int nx = context_.pixel_number.v[0];
-	const int ny = context_.pixel_number.v[1];
-	const int N = nx * ny;
+	int nx = context_.pixel_number[_X];
+	int ny = context_.pixel_number[_Y];
+	int N = nx * ny;
 
+	if (!streamTriMesh)
+		cudaStreamCreate(&streamTriMesh);
 
-	if (k_input_d)	cudaFree(k_input_d);
-	if (k_output_d)	cudaFree(k_output_d);
-
-	HANDLE_ERROR(cudaMalloc((void**)&k_input_d, sizeof(cufftDoubleComplex)*N));
-	HANDLE_ERROR(cudaMalloc((void**)&k_output_d, sizeof(cufftDoubleComplex)*N));
-
-	if (k_temp_d)	cudaFree(k_temp_d);
-
-	HANDLE_ERROR(cudaMalloc((void**)&k_temp_d, sizeof(cufftDoubleComplex)*N));
-
+	if (angularSpectrum_GPU)   cudaFree(angularSpectrum_GPU);
+	HANDLE_ERROR(cudaMalloc((void**)&angularSpectrum_GPU, sizeof(cufftDoubleComplex)*nx*ny));
+	
+	if (ffttemp)   cudaFree(ffttemp);
+	HANDLE_ERROR(cudaMalloc((void**)&ffttemp, sizeof(cufftDoubleComplex)*nx*ny));
 
 }
-
-bool ophTri::PreProcessingforVertex(int kth, double& t_Coff00, double& t_Coff01, double& t_Coff02, double& t_Coff10, double& t_Coff11, double& t_Coff12,
-	double& detAff, double& R_31, double& R_32, double& R_33, double& T1, double& T2, double& T3)
+void ophTri::generateAS_GPU(uint SHADING_FLAG)
 {
-	vec3 t_v1, t_v2, t_v3;
-	t_v1 = cghObjPosition_[kth];
-	t_v2 = cghObjPosition_[kth + 1];
-	t_v3 = cghObjPosition_[kth + 2];
-
-	T1 = t_v1.v[0];
-	T2 = t_v1.v[1];
-	T3 = t_v1.v[2];
-
-	// Normal vector of triangular mesh plane
-	matrix3x3 t_vertex_, t_vertex;
-	t_vertex.set_col(0, t_v1);
-	t_vertex.set_col(1, t_v2);
-	t_vertex.set_col(2, t_v3);
-	t_vertex_ = t_vertex.get_transpose();
-
-	vec3 t_norm;
-	if (t_v1.v[2] == t_v2.v[2] && t_v2.v[2] == t_v3.v[2] && t_v3.v[2] == t_v1.v[2])
-		t_norm = vec3(0.0, 0.0, 1.0);
-	else {
-		if (apx_equal(fabs(t_vertex_.determinant()), 0.0, hologram_param_.precision_tolerance))
-			return false;
-		t_norm = t_vertex_.inverse() * vec3(1.0, 1.0, 1.0);
+	if (SHADING_FLAG != SHADING_FLAT && SHADING_FLAG != SHADING_CONTINUOUS) {
+		LOG("error: WRONG SHADING_FLAG\n");
+		exit(0);
 	}
 
+	const uint pnX = context_.pixel_number[_X];
+	const uint pnY = context_.pixel_number[_Y];
+	const uint pnXY = pnX * pnY;
 
-	if (t_norm.v[2] < 0.0)
-		t_norm = t_norm * (-1);
+	mesh_local = new Real[9];
+	Real* mesh = new Real[9];
 
+	findNormals(SHADING_FLAG);
 
-	// Estimate R(rotation) and T(translation) from local to global coordinate system
-	double temp_x = t_norm.v[0];
-	double temp_y = t_norm.v[1];
-	double temp_z = t_norm.v[2];
-	double temp_rxy = sqrt(temp_x* temp_x + temp_y * temp_y);
-	double temp_r = sqrt(temp_x * temp_x + temp_y * temp_y + temp_z * temp_z);
+	HANDLE_ERROR(cudaMemsetAsync(angularSpectrum_GPU, 0, sizeof(cufftDoubleComplex) * pnXY, streamTriMesh));
 
-	matrix3x3 R;
-	if (temp_rxy != 0)
-	{
-		double CP = temp_x / temp_rxy;
-		double SP = temp_y / temp_rxy;
-		double CT = temp_z / temp_r;
-		double ST = temp_rxy / temp_r;
-		R.set(CP*CT, -SP, CP*ST, SP*CT, CP, SP*ST, -ST, 0, CT);
-	}
-	else {
-		R.set(1, 0, 0, 0, 1, 0, 0, 0, 1);
-	}
+	for (int j = 0; j < meshData->n_faces; j++) {
 
-	matrix3x3 R_ = R.get_transpose();
-	t_vertex.set_col(0, t_v1 - t_v1);
-	t_vertex.set_col(1, t_v2 - t_v1);
-	t_vertex.set_col(2, t_v3 - t_v1);
+		for (int i = 0; i < 9; i++)
+			mesh[i] = scaledMeshData[9 * j + i];
 
-	matrix3x3 t_vertex_l = R_ * t_vertex;
-
-	matrix t_vertex_lXY(2, 3);
-	t_vertex_lXY(0, 0) = t_vertex_l.a00;
-	t_vertex_lXY(0, 1) = t_vertex_l.a01;
-	t_vertex_lXY(0, 2) = t_vertex_l.a02;
-	t_vertex_lXY(1, 0) = t_vertex_l.a10;
-	t_vertex_lXY(1, 1) = t_vertex_l.a11;
-	t_vertex_lXY(1, 2) = t_vertex_l.a12;
-
-	//Estimate affine transform from local to reference coordinate system
-	t_vertex_lXY = t_vertex_lXY.transpose();
-	graphics::vector<real> val2;
-	val2.add(1.0); val2.add(1.0); val2.add(1.0);
-	t_vertex_lXY.add_col(val2);
-	matrix t_vertex_lXY2 = t_vertex_lXY.inverse();
-	if (t_vertex_lXY2.rows() == 0 || t_vertex_lXY2.cols() == 0)
-		return false;
-
-	matrix tmpA(3, 2);
-	tmpA(0, 0) = 0.0;
-	tmpA(0, 1) = 0.0;
-	tmpA(1, 0) = 1.0;
-	tmpA(1, 1) = 0.0;
-	tmpA(2, 1) = 1.0;
-	tmpA(2, 2) = 1.0;
-
-	matrix est_affine = t_vertex_lXY2 ^ tmpA;
-	matrix Aff(2, 2);
-	Aff(0, 0) = est_affine[0];
-	Aff(0, 1) = est_affine[1];
-	Aff(1, 0) = est_affine[2];
-	Aff(1, 1) = est_affine[3];
-	Aff = Aff.transpose();
-	vec2 bff = vec2(est_affine[4], est_affine[5]);
-
-	matrix A_T_ = Aff.inverse().transpose();
-
-	matrix R_tmp(2, 3);
-	R_tmp(0, 0) = R_.a00;
-	R_tmp(0, 1) = R_.a01;
-	R_tmp(0, 2) = R_.a02;
-	R_tmp(1, 0) = R_.a10;
-	R_tmp(1, 1) = R_.a11;
-	R_tmp(1, 2) = R_.a12;
-
-	matrix t_CoffMat = A_T_ ^ R_tmp;
-
-	t_Coff00 = t_CoffMat[0];
-	t_Coff01 = t_CoffMat[1];
-	t_Coff02 = t_CoffMat[2];
-	t_Coff10 = t_CoffMat[3];
-	t_Coff11 = t_CoffMat[4];
-	t_Coff12 = t_CoffMat[5];
-
-	detAff = Aff.determ();
-
-	R_31 = R_(2, 0);
-	R_32 = R_(2, 1);
-	R_33 = R_(2, 2);
-
-	return true;
-
-}
-
-void ophTri::genCghTriMeshGPU()
-{
-	initDev();
-	cudaEvent_t start, stop;
-
-	cudaEventCreate(&start);
-	cudaEventCreate(&stop);
-
-	if (!stream_)
-		cudaStreamCreate(&stream_);
-
-	cudaEventRecord(start, stream_);
-
-	//---------------------------------------------------------------------
-	// copy memory from host to device
-	//---------------------------------------------------------------------
-	const int nx = context_.pixel_number.v[0];
-	const int ny = context_.pixel_number.v[1];
-	const int N = nx * ny;
-
-	HANDLE_ERROR(cudaMemsetAsync(save_a_d_, 0, sizeof(double)*N, stream_));
-	HANDLE_ERROR(cudaMemsetAsync(save_b_d_, 0, sizeof(double)*N, stream_));
-	HANDLE_ERROR(cudaMemsetAsync(intensities_d_, 0, sizeof(double)*num_vertex_, stream_));
-
-	ulonglong num_vertex_ = meshData->n_faces;
-	Real* tmp = (double*)malloc(sizeof(Real) * num_vertex_);
-	for (int i = 0; i < cghObjIntensity_.size(); i++) {
-		tmp[i] = cghObjIntensity_[i];
-	}
-
-	HANDLE_ERROR(cudaMemcpyAsync(intensities_d_, tmp, sizeof(Real)*num_vertex_, cudaMemcpyHostToDevice), stream_);
-
-	unsigned int nblocks;
-	LOG("object number %d\n", num_vertex_);
-
-	double lambda = *context_.wave_length;
-	double k = 2.0 * M_PI * lambda;
-	ivec2 pn = context_.pixel_number;
-	vec2 pp = context_.pixel_pitch;
-	vec2 ss = vec2(pn.v[0] * pp.v[0], pn.v[1] * pp.v[1]);
-
-	double cw_amp = context_.cw_amplitude;
-	vec3 cw_dir = context_.cw_direction;
-
-	cw_dir.unit();
-	vec3 f_c = cw_dir / lambda;
-	double del_fxx = 1 / ss.v[0];
-	double del_fyy = 1 / ss.v[1];
-	double f_cx = f_c.v[0];
-	double f_cy = f_c.v[1];
-	double f_cz = f_c.v[2];
-
-	double t_Coff00, t_Coff01, t_Coff02, t_Coff10, t_Coff11, t_Coff12;
-	double detAff;
-	double a_v1, a_v2, a_v3;
-	double R_31, R_32, R_33;
-	double T1, T2, T3;
-
-	int err = 0;
-	for (int k = 0; k < num_vertex_; k += 3)
-	{
-		if (!PreProcessingforVertex(k, t_Coff00, t_Coff01, t_Coff02, t_Coff10, t_Coff11, t_Coff12, detAff, R_31, R_32, R_33, T1, T2, T3))
-		{
-			err++;
+		if (checkValidity(mesh, *(no + j)) != 1)
 			continue;
-		}
 
-		HANDLE_ERROR(cudaMemsetAsync(k_temp_d, 0, sizeof(double)*N, stream_));
+		if (findGeometricalRelations(mesh, *(no + j)) != 1)
+			continue;
 
-		cudaPolygonKernel(stream_, N, save_a_d_, save_b_d_, intensities_d_, k_temp_d, k, nx, ny, pp[0], pp[1], ss[0], ss[1], lambda, M_PI,
-			context_.precision_tolerance, del_fxx, del_fyy, f_cx, f_cy, f_cz, hologram_param_.is_multiple_carrier_wave, cw_amp,
-			t_Coff00, t_Coff01, t_Coff02, t_Coff10, t_Coff11, t_Coff12, detAff, R_31, R_32, R_33, T1, T2, T3);
+		refAS_GPU(j, SHADING_FLAG);
 
-		if (hologram_param_.is_multiple_carrier_wave == 1)
-		{
-			for (int m = 0; m < hologram_param_.cw_displacement.size(); m++)
-			{
-				vec2 disp = hologram_param_.cw_displacement[m];
-				int disp_x = int(round(disp[0] / del_fxx));
-				int disp_y = int(round(disp[1] / del_fyy));
-				double cw_amp = hologram_param_.cw_multiamp[m];
-
-				cudaTranslationMatrixKernel(stream_, N, k_temp_d, save_a_d_, save_b_d_, nx, ny, pp[0], pp[1], ss[0], ss[1], lambda,
-					disp_x, disp_y, cw_amp, R_31, R_32, R_33);
-
-			}
-
-		}
+		char szLog[MAX_PATH];
+		sprintf(szLog, "%d / %d\n", j + 1, meshData->n_faces);
+		LOG(szLog);
 
 	}
+	
+	HANDLE_ERROR(cudaMemsetAsync(ffttemp, 0, sizeof(cufftDoubleComplex) * pnXY, streamTriMesh));
+	call_fftGPU(pnX, pnY, angularSpectrum_GPU, ffttemp, streamTriMesh);
 
-	LOG("ERR : %d \n", err);
+	cufftDoubleComplex* output = (cufftDoubleComplex*)malloc(sizeof(cufftDoubleComplex) * pnXY);
+	memset(output, 0.0, sizeof(cufftDoubleComplex) * pnXY);
+	
+	HANDLE_ERROR(cudaMemcpyAsync(output, ffttemp, sizeof(cufftDoubleComplex) * pnXY, cudaMemcpyDeviceToHost), streamTriMesh);
+	//HANDLE_ERROR(cudaMemcpyAsync(output, angularSpectrum_GPU, sizeof(cufftDoubleComplex)*nx*ny, cudaMemcpyDeviceToHost), streamTriMesh);
 
-	//HANDLE_ERROR(cudaMemcpyAsync(cghSpectrumReal_, save_a_d_, N * sizeof(double), cudaMemcpyDeviceToHost, stream_));
-	//writeIntensity_gray8_bmp("test", nx, ny, cghSpectrumReal_);
+	for (int i = 0; i < pnXY; ++i)
+	{
+		complex_H[0][i][_RE] = output[i].x;
+		complex_H[0][i][_IM] = output[i].y;
+	}
+	delete[] output;
+	delete[] mesh, scaledMeshData, no, na, nv, mesh_local;
+}
 
 
-	cudaEventRecord(stop, stream_);
-	cudaEventSynchronize(stop);
+void ophTri::refAS_GPU(int idx, uint SHADING_FLAG)
+{
+	int nx = context_.pixel_number[_X];
+	int ny = context_.pixel_number[_Y];
+	double px = context_.pixel_pitch[_X];
+	double py = context_.pixel_pitch[_Y];
+	double waveLength = context_.wave_length[0];
+	   
+	shadingFactor = 0;		
+	vec3 av(0, 0, 0);
 
-	float elapsedTime = 0.0f;
-	cudaEventElapsedTime(&elapsedTime, start, stop);
-	LOG("Time= %f ms. \n", elapsedTime);
+	if (SHADING_FLAG == SHADING_FLAT) {
+		vec3 no_ = no[idx];
+		n = no_ / norm(no_);
+		if (illumination[_X] == 0 && illumination[_Y] == 0 && illumination[_Z] == 0) {
+			shadingFactor = 1;
+		}
+		else {
+			vec3 normIllu = illumination / norm(illumination);
+			shadingFactor = 2 * (n[_X] * normIllu[_X] + n[_Y] * normIllu[_Y] + n[_Z] * normIllu[_Z]) + 0.3;
+			if (shadingFactor < 0)
+				shadingFactor = 0;
+		}
+	}
+	else if (SHADING_FLAG == SHADING_CONTINUOUS) {
+
+		av[0] = nv[3 * idx + 0][0] * illumination[0] + nv[3 * idx + 0][1] * illumination[1] + nv[3 * idx + 0][2] * illumination[2] + 0.1;
+		av[2] = nv[3 * idx + 1][0] * illumination[0] + nv[3 * idx + 1][1] * illumination[1] + nv[3 * idx + 1][2] * illumination[2] + 0.1;
+		av[1] = nv[3 * idx + 2][0] * illumination[0] + nv[3 * idx + 2][1] * illumination[1] + nv[3 * idx + 2][2] * illumination[2] + 0.1;
+
+		
+	}
+
+	double min_double = (double)2.2250738585072014e-308;
+	double tolerence = 1e-12;
+
+	call_cudaKernel_refAS(angularSpectrum_GPU, nx, ny, px, py, SHADING_FLAG, idx, waveLength, M_PI, shadingFactor, av[0], av[1], av[2],
+		geom.glRot[0], geom.glRot[1], geom.glRot[2], geom.glRot[3], geom.glRot[4], geom.glRot[5], geom.glRot[6], geom.glRot[7], geom.glRot[8],
+		geom.loRot[0], geom.loRot[1], geom.loRot[2], geom.loRot[3], geom.glShift[_X], geom.glShift[_Y], geom.glShift[_Z],
+		carrierWave[_X], carrierWave[_Y], carrierWave[_Z], min_double, tolerence, streamTriMesh);
 
 }

@@ -194,14 +194,10 @@ void ophDepthMap::calcHoloGPU(void)
 			cudaDepthHoloKernel(stream_, pnX, pnY, u_o_gpu_, img_src_gpu, dimg_src_gpu, depth_index_gpu,
 				dtr, rand_phase_val[_RE], rand_phase_val[_IM], carrier_phase_delay[_RE], carrier_phase_delay[_IM], dm_config_.FLAG_CHANGE_DEPTH_QUANTIZATION, dm_config_.DEFAULT_DEPTH_QUANTIZATION);
 
-			if (propagation_method == 1) { // angular spectrum
-				HANDLE_ERROR(cudaMemsetAsync(k_temp_d_, 0, sizeof(cufftDoubleComplex) * pnNY, stream_));
-				cudaFFT(stream_, pnX, pnY, u_o_gpu_, k_temp_d_, -1);
-				propagationAngularSpectrumGPU(ch, u_o_gpu_, -temp_depth);
-			}
-			else { // none
-				//memcpy(u_complex_gpu_, u_o_gpu_, sizeof(cufftDoubleComplex) * pnNY);
-			}
+			HANDLE_ERROR(cudaMemsetAsync(k_temp_d_, 0, sizeof(cufftDoubleComplex) * pnNY, stream_));
+			cudaFFT(stream_, pnX, pnY, u_o_gpu_, k_temp_d_, -1);
+			propagationAngularSpectrumGPU(ch, u_o_gpu_, -temp_depth);
+			
 			//LOG("Depth: %3d of %d, z = %6.5lf mm\n", dtr, dm_config_.num_of_depth, -temp_depth * 1000);
 		}
 
