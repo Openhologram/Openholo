@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.27428.2015
+# Visual Studio 14
+VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "openholo", "Openholo\openholo.vcxproj", "{F87DA845-513D-4F3B-9F72-16BB2C18A782}"
 EndProject
@@ -40,7 +40,6 @@ Global
 		{D0F04385-3806-46B2-93C2-26ECED076074}.Debug|x64.Build.0 = Debug|x64
 		{D0F04385-3806-46B2-93C2-26ECED076074}.Debug|x86.ActiveCfg = Debug|x64
 		{D0F04385-3806-46B2-93C2-26ECED076074}.Release|x64.ActiveCfg = Release|x64
-		{D0F04385-3806-46B2-93C2-26ECED076074}.Release|x64.Build.0 = Release|x64
 		{D0F04385-3806-46B2-93C2-26ECED076074}.Release|x86.ActiveCfg = Release|x64
 		{37973A95-102B-491C-BE36-F9203D2B6EDA}.Debug|x64.ActiveCfg = Debug|x64
 		{37973A95-102B-491C-BE36-F9203D2B6EDA}.Debug|x64.Build.0 = Debug|x64
@@ -52,7 +51,6 @@ Global
 		{272C3F0A-E929-4A98-8307-D9D01D5DA1F2}.Debug|x64.Build.0 = Debug|x64
 		{272C3F0A-E929-4A98-8307-D9D01D5DA1F2}.Debug|x86.ActiveCfg = Debug|x64
 		{272C3F0A-E929-4A98-8307-D9D01D5DA1F2}.Release|x64.ActiveCfg = Release|x64
-		{272C3F0A-E929-4A98-8307-D9D01D5DA1F2}.Release|x64.Build.0 = Release|x64
 		{272C3F0A-E929-4A98-8307-D9D01D5DA1F2}.Release|x86.ActiveCfg = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
