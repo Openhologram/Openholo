@@ -179,14 +179,15 @@ void ophDepthMap::calcHoloGPU(void)
 		HANDLE_ERROR(cudaMemsetAsync(u_complex_gpu_, 0, sizeof(cufftDoubleComplex) * pnNY, stream_));
 		Real lambda = context_.wave_length[ch];
 		Real k = context_.k = (2 * M_PI / lambda);
-		for (int p = 0; p < depth_sz; ++p)
+		int p;
+		for (p = 0; p < depth_sz; ++p)
 		{
-			oph::Complex<Real> rand_phase_val;
+			Complex<Real> rand_phase_val;
 			getRandPhaseValue(rand_phase_val, dm_config_.RANDOM_PHASE);
 
 			int dtr = dm_config_.render_depth[p];
 			Real temp_depth = (is_ViewingWindow) ? dlevel_transform[dtr - 1] : dlevel[dtr - 1];
-			oph::Complex<Real> carrier_phase_delay(0, k * temp_depth);
+			Complex<Real> carrier_phase_delay(0, k * temp_depth);
 			carrier_phase_delay.exp();
 
 			HANDLE_ERROR(cudaMemsetAsync(u_o_gpu_, 0, sizeof(cufftDoubleComplex) * pnNY, stream_));
@@ -199,6 +200,8 @@ void ophDepthMap::calcHoloGPU(void)
 			propagationAngularSpectrumGPU(ch, u_o_gpu_, -temp_depth);
 			
 			//LOG("Depth: %3d of %d, z = %6.5lf mm\n", dtr, dm_config_.num_of_depth, -temp_depth * 1000);
+
+			n_percent = (int)((Real)(ch*depth_sz + p + 1) * 100 / ((Real)depth_sz * nChannel));
 		}
 
 		cufftDoubleComplex* p_holo_gen = new cufftDoubleComplex[pnNY];
@@ -211,6 +214,7 @@ void ophDepthMap::calcHoloGPU(void)
 		}
 		delete[] p_holo_gen;
 		LOG("\n%s (%d/%d) : %lf(s)\n\n", __FUNCTION__, ch + 1, nChannel, ((std::chrono::duration<Real>)(CUR_TIME - begin)).count());
+
 	}
 
 #ifdef CHECK_PROC_TIME;

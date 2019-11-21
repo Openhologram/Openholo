@@ -54,14 +54,16 @@ ophPointCloud::ophPointCloud(void)
 	: ophGen()
 	, is_CPU(true)
 	, is_ViewingWindow(false)
+	, n_percent(0)
+	, n_points(-1)
 {
-	n_points = -1;
 }
 
 ophPointCloud::ophPointCloud(const char* pc_file, const char* cfg_file)
 	: ophGen()
 	, is_CPU(true)
 	, is_ViewingWindow(false)
+	, n_percent(0)
 {
 	n_points = loadPointCloud(pc_file);
 	if (n_points == -1) std::cerr << "OpenHolo Error : Failed to load Point Cloud Data File(*.dat)" << std::endl;
@@ -151,11 +153,6 @@ bool ophPointCloud::readConfig(const char* fname)
 Real ophPointCloud::generateHologram(uint diff_flag)
 {
 	resetBuffer();
-
-	MEMORYSTATUS memStatus;
-	GlobalMemoryStatus(&memStatus);
-	LOG("\n*Available Memory: %u (byte)\n", memStatus.dwAvailVirtual);
-
 	auto begin = CUR_TIME;
 	LOG("1) Algorithm Method : Point Cloud\n");
 	LOG("2) Generate Hologram with %s\n", is_CPU ? 
@@ -176,6 +173,7 @@ Real ophPointCloud::generateHologram(uint diff_flag)
 		genCghPointCloudGPU(diff_flag);
 	}
 
+	n_percent = 0;
 	auto end = CUR_TIME;
 	elapsedTime = ((std::chrono::duration<Real>)(end - begin)).count();
 	LOG("Total Elapsed Time: %lf (s)\n", elapsedTime);
@@ -309,10 +307,19 @@ void ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 	ss[_X] = context_.ss[_X] = pn[_X] * pp[_X];
 	ss[_Y] = context_.ss[_Y] = pn[_Y] * pp[_Y];
 
+	uint nChannel = context_.waveNum;
+
+
+
 	int i; // private variable for Multi Threading
 	int num_threads = 1;
 	
-	for (uint ch = 0; ch < context_.waveNum; ++ch) {
+
+	int sum = 0;
+	int prev = 0;
+	n_percent = 0;
+
+	for (uint ch = 0; ch < nChannel; ++ch) {
 		// Wave Number (2 * PI / lambda(wavelength))
 		Real lambda = context_.wave_length[ch];
 		Real k = context_.k = (2 * M_PI / lambda);
@@ -321,6 +328,7 @@ void ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 		{
 			num_threads = omp_get_num_threads(); // get number of Multi Threading
 			int tid = omp_get_thread_num();
+
 #pragma omp for private(i)
 #endif
 			for (i = 0; i < n_points; ++i) { //Create Fringe Pattern
@@ -344,12 +352,15 @@ void ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 					diffractNotEncodedFrsn(ch, pn, pp, ss, vec3(pcx, pcy, pcz), k, amplitude, lambda);
 					break;
 				}
+#pragma omp atomic
+				sum ++;
+
+				n_percent = (int)((Real)sum * 100 / ((Real)n_points * nChannel));
 			}
 #ifdef _OPENMP
 		}
 #endif
 	}
-
 #ifdef CHECK_PROC_TIME
 	auto end = CUR_TIME;
 	LOG("\n%s : %lf(s) <%d threads>\n\n",

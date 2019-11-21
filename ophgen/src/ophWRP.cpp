@@ -447,10 +447,6 @@ void ophWRP::generateHologram(void)
 {
 	resetBuffer();
 
-	MEMORYSTATUS memStatus;
-	GlobalMemoryStatus(&memStatus);
-	LOG("\n*Available Memory: %u (byte)\n", memStatus.dwAvailVirtual);
-
 	auto start_time = CUR_TIME;
 	LOG("1) Algorithm Method : WRP\n");
 	LOG("2) Generate Hologram with %s\n", is_CPU ?

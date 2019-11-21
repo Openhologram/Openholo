@@ -672,6 +672,8 @@ public:
 	* @param is_TransVW : the value for specifying whether the hologram generation method is implemented on the viewing window
 	*/
 	void setViewingWindow(bool is_ViewingWindow);
+
+	uint* getPercent() { return &n_percent; }
 private:
 	/**
 	* @brief Calculate Integral Fringe Pattern of 3D Point Cloud based Computer Generated Holography
@@ -724,7 +726,7 @@ private:
 	bool is_CPU;
 	bool is_ViewingWindow;
 	int n_points;
-
+	uint n_percent;
 	OphPointCloudConfig pc_config_;
 	OphPointCloudData	pc_data_;
 };

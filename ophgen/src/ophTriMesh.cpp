@@ -410,9 +410,6 @@ vec3 vecCross(const vec3& a, const vec3& b)
 void ophTri::generateHologram(uint SHADING_FLAG) 
 {
 	resetBuffer();
-	MEMORYSTATUS memStatus;
-	GlobalMemoryStatus(&memStatus);
-	LOG("\n*Available Memory: %u (byte)\n", memStatus.dwAvailVirtual);
 
 	auto start_time = CUR_TIME;
 	LOG("1) Algorithm Method : Tri Mesh\n");

@@ -385,14 +385,14 @@ struct GEN_DLL OphDepthMapConfig {
 	Real				near_depthmap;
 	Real				far_depthmap;
 
-	oph::uint			num_of_depth;
+	uint				num_of_depth;
 										
 
-	std::vector<int>	render_depth;
+	vector<int>			render_depth;
 
 	bool				FLAG_CHANGE_DEPTH_QUANTIZATION;
-	oph::uint			DEFAULT_DEPTH_QUANTIZATION;
-	oph::uint			NUMBER_OF_DEPTH_QUANTIZATION;
+	uint				DEFAULT_DEPTH_QUANTIZATION;
+	uint				NUMBER_OF_DEPTH_QUANTIZATION;
 	bool				RANDOM_PHASE;
 
 	OphDepthMapConfig() :fieldLength(0), near_depthmap(0), far_depthmap(0), num_of_depth(0){}

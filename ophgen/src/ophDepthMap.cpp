@@ -60,6 +60,7 @@
 */
 ophDepthMap::ophDepthMap()
 	: ophGen()
+	, n_percent(0)
 {
 	is_CPU = true;
 
@@ -319,11 +320,6 @@ Real ophDepthMap::generateHologram(void)
 	resetBuffer();
 
 	encode_size = context_.pixel_number;
-
-	MEMORYSTATUS memStatus;
-	GlobalMemoryStatus(&memStatus);
-	LOG("\n*Available Memory: %u (byte)\n", memStatus.dwAvailVirtual);
-
 	auto start_time = CUR_TIME;
 
 	LOG("1) Algorithm Method : Depth Map\n");
@@ -336,21 +332,27 @@ Real ophDepthMap::generateHologram(void)
 		"GPU");
 	LOG("3) Transform Viewing Window : %s\n", is_ViewingWindow ? "ON" : "OFF");
 
-	if (is_CPU)
+	if (is_CPU) {
 		prepareInputdataCPU(rgb_img, depth_img);
-	else
+		getDepthValues();
+		if (is_ViewingWindow)
+			transVW();
+		calcHoloCPU();
+	}
+	else {
 		prepareInputdataGPU(rgb_img, depth_img);
-	getDepthValues();
-	if(is_ViewingWindow)
-		transVW();
-	calcHoloByDepth();
-
+		getDepthValues();
+		if (is_ViewingWindow)
+			transVW();
+		calcHoloGPU();
+	}
+	
 	auto end_time = CUR_TIME;
 
 	elapsedTime = ((std::chrono::duration<Real>)(end_time - start_time)).count();
 
 	LOG("Total Elapsed Time: %lf (s)\n", elapsedTime);
-
+	n_percent = 0;
 	return elapsedTime;
 }
 
@@ -466,20 +468,6 @@ void ophDepthMap::transVW()
 	}
 }
 
-/**
-* @brief Generate a hologram.
-* @param frame : the frame number of the image.
-* @see Calc_Holo_CPU, Calc_Holo_GPU
-*/
-void ophDepthMap::calcHoloByDepth()
-{
-	if (is_CPU)
-		calcHoloCPU();
-	else
-		calcHoloGPU();
-	
-}
-
 
 /**
 * @brief Initialize variables for the CPU implementation.
@@ -532,9 +520,7 @@ bool ophDepthMap::prepareInputdataCPU(uchar* imgptr, uchar* dimgptr)
 	memset(alpha_map, 0, sizeof(int) * pnXY);
 	memset(depth_index, 0, sizeof(Real) * pnXY);
 	memset(dmap, 0, sizeof(Real) * pnXY);
-
-	Real nearDepth = dm_config_.near_depthmap;
-
+	
 	int k = 0;
 #ifdef _OPENMP
 #pragma omp parallel
@@ -543,16 +529,12 @@ bool ophDepthMap::prepareInputdataCPU(uchar* imgptr, uchar* dimgptr)
 #pragma omp for private(k)
 #endif
 		for (k = 0; k < pnXY; k++)	{
-			Real rgbVal = Real(imgptr[k]) / 255.0;
-			img_src[k] = rgbVal;
-			Real dVal = Real(dimgptr[k]) / 255.0;
-			dmap_src[k] = dVal;
-			int alphaVal = (imgptr[k] > 0 ? 1 : 0);
-			alpha_map[k] = alphaVal;			
+			img_src[k] = Real(imgptr[k]) / 255.0; // RGB IMG
+			dmap_src[k] = Real(dimgptr[k]) / 255.0; // DEPTH IMG
+			alpha_map[k] = (imgptr[k] > 0 ? 1 : 0); // RGB IMG
 
 			if (dm_config_.FLAG_CHANGE_DEPTH_QUANTIZATION == 0) {
-				Real imgVal = Real(dimgptr[k]);
-				depth_index[k] = dm_config_.DEFAULT_DEPTH_QUANTIZATION - imgVal;
+				depth_index[k] = dm_config_.DEFAULT_DEPTH_QUANTIZATION - Real(dimgptr[k]);
 			}
 		}
 #ifdef _OPENMP
@@ -580,10 +562,11 @@ void ophDepthMap::changeDepthQuanCPU()
 	const uint pnXY = pnX * pnY;
 
 	Real temp_depth, d1, d2;
+	uint num_depth = dm_config_.num_of_depth;
+	Real near_depth = dm_config_.near_depthmap;
+	Real far_depth = dm_config_.far_depthmap;
 
-	//int tdepth;
-
-	for (uint dtr = 0; dtr < dm_config_.num_of_depth; ++dtr) {
+	for (uint dtr = 0; dtr < num_depth; ++dtr) {
 		temp_depth = dlevel[dtr];
 		d1 = temp_depth - dstep / 2.0;
 		d2 = temp_depth + dstep / 2.0;
@@ -596,10 +579,10 @@ void ophDepthMap::changeDepthQuanCPU()
 #pragma omp for private(p)
 #endif
 			for (p = 0; p < pnXY; ++p) {
-				Real dmap = (1.0 - dmap_src[p])*(dm_config_.far_depthmap - dm_config_.near_depthmap) + dm_config_.near_depthmap;
+				Real dmap = (1.0 - dmap_src[p])*(far_depth - near_depth) + near_depth;
 
 				int tdepth;
-				if (dtr < dm_config_.num_of_depth - 1)
+				if (dtr < num_depth - 1)
 					tdepth = (dmap >= d1 ? 1 : 0) * (dmap < d2 ? 1 : 0);
 				else
 					tdepth = (dmap >= d1 ? 1 : 0) * (dmap <= d2 ? 1 : 0);
@@ -643,6 +626,7 @@ void ophDepthMap::calcHoloCPU()
 	Complex<Real> *in = nullptr, *out = nullptr;
 	fft2(ivec2(pnX, pnY), in, OPH_FORWARD, OPH_ESTIMATE);
 	int p = 0;
+	int sum = 0;
 
 	for (int ch = 0; ch < nChannel; ch++) {
 		Real lambda = context_.wave_length[ch];
@@ -664,14 +648,14 @@ void ophDepthMap::calcHoloCPU()
 				//Complex<Real> *output = new Complex<Real>[pnXY];
 				//memset(output, 0.0, sizeof(Complex<Real>) * pnXY);
 
-				Real sum = 0.0;
+				Real locsum = 0.0;
 				for (int i = 0; i < pnXY; i++)
 				{
 					input[i][_RE] += img_src[i] * alpha_map[i] * (depth_index[i] == dtr ? 1.0 : 0.0);
-					sum += input[i][_RE];
+					locsum += input[i][_RE];
 				}
 
-				if (sum > 0.0)
+				if (locsum > 0.0)
 				{
 					//LOG("Depth: %d of %d, z = %f mm\n", dtr, dm_config_.num_of_depth, -temp_depth * 1000);
 					Complex<Real> rand_phase_val;
@@ -690,6 +674,11 @@ void ophDepthMap::calcHoloCPU()
 					//LOG("Depth: %d of %d : Nothing here\n", dtr, dm_config_.num_of_depth);
 				}
 				delete[] input;
+
+#pragma omp atomic
+				sum++;
+
+				n_percent = (int)((Real)sum * 100 / ((Real)depth_sz * nChannel));
 			}
 #ifdef _OPENMP
 		}

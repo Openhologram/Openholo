@@ -150,6 +150,7 @@ public:
 		dm_config_ = config;
 	};
 	void setResolution(ivec2 resolution);
+	uint* getPercent() { return &n_percent; }
 
 public:
 	inline void setFieldLens(Real fieldlens) { dm_config_.fieldLength = fieldlens; }
@@ -180,7 +181,6 @@ private:
 
 	void transVW();
 
-	void calcHoloByDepth(void);
 	void calcHoloCPU(void);
 	void calcHoloGPU(void);
 	void propagationAngularSpectrumGPU(uint channel, cufftDoubleComplex* input_u, Real propagation_dist);
@@ -213,6 +213,9 @@ private:
 	vector<Real>			dlevel_transform;					///< transfomed dlevel variable
 
 	OphDepthMapConfig		dm_config_;							///< structure variable for depthmap hologram configuration.
+
+
+	uint n_percent;
 };
 
 #endif //>__ophDepthMap_h

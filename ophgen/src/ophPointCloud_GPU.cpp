@@ -121,7 +121,9 @@ void ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 		memset(host_dst, 0., bufferSize * 2);
 	}
 
-	for (uint ch = 0; ch < context_.waveNum; ch++)
+	uint nChannel = context_.waveNum;
+
+	for (uint ch = 0; ch < nChannel; ch++)
 	{
 		memset(host_dst, 0., bufferSize * 2);
 		context_.k = (2 * M_PI) / context_.wave_length[ch];
@@ -186,9 +188,6 @@ void ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 				for (ulonglong n = 0; n < pnXY; ++n) {
 					complex_H[ch][n][_RE] += host_dst[n];
 					complex_H[ch][n][_IM] += host_dst[n + pnXY];
-					if (n == 0) { // for debug
-						LOG("GPU > %.16f / %.16f\n", host_dst[n], host_dst[n + pnXY]);
-					}
 				}
 				break;
 			}
@@ -204,6 +203,12 @@ void ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 				break;
 			} // case
 			} // switch
+
+
+			n_percent = (int)((Real)(ch*n_streams + i + 1) * 100 / ((Real)n_streams * nChannel));
+			LOG("GPU(%d/%d) > %.16f / %.16f\n", i+1, n_streams,
+				complex_H[ch][0][_RE], complex_H[ch][0][_IM]);
+
 		} // for
 
 		//free memory

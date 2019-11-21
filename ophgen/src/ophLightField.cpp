@@ -240,9 +240,7 @@ int ophLF::loadLF()
 void ophLF::generateHologram() 
 {
 	resetBuffer();
-	MEMORYSTATUS memStatus;
-	GlobalMemoryStatus(&memStatus);
-	LOG("\n*Available Memory: %u (byte)\n", memStatus.dwAvailVirtual);
+
 	LOG("1) Algorithm Method : Light Field\n");
 	LOG("2) Generate Hologram with %s\n", is_CPU ?
 #ifdef _OPENMP

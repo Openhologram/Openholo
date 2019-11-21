@@ -908,12 +908,21 @@ void ophGen::fresnelPropagation(Complex<Real>* in, Complex<Real>* out, Real dist
 	memsetArr<Complex<Real>>(in2x, zero, 0, pnXY * 4 - 1);
 
 	uint idxIn = 0;
+	int idxnY = pnY / 2;
 
-	for (int idxnY = pnY / 2; idxnY < pnY + (pnY / 2); idxnY++) {
+#ifdef _OPENMP
+#pragma omp parallel
+	{
+#pragma omp parallel for private(idxnY) reduction(+:idxIn)
+#endif
+	for (idxnY = pnY / 2; idxnY < pnY + (pnY / 2); idxnY++) {
 		for (int idxnX = pnX / 2; idxnX < pnX + (pnX / 2); idxnX++) {
 			in2x[idxnY * pnX * 2 + idxnX] = in[idxIn++];
 		}
 	}
+#ifdef _OPENMP
+	}
+#endif
 
 	Complex<Real>* temp1 = new Complex<Real>[pnXY * 4];
 
