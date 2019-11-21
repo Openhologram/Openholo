@@ -136,6 +136,7 @@ void ophWRP::prepareInputdataGPU()
 	HANDLE_ERROR(cudaMalloc((void**)&device_amp_data, n_points * n_colors * sizeof(Real)));
 	Real* device_pc_xindex;
 	HANDLE_ERROR(cudaMalloc((void**)&device_pc_xindex, n_points * 3 * sizeof(Real)));
+	HANDLE_ERROR(cudaMemset(device_pc_xindex, 0., n_points * 3 * sizeof(Real)));
 	WRPGpuConst* device_config = nullptr;
 
 	HANDLE_ERROR(cudaMalloc((void**)&device_config, sizeof(WRPGpuConst)));
