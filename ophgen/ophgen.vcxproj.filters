@@ -76,6 +76,9 @@
     <ClInclude Include="src\ophDepthMap_GPU.h">
       <Filter>_1_Generation\_ophDepthMap</Filter>
     </ClInclude>
+    <ClInclude Include="src\ophTriMesh_GPU.h">
+      <Filter>_1_Generation\_ophTriangleMesh</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\ophDepthMap_GPU.cpp">
@@ -118,6 +121,9 @@
     <ClCompile Include="src\ophWRP_GPU.cpp">
       <Filter>_1_Generation\_ophWRP</Filter>
     </ClCompile>
+    <ClCompile Include="src\ophTriMesh_GPU.cpp">
+      <Filter>_1_Generation\_ophTriangleMesh</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="src\ophDMKernel.cu">
@@ -131,6 +137,9 @@
     </CudaCompile>
     <CudaCompile Include="src\ophWRPKernel.cu">
       <Filter>_1_Generation\_ophWRP</Filter>
+    </CudaCompile>
+    <CudaCompile Include="src\ophTriMeshKernel.cu">
+      <Filter>_1_Generation\_ophTriangleMesh</Filter>
     </CudaCompile>
   </ItemGroup>
 </Project>

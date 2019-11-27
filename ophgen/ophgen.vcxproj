@@ -56,7 +56,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;WIN64;_DEBUG;_CONSOLE;GEN_EXPORT;TEST_MODE;CHECK_PROC_TIME;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;WIN64;_DEBUG;_CONSOLE;GEN_EXPORT;CHECK_PROC_TIME;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir)Reference\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <OpenMPSupport>true</OpenMPSupport>
       <WholeProgramOptimization>false</WholeProgramOptimization>
@@ -99,7 +99,7 @@ xcopy /y "$(ProjectDir)src\*.h" "$(USERPROFILE)\source\repos\OpenholoRefApp\Refe
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>WIN32;WIN64;NDEBUG;_CONSOLE;GEN_EXPORT;TEST_MODE;CHECK_PROC_TIME;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;WIN64;NDEBUG;_CONSOLE;GEN_EXPORT;CHECK_PROC_TIME;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir)Reference\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <OpenMPSupport>true</OpenMPSupport>
       <DisableSpecificWarnings>4819;4002;4244;4251</DisableSpecificWarnings>
@@ -151,6 +151,7 @@ xcopy /y "$(ProjectDir)src\*.h" "$(USERPROFILE)\source\repos\OpenholoRefApp\Refe
     <ClInclude Include="src\ophPointCloud.h" />
     <ClInclude Include="src\ophTriMesh.h" />
     <ClInclude Include="src\ophPointCloud_GPU.h" />
+    <ClInclude Include="src\ophTriMesh_GPU.h" />
     <ClInclude Include="src\ophWRP.h" />
     <ClInclude Include="src\ophWRP_GPU.h" />
     <ClInclude Include="src\tinyxml2.h" />
@@ -169,6 +170,7 @@ xcopy /y "$(ProjectDir)src\*.h" "$(USERPROFILE)\source\repos\OpenholoRefApp\Refe
     <ClCompile Include="src\ophTriMesh.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="src\ophTriMesh_GPU.cpp" />
     <ClCompile Include="src\ophWRP.cpp" />
     <ClCompile Include="src\ophWRP_GPU.cpp" />
     <ClCompile Include="src\tinyxml2.cpp" />
@@ -179,6 +181,7 @@ xcopy /y "$(ProjectDir)src\*.h" "$(USERPROFILE)\source\repos\OpenholoRefApp\Refe
     </CudaCompile>
     <CudaCompile Include="src\ophLFKernel.cu" />
     <CudaCompile Include="src\ophPCKernel.cu" />
+    <CudaCompile Include="src\ophTriMeshKernel.cu" />
     <CudaCompile Include="src\ophWRPKernel.cu" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
