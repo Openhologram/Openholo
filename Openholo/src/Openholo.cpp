@@ -235,7 +235,7 @@ int Openholo::saveAsOhc(const char * fname)
 	OHC_encoder->getOHCheader(header);
 	auto wavelength_num = header.fieldInfo.wavlenNum;
 
-	for (int i = 0; i < wavelength_num; i++)
+	for (uint i = 0; i < wavelength_num; i++)
 		OHC_encoder->addComplexFieldData(complex_H[i]);
 
 	if (!OHC_encoder->save()) return -1;
@@ -589,7 +589,7 @@ void Openholo::ophFree(void)
 	ohcHeader header;
 	OHC_encoder->getOHCheader(header);
 	auto wavelength_num = header.fieldInfo.wavlenNum;
-	for (int i = 0; i < wavelength_num; i++) {
+	for (uint i = 0; i < wavelength_num; i++) {
 		if (complex_H[i]) 
 			delete[] complex_H[i];
 	}

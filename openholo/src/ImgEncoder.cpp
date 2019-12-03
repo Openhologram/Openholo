@@ -1,6 +1,7 @@
 #include "ImgEncoder.h"
 #include <string.h>
 #include <gdiplus.h>
+
 #pragma comment(lib, "gdiplus.lib")
 using namespace Gdiplus;
 ImgEncoder* ImgEncoder::instance = nullptr;
@@ -22,12 +23,12 @@ bool ImgEncoder::SaveJPG(const char *path, BYTE *pSrc, UINT len)
 	
 	CComPtr<IStream> pStream;
 	pStream.Attach(SHCreateMemStream(pDest, len));
-	Graphics graphics();
+	Image img(pStream, FALSE);
 	GdiplusStartupInput gsi;
 	ULONG_PTR token = NULL;
 
 	if (GdiplusStartup(&token, &gsi, NULL) == Ok) {
-		Image img(pStream, FALSE);
+		
 		CLSID clsid;
 		if (GetEncoderClsid(L"image/jpeg", &clsid) != -1) {
 			if (img.Save(CA2W(path), &clsid, NULL) != Ok)
@@ -49,12 +50,11 @@ bool ImgEncoder::SavePNG(const char *path, BYTE *pSrc, UINT len)
 
 	CComPtr<IStream> pStream;
 	pStream.Attach(SHCreateMemStream(pDest, len));
-	Graphics graphics();
+	Image img(pStream, FALSE);
 	GdiplusStartupInput gsi;
 	ULONG_PTR token = NULL;
 
 	if (GdiplusStartup(&token, &gsi, NULL) == Ok) {
-		Image img(pStream, FALSE);
 		CLSID clsid;
 		if (GetEncoderClsid(L"image/png", &clsid) != -1) {
 			if (img.Save(CA2W(path), &clsid, NULL) != Ok)
@@ -76,12 +76,11 @@ bool ImgEncoder::SaveGIF(const char *path, BYTE *pSrc, UINT len)
 
 	CComPtr<IStream> pStream;
 	pStream.Attach(SHCreateMemStream(pDest, len));
-	Graphics graphics();
+	Image img(pStream, FALSE);
 	GdiplusStartupInput gsi;
 	ULONG_PTR token = NULL;
 
 	if (GdiplusStartup(&token, &gsi, NULL) == Ok) {
-		Image img(pStream, FALSE);
 		CLSID clsid;
 		if (GetEncoderClsid(L"image/gif", &clsid) != -1) {
 			if (img.Save(CA2W(path), &clsid, NULL) != Ok)
