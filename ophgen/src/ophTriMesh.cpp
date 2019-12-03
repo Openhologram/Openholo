@@ -563,7 +563,7 @@ void ophTri::generateAS(uint SHADING_FLAG)
 			continue;
 
 		char szLog[MAX_PATH];
-		sprintf_s(szLog, "%d / %u\n", j + 1, meshData->n_faces);
+		sprintf_s(szLog, "%d / %llu\n", j + 1, meshData->n_faces);
 		LOG(szLog);
 	}
 #endif
@@ -743,8 +743,8 @@ void ophTri::calGlobalFrequency()
 	
 	for (uint ch = 0; ch < 1; ch++) {
 		Real lambda = context_.wave_length[ch];
-		for (int idxFy = pnY / 2; idxFy > -pnY / 2; idxFy--) {
-			for (int idxFx = -pnX / 2; idxFx < pnX / 2; idxFx++) {
+		for (uint idxFy = pnY / 2; idxFy > -pnY / 2; idxFy--) {
+			for (uint idxFx = -pnX / 2; idxFx < pnX / 2; idxFx++) {
 				fx[i] = idxFx * dfx;
 				fy[i] = idxFy * dfy;
 				fz[i] = sqrt((1 / lambda)*(1 / lambda) - fx[i] * fx[i] - fy[i] * fy[i]);

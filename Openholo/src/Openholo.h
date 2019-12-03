@@ -78,7 +78,7 @@ struct OPH_DLL OphConfig
 * @ingroup oph
 * @brief Abstract class
 * @detail Top class of Openholo library. Common functions required by subclasses are implemented.
-* @author Kim Ryeon-woo
+* @author Kim Ryeon-woo, Nam Min-woo
 */
 class OPH_DLL Openholo : public Base{
 
@@ -126,16 +126,24 @@ public:
 	virtual uchar* loadAsImg(const char* fname);
 
 	/**
-	* @brief Function to write OHC file
+	* @brief Function to write OHC file	
+	* @return int return 1 : save succeed
+	*			  return -1 : save fail
 	*/
 	virtual int saveAsOhc(const char *fname);
 
 	/**
 	* @brief Function to read OHC file
+	* @return int return 1 : load succeed
+	*			  return -1 : load fail
 	*/
 	virtual int loadAsOhc(const char *fname);
-
-	inline oph::Complex<Real>** getComplexField(void) { return complex_H; }
+	
+	/**
+	* @brief Function for getting the complex field
+	* @return unsigned char* Image file's data
+	*/
+	inline Complex<Real>** getComplexField(void) { return complex_H; }
 	OphConfig& getContext(void) { return context_; }
 
 	inline void setPixelNumber(ivec2 n) { context_.pixel_number[_X] = n[_X]; context_.pixel_number[_Y] = n[_Y]; }

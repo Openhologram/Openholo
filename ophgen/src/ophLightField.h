@@ -180,8 +180,8 @@ public:
 	if is_ViewingWindow == true
 	Transform viewing window
 	else
-	GPU implementation </pre>
-	* @param is_TransVW : the value for specifying whether the hologram generation method is implemented on the viewing window
+	Hologram </pre>
+	* @param is_ViewingWindow : the value for specifying whether the hologram generation method is implemented on the viewing window
 	*/
 	void setViewingWindow(bool is_ViewingWindow);
 protected:

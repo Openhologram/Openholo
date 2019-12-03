@@ -283,11 +283,10 @@ void ophPointCloud::transVW(int nSize, Real *dst, Real *src)
 	}
 }
 
-void ophPointCloud::genCghPointCloudCPU(uint diff_flag)
+Real ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 {
-#ifdef CHECK_PROC_TIME
 	auto begin = CUR_TIME;
-#endif
+
 	// Output Image Size
 	ivec2 pn;
 	pn[_X] = context_.pixel_number[_X];
@@ -361,13 +360,15 @@ void ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 		}
 #endif
 	}
-#ifdef CHECK_PROC_TIME
+
 	auto end = CUR_TIME;
+	Real elapsed_time = ((chrono::duration<Real>)(end - begin)).count();
 	LOG("\n%s : %lf(s) <%d threads>\n\n",
 		__FUNCTION__,
-		((chrono::duration<Real>)(end - begin)).count(),
+		elapsed_time,
 		num_threads);
-#endif
+
+	return elapsed_time;
 }
 
 void ophPointCloud::diffractEncodedRS(uint channel, ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Real k, Real amplitude, vec2 theta)

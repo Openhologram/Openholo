@@ -55,7 +55,7 @@
 #endif
 
 #pragma comment(lib, "libfftw3-3.lib")
-
+#pragma warning(disable : 4251 4819 4244 4018)
 struct OphPointCloudConfig;
 struct OphPointCloudData;
 struct OphDepthMapConfig;
@@ -114,7 +114,10 @@ public:
 	* @return Positive integer is points number of point cloud, return a negative integer if the load fails
 	*/
 	int loadPointCloud(const char* pc_file, OphPointCloudData *pc_data_);
-
+	/**
+	* @param const char* config file name
+	* @return true if the load success, return false if the load fails
+	*/
 	bool readConfig(const char* fname);
 
 	/**
@@ -229,18 +232,6 @@ public:
 	* @details	Considering the encoded hologram size
 	*/
 	void normalizeEncoded(void);
-
-	//void fourierTest() {
-	//	fft2(context_.pixel_number, (*complex_H), OPH_FORWARD, OPH_ESTIMATE);
-	//	fftExecute((*complex_H));
-	//	fft2(context_.pixel_number, (*complex_H), OPH_BACKWARD, OPH_ESTIMATE);
-	//	fftExecute((*complex_H));
-	//}
-	//void fresnelTest(Real dis) {
-	//	context_.lambda = 532e-9;
-	//	context_.pixel_pitch = { 8e-6, 8e-6 };
-	//	fresnelPropagation(context_,(*complex_H), (*complex_H), dis);
-	//}
 
 protected:
 	/**

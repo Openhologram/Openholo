@@ -52,7 +52,7 @@ bool ophSigCH::saveNumRec(const char *fname) {
 				intensityData[i*_cfgSig.cols + j] = (uchar)(pow(intensityVal / maxIntensity,gamma)*255.0);
 			}
 		}
-		sprintf(str, "_%.2u", k);
+		sprintf_s(str, "_%.2u", k);
 		fnamestr.insert(checktype, str);
 		saveAsImg(fnamestr.c_str(), 8, intensityData, _cfgSig.cols, _cfgSig.rows);
 	}

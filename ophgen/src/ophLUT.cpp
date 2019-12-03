@@ -52,59 +52,60 @@ bool ophLUT::loadConfig(const char* filename, CGHEnvironmentData* conf)
 			{
 				char* token = NULL;
 				char* parameter = NULL;
-				token = strtok(inputString, "=");
+				char* context;
+				token = strtok_s(inputString, "=", &context);
 
 				// µ¥ÀÌÅÍ ¹Þ¾Æ¼­ ±¸Á¶Ã¼¿¡ ÀúÀå
 				if (strcmp(token, "CGH width ") == 0) {
-					token = strtok(NULL, "=");
+					token = strtok_s(NULL, "=", &context);
 					conf->CghWidth = atoi(trim(token));
 				}
 				else if (strcmp(token, "CGH height ") == 0) {
-					token = strtok(NULL, "=");
+					token = strtok_s(NULL, "=", &context);
 					conf->CghHeight = atoi(trim(token));
 				}
 				else if (strcmp(token, "Segmentation size ") == 0) {
-					token = strtok(NULL, "=");
+					token = strtok_s(NULL, "=", &context);
 					conf->SegmentationSize = atoi(trim(token));
 				}
 				else if (strcmp(token, "FFT segmentation size ") == 0) {
-					token = strtok(NULL, "=");
+					token = strtok_s(NULL, "=", &context);
 					conf->fftSegmentationSize = atoi(trim(token));
 				}
 				else if (strcmp(token, "Red wavelength ") == 0) {
-					token = strtok(NULL, "=");
+					token = strtok_s(NULL, "=", &context);
 					conf->rWaveLength = atof(trim(token));
 				}
 				else if (strcmp(token, "Tilting angle on x axis ") == 0) {
-					token = strtok(NULL, "=");
+					token = strtok_s(NULL, "=", &context);
 					conf->ThetaX = atof(trim(token));
 				}
 				else if (strcmp(token, "Tilting angle on y axis ") == 0) {
-					token = strtok(NULL, "=");
+					token = strtok_s(NULL, "=", &context);
 					conf->ThetaY = atof(trim(token));
 				}
 				else if (strcmp(token, "Default depth ") == 0) {
-					token = strtok(NULL, "=");
+					token = strtok_s(NULL, "=", &context);
 					conf->DefaultDepth = atof(trim(token));
 				}
 				else if (strcmp(token, "3D point interval on x axis ") == 0) {
-					token = strtok(NULL, "=");
+					token = strtok_s(NULL, "=", &context);
 					conf->xInterval = atof(trim(token));
 				}
 				else if (strcmp(token, "3D point interval on y axis ") == 0) {
-					token = strtok(NULL, "=");
+					token = strtok_s(NULL, "=", &context);
 					conf->yInterval = atof(trim(token));
 				}
 				else if (strcmp(token, "Hologram interval on xi axis ") == 0) {
-					token = strtok(NULL, "=");
+					token = strtok_s(NULL, "=", &context);
 					conf->xiInterval = atof(trim(token));
 				}
 				else if (strcmp(token, "Hologram interval on eta axis ") == 0) {
-					token = strtok(NULL, "=");
+					token = strtok_s(NULL, "=", &context);
 					conf->etaInterval = atof(trim(token));
 				}
 				else if (strcmp(token, "CGH scale ") == 0) {
-					token = strtok(NULL, "=");
+					token = strtok_s(NULL, "=", &context);
 					conf->CGHScale = atof(trim(token));
 				}
 			}
@@ -136,29 +137,29 @@ bool ophLUT::loadPoint(const char* _filename, VoxelStruct* h_vox)
 			if (inputString[0] != NULL)
 			{
 				char* token = NULL;
-
-				token = strtok(inputString, "\t");
+				char* context;
+				token = strtok_s(inputString, "\t", &context);
 				h_vox[no].num = atoi(token);	// ÀÎµ¦½º
 
-				token = strtok(NULL, "\t");
+				token = strtok_s(NULL, "\t", &context);
 				h_vox[no].x = atof(token);	// x ÁÂÇ¥
 
-				token = strtok(NULL, "\t");
+				token = strtok_s(NULL, "\t", &context);
 				h_vox[no].y = atof(token);	// y ÁÂÇ¥
 
-				token = strtok(NULL, "\t");
+				token = strtok_s(NULL, "\t", &context);
 				h_vox[no].z = atof(token);	// z ÁÂÇ¥
 
-				token = strtok(NULL, "\t");
+				token = strtok_s(NULL, "\t", &context);
 				h_vox[no].ph = atof(token);	// phase
 
-				token = strtok(NULL, "\t");
+				token = strtok_s(NULL, "\t", &context);
 				h_vox[no].r = atof(token);	// red
 
-				//token = strtok(NULL, "\t");
+				//token = strtok_s(NULL, "\t");
 				//h_vox[no].g = atof(token);	// green
 
-				//token = strtok(NULL, "\t");
+				//token = strtok_s(NULL, "\t");
 				//h_vox[no].b = atof(token);	// blue
 
 				no++;

@@ -98,7 +98,6 @@ void ophWRP::prepareInputdataGPU()
 	cout << ">>> All " << blockSize * gridSize << " threads in CUDA" << endl;
 	cout << ">>> " << blockSize << " threads/block, " << gridSize << " blocks/grid" << endl;
 
-	cudaError_t error;
 	//threads number
 
 	//Host Memory Location

@@ -49,8 +49,9 @@
 #include <sys.h> //for LOG() macro
 
 //#define USE_ASYNC
-void ophPointCloud::genCghPointCloudGPU(uint diff_flag)
+Real ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 {
+	auto begin = CUR_TIME;
 	int devID;
 	HANDLE_ERROR(cudaGetDevice(&devID));
 	cudaDeviceProp devProp;
@@ -224,4 +225,12 @@ void ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 	if (is_ViewingWindow) {
 		delete[] host_pc_data;
 	}
+
+	auto end = CUR_TIME;
+	Real elapsed_time = ((chrono::duration<Real>)(end - begin)).count();
+	LOG("\n%s : %lf(s) \n\n",
+		__FUNCTION__,
+		elapsed_time);
+
+	return elapsed_time;
 }

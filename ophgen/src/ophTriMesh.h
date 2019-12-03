@@ -161,12 +161,8 @@ public:
 	/**
 	* @brief	Triangular mesh basc CGH configuration file load
 	* @details	xml configuration file load
-	* @return	context_.pixel_pitch
-	* @return	context_.pixel_number
-	* @return	context_.lambda
-	* @return	illumination
-	* @return	objSize
-	* @return	objShift
+	* @return bool return false : Failed to load configure file
+	*			   return true : Success to load configure file
 	*/
 	bool readConfig(const char* fname);
 
@@ -175,7 +171,8 @@ public:
 	* @details	Text file data structure : N*9 / Each row = [x1 y1 z1 x2 y2 z2 x3 y3 z3]
 	* @details	File extension : txt, ply
 	* @param	ext				File extension
-	* @return	triMeshArray
+	* @return bool return false : Failed to load mesh data
+	*			   return true : Success to load mesh data
 	*/
 	bool loadMeshData(const char* fileName, const char* ext);
 
@@ -200,15 +197,14 @@ public:
 	void generateHologram(uint SHADING_FLAG);
 	void generateMeshHologram();
 	
-	//virtual int saveAsOhc(const char* fname);
 	/**
 	* @brief Set the value of a variable is_ViewingWindow(true or false)
 	* @details <pre>
 	if is_ViewingWindow == true
 	Transform viewing window
 	else
-	GPU implementation </pre>
-	* @param is_TransVW : the value for specifying whether the hologram generation method is implemented on the viewing window
+	Hologram </pre>
+	* @param is_ViewingWindow : the value for specifying whether the hologram generation method is implemented on the viewing window
 	*/
 	void setViewingWindow(bool is_ViewingWindow);
 

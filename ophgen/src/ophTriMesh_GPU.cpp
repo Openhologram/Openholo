@@ -94,7 +94,7 @@ void ophTri::generateAS_GPU(uint SHADING_FLAG)
 		refAS_GPU(j, SHADING_FLAG);
 
 		char szLog[MAX_PATH];
-		sprintf(szLog, "%d / %d\n", j + 1, meshData->n_faces);
+		sprintf_s(szLog, "%d / %llu\n", j + 1, meshData->n_faces);
 		LOG(szLog);
 
 	}
