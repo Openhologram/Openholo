@@ -16,6 +16,7 @@
     <ClCompile Include="src\ophSigPU.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="src\ophSig_GPU.cpp" />
     <ClCompile Include="src\tinyxml2.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -24,7 +25,11 @@
     <ClInclude Include="src\ophSigPU.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClInclude>
+    <ClInclude Include="src\ophSig_GPU.h" />
     <ClInclude Include="src\tinyxml2.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="src\ophSigKernel.cu" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{37973A95-102B-491C-BE36-F9203D2B6EDA}</ProjectGuid>
@@ -129,7 +134,7 @@ xcopy /y "$(ProjectDir)src\*.h" "$(USERPROFILE)\source\repos\OpenholoRefApp\Refe
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>libfftw3-3.lib;cudart.lib;cufft.lib;cuda.lib;openholo.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>npps.lib;libfftw3-3.lib;cudart.lib;cufft.lib;cuda.lib;openholo.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(ProjectDir)lib;$(SolutionDir)Reference\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>/FORCE:multiple %(AdditionalOptions)</AdditionalOptions>
     </Link>

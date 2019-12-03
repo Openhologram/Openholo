@@ -43,44 +43,38 @@
 //
 //M*/
 
-#ifndef __struct_h
-#define __struct_h
+#ifndef __ophSig_GPU_H_
+#define __ophSig_GPU_H_
 
-#pragma pack(push,1)
-typedef struct {
-	uint8_t signature[2];
-	uint32_t filesize;
-	uint32_t reserved;
-	uint32_t fileoffset_to_pixelarray;
-} fileheader;
-typedef struct {
-	uint32_t dibheadersize;
-	uint32_t width;
-	uint32_t height;
-	uint16_t planes;
-	uint16_t bitsperpixel;
-	uint32_t compression;
-	uint32_t imagesize;
-	uint32_t ypixelpermeter;
-	uint32_t xpixelpermeter;
-	uint32_t numcolorspallette;
-	uint32_t mostimpcolor;
-} bitmapinfoheader;
-typedef struct {
-	uint8_t rgbBlue;
-	uint8_t rgbGreen;
-	uint8_t rgbRed;
-	uint8_t rgbReserved;
-} rgbquad;
-typedef struct {
-	fileheader fileheader;
-	bitmapinfoheader bitmapinfoheader;
-} bitmap;
-typedef struct {
-	fileheader fileheader;
-	bitmapinfoheader bitmapinfoheader;
-	rgbquad rgbquad[256];
-} bitmap8bit;
-#pragma pack(pop)
+#include	<cufft.h>
+#include <npp.h>
+//#include	"ophSig.h"
+#include <cuda_profiler_api.h>
 
-#endif // !__struct_h
+#include <cuda_runtime.h>
+#include "device_launch_parameters.h"
+
+cufftDoubleComplex* complex_holog_gpu;
+
+cudaStream_t streamLF;
+
+extern "C"
+{
+	void cudaCvtFieldToCuFFT(Complex<Real> *src_data, cufftDoubleComplex *dst_data, int nx, int ny);
+	void cudaCvtCuFFTToField(cufftDoubleComplex *src_data, Complex<Real> *dst_data, int nx, int ny);
+	void cudaCuFFT(cufftHandle* plan, cufftDoubleComplex *src_data, cufftDoubleComplex *dst_data, int nx, int ny, int direction);
+	
+	void cudaCuIFFT(cufftHandle* plan, cufftDoubleComplex *src_data, cufftDoubleComplex *dst_data, int nx, int ny, int direction);
+	
+	
+	void cudaCvtOFF( Complex<Real> *src_data, Real *dst_data, ophSigConfig *device_config,  int nx, int ny, Real wl,Complex<Real> *F, Real *angle);
+	void cudaCvtHPO(CUstream_st* stream, cufftDoubleComplex *src_data, cufftDoubleComplex *dst_data, ophSigConfig *device_config, Complex<Real> *F,int nx, int ny, Real Rephase, Real Imphase);
+	void cudaCvtCAC(cufftDoubleComplex *src_data, cufftDoubleComplex *dst_data,  Complex<Real> *FFZP, ophSigConfig *device_config, int nx, int ny,Real sigmaf, Real radius);
+
+	void cudaPropagation(cufftDoubleComplex *src_data, cufftDoubleComplex *dst_data, Complex<Real> *FH, ophSigConfig *device_config, int nx, int ny, Real sigmaf);
+	double cudaGetParamSF(cufftHandle *fftplan, cufftDoubleComplex *src_data,  cufftDoubleComplex *temp_data, cufftDoubleComplex *dst_data, Real *f, Complex<Real> *FH, ophSigConfig *device_config, int nx, int ny, float zMax, float zMin, int sampN, float th, Real wl);
+	void cudaGetParamAT1(Complex<Real> *src_data, Complex<Real> *Flr, Complex<Real> *Fli, Complex<Real> *G, ophSigConfig *device_config, int nx, int ny, Real_t NA_g, Real wl);
+	void cudaGetParamAT2(Complex<Real> *Flr, Complex<Real> *Fli, Complex<Real> *G, Complex<Real> *temp_data, int nx, int ny);
+
+}
+#endif

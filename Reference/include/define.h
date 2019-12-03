@@ -92,6 +92,18 @@ namespace oph
 #define _W 3
 #endif
 
+#ifndef _R
+#define _R 0
+#endif
+
+#ifndef _G
+#define _G 1
+#endif
+
+#ifndef _B
+#define _B 2
+#endif
+
 #ifndef _COL
 #define _COL 0
 #endif
@@ -132,8 +144,8 @@ namespace oph
 
 #define OPH_PLANES 1
 #define OPH_COMPRESSION 0
-#define X_PIXEL_PER_METER 0x130B //2835 , 72 DPI
-#define Y_PIXEL_PER_METER 0x130B //2835 , 72 DPI
+#define X_PIXEL_PER_METER 0x130B //2835 , 72 DPI X (4875)
+#define Y_PIXEL_PER_METER 0x130B //2835 , 72 DPI X (4875)
 }
 
 #endif // !__define_h

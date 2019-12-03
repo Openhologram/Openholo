@@ -60,15 +60,14 @@
 #endif
 
 struct SIG_DLL ophSigConfig {
-	int rows;
 	int cols;
-	float width;
-	float height;
-	double lambda;
-	double wavelength[3];
-	float NA;
-	float z;
+	int rows;
+	Real_t width;
+	Real_t height;
+	Real_t NA;
+	Real_t z;
 	int wavelength_num;
+	Real wavelength[3];
 };
 
 /**
@@ -100,6 +99,30 @@ This module is related method which works holographic core processing.
 */
 class SIG_DLL ophSig : public Openholo
 {
+protected:
+
+	virtual ~ophSig(void) = default;
+
+	virtual void ophFree(void);
+	bool is_CPU;
+	ophSigConfig _cfgSig;
+	OphComplexField* ComplexH;
+	fftw_plan bwd_plan, fwd_plan;
+
+	//float _width;
+	//float _height;
+
+	//float _NA;
+	//float _z;
+
+	int _wavelength_num;
+
+	/*float _angleX;
+	float _angleY;
+	float _redRate;*/
+	Real_t _radius;
+	Real_t* _foc;
+
 public:
 	/**
 	* @brief Constructor
@@ -124,9 +147,8 @@ public:
 	bool save(const char *real);
 	int loadAsOhc(const char *fname);
 	int saveAsOhc(const char *fname);
-protected:
-
-	virtual ~ophSig(void) = default;
+	template<typename T>
+	void linInterp(vector<T> &X, matrix<Complex<T>> &src, vector<T> &Xq, matrix<Complex<T>> &dst);
 	/**
 	* @brief          Generate linearly spaced vector
 	* @param first    first number of vector
@@ -134,8 +156,14 @@ protected:
 	* @param len      vector with specified number of values
 	* @return         result vector
 	*/
-	vector<Real> linspace(double first, double last, int len);
 	template<typename T>
+	vector<T> linspace(T first, T last, int len) {
+		vector<Real> result(len);
+
+		Real step = (last - first) / (len - 1);
+		for (int i = 0; i < len; i++) { result[i] = first + i * step; }
+		return result;
+	}
 	/**
 	* @brief        Function for Linear interpolation 1D
 	* @param X      input signal coordinate
@@ -143,88 +171,250 @@ protected:
 	* @param Xq     output signal coordinate
 	* @param out    output signal
 	*/
-	void linInterp(vector<T> &X, matrix<Complex<T>> &in, vector<T> &Xq, matrix<Complex<T>> &out);
+	
 	/**
 	* @brief         Function for extracts Complex magnitude value
 	* @param src     input signal
 	* @param dst     output signal
 	*/
 	template<typename T>
-	inline void absMat(matrix<Complex<T>>& src, matrix<T>& dst);
-	template<typename T>
+	void absMat(matrix<Complex<T>>& src, matrix<T>& dst) {
+		if (src.size != dst.size) {
+			dst.resize(src.size[_X], src.size[_Y]);
+		}
+		for (int i = 0; i < src.size[_X]; i++)
+		{
+			for (int j = 0; j < src.size[_Y]; j++)
+			{
+				dst.mat[i][j] = sqrt(src.mat[i][j]._Val[_RE] * src.mat[i][j]._Val[_RE] + src.mat[i][j]._Val[_IM] * src.mat[i][j]._Val[_IM]);
+			}
+		}
+	}
 	/**
 	* @brief         Function for extracts real absolute value
 	* @param src     input signal
 	* @param dst     output signal
 	*/
-	inline void absMat(matrix<T>& src, matrix<T>& dst);
 	template<typename T>
+	void absMat(matrix<T>& src, matrix<T>& dst) {
+		if (src.size != dst.size) {
+			dst.resize(src.size[_X], src.size[_Y]);
+		}
+		for (int i = 0; i < src.size[_X]; i++)
+		{
+			for (int j = 0; j < src.size[_Y]; j++)
+			{
+				dst.mat[i][j] = abs(src.mat[i][j]);
+			}
+		}
+	}
 	/**
 	* @brief         Function for extracts Complex phase value
 	* @param src     input signal
 	* @param dst     output signal
 	*/
-	inline void angleMat(matrix<Complex<T>>& src, matrix<T>& dst);
 	template<typename T>
+	void angleMat(matrix<Complex<T>>& src, matrix<T>& dst) {
+		if (src.size != dst.size) {
+			dst.resize(src.size[_X], src.size[_Y]);
+		}
+		for (int i = 0; i < src.size[_X]; i++)
+		{
+			for (int j = 0; j < src.size[_Y]; j++)
+			{
+				angle(src(i, j), dst(i, j));
+			}
+		}
+	}
 	/**
 	* @brief         Function for extracts Complex conjugate value
 	* @param src     input signal
 	* @param dst     output signal
 	*/
-	inline void conjMat(matrix<Complex<T>>& src, matrix<Complex<T>>& dst);
 	template<typename T>
+	void conjMat(matrix<Complex<T>>& src, matrix<Complex<T>>& dst) {
+		if (src.size != dst.size) {
+			dst.resize(src.size[_X], src.size[_Y]);
+		}
+		for (int i = 0; i < src.size[_X]; i++)
+		{
+			for (int j = 0; j < src.size[_Y]; j++)
+			{
+				dst(i, j) = src(i, j).conj();
+
+			}
+		}
+	}
 	/**
 	* @brief         Function for returns exponent ex
 	* @param src     input signal
 	* @param dst     output signal
 	*/
-	inline void expMat(matrix<Complex<T>>& src, matrix<Complex<T>>& dst);
 	template<typename T>
+	void expMat(matrix<Complex<T>>& src, matrix<Complex<T>>& dst) {
+		if (src.size != dst.size) {
+			dst.resize(src.size[_X], src.size[_Y]);
+		}
+		for (int i = 0; i < src.size[_X]; i++)
+		{
+			for (int j = 0; j < src.size[_Y]; j++)
+			{
+				dst.mat[i][j]._Val[_RE] = exp(src.mat[i][j]._Val[_RE]) * cos(src.mat[i][j]._Val[_IM]);
+				dst.mat[i][j]._Val[_IM] = exp(src.mat[i][j]._Val[_RE]) * sin(src.mat[i][j]._Val[_IM]);
+			}
+		}
+	}
 	/**
 	* @brief         Function for returns exponent e(x), where x is complex number
 	* @param src     input signal
 	* @param dst     output signal
 	*/
-	inline void expMat(matrix<T>& src, matrix<T>& dst);
 	template<typename T>
+	void expMat(matrix<T>& src, matrix<T>& dst) {
+		if (src.size != dst.size) {
+			dst.resize(src.size[_X], src.size[_Y]);
+		}
+		for (int i = 0; i < src.size[_X]; i++)
+		{
+			for (int j = 0; j < src.size[_Y]; j++)
+			{
+				dst.mat[i][j] = exp(src.mat[i][j]);
+			}
+		}
+	}
 	/**
 	* @brief         Function for returns exponent e(x), where x is real number
 	* @param src     input signal
 	* @param dst     output signal
 	*/
-	inline void meanOfMat(matrix<T> &input, double &output);
 	template<typename T>
+	void meanOfMat(matrix<T>& src, T &dst) {
+		dst = 0;
+		for (int i = 0; i < src.size[_X]; i++)
+		{
+			for (int j = 0; j < src.size[_Y]; j++)
+			{
+				dst += src(i, j);
+			}
+		}
+		dst = dst / (src.size[_X] * src.size[_Y]);
+	}
 	/**
 	* @brief         Function for extracts max of matrix
 	* @param src     input signal
 	*/
-	inline  Real maxOfMat(matrix<T>& src);
-	template<typename T>
+	//template<typename T>
+	Real maxOfMat(matrix<Real>& src) {
+		Real max = MIN_REAL;
+		for (int i = 0; i < src.size[_X]; i++)
+		{
+			for (int j = 0; j < src.size[_Y]; j++)
+			{
+				if (src(i, j) > max) max = src(i, j);
+			}
+		}
+		return max;
+	}
+
+	//template<typename T>
+	Complex<Real> maxOfMat(matrix<Complex<Real>>& src) {
+		Real max = MIN_REAL;
+		for (int i = 0; i < src.size[_X]; i++)
+		{
+			for (int j = 0; j < src.size[_Y]; j++)
+			{
+				if (src(i, j)._Val[_RE] > max) max = src(i, j)._Val[_RE];
+			}
+		}
+		return max;
+	}
 	/**
 	* @brief         Function for extracts min of matrix
 	* @param src     input signal
 	*/
-	inline Real minOfMat(matrix<T>& src);
+	//template<typename T>
+	Real minOfMat(matrix<Real>& src) {
+		Real min = MAX_REAL;
+		for (int i = 0; i < src.size[_X]; i++)
+		{
+			for (int j = 0; j < src.size[_Y]; j++)
+			{
+				if (src(i, j) < min) min = src(i, j);
+			}
+		}
+		return min;
+	}
+	//template<typename T>
+	Complex<Real> minOfMat(matrix<Complex<Real>>& src) {
+		Real min = MAX_REAL;
+		for (int i = 0; i < src.size[_X]; i++)
+		{
+			for (int j = 0; j < src.size[_Y]; j++)
+			{
+				if (src(i, j)._Val[_RE] < min) min = src(i, j)._Val[_RE];
+			}
+		}
+		return min;
+	}
+
+	//template<typename T>
+	//void ophSig::meshgrid(vector<T>& src1, vector<T>& src2, matrix<T>& dst1, matrix<T>& dst2)
+	//{
+	//	int src1_total = static_cast<int>(src1.size());
+	//	int src2_total = static_cast<int>(src2.size());
+
+	//	dst1.resize(src2_total, src1_total);
+	//	dst2.resize(src2_total, src1_total);
+	//	for (int i = 0; i < src1_total; i++)
+	//	{
+	//		for (int j = 0; j < src2_total; j++)
+	//		{
+	//			dst1(j, i) = src1.at(i);
+	//			dst2(j, i) = src2.at(j);
+	//		}
+	//	}
+	//}
+	template<typename T>
+	void normalizeMat(matrix<T>& src, matrix<T>& dst) {
+		if (src.size != dst.size) {
+			dst.resize(src.size[_X], src.size[_Y]);
+		}
+		//여기문제임
+		Real min = minOfMat(src);
+		Real max = maxOfMat(src);
+		
+		for (size_t i = 0; i < src.size[_X]; i++)
+		{
+			for (size_t j = 0; j < src.size[_Y]; j++)
+			{
+				dst(i, j) = (src(i, j) - min) / max;
+			}
+		}
+	}
+
+	//template<typename T>
+	void ophSig::fftShift(matrix<Complex<Real>> &src, matrix<Complex<Real>> &dst)
+	{
+		if (src.size != dst.size) {
+			dst.resize(src.size[_X], src.size[_Y]);
+		}
+		int xshift = src.size[_X] / 2;
+		int yshift = src.size[_Y] / 2;
+		for (int i = 0; i < src.size[_X]; i++)
+		{
+			int ii = (i + xshift) % src.size[_X];
+			for (int j = 0; j < src.size[_Y]; j++)
+			{
+				int jj = (j + yshift) % src.size[_Y];
+				dst.mat[ii][jj]._Val[_RE] = src.mat[i][j].real();
+				dst.mat[ii][jj]._Val[_IM] = src.mat[i][j].imag();
+			}
+		}
+	}
+
 
 	template<typename T>
-	/**
-	* @brief		Function for returns 2d matrix based on vector src1, src2
-	* @param src1	input vector
-	* @param src2	input vector
-	* @param dst1	input signal
-	* @param dst2	input signal
-	*/
-	void meshgrid(vector<T>& src1, vector<T>& src2, matrix<T>& dst1, matrix<T>& dst2);
-
-	/**
-	* @brief         Function for Fast Fourier transform 1D
-	* @param src     input signal
-	* @param dst     output signal
-	* @param sign    sign = OPH_FORWARD is fft and sign= OPH_BACKWARD is inverse fft
-	* @param flag    flag = OPH_ESTIMATE is fine best way to compute the transform but it is need some time, flag = OPH_ESTIMATE is probably sub-optimal
-	*/
-	template<typename T>
-	void fft1(matrix<Complex<T>> &src, matrix<Complex<T>> &dst, int sign = OPH_FORWARD, uint flag = OPH_ESTIMATE);
+	void fft1(matrix<Complex<T>> &src, matrix<Complex<T>> &dst, int sign = OPH_FORWARD , uint flag = OPH_ESTIMATE );
 	/**
 	* @brief Function for Fast Fourier transform 2D
 	* @param src input signal
@@ -234,21 +424,21 @@ protected:
 	*/
 	template<typename T>
 	void fft2(matrix<Complex<T>> &src, matrix<Complex<T>> &dst, int sign = OPH_FORWARD, uint flag = OPH_ESTIMATE);
-	/**
+	/*
 	* @brief Function for Shift zero-frequency component to center of spectrum
 	* @param src input signal
 	* @param dst output signal
 	*/
-	template<typename T>
-	void fftShift(matrix<Complex<T>> &src, matrix<Complex<T>> &dst);
-public:
+	//template<typename T>
+	//void fftShift(matrix<Complex<T>> &src, matrix<Complex<T>> &dst);
+
 	/**
 	* @brief Function for Read parameter
 	* @param fname file name
 	* @return if works well return 0  or error occurs return -1
 	*/
-	virtual bool readConfig(const char* fname);
-
+	//virtual bool readConfig(const char* fname);
+	bool readConfig(const char* fname);
 	/**
 	* @addtogroup offaxis
 	//@{
@@ -313,7 +503,9 @@ public:
 	* @detail
 	* @return if works well return 0  or error occurs return -1
 	*/
-	bool sigConvertOffaxis();
+	bool sigConvertOffaxis(Real angleX, Real angleY);
+	bool cvtOffaxis_CPU(Real angleX, Real angleY);
+	void cvtOffaxis_GPU(Real angleX, Real angleY);
 
 	/**
 	* @addtogroup convHPO
@@ -425,8 +617,9 @@ public:
 	* @detail
 	* @return if works well return 0  or error occurs return -1
 	*/
-	bool sigConvertHPO();
-
+	bool sigConvertHPO(Real depth, Real_t redRate);
+	bool sigConvertHPO_CPU(Real depth, Real_t redRate);
+	bool sigConvertHPO_GPU(Real depth, Real_t redRate);
 	/**
 	* @addtogroup convCAC
 	//@{
@@ -508,11 +701,15 @@ public:
 	* @return if works well return 0  or error occurs return -1
 	*/
 	bool sigConvertCAC(double red, double green, double blue);
+	bool sigConvertCAC_CPU(double red, double green, double blue);
+	bool sigConvertCAC_GPU(double red, double green, double blue);
 	/**
 	* @brief Function for Chromatic aberration compensation filter
 	* @return if works well return 0  or error occurs return -1
 	*/
 	bool propagationHolo(float depth);
+	bool propagationHolo_CPU(float depth);
+	bool propagationHolo_GPU(float depth);
 	/**
 	* @brief Function for propagation hologram
 	* @param depth position from hologram plane to propagation hologram plane
@@ -611,6 +808,8 @@ public:
 	* @return result distance
 	*/
 	double sigGetParamAT();
+	double sigGetParamAT_CPU();
+	double sigGetParamAT_GPU();
 
 	/**
 	* @addtogroup getSF
@@ -655,7 +854,8 @@ public:
 	* @return result distance
 	*/
 	double sigGetParamSF(float zMax, float zMin, int sampN, float th);
-
+	double sigGetParamSF_CPU(float zMax, float zMin, int sampN, float th);
+	double sigGetParamSF_GPU(float zMax, float zMin, int sampN, float th);
 	/**
 	* @addtogroup PSDH
 	//@{
@@ -676,48 +876,16 @@ public:
 	*/
 	bool getComplexHFromPSDH(const char* fname0, const char* fname90, const char* fname180, const char* fname270);
 	
-protected:
+	void setMode(bool is_CPU);
+	
 
-	virtual void ophFree(void);
+	
+	
+	
 
-	ophSigConfig _cfgSig;
-	OphComplexField* ComplexH;
-
-	float _width;
-	float _height;
-
-	float _NA;
-	float _z;
-
-	int _wavelength_num;
-
-	float _angleX;
-	float _angleY;
-	float _redRate;
-	float _radius;
-	float* _foc;
+	void cField2Buffer(matrix<Complex<Real>>& src, Complex<Real> **dst, int nx, int ny);
+	void ColorField2Buffer(matrix<Complex<Real>>& src, Complex<Real> **dst, int nx, int ny);
 };
 
-
-template<typename T>
-void ophSig::fftShift(matrix<Complex<T>> &src, matrix<Complex<T>> &dst)
-{
-	if (src.size != dst.size) {
-		dst.resize(src.size[_X], src.size[_Y]);
-	}
-	int xshift = src.size[_X] / 2;
-	int yshift = src.size[_Y] / 2;
-	for (int i = 0; i < src.size[_X]; i++)
-	{
-		int ii = (i + xshift) % src.size[_X];
-		for (int j = 0; j < src.size[_Y]; j++)
-		{
-			int jj = (j + yshift) % src.size[_Y];
-			dst.mat[ii][jj]._Val[_RE] = src.mat[i][j].real();
-			dst.mat[ii][jj]._Val[_IM] = src.mat[i][j].imag();
-		}
-	}
-}
-
-
 #endif // !__ophSig_h
+

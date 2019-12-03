@@ -21,24 +21,39 @@
     <ClCompile Include="src\ophSig.cpp">
       <Filter>__ophSig</Filter>
     </ClCompile>
-    <ClCompile Include="src\tinyxml2.cpp" />
     <ClCompile Include="src\ophSigCH.cpp">
       <Filter>_1_Compressive Hologram</Filter>
     </ClCompile>
     <ClCompile Include="src\ophSigPU.cpp">
       <Filter>_2_Phase Unwrapping</Filter>
     </ClCompile>
+    <ClCompile Include="src\ophSig_GPU.cpp">
+      <Filter>__ophSig</Filter>
+    </ClCompile>
+    <ClCompile Include="src\tinyxml2.cpp">
+      <Filter>__Header Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\ophSig.h">
       <Filter>__ophSig</Filter>
     </ClInclude>
-    <ClInclude Include="src\tinyxml2.h" />
     <ClInclude Include="src\ophSigCH.h">
       <Filter>_1_Compressive Hologram</Filter>
     </ClInclude>
     <ClInclude Include="src\ophSigPU.h">
       <Filter>_2_Phase Unwrapping</Filter>
     </ClInclude>
+    <ClInclude Include="src\ophSig_GPU.h">
+      <Filter>__ophSig</Filter>
+    </ClInclude>
+    <ClInclude Include="src\tinyxml2.h">
+      <Filter>__Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="src\ophSigKernel.cu">
+      <Filter>__ophSig</Filter>
+    </CudaCompile>
   </ItemGroup>
 </Project>
