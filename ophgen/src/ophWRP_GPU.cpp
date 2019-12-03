@@ -110,25 +110,14 @@ void ophWRP::prepareInputdataGPU()
 	const uint pnXY = pnX * pnY;
 	const Real ppX = context_.pixel_pitch[_X];
 	const Real ppY = context_.pixel_pitch[_Y];
-	Real lambda = context_.wave_length[0];
-
-	float wz = wrp_config_.wrp_location - zmax_;
-	float wm = round(fabs(wz * tan(lambda / (2 * ppX)) / ppX));
-
+	const Real distance = wrp_config_.propagation_distance;
+	const uint nChannel = context_.waveNum;
 
 	Real* pc_index = new Real[obj_.n_points * 3];
 	memset(pc_index, 0.0, sizeof(Real) * obj_.n_points * 3);
 
-	WRPGpuConst* host_config = new WRPGpuConst(
-		obj_.n_points, n_colors, 1,
-		context_.pixel_number,
-		context_.pixel_pitch,
-		wrp_config_.wrp_location,
-		wrp_config_.propagation_distance, zmax_,
-		context_.k, lambda
-	);
-
-
+	float wz = wrp_config_.wrp_location - zmax_;
+	
 	//Device(GPU) Memory Location
 	Real* device_pc_data;
 	HANDLE_ERROR(cudaMalloc((void**)&device_pc_data, n_points * 3 * sizeof(Real)));
@@ -136,18 +125,9 @@ void ophWRP::prepareInputdataGPU()
 	HANDLE_ERROR(cudaMalloc((void**)&device_amp_data, n_points * n_colors * sizeof(Real)));
 	Real* device_pc_xindex;
 	HANDLE_ERROR(cudaMalloc((void**)&device_pc_xindex, n_points * 3 * sizeof(Real)));
-	HANDLE_ERROR(cudaMemset(device_pc_xindex, 0., n_points * 3 * sizeof(Real)));
+
 	WRPGpuConst* device_config = nullptr;
-
 	HANDLE_ERROR(cudaMalloc((void**)&device_config, sizeof(WRPGpuConst)));
-	HANDLE_ERROR(cudaMemcpy(device_config, host_config, sizeof(WRPGpuConst), cudaMemcpyHostToDevice));
-
-	HANDLE_ERROR(cudaMemcpy(device_pc_data, host_pc_data, n_points * 3 * sizeof(Real), cudaMemcpyHostToDevice));
-	HANDLE_ERROR(cudaMemcpy(device_amp_data, host_amp_data, n_points * n_colors * sizeof(Real), cudaMemcpyHostToDevice));
-	cudaGenindexx(gridSize, blockSize, n_points, device_pc_data, device_pc_xindex, (WRPGpuConst*)device_config);
-
-	HANDLE_ERROR(cudaMemcpy(pc_index, device_pc_xindex, sizeof(Real) * 3 * n_points, cudaMemcpyDeviceToHost));
-	HANDLE_ERROR(cudaFree(device_pc_data));
 
 	//cuda obj dst
 	const ulonglong bufferSize = pnXY * sizeof(Real);
@@ -160,50 +140,80 @@ void ophWRP::prepareInputdataGPU()
 
 	Real *device_obj_dst;
 	HANDLE_ERROR(cudaMalloc((void**)&device_obj_dst, bufferSize));
-	HANDLE_ERROR(cudaMemset(device_obj_dst, 0., bufferSize));
 
 	Real *device_amp_dst;
 	HANDLE_ERROR(cudaMalloc((void**)&device_amp_dst, bufferSize));
-	HANDLE_ERROR(cudaMemset(device_amp_dst, 0., bufferSize));
-	
-	cudaGetObjDst(gridSize, blockSize, n_points, device_pc_xindex, device_obj_dst, (WRPGpuConst*)device_config);
-	error = cudaDeviceSynchronize();
-	cudaGetAmpDst(gridSize, blockSize, n_points, device_pc_xindex, device_amp_data, device_amp_dst, (WRPGpuConst*)device_config);
-	error = cudaDeviceSynchronize();
-	HANDLE_ERROR(cudaMemcpy(host_obj_dst, device_obj_dst, bufferSize, cudaMemcpyDeviceToHost));
-	HANDLE_ERROR(cudaMemcpy(host_amp_dst, device_amp_dst, bufferSize, cudaMemcpyDeviceToHost));
-	
+
+
 	const ulonglong gridSize2 = (pnXY + blockSize - 1) / blockSize; //n_blocks
 
 	Real* device_dst;
 	HANDLE_ERROR(cudaMalloc((void**)&device_dst, bufferSize * 2));
-	HANDLE_ERROR(cudaMemset(device_dst, 0., bufferSize * 2));
 
 	Real* host_dst = new Real[pnXY * 2];
-	memset(host_dst, 0., bufferSize * 2);
+	
+	for (uint ch = 0; ch < nChannel; ch++) {
 
+		Real lambda = context_.wave_length[ch];
+		Real k = context_.k = (2 * M_PI / lambda);
+		float wm = round(fabs(wz * tan(lambda / (2 * ppX)) / ppX));
 
-	// cuda WRP
-	cudaGenWRP(gridSize2, blockSize, n_points, device_obj_dst, device_amp_dst, device_dst, device_dst + pnXY, (WRPGpuConst*)device_config);
+		HANDLE_ERROR(cudaMemset(device_pc_xindex, 0., n_points * 3 * sizeof(Real)));
 
-	HANDLE_ERROR(cudaMemcpy(host_dst, device_dst, bufferSize * 2, cudaMemcpyDeviceToHost));
+		WRPGpuConst* host_config = new WRPGpuConst(
+			obj_.n_points, n_colors, 1,
+			context_.pixel_number,
+			context_.pixel_pitch,
+			wrp_config_.wrp_location,
+			wrp_config_.propagation_distance, zmax_,
+			k, lambda
+		);
 
-	for (ulonglong n = 0; n < pnXY; ++n) {
-		if (host_dst[n] != 0)
-		{
-			p_wrp_[n][_RE] = host_dst[n];
-			p_wrp_[n][_IM] = host_dst[n + pnXY];
+		HANDLE_ERROR(cudaMemcpy(device_config, host_config, sizeof(WRPGpuConst), cudaMemcpyHostToDevice));
+			   
+		HANDLE_ERROR(cudaMemcpy(device_pc_data, host_pc_data, n_points * 3 * sizeof(Real), cudaMemcpyHostToDevice));
+		HANDLE_ERROR(cudaMemcpy(device_amp_data, host_amp_data, n_points * n_colors * sizeof(Real), cudaMemcpyHostToDevice));
+		cudaGenindexx(gridSize, blockSize, n_points, device_pc_data, device_pc_xindex, (WRPGpuConst*)device_config);
+
+		HANDLE_ERROR(cudaMemcpy(pc_index, device_pc_xindex, sizeof(Real) * 3 * n_points, cudaMemcpyDeviceToHost));
+		HANDLE_ERROR(cudaMemset(device_obj_dst, 0., bufferSize));
+		HANDLE_ERROR(cudaMemset(device_amp_dst, 0., bufferSize));
+
+		cudaGetObjDst(gridSize, blockSize, n_points, device_pc_xindex, device_obj_dst, (WRPGpuConst*)device_config);
+		cudaGetAmpDst(gridSize, blockSize, n_points, device_pc_xindex, device_amp_data, device_amp_dst, (WRPGpuConst*)device_config);
+
+		HANDLE_ERROR(cudaMemcpy(host_obj_dst, device_obj_dst, bufferSize, cudaMemcpyDeviceToHost));
+		HANDLE_ERROR(cudaMemcpy(host_amp_dst, device_amp_dst, bufferSize, cudaMemcpyDeviceToHost));
+
+		HANDLE_ERROR(cudaMemset(device_dst, 0., bufferSize * 2));
+		memset(host_dst, 0., bufferSize * 2);
+
+		// cuda WRP
+		cudaGenWRP(gridSize2, blockSize, n_points, device_obj_dst, device_amp_dst, device_dst, device_dst + pnXY, (WRPGpuConst*)device_config);
+
+		HANDLE_ERROR(cudaMemcpy(host_dst, device_dst, bufferSize * 2, cudaMemcpyDeviceToHost));
+
+		for (ulonglong n = 0; n < pnXY; ++n) {
+			if (host_dst[n] != 0)
+			{
+				p_wrp_[n][_RE] = host_dst[n];
+				p_wrp_[n][_IM] = host_dst[n + pnXY];
+			}
 		}
+
+		fresnelPropagation(p_wrp_, complex_H[ch], distance, ch);
+
+		delete host_config;
 	}
-
-
-	*(complex_H) = p_wrp_;
+	
+	HANDLE_ERROR(cudaFree(device_pc_data));
+	   	 
+	//*(complex_H) = p_wrp_;
 
 	//free memory
 	HANDLE_ERROR(cudaFree(device_amp_data));
 	HANDLE_ERROR(cudaFree(device_pc_xindex));
 	HANDLE_ERROR(cudaFree(device_config));
-	delete host_config;
 
 }
 

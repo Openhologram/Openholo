@@ -462,12 +462,7 @@ void ophWRP::generateHologram(void)
 
 	autoScaling();
 	is_CPU ? calculateWRPCPU() : calculateWRPGPU();
-	Real distance = wrp_config_.propagation_distance;
-	
-	if (!is_CPU) {
-		for (uint ch = 0; ch < context_.waveNum; ch++)
-			fresnelPropagation(p_wrp_, complex_H[ch], distance, ch);
-	}
+
 	auto end = CUR_TIME;
 	elapsedTime = ((std::chrono::duration<Real>)(end - begin)).count();
 

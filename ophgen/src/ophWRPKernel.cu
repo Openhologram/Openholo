@@ -116,7 +116,7 @@ __global__ void cudaKernel_GenWRP(Real* pc_dst, Real* amp_dst, const WRPGpuConst
 		}
 	}
 	//	__syncthreads();*/
-	__syncthreads();
+	//__syncthreads();
 
 }
 
@@ -130,7 +130,7 @@ __global__ void cudaKernel_genindexx(Real* pc_data, Real* pc_index, const WRPGpu
 		pc_index[3 * tid + 1] = round(pc_data[3 * tid + 1] / config->pp_Y + (config->pn_Y - 1) / 2);
 		pc_index[3 * tid + 2] = pc_data[3 * tid + 2];
 	}
-	__syncthreads();
+	//__syncthreads();
 }
 
 __global__ void cudaKernel_GetObjDst(Real* pc_index, Real* obj_dst, const WRPGpuConst* config, const int n_points_stream)
@@ -140,17 +140,16 @@ __global__ void cudaKernel_GetObjDst(Real* pc_index, Real* obj_dst, const WRPGpu
 
 	if (tid < n_points_stream)
 	{
-		ulonglong ox, oy, oz, o_index;
+		ulonglong ox, oy, o_index;
 
 		ox = pc_index[3 * tid];
 		oy = pc_index[3 * tid + 1];
-		oz = pc_index[3 * tid + 2];
 		o_index = ox + oy * config->pn_X;
-		if(o_index >= 0 && o_index < (config->pn_X * config->pn_Y))
-			obj_dst[o_index] = oz;
+		//if(o_index >= 0 && o_index < (config->pn_X * config->pn_Y))
+			obj_dst[o_index] = pc_index[3 * tid + 2];
 
 	}
-	__syncthreads();
+	//__syncthreads();
 
 }
 __global__ void cudaKernel_GetAmpDst(Real* pc_index, Real* pc_amp, Real* amp_dst, const WRPGpuConst* config, const int n_points_stream)
@@ -169,10 +168,10 @@ __global__ void cudaKernel_GetAmpDst(Real* pc_index, Real* pc_amp, Real* amp_dst
 		oy = pc_index[3 * tid + 1];
 		o_index = ox + oy * config->pn_X;
 
-		if (o_index >= 0 && o_index < (config->pn_X * config->pn_Y))
+		//if (o_index >= 0 && o_index < (config->pn_X * config->pn_Y))
 			amp_dst[o_index] = pc_amp[3 * tid];
 	}
-	__syncthreads();
+	//__syncthreads();
 }
 
 extern "C"
