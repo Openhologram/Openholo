@@ -11,7 +11,6 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\ophSigPS.cpp" />
     <ClCompile Include="src\ophSig.cpp" />
     <ClCompile Include="src\ophSigCH.cpp" />
     <ClCompile Include="src\ophSigPU.cpp">
@@ -21,7 +20,6 @@
     <ClCompile Include="src\tinyxml2.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\ophSigPS.h" />
     <ClInclude Include="src\ophSig.h" />
     <ClInclude Include="src\ophSigCH.h" />
     <ClInclude Include="src\ophSigPU.h">
