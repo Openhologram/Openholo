@@ -590,10 +590,28 @@ bool ophSig::save(const char *real, const char *imag)
 			hf->signature[1] = 'M';
 			hf->filesize = _filesize;
 			hf->fileoffset_to_pixelarray = sizeof(fileheader) + sizeof(bitmapinfoheader);
+			for (int z = 0; z < 3; z++)
+			{
+				for (int i = _height - 1; i >= 0; i--)
+				{
+					for (int j = 0; j < _width; j++)
+					{
+						if (ComplexH[z].mat[_height - i - 1][j]._Val[_RE] < 0)
+						{
+							ComplexH[z].mat[_height - i - 1][j]._Val[_RE] = 0;
+						}
 
+						if (ComplexH[z].mat[_height - i - 1][j]._Val[_IM] < 0)
+						{
+							ComplexH[z].mat[_height - i - 1][j]._Val[_IM] = 0;
+						}
+					}
+				}
+			}
 			double minVal, iminVal, maxVal, imaxVal;
 			for (int z = 0; z < 3; z++)
 			{
+				minVal = MAX_DOUBLE; iminVal = MAX_DOUBLE; maxVal = MIN_DOUBLE; imaxVal = MIN_DOUBLE;
 				for (int j = 0; j < ComplexH[0].size[_Y]; j++) {
 					for (int i = 0; i < ComplexH[0].size[_X]; i++) {
 						if ((i == 0) && (j == 0))
@@ -632,8 +650,8 @@ bool ophSig::save(const char *real, const char *imag)
 				{
 					for (int j = 0; j < _width; j++)
 					{
-						realdata[3 * j + 3 * i * _width + z] = (uchar)((ComplexH[z](_height - i - 1, j)._Val[_RE] - minVal) / (maxVal - minVal) * 255);
-						imagdata[3 * j + 3 * i * _width + z] = (uchar)((ComplexH[z](_height - i - 1, j)._Val[_IM] - iminVal) / (imaxVal - iminVal) * 255);
+						realdata[3 * j + 3 * i * _width + z] = (uchar)((ComplexH[z](_height - i - 1, j)._Val[_RE] - minVal) / (maxVal - minVal) * 255+0.5);
+						imagdata[3 * j + 3 * i * _width + z] = (uchar)((ComplexH[z](_height - i - 1, j)._Val[_IM] - iminVal) / (imaxVal - iminVal) * 255+0.5);
 
 					}
 				}
@@ -673,104 +691,104 @@ bool ophSig::save(const char *real, const char *imag)
 	return TRUE;
 }
 
-bool ophSig::save(const char *fname)
-{
-	string fullname = fname;
-
-	char* RGB_name[3] = { "","","" };
-
-	if (_wavelength_num > 1) {
-		RGB_name[0] = "_B";
-		RGB_name[1] = "_G";
-		RGB_name[2] = "_R";
-	}
-	int checktype = static_cast<int>(fullname.rfind("."));
-
-	if (fullname.substr(checktype + 1, fullname.size()) == "bmp")
-	{
-		oph::uchar* realdata;
-		realdata = (oph::uchar*)malloc(sizeof(oph::uchar) * context_.pixel_number[_X] * context_.pixel_number[_Y] * _wavelength_num);
-
-		double gamma = 0.5;
-		double maxIntensity = 0.0;
-		double realVal = 0.0;
-		double imagVal = 0.0;
-		double intensityVal = 0.0;
-
-		for (int z = 0; z < _wavelength_num; z++)
-		{
-			for (int j = 0; j < context_.pixel_number[_Y]; j++) {
-				for (int i = 0; i < context_.pixel_number[_X]; i++) {
-					realVal = ComplexH[z](i, j)._Val[_RE];
-					imagVal = ComplexH[z](i, j)._Val[_RE];
-					intensityVal = realVal*realVal + imagVal*imagVal;
-					if (intensityVal > maxIntensity) {
-						maxIntensity = intensityVal;
-					}
-				}
-			}
-			for (int i = context_.pixel_number[_X] - 1; i >= 0; i--)
-			{
-				for (int j = 0; j < context_.pixel_number[_Y]; j++)
-				{
-					realVal = ComplexH[z](context_.pixel_number[_X] - i - 1, j)._Val[_RE];
-					imagVal = ComplexH[z](context_.pixel_number[_X] - i - 1, j)._Val[_IM];
-					intensityVal = realVal*realVal + imagVal*imagVal;
-					realdata[(i*context_.pixel_number[_Y] + j)* _wavelength_num + z] = (uchar)(pow(intensityVal / maxIntensity, gamma)*255.0);
-				}
-			}
-			//sprintf(str, "_%.2u", z);
-			//realname.insert(checktype, RGB_name[z]);
-		}
-		saveAsImg(fullname.c_str(), _wavelength_num * 8, realdata, context_.pixel_number[_X], context_.pixel_number[_Y]);
-
-		delete[] realdata;
-	}
-	else if (fullname.substr(checktype + 1, fullname.size()) == "bin")
-	{
-		double *realdata = new  double[context_.pixel_number[_X] * context_.pixel_number[_Y]];
-
-		for (int z = 0; z < _wavelength_num; z++)
-		{
-			fullname = fname;
-			fullname.insert(checktype, RGB_name[z]);
-			std::ofstream cos(fullname.c_str(), std::ios::binary);
-
-			if (!cos.is_open()) {
-				LOG("Error: file name not found.\n");
-				cos.close();
-				delete[] realdata;
-				return FALSE;
-			}
-
-			for (int i = 0; i < context_.pixel_number[_X]; i++)
-			{
-				for (int j = 0; j < context_.pixel_number[_Y]; j++)
-				{
-					realdata[context_.pixel_number[_Y] * i + j] = ComplexH[z](i, j)._Val[_RE];
-				}
-			}
-			cos.write(reinterpret_cast<const char*>(realdata), sizeof(double) * context_.pixel_number[_X] * context_.pixel_number[_Y]);
-
-			cos.close();
-		}
-		delete[] realdata;
-	}
-
-	LOG("Writing Openholo Complex Field...%s\n", fullname.c_str());
-	return TRUE;
-}
+//bool ophSig::save(const char *fname)
+//{
+//	string fullname = fname;
+//
+//	char* RGB_name[3] = { "","","" };
+//
+//	if (_wavelength_num > 1) {
+//		RGB_name[0] = "_B";
+//		RGB_name[1] = "_G";
+//		RGB_name[2] = "_R";
+//	}
+//	int checktype = static_cast<int>(fullname.rfind("."));
+//
+//	if (fullname.substr(checktype + 1, fullname.size()) == "bmp")
+//	{
+//		oph::uchar* realdata;
+//		realdata = (oph::uchar*)malloc(sizeof(oph::uchar) * context_.pixel_number[_X] * context_.pixel_number[_Y] * _wavelength_num);
+//
+//		double gamma = 0.5;
+//		double maxIntensity = 0.0;
+//		double realVal = 0.0;
+//		double imagVal = 0.0;
+//		double intensityVal = 0.0;
+//
+//		for (int z = 0; z < _wavelength_num; z++)
+//		{
+//			for (int j = 0; j < context_.pixel_number[_Y]; j++) {
+//				for (int i = 0; i < context_.pixel_number[_X]; i++) {
+//					realVal = ComplexH[z](i, j)._Val[_RE];
+//					imagVal = ComplexH[z](i, j)._Val[_RE];
+//					intensityVal = realVal*realVal + imagVal*imagVal;
+//					if (intensityVal > maxIntensity) {
+//						maxIntensity = intensityVal;
+//					}
+//				}
+//			}
+//			for (int i = context_.pixel_number[_X] - 1; i >= 0; i--)
+//			{
+//				for (int j = 0; j < context_.pixel_number[_Y]; j++)
+//				{
+//					realVal = ComplexH[z](context_.pixel_number[_X] - i - 1, j)._Val[_RE];
+//					imagVal = ComplexH[z](context_.pixel_number[_X] - i - 1, j)._Val[_IM];
+//					intensityVal = realVal*realVal + imagVal*imagVal;
+//					realdata[(i*context_.pixel_number[_Y] + j)* _wavelength_num + z] = (uchar)(pow(intensityVal / maxIntensity, gamma)*255.0);
+//				}
+//			}
+//			//sprintf(str, "_%.2u", z);
+//			//realname.insert(checktype, RGB_name[z]);
+//		}
+//		saveAsImg(fullname.c_str(), _wavelength_num * 8, realdata, context_.pixel_number[_X], context_.pixel_number[_Y]);
+//
+//		delete[] realdata;
+//	}
+//	else if (fullname.substr(checktype + 1, fullname.size()) == "bin")
+//	{
+//		double *realdata = new  double[context_.pixel_number[_X] * context_.pixel_number[_Y]];
+//
+//		for (int z = 0; z < _wavelength_num; z++)
+//		{
+//			fullname = fname;
+//			fullname.insert(checktype, RGB_name[z]);
+//			std::ofstream cos(fullname.c_str(), std::ios::binary);
+//
+//			if (!cos.is_open()) {
+//				LOG("Error: file name not found.\n");
+//				cos.close();
+//				delete[] realdata;
+//				return FALSE;
+//			}
+//
+//			for (int i = 0; i < context_.pixel_number[_X]; i++)
+//			{
+//				for (int j = 0; j < context_.pixel_number[_Y]; j++)
+//				{
+//					realdata[context_.pixel_number[_Y] * i + j] = ComplexH[z](i, j)._Val[_RE];
+//				}
+//			}
+//			cos.write(reinterpret_cast<const char*>(realdata), sizeof(double) * context_.pixel_number[_X] * context_.pixel_number[_Y]);
+//
+//			cos.close();
+//		}
+//		delete[] realdata;
+//	}
+//
+//	LOG("Writing Openholo Complex Field...%s\n", fullname.c_str());
+//	return TRUE;
+//}
 bool ophSig::sigConvertOffaxis(Real angleX, Real angleY) {
 	auto start_time = CUR_TIME;
 	
 	if (is_CPU == true)
 	{
 		std::cout << "Start Single Core CPU" << endl;
-		cvtOffaxis_CPU(angleX,angleY);
+		sigConvertOffaxis_CPU(angleX,angleY);
 	}
 	else {
 		std::cout << "Start Multi Core GPU" << std::endl;
-		cvtOffaxis_GPU(angleX, angleY);
+		sigConvertOffaxis_GPU(angleX, angleY);
 	}
 	auto end_time = CUR_TIME;
 	auto during_time = ((std::chrono::duration<Real>)(end_time - start_time)).count();
@@ -858,7 +876,7 @@ double ophSig::sigGetParamSF(float zMax, float zMin, int sampN, float th) {
 }
 
 
-bool ophSig::cvtOffaxis_CPU(Real angleX, Real angleY) {
+bool ophSig::sigConvertOffaxis_CPU(Real angleX, Real angleY) {
 	
 	int nx = context_.pixel_number[_X];
 	int ny = context_.pixel_number[_Y];
@@ -1027,8 +1045,6 @@ bool ophSig::readConfig(const char* fname)
 	context_.wave_length = new Real[_wavelength_num];
 
 	(xml_node->FirstChildElement("wavelength"))->QueryDoubleText(context_.wave_length);
-	(xml_node->FirstChildElement("NA"))->QueryFloatText(&_cfgSig.NA);
-	(xml_node->FirstChildElement("z"))->QueryFloatText(&_cfgSig.z);
 	(xml_node->FirstChildElement("radius_of_lens"))->QueryFloatText(&_radius);
 	(xml_node->FirstChildElement("focal_length_R"))->QueryFloatText(&_foc[2]);
 	(xml_node->FirstChildElement("focal_length_G"))->QueryFloatText(&_foc[1]);

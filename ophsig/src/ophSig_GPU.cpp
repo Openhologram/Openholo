@@ -61,7 +61,7 @@ static void HandleError(cudaError_t err,
 
 
 
-void ophSig::cvtOffaxis_GPU(Real angleX, Real angleY) {
+bool ophSig::sigConvertOffaxis_GPU(Real angleX, Real angleY) {
 	int nx = context_.pixel_number[_X];
 	int ny = context_.pixel_number[_Y];
 	Real wl = *context_.wave_length;
@@ -113,6 +113,8 @@ void ophSig::cvtOffaxis_GPU(Real angleX, Real angleY) {
 
 	delete[] temp_data;
 	delete[] host_data;
+
+	return true;
 }
 
 bool ophSig::sigConvertHPO_GPU(Real depth, Real_t redRate) {
@@ -149,9 +151,9 @@ bool ophSig::sigConvertHPO_GPU(Real depth, Real_t redRate) {
 	cudaCvtFieldToCuFFT(temp_data, fft_temp_data, nx, ny);
 	cudaCuFFT(&fftplan, fft_temp_data, out_data, nx, ny, CUFFT_FORWARD);
 
-	// 데이터 계산
+
 	Real wl = *context_.wave_length;
-	Real NA = _cfgSig.NA;
+	Real NA = _cfgSig.width / (2 * depth);
 	Real_t NA_g = NA * redRate;
 	Real Rephase = -(1 / (4 * M_PI)*pow((wl / NA_g), 2));
 	Real Imphase = ((1 / (4 * M_PI))*depth*wl);
