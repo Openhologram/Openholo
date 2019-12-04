@@ -68,7 +68,6 @@ struct OphWRPConfig;
 /**
 * @ingroup gen
 * @brief 
-* @detail
 * @author
 */
 class GEN_DLL ophGen : public Openholo

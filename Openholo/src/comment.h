@@ -121,27 +121,26 @@ Generation Hologram - Triangle Mesh Example
 		ophTri* Hologram = new ophTri();
 
 		// Load
-		Hologram->readMeshConfig("config/TestSpecMesh.xml");						// Read the Mesh hologram configuration file
-		Hologram->loadMeshData("source/TriMesh/mesh_teapot.ply", "ply");			// Read the Meshed object data
-		Hologram->objScaleShift();													// Object scaling and shifting
+		Hologram->readConfig("config/TestSpecMesh.xml");					// Read the Mesh hologram configuration file
+		Hologram->loadMeshData("source/TriMesh/mesh_teapot.ply", "ply");	// Read the Meshed object data
 
 		// Generate
-		Hologram->generateMeshHologram(Hologram->SHADING_FLAT);						// Generate the hologram
+		Hologram->generateHologram(Hologram->SHADING_FLAT);					// Generate the hologram
 			/// Put the shading effect type
 
 		// Save as Complex Field Data
-		Hologram->saveAsOhc("result/TriMesh/Mesh_complexField.ohc");				// Save the hologram complex field data
+		Hologram->saveAsOhc("result/TriMesh/Mesh_complexField.ohc");		// Save the hologram complex field data
 
 		// Encode
-		Hologram->encoding(Hologram->ENCODE_SIMPLENI);								// Encode the hologram
+		Hologram->encoding(Hologram->ENCODE_SIMPLENI);						// Encode the hologram
 
 		// Save as Encoded Image
-		Hologram->normalizeEncoded();												// Normalize the encoded hologram to generate image file
-		ivec2 encode_size = Hologram->getEncodeSize();								// Get encoded hologram size
+		Hologram->normalizeEncoded();										// Normalize the encoded hologram to generate image file
+		ivec2 encode_size = Hologram->getEncodeSize();						// Get encoded hologram size
 		Hologram->save("result/TriMesh/Mesh_0.1m_ni_-0.3deg.bmp",
-			8, nullptr, encode_size[_X], encode_size[_Y]);							// Save the encoded hologram image
+			8, nullptr, encode_size[_X], encode_size[_Y]);					// Save the encoded hologram image
 
-		Hologram->release();														// Release memory used to Generate Triangle Mesh
+		Hologram->release();												// Release memory used to Generate Triangle Mesh
 @endcode
 
 ![Triangle Mesh based CGH Example](@ref pics/ophgen/mesh/result_mesh_01.png)
@@ -155,7 +154,7 @@ Generation Hologram - Light Field Example
 		ophLF* Hologram = new ophLF();
 
 		// Load
-		Hologram->readLFConfig("config/TestSpecLF.xml");							// Read the LF hologram configuration file
+		Hologram->readConfig("config/TestSpecLF.xml");								// Read the LF hologram configuration file
 		Hologram->loadLF("source/LightField/sample_orthographic_images_5x5", "bmp");// Load the Light field source image files
 			/// Put the directory which has the source files and Put the image file type
 
@@ -190,8 +189,6 @@ Generation Hologram - Wavefront Recording Plane(WRP) Example
 	Hologram->readConfig("config/TestSpecWRP.xml");									// Read Config Parameters for Point Cloud CGH based WRP algorism
 	Hologram->loadPointCloud("source/WRP/TestPointCloud_WRP.ply");					// Load Point Cloud Data(*.PLY)
 
-
-	Hologram->calculateWRP();														// WRP generation 
 	Hologram->generateHologram();													// CGH from WRP
 	Hologram->saveAsOhc("result/LightField/LF_complexField.ohc");					// Save the hologram complex field data
 	Hologram->encodeHologram();														// Encode Complex Field to Real Field

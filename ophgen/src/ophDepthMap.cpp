@@ -65,18 +65,18 @@ ophDepthMap::ophDepthMap()
 	is_CPU = true;
 
 	// GPU Variables
-	img_src_gpu = 0;
-	dimg_src_gpu = 0;
-	depth_index_gpu = 0;
+	img_src_gpu = nullptr;
+	dimg_src_gpu = nullptr;
+	depth_index_gpu = nullptr;
 
 	depth_img = nullptr;
 	rgb_img = nullptr;
 
 	// CPU Variables
-	img_src = 0;
-	dmap_src = 0;
-	alpha_map = 0;
-	depth_index = 0;
+	img_src = nullptr;
+	dmap_src = nullptr;
+	alpha_map = nullptr;
+	depth_index = nullptr;
 	dmap = 0;
 	dstep = 0;
 	dlevel.clear();
@@ -406,7 +406,7 @@ void ophDepthMap::encoding(unsigned int ENCODE_FLAG, unsigned int SSB_PASSBAND)
 
 /**
 * @brief Initialize variables for CPU and GPU implementation.
-* @see init_CPU, init_GPU
+* @see initCPU, initGPU
 */
 void ophDepthMap::initialize()
 {
@@ -423,7 +423,7 @@ void ophDepthMap::initialize()
 * @brief Calculate the physical distances of depth map layers
 * @details Initialize 'dstep_' & 'dlevel_' variables.
 *  If FLAG_CHANGE_DEPTH_QUANTIZATION == 1, recalculate  'depth_index_' variable.
-* @see change_depth_quan_CPU, change_depth_quan_GPU
+* @see changeDepthQuanCPU, changeDepthQuanGPU
 */
 void ophDepthMap::getDepthValues()
 {

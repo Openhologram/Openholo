@@ -621,7 +621,7 @@ public:
 	inline int getNumberOfPoints() { return n_points; }
 	/**
 	* @brief Directly Get Basic Data
-	* @return int 3D Point Cloud count
+	* @return Real 
 	*/
 	inline Real getFieldLens(void) { return pc_config_.fieldLength; }
 

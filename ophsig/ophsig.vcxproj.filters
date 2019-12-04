@@ -16,6 +16,9 @@
     <Filter Include="_2_Phase Unwrapping">
       <UniqueIdentifier>{5b4ea7ac-add0-40c2-9043-0e0f255effbf}</UniqueIdentifier>
     </Filter>
+    <Filter Include="_3_Phase Shift">
+      <UniqueIdentifier>{b82606a3-7249-4dcb-a5ee-971b2488b933}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\ophSig.cpp">
@@ -33,6 +36,9 @@
     <ClCompile Include="src\tinyxml2.cpp">
       <Filter>__Header Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\ophSigPS.cpp">
+      <Filter>_3_Phase Shift</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\ophSig.h">
@@ -49,6 +55,9 @@
     </ClInclude>
     <ClInclude Include="src\tinyxml2.h">
       <Filter>__Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ophSigPS.h">
+      <Filter>_3_Phase Shift</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
