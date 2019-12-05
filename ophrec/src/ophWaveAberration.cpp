@@ -381,7 +381,7 @@ bool ophWaveAberration::readConfig(const char* fname)
 	const tinyxml2::XMLAttribute *xml_attribute;
 
 
-	if (checkExtension(fname, ".xml") == 0)
+	if (!checkExtension(fname, ".xml"))
 	{
 		LOG("file's extension is not 'xml'\n");
 		return false;
@@ -480,11 +480,11 @@ void ophWaveAberration::readAberration(const char* fname)
 	fin.close();
 }
 
-int ophWaveAberration::loadAsOhc(const char * fname)
+bool ophWaveAberration::loadAsOhc(const char * fname)
 {
-	if (Openholo::loadAsOhc(fname) == -1) {
+	if (!Openholo::loadAsOhc(fname)) {
 		LOG("Failed load file");
-		return -1;
+		return false;
 	}
 
 	pixelPitchX = context_.pixel_pitch[_X];
@@ -510,4 +510,5 @@ int ophWaveAberration::loadAsOhc(const char * fname)
 		}
 	}
 #endif
+	return true;
 }

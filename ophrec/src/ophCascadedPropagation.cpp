@@ -106,10 +106,10 @@ bool ophCascadedPropagation::save(const wchar_t* pathname, uint8_t bitsperpixel)
 	string bufs;
 	bufs.assign(bufw.begin(), bufw.end());
 	oph::uchar* src = getIntensityfields(getRetinaWavefieldAll());
-	return (1 == saveAsImg(bufs.c_str(), bitsperpixel, src, getResX(), getResY()));
+	return saveAsImg(bufs.c_str(), bitsperpixel, src, getResX(), getResY());
 }
 
-int ophCascadedPropagation::saveAsOhc(const char * fname)
+bool ophCascadedPropagation::saveAsOhc(const char * fname)
 {
 	oph::uint nx = getResX();
 	oph::uint ny = getResY();
@@ -128,9 +128,9 @@ int ophCascadedPropagation::saveAsOhc(const char * fname)
 	return Openholo::saveAsOhc(fname);
 }
 
-int ophCascadedPropagation::loadAsOhc(const char * fname)
+bool ophCascadedPropagation::loadAsOhc(const char * fname)
 {
-	if (Openholo::loadAsOhc(fname) != 1)
+	if (!Openholo::loadAsOhc(fname))
 		return -1;
 
 	oph::uint nx = getResX();
@@ -182,7 +182,7 @@ void ophCascadedPropagation::deallocateMem()
 // read in hologram data
 bool ophCascadedPropagation::loadInputImg(string hologram_path_str)
 {
-	if (checkExtension(hologram_path_str.c_str(), ".bmp") == 0)
+	if (!checkExtension(hologram_path_str.c_str(), ".bmp"))
 	{
 		PRINT_ERROR("input file format not supported");
 		return false;
@@ -190,7 +190,7 @@ bool ophCascadedPropagation::loadInputImg(string hologram_path_str)
 	oph::uint nx = getResX();
 	oph::uint ny = getResY();
 	oph::uchar* data = new oph::uchar[nx * ny * getNumColors()];
-	if (loadAsImgUpSideDown(hologram_path_str.c_str(), data) == 0)	// loadAsImg() keeps to fail
+	if (!loadAsImgUpSideDown(hologram_path_str.c_str(), data))	// loadAsImg() keeps to fail
 	{
 		PRINT_ERROR("input file not found");
 		delete[] data;
@@ -292,7 +292,7 @@ bool ophCascadedPropagation::readConfig(const wchar_t* fname)
 	string fnames;
 	fnames.assign(fnamew.begin(), fnamew.end());
 
-	if (checkExtension(fnames.c_str(), ".xml") == 0)
+	if (!checkExtension(fnames.c_str(), ".xml"))
 	{
 		LOG("file's extension is not 'xml'\n");
 		return false;

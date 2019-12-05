@@ -569,7 +569,7 @@ bool ophSigCH::readConfig(const char* fname)
 	tinyxml2::XMLDocument xml_doc;
 	tinyxml2::XMLNode *xml_node;
 
-	if (checkExtension(fname, ".xml") == 0)
+	if (!checkExtension(fname, ".xml"))
 	{
 		LOG("file's extension is not 'xml'\n");
 		return false;
@@ -795,7 +795,7 @@ bool ophSigCH::loadCHtemp(const char * real, const char * imag, uint8_t bitpixel
 	//////////////////////////////////////////////////////
 	//////// From here, modified by Jae-Hyeung Park from original load function in ophSig 
 	//nomalization 
-	double realout, imagout;
+	//double realout, imagout;
 	for (int z = 0; z < (bitpixel) / 8; z++)
 	{
 		for (int i = 0; i < _cfgSig.rows; i++)

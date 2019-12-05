@@ -125,7 +125,7 @@ bool ophDepthMap::readConfig(const char * fname)
 	tinyxml2::XMLDocument xml_doc;
 	XMLNode *xml_node = nullptr;
 
-	if (checkExtension(fname, ".xml") == 0)
+	if (!checkExtension(fname, ".xml"))
 	{
 		LOG("file's extension is not 'xml'\n");
 		return false;
@@ -230,7 +230,7 @@ bool ophDepthMap::readImageDepth(const char* source_folder, const char* img_pref
 	imgfullname = std::string(source_folder).append("\\").append(fd.name);
 
 	int w, h, bytesperpixel;
-	int ret = getImgSize(w, h, bytesperpixel, imgfullname.c_str());
+	bool ret = getImgSize(w, h, bytesperpixel, imgfullname.c_str());
 
 	oph::uchar* imgload = new uchar[w*h*bytesperpixel];
 	ret = loadAsImgUpSideDown(imgfullname.c_str(), imgload);

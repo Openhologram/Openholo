@@ -74,7 +74,7 @@ Generation Hologram - Point Cloud Example
 	Hologram->generateHologram(PC_DIFF_RS);											// Select R-S diffraction or Fresnel diffraction
 	Hologram->saveAsOhc("result/PointCloud/Result_PointCloudSample_Plane.ohc");		// Save to ohc(Openholo complex field file format)
 
-	Hologram->encoding(ENCODE_SSB, SSB_TOP);										// Encode Complex Field to Real Field
+	Hologram->encoding(Hologram->ENCODE_PHASE);												// Encode Complex Field to Real Field
 
 	Hologram->normalize();															// Normalize Real Field to unsigned char(0~255) for save to image(*.BMP)
 	Hologram->save("result/PointCloud/Result_PointCloudSample_Plane.bmp");			// Save to bmp
@@ -97,12 +97,12 @@ Generation Hologram - Depth Map Example.
 	Hologram->readConfig("config/TestSpecDepthMap.xml");							// Read Config Parameters for Depth Map CGH
 	Hologram->readImageDepth("source/DepthMap", "RGB_D", "D_D");					// Load Depth and RGB image
 
-	Hologram->setMode(MODE_GPU); //Select CPU or GPU Processing						// Select CPU or GPU Processing
+	Hologram->setMode(MODE_GPU);													// Select CPU or GPU Processing
 
 	Hologram->generateHologram();													// CGH by depth map
 	Hologram->saveAsOhc("result/DepthMap/Result_DepthmapSample.ohc");				// Save to ohc(Openholo complex field file format)
 
-	Hologram->encoding(ENCODE_SSB, SSB_BOTTOM);										// Encode Complex Field to Real Field
+	Hologram->encodeHologram();														// Encode Complex Field to Real Field
 
 	Hologram->normalize();															// Normalize Real Field to unsigned char(0~255) for save to image(*.BMP)
 	Hologram->save("result/DepthMap/Result_DepthmapSample.bmp");					// Save to bmp
@@ -135,7 +135,7 @@ Generation Hologram - Triangle Mesh Example
 		Hologram->encoding(Hologram->ENCODE_SIMPLENI);						// Encode the hologram
 
 		// Save as Encoded Image
-		Hologram->normalizeEncoded();										// Normalize the encoded hologram to generate image file
+		Hologram->normalize();												// Normalize the encoded hologram to generate image file
 		ivec2 encode_size = Hologram->getEncodeSize();						// Get encoded hologram size
 		Hologram->save("result/TriMesh/Mesh_0.1m_ni_-0.3deg.bmp",
 			8, nullptr, encode_size[_X], encode_size[_Y]);					// Save the encoded hologram image
@@ -165,10 +165,10 @@ Generation Hologram - Light Field Example
 		Hologram->saveAsOhc("result/LightField/LF_complexField.ohc");				// Save the hologram complex field data
 
 		// Encode
-		Hologram->encoding(Hologram->ENCODE_SIMPLENI);								// Encode the hologram
+		Hologram->encoding(Hologram->ENCODE_PHASE);								// Encode the hologram
 
 		// Save as Encoded Image
-		Hologram->normalizeEncoded();												// Normalize the encoded hologram to generate image file
+		Hologram->normalize();														// Normalize the encoded hologram to generate image file
 		ivec2 encode_size = Hologram->getEncodeSize();								// Get encoded hologram size
 		Hologram->save("result/LightField/Light_Field_NI_carrier.bmp",
 			8, nullptr, encode_size[_X], encode_size[_Y]);							// Save the encoded hologram image
@@ -191,7 +191,7 @@ Generation Hologram - Wavefront Recording Plane(WRP) Example
 
 	Hologram->generateHologram();													// CGH from WRP
 	Hologram->saveAsOhc("result/LightField/LF_complexField.ohc");					// Save the hologram complex field data
-	Hologram->encodeHologram();														// Encode Complex Field to Real Field
+	Hologram->encoding(Hologram->ENCODE_PHASE);										// Encode Complex Field to Real Field
 	Hologram->normalize();															//Normalize Real Field to unsigned char(0~255) for save to image(*.BMP)
 	Hologram->save("result/WRP/Result_WRP.bmp");									// Save to bmp
 

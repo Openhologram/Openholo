@@ -359,9 +359,9 @@ void ophSigPU::branchCuts(matrix<Real>& inputResidue, matrix<Real>& outputBranch
 						{
 							for (int n = cActive - radius; n < cActive + radius + 1; n++)
 							{
-								if ((abs(m - rActive) == radius | abs(n - cActive) == radius) & chargeCounter != 0)
+								if (((abs(m - rActive) == radius) | (abs(n - cActive) == radius)) & (chargeCounter != 0))
 								{
-									if (m < 1 | m >= Nr - 1 | n < 1 | m >= Nc - 1)
+									if ((m < 1) | (m >= Nr - 1) | (n < 1) | (m >= Nc - 1))
 									{
 										if (m >= Nr - 1) { m = Nr - 1; }
 										if (n >= Nc - 1) { n = Nc - 1; }
@@ -454,9 +454,9 @@ void ophSigPU::branchCuts(matrix<Real>& inputResidue, matrix<Real>& outputBranch
 								{
 									for (int n = cActive - radius; n < cActive + radius + 1; n++)
 									{
-										if ((abs(m - rActive) == radius | abs(n - cActive) == radius) )
+										if (((abs(m - rActive) == radius) | (abs(n - cActive) == radius) ))
 										{
-											if (m < 1 | m >= Nr - 1 | n < 1 | m >= Nc - 1)
+											if ((m < 1) | (m >= Nr - 1) | (n < 1) | (m >= Nc - 1))
 											{
 												if (m >= Nr - 1) { m = Nr - 1; }
 												if (n >= Nc - 1) { n = Nc - 1; }
@@ -559,7 +559,7 @@ void ophSigPU::floodFill(matrix<Real>& inputBranchCuts)
 	int rActive = 0;
 	int cActive = 0;
 	double phaseRef = 0;
-	while (matrixPartialSum(adjoin, 1, 1, Nr - 2, Nc - 2) > 0 & countLimit<100)
+	while ((matrixPartialSum(adjoin, 1, 1, Nr - 2, Nc - 2) > 0) & (countLimit < 100))
 	{
 		//while (countLimit < 100)
 		//{
@@ -579,80 +579,80 @@ void ophSigPU::floodFill(matrix<Real>& inputBranchCuts)
 			{
 				rActive = rAdjoin[i];
 				cActive = cAdjoin[i];
-				if (rActive <= Nr - 2 & rActive >= 1 & cActive <= Nc - 2 & cActive >= 1)
+				if ((rActive <= Nr - 2) & (rActive >= 1) & (cActive <= Nc - 2) & (cActive >= 1))
 				{
-					if (inputBranchCuts(rActive + 1, cActive) == 0 & unwrappedBinary(rActive + 1, cActive) == 1)
+					if ((inputBranchCuts(rActive + 1, cActive) == 0) & (unwrappedBinary(rActive + 1, cActive) == 1))
 					{
 						phaseRef = PhaseUnwrapped(rActive + 1, cActive);
 						PhaseUnwrapped(rActive, cActive) = unwrap(phaseRef, PhaseOriginal(rActive, cActive));
 						unwrappedBinary(rActive, cActive) = 1;
 						adjoin(rActive, cActive) = 0;
-						if (unwrappedBinary(rActive - 1, cActive) == 0 & inputBranchCuts(rActive - 1, cActive) == 0)
+						if ((unwrappedBinary(rActive - 1, cActive) == 0) & (inputBranchCuts(rActive - 1, cActive) == 0))
 						{
 							adjoin(rActive - 1, cActive) = 1;
 						}
-						if (unwrappedBinary(rActive, cActive-1) == 0 & inputBranchCuts(rActive, cActive-1) == 0)
+						if ((unwrappedBinary(rActive, cActive-1) == 0) & (inputBranchCuts(rActive, cActive-1) == 0))
 						{
 							adjoin(rActive, cActive-1) = 1;
 						}
-						if (unwrappedBinary(rActive, cActive+1) == 0 & inputBranchCuts(rActive, cActive+1) == 0)
+						if ((unwrappedBinary(rActive, cActive+1) == 0) & (inputBranchCuts(rActive, cActive+1) == 0))
 						{
 							adjoin(rActive, cActive+1) = 1;
 						}
 					}
-					if (inputBranchCuts(rActive - 1, cActive) == 0 & unwrappedBinary(rActive - 1, cActive) == 1)
+					if ((inputBranchCuts(rActive - 1, cActive) == 0) & (unwrappedBinary(rActive - 1, cActive) == 1))
 					{
 						phaseRef = PhaseUnwrapped(rActive - 1, cActive);
 						PhaseUnwrapped(rActive, cActive) = unwrap(phaseRef, PhaseOriginal(rActive, cActive));
 						unwrappedBinary(rActive, cActive) = 1;
 						adjoin(rActive, cActive) = 0;
-						if (unwrappedBinary(rActive + 1, cActive) == 0 & inputBranchCuts(rActive + 1, cActive) == 0)
+						if ((unwrappedBinary(rActive + 1, cActive) == 0) & (inputBranchCuts(rActive + 1, cActive) == 0))
 						{
 							adjoin(rActive + 1, cActive) = 1;
 						}
-						if (unwrappedBinary(rActive, cActive - 1) == 0 & inputBranchCuts(rActive, cActive - 1) == 0)
+						if ((unwrappedBinary(rActive, cActive - 1) == 0) & (inputBranchCuts(rActive, cActive - 1) == 0))
 						{
 							adjoin(rActive, cActive - 1) = 1;
 						}
-						if (unwrappedBinary(rActive, cActive + 1) == 0 & inputBranchCuts(rActive, cActive + 1) == 0)
+						if ((unwrappedBinary(rActive, cActive + 1) == 0) & (inputBranchCuts(rActive, cActive + 1) == 0))
 						{
 							adjoin(rActive, cActive + 1) = 1;
 						}
 					}
-					if (inputBranchCuts(rActive, cActive +1) == 0 & unwrappedBinary(rActive, cActive+1) == 1)
+					if ((inputBranchCuts(rActive, cActive +1) == 0) & (unwrappedBinary(rActive, cActive+1) == 1))
 					{
 						phaseRef = PhaseUnwrapped(rActive, cActive+1);
 						PhaseUnwrapped(rActive, cActive) = unwrap(phaseRef, PhaseOriginal(rActive, cActive));
 						unwrappedBinary(rActive, cActive) = 1;
 						adjoin(rActive, cActive) = 0;
-						if (unwrappedBinary(rActive + 1, cActive) == 0 & inputBranchCuts(rActive + 1, cActive) == 0)
+						if ((unwrappedBinary(rActive + 1, cActive) == 0) & (inputBranchCuts(rActive + 1, cActive) == 0))
 						{
 							adjoin(rActive + 1, cActive) = 1;
 						}
-						if (unwrappedBinary(rActive, cActive - 1) == 0 & inputBranchCuts(rActive, cActive - 1) == 0)
+						if ((unwrappedBinary(rActive, cActive - 1) == 0) & (inputBranchCuts(rActive, cActive - 1) == 0))
 						{
 							adjoin(rActive, cActive - 1) = 1;
 						}
-						if (unwrappedBinary(rActive -1 , cActive) == 0 & inputBranchCuts(rActive-1, cActive) == 0)
+						if ((unwrappedBinary(rActive -1 , cActive) == 0) & (inputBranchCuts(rActive-1, cActive) == 0))
 						{
 							adjoin(rActive-1, cActive) = 1;
 						}
 					}
-					if (inputBranchCuts(rActive, cActive-1) == 0 & unwrappedBinary(rActive, cActive-1) == 1)
+					if ((inputBranchCuts(rActive, cActive-1) == 0) & (unwrappedBinary(rActive, cActive-1) == 1))
 					{
 						phaseRef = PhaseUnwrapped(rActive, cActive-1);
 						PhaseUnwrapped(rActive, cActive) = unwrap(phaseRef, PhaseOriginal(rActive, cActive));
 						unwrappedBinary(rActive, cActive) = 1;
 						adjoin(rActive, cActive) = 0;
-						if (unwrappedBinary(rActive + 1, cActive) == 0 & inputBranchCuts(rActive + 1, cActive) == 0)
+						if ((unwrappedBinary(rActive + 1, cActive) == 0) & (inputBranchCuts(rActive + 1, cActive) == 0))
 						{
 							adjoin(rActive + 1, cActive) = 1;
 						}
-						if (unwrappedBinary(rActive -1, cActive) == 0 & inputBranchCuts(rActive-1, cActive) == 0)
+						if ((unwrappedBinary(rActive -1, cActive) == 0) & (inputBranchCuts(rActive-1, cActive) == 0))
 						{
 							adjoin(rActive-1, cActive) = 1;
 						}
-						if (unwrappedBinary(rActive, cActive + 1) == 0 & inputBranchCuts(rActive, cActive + 1) == 0)
+						if ((unwrappedBinary(rActive, cActive + 1) == 0) & (inputBranchCuts(rActive, cActive + 1) == 0))
 						{
 							adjoin(rActive, cActive + 1) = 1;
 						}
@@ -669,7 +669,11 @@ void ophSigPU::floodFill(matrix<Real>& inputBranchCuts)
 	{
 		for (int j = 1; j < Nc - 2; j++)
 		{
-			if (inputBranchCuts(i, j) == 1 & (inputBranchCuts(i + 1, j) == 0 | inputBranchCuts(i - 1, j) == 0 | inputBranchCuts(i, j - 1) == 0 | inputBranchCuts(i, j + 1) == 0))
+			if ((inputBranchCuts(i, j) == 1) & 
+				((inputBranchCuts(i + 1, j) == 0) | 
+				(inputBranchCuts(i - 1, j) == 0) | 
+					(inputBranchCuts(i, j - 1) == 0) | 
+					(inputBranchCuts(i, j + 1) == 0)))
 			{
 				adjoin(i, j) = 1;
 			}

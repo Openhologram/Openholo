@@ -277,8 +277,12 @@ namespace oph
 
 	/**
 	* @brief Get random Real value from min to max 
-	* @param _SEED_VALUE : Random seed value can be used to create a specific random number pattern.
+	* @param[in] min minimum value.
+	* @param[in] max maximum value.
+	* @param[in] _SEED_VALUE : Random seed value can be used to create a specific random number pattern@n
 	*					   If the seed values are the same, random numbers of the same pattern are always output.
+	* @return Type: <B>Real</B>\n
+	*				The return value is <B>random value</B>.
 	*/
 	inline Real rand(const Real min, const Real max, oph::ulong _SEED_VALUE = 0) {
 		std::mt19937_64 rand_dev;
@@ -291,9 +295,13 @@ namespace oph
 	}
 
 	/**
-	* @brief Get random integer vaue from min to max
-	* @param _SEED_VALUE : Random seed value can be used to create a specific random number pattern.
+	* @brief Get random Integer value from min to max
+	* @param[in] min minimum value.
+	* @param[in] max maximum value.
+	* @param[in] _SEED_VALUE : Random seed value can be used to create a specific random number pattern@n
 	*					   If the seed values are the same, random numbers of the same pattern are always output.
+	* @return Type: <B>int</B>\n
+	*				The return value is <B>random value</B>.
 	*/
 	inline int rand(const int min, const int max, oph::ulong _SEED_VALUE = 0) {
 		std::mt19937_64 rand_dev;

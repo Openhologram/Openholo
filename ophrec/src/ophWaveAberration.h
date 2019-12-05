@@ -66,7 +66,7 @@ using namespace std;
 /**
 * @addtogroup waveaberr
 //@{
-* @detail
+* @details
 
 * @section Introduction
 
@@ -194,7 +194,7 @@ public:
 	* @param fname: a path name of a file to save a wave aberration
 	*/
 	void readAberration(const char* fname);
-	virtual int loadAsOhc(const char* fname);
+	virtual bool loadAsOhc(const char* fname);
 
 	void ophFree(void);
 };

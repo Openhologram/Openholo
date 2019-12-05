@@ -80,7 +80,7 @@ using namespace oph;
 /**
 * @addtogroup wrp
 //@{
-* @detail
+* @details
 
 * @section Introduction
 
@@ -148,24 +148,19 @@ public:
 	int getNumOfPoints() { return n_points; }
 
 	/**
-	* @brief override
-	* @{
-	* @brief Import Point Cloud Data Base File : *.PLY file.
-	* This Function is included memory location of Input Point Clouds.
-	*/
-	/**
-	* @brief override
-	* @param InputModelFile PointCloud(*.PLY) input file path
+	* @brief Import Point Cloud Data File (*.PLY)
+	* @details This Function is included memory location of Input Point Clouds.
+	* @param const char* 
+	*					PointCloud(*.PLY) input file path
 	* @return number of Pointcloud (if it failed loading, it returned -1)
 	*/
 	virtual int loadPointCloud(const char* pc_file);
 	/**
-	* @brief
-	* @{
 	* @brief Import Specification Config File(*.config) file
-	*/
-	/**
-	* @param InputConfigFile Specification Config(*.config) file path
+	* @param const char*
+	*					InputConfigFile Specification Config(*.config) file path
+	* @return If the function succeeds, the return value is nonzero.
+	* If the function failes, the return value is zero.
 	*/
 	virtual bool readConfig(const char* fname);
 

@@ -9,7 +9,7 @@
 /**
 * @addtogroup PU
 //@{
-* @detail
+* @details
 This module contains methods related to phase unwrapping.
 Phase unwrapping algorithm unwraps the 2-pi wrapped phase data to obtain continuous phase distribution.
 This module uses the Goldstein's branch cut algorithm. R.M.Goldstein, H.A. Zebker, and C.L. Werner, "Satellite radar interferometry: two-dimensional phase unwrapping," Radio Science, vol. 23, no. 4, pp. 713-720, 1988.

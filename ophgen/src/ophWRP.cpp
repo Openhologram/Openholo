@@ -175,7 +175,7 @@ bool ophWRP::readConfig(const char* fname)
 	tinyxml2::XMLDocument xml_doc;
 	XMLNode *xml_node;
 
-	if (checkExtension(fname, ".xml") == 0)
+	if (!checkExtension(fname, ".xml"))
 	{
 		LOG("file's extension is not 'xml'\n");
 		return false;

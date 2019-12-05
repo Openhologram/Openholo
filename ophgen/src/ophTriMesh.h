@@ -67,7 +67,7 @@ struct geometric {
 /**
 * @addtogroup mesh
 //@{
-* @detail
+* @details
 
 * @section Introduction
 

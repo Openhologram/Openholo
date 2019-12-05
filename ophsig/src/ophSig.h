@@ -73,7 +73,7 @@ struct SIG_DLL ophSigConfig {
 /**
 * @addtogroup sig
 //@{
-* @detail
+* @details
 This module is related method which works holographic core processing.
 
 	* @section I. Holographic core processing
@@ -145,8 +145,8 @@ public:
 	*/
 	bool save(const char *real, const char *imag);
 	bool save(const char *real);
-	int loadAsOhc(const char *fname);
-	int saveAsOhc(const char *fname);
+	bool loadAsOhc(const char *fname);
+	bool saveAsOhc(const char *fname);
 	template<typename T>
 	void linInterp(vector<T> &X, matrix<Complex<T>> &src, vector<T> &Xq, matrix<Complex<T>> &dst);
 	/**
@@ -442,7 +442,7 @@ public:
 	/**
 	* @addtogroup offaxis
 	//@{
-	* @detail
+	* @details
 	This module is related method which convert to off-axis hologram. 
 
 	* @section Introduction
@@ -500,7 +500,7 @@ public:
 	/**
 	* @ingroup offaxis
 	* @brief Function for Convert complex hologram to off-axis hologram
-	* @detail
+	* @details
 	* @return if works well return 0  or error occurs return -1
 	*/
 	bool sigConvertOffaxis(Real angleX, Real angleY);
@@ -510,7 +510,7 @@ public:
 	/**
 	* @addtogroup convHPO
 	//@{
-	* @detail
+	* @details
 	This module is related method which convert to horizontal parallax only hologram.
 
 	* @section Introduction
@@ -614,7 +614,7 @@ public:
 	/**
 	* @ingroup convHPO
 	* @brief Function for convert complex hologram to horizontal parallax only hologram
-	* @detail
+	* @details
 	* @return if works well return 0  or error occurs return -1
 	*/
 	bool sigConvertHPO(Real depth, Real_t redRate);
@@ -623,7 +623,7 @@ public:
 	/**
 	* @addtogroup convCAC
 	//@{
-	* @detail
+	* @details
 	This module is related method which compensate of full color hologram with chromatic aberration.
 
 	* @section Introduction
@@ -697,7 +697,7 @@ public:
 	/**
 	* @ingroup convCAC
 	* @brief Function for Chromatic aberration compensation filter
-	* @detail
+	* @details
 	* @return if works well return 0  or error occurs return -1
 	*/
 	bool sigConvertCAC(double red, double green, double blue);
@@ -720,7 +720,7 @@ public:
 	/**
 	* @addtogroup getAT
 	//@{
-	* @detail
+	* @details
 	This module is related method which extraction of distance parameter using axis transformation method.
 
 	* @section Introduction
@@ -804,7 +804,7 @@ public:
 	/**
 	* @ingroup getAT 
 	* @brief Extraction of distance parameter using axis transfomation
-	* @detail
+	* @details
 	* @return result distance
 	*/
 	double sigGetParamAT();
@@ -814,7 +814,7 @@ public:
 	/**
 	* @addtogroup getSF
 	//@{
-	* @detail
+	* @details
 	This module is related method which extraction of distance parameter using sharpness function maximization method.
 
 	* @section Introduction
@@ -846,7 +846,7 @@ public:
 	/**
 	* @ingroup getSF
 	* @brief Extraction of distance parameter using sharpness functions
-	* @detail
+	* @details
 	* @param zMax maximum value of distance on z axis
 	* @param zMin minimum value of distance on z axis
 	* @param sampN count of search step
@@ -859,7 +859,7 @@ public:
 	/**
 	* @addtogroup PSDH
 	//@{
-	* @detail
+	* @details
 	Extract complex field from 4 interference patterns with 90 degree phase shifts of the reference wave
 	Store the result complex field to the member variable ComplexH
 	![](pics/ophsig/psdh/psdh_concept.png)
@@ -870,7 +870,7 @@ public:
 	/**
 	* @ingroup PSDH
 	* @brief Extraction of complex field from 4 phase shifted interference patterns
-	* @detail
+	* @details
 	* @param fname0, fname90, fname180, fname270 Input image files for 4 interference patterns
 	* @return if works well return 0  or error occurs return -1
 	*/

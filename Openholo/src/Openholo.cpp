@@ -77,25 +77,22 @@ Openholo::~Openholo(void)
 {
 }
 
-int Openholo::checkExtension(const char * fname, const char * ext)
-{	
-	//return	1	: the extension of "fname" and "ext" is the same
-	//			0	: the extension of "fname" and "ext" is not the same
-
-	std::string filename(fname);
-	size_t pos = filename.find(ext);
-	if (pos == std::string::npos)
-		//when there is no search string
-		return 0;
+bool Openholo::checkExtension(const char * fname, const char * ext)
+{
+	string filename(fname);
+	string fext(ext);
+	if (0 == filename.substr(filename.find_last_of(".") + 1).compare(fext))
+		return true;
 	else
-		return 1;
+		return false;
 }
 
-int Openholo::saveAsImg(const char * fname, uint8_t bitsperpixel, uchar* src, int pic_width, int pic_height)
+bool Openholo::saveAsImg(const char * fname, uint8_t bitsperpixel, uchar* src, int width, int height)
 {
 	LOG("Saving...%s...", fname);
+	bool bOK = true;
 	auto start = CUR_TIME;
-	int _width = pic_width, _height = pic_height;
+	int _width = width, _height = height;
 
 	int _pixelbytesize = _height * _width * bitsperpixel / 8;
 	int _filesize = _pixelbytesize;
@@ -165,12 +162,18 @@ int Openholo::saveAsImg(const char * fname, uint8_t bitsperpixel, uchar* src, in
 
 
 	if (!bConvert) {
-		FILE *fp;
-		fopen_s(&fp, fname, "wb");
-		if (fp == nullptr) return -1;
-		if (iCur != _filesize) return -2;
-		fwrite(pBitmap, 1, _filesize, fp);
-		fclose(fp);
+		if (iCur != _filesize)
+			bOK = false;
+		else {
+			FILE *fp;
+			fopen_s(&fp, fname, "wb");
+			if (fp == nullptr)
+				bOK = false;
+			else {
+				fwrite(pBitmap, 1, _filesize, fp);
+				fclose(fp);
+			}
+		}
 	}
 	else {
 		if (checkExtension(fname, ".jpg") ||
@@ -190,7 +193,7 @@ int Openholo::saveAsImg(const char * fname, uint8_t bitsperpixel, uchar* src, in
 
 	LOG("%.5lfsec...done\n", during);
 
-	return 1;
+	return bOK;
 }
 
 uchar * Openholo::loadAsImg(const char * fname)
@@ -222,10 +225,10 @@ uchar * Openholo::loadAsImg(const char * fname)
 	return img_tmp;
 }
 
-int Openholo::saveAsOhc(const char * fname)
+bool Openholo::saveAsOhc(const char * fname)
 {
 	std::string fullname = fname;
-	if (checkExtension(fname, ".ohc") == 0) fullname.append(".ohc");
+	if (!checkExtension(fname, ".ohc")) fullname.append(".ohc");
 	OHC_encoder->setFileName(fullname.c_str());
 	
 	// Clear vector
@@ -238,17 +241,17 @@ int Openholo::saveAsOhc(const char * fname)
 	for (uint i = 0; i < wavelength_num; i++)
 		OHC_encoder->addComplexFieldData(complex_H[i]);
 
-	if (!OHC_encoder->save()) return -1;
+	if (!OHC_encoder->save()) return false;
 
-	return 1;
+	return true;
 }
 
-int Openholo::loadAsOhc(const char * fname)
+bool Openholo::loadAsOhc(const char * fname)
 {
 	std::string fullname = fname;
-	if (checkExtension(fname, ".ohc") == 0) fullname.append(".ohc");
+	if (!checkExtension(fname, ".ohc")) fullname.append(".ohc");
 	OHC_decoder->setFileName(fullname.c_str());
-	if (!OHC_decoder->load()) return -1;
+	if (!OHC_decoder->load()) return false;
 
 	context_.pixel_number = OHC_decoder->getNumOfPixel();
 	context_.pixel_pitch = OHC_decoder->getPixelPitch();
@@ -265,20 +268,20 @@ int Openholo::loadAsOhc(const char * fname)
 	context_.ss[_X] = context_.pixel_number[_X] * context_.pixel_pitch[_X];
 	context_.ss[_Y] = context_.pixel_number[_Y] * context_.pixel_pitch[_Y];
 
-	return 1;
+	return true;
 }
 
-int Openholo::loadAsImgUpSideDown(const char * fname, uchar* dst)
+bool Openholo::loadAsImgUpSideDown(const char * fname, uchar* dst)
 {
 	FILE *infile;
 	fopen_s(&infile, fname, "rb");
-	if (infile == nullptr) { LOG("No such file"); return 0; }
+	if (infile == nullptr) { LOG("No such file"); return false; }
 
 	// BMP Header Information
 	fileheader hf;
 	bitmapinfoheader hInfo;
 	fread(&hf, sizeof(fileheader), 1, infile);
-	if (hf.signature[0] != 'B' || hf.signature[1] != 'M') { LOG("Not BMP File");  return 0; }
+	if (hf.signature[0] != 'B' || hf.signature[1] != 'M') { LOG("Not BMP File");  return false; }
 
 	fread(&hInfo, sizeof(bitmapinfoheader), 1, infile);
 	fseek(infile, hf.fileoffset_to_pixelarray, SEEK_SET);
@@ -306,22 +309,22 @@ int Openholo::loadAsImgUpSideDown(const char * fname, uchar* dst)
 
 	delete[] img_tmp;
 
-	return 1;
+	return true;
 }
 
-int Openholo::getImgSize(int & w, int & h, int & bytesperpixel, const char * file_name)
+bool Openholo::getImgSize(int & w, int & h, int & bytesperpixel, const char * fname)
 {
 	char bmpFile[256];
-	sprintf_s(bmpFile, "%s", file_name);
+	sprintf_s(bmpFile, "%s", fname);
 	FILE *infile;
 	fopen_s(&infile, bmpFile, "rb");
-	if (infile == NULL) { LOG("No Image File"); return 0; }
+	if (infile == NULL) { LOG("No Image File"); return false; }
 
 	// BMP Header Information
 	fileheader hf;
 	bitmapinfoheader hInfo;
 	fread(&hf, sizeof(fileheader), 1, infile);
-	if (hf.signature[0] != 'B' || hf.signature[1] != 'M') return 0;
+	if (hf.signature[0] != 'B' || hf.signature[1] != 'M') return false;
 	fread(&hInfo, sizeof(bitmapinfoheader), 1, infile);
 	//if (hInfo.bitsperpixel != 8) { printf("Bad File Format!!"); return 0; }
 
@@ -331,10 +334,10 @@ int Openholo::getImgSize(int & w, int & h, int & bytesperpixel, const char * fil
 
 	fclose(infile);
 
-	return 1;
+	return true;
 }
 
-void Openholo::imgScaleBilnear(unsigned char * src, unsigned char * dst, int w, int h, int neww, int newh)
+void Openholo::imgScaleBilnear(uchar* src, uchar* dst, int w, int h, int neww, int newh)
 {
 	for (int y = 0; y < newh; y++)
 	{

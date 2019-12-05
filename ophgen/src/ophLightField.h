@@ -60,7 +60,7 @@ using namespace oph;
 /**
 * @addtogroup lightfield
 //@{
-* @detail
+* @details
 
 * @section Introduction
 

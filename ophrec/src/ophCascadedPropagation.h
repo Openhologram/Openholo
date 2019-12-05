@@ -124,7 +124,7 @@ struct OphCascadedPropagationConfig {
 /**
 * @addtogroup casprop
 //@{
-* @detail
+* @details
 
 * @section Introduction
 Cascaded propagation calculates a reconstructed complex wavefield at the retina plane given a source hologram in two steps:
@@ -194,12 +194,12 @@ class RECON_DLL ophCascadedPropagation : public ophRec {
 		/**
 		* @brief Function to write OHC file
 		*/
-		virtual int saveAsOhc(const char *fname);
+		virtual bool saveAsOhc(const char *fname);
 
 		/**
 		* @brief Function to read OHC file
 		*/
-		virtual int loadAsOhc(const char *fname);
+		virtual bool loadAsOhc(const char *fname);
 
 
 	private:

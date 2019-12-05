@@ -68,7 +68,7 @@ using namespace oph;
 /**
 * @addtogroup pointcloud
 //@{
-* @detail
+* @details
 
 * @section Introduction
 

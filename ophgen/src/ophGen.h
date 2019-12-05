@@ -54,16 +54,11 @@
 #define GEN_DLL __declspec(dllimport)
 #endif
 
-#pragma comment(lib, "libfftw3-3.lib")
-#pragma warning(disable : 4251 4819 4244 4018)
 struct OphPointCloudConfig;
 struct OphPointCloudData;
 struct OphDepthMapConfig;
 struct OphMeshData;
 struct OphWRPConfig;
-
-
-
 
 /**
 * @ingroup gen
@@ -99,7 +94,19 @@ protected:
 	virtual ~ophGen(void) = 0;
 
 public:
+	/**
+	* @brief Function for getting the encoded complex field buffer
+	* @return Type: <B>Real**</B>\n
+	*				If the function succeeds, the return value is <B>encoded complex field data's pointer</B>.\n
+	*				If the function fails, the return value is <B>nullptr</B>.
+	*/
 	inline Real** getEncodedBuffer(void) { return holo_encoded; }
+	/**
+	* @brief Function for getting the normalized(0~255) complex field buffer 
+	* @return Type: <B>uchar**</B>\n
+	*				If the function succeeds, the return value is <B>normalized complex field data's pointer</B>.\n
+	*				If the function fails, the return value is <B>nullptr</B>.
+	*/
 	inline uchar** getNormalizedBuffer(void) { return holo_normalized; }
 
 	/**
@@ -108,18 +115,32 @@ public:
 	void initialize(void);
 
 	/**
-	* @param const char* Point cloud data file name
-	* @param OphPointCloudData* Point cloud data - number of points, number of color, geometry of point cloud, color data, phase data
-	* @return Positive integer is points number of point cloud, return a negative integer if the load fails
+	* @brief load to point cloud data.
+	* @param[in] pc_file Point cloud data file name
+	* @param[out] pc_data_ Point cloud data - number of points, number of color, geometry of point cloud, color data, phase data
+	* @return Type: <B>int</B>\n
+	*				If the function succeeds, the return value is <B>Positive integer</B>.\n
+	*				If the function fails, the return value is <B>Negative interger</B>.
 	*/
 	int loadPointCloud(const char* pc_file, OphPointCloudData *pc_data_);
+
 	/**
-	* @param const char* config file name
-	* @return true if the load success, return false if the load fails
+	* @brief load to configuration file.
+	* @param[in] fname config file name
+	* @return Type: <B>bool</B>\n
+	*				If the function succeeds, the return value is <B>true</B>.\n
+	*				If the function fails, the return value is <B>false</B>.
 	*/
 	bool readConfig(const char* fname);
 
 	/**
+	* @brief Angular spectrum propagation method.
+	* @param[in] ch index of channel.
+	* @param[in] input_u Each depth plane data.
+	* @param[in] propagation_dist the distance from the object to the hologram plane.
+	* @param[in] k const value.
+	* @param[in] lambda wave length.
+	* @see calcHoloCPU, fftwShift
 	*/
 	void propagationAngularSpectrum(int ch, Complex<Real>* input_u, Real propagation_dist, Real k, Real lambda);
 
@@ -141,7 +162,7 @@ public:
 	/**
 	* @brief Function to read OHC file
 	*/
-	virtual int loadAsOhc(const char *fname);
+	virtual bool loadAsOhc(const char *fname);
 
 protected:
 	/**
@@ -218,7 +239,7 @@ public:
 public:
 	/**
 	* @brief	reset buffer
-	* @detials	buffer memory set '0'
+	* @details	buffer memory set '0'
 	*/
 	void resetBuffer();
 	/**
@@ -226,11 +247,6 @@ public:
 	* @details	Just used for the reference
 	*/
 	void loadComplex(char* real_file, char* imag_file, const uint pnX, const uint pnY);
-	/**
-	* @brief	Normalize the encoded hologram
-	* @details	Considering the encoded hologram size
-	*/
-	void normalizeEncoded(void);
 
 protected:
 	/**

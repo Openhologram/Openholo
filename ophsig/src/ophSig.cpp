@@ -197,13 +197,13 @@ void ophSig::fft2(matrix<Complex<T>> &src, matrix<Complex<T>> &dst, int sign, ui
 
 
 
-int ophSig::loadAsOhc(const char *fname)
+bool ophSig::loadAsOhc(const char *fname)
 {
 	std::string fullname = fname;
-	if (checkExtension(fname, ".ohc") == 0) fullname.append(".ohc");
+	if (!checkExtension(fname, ".ohc")) fullname.append(".ohc");
 	OHC_decoder->setFileName(fullname.c_str());
 	
-	if (!OHC_decoder->load()) return -1;
+	if (!OHC_decoder->load()) return false;
 	vector<Real> wavelengthArray;
 	OHC_decoder->getWavelength(wavelengthArray);
 	_wavelength_num = OHC_decoder->getNumOfWavlen();
@@ -226,10 +226,10 @@ int ophSig::loadAsOhc(const char *fname)
 	return true;
 }
 
-int ophSig::saveAsOhc(const char *fname)
+bool ophSig::saveAsOhc(const char *fname)
 {
 	std::string fullname = fname;
-	if (checkExtension(fname, ".ohc") == 0) fullname.append(".ohc");
+	if (!checkExtension(fname, ".ohc")) fullname.append(".ohc");
 	OHC_encoder->setFileName(fullname.c_str());
 
 	ohcHeader header;
@@ -249,9 +249,9 @@ int ophSig::saveAsOhc(const char *fname)
 		OHC_encoder->addComplexFieldData(ComplexH[i]);
 	}
 
-	if (!OHC_encoder->save()) return -1;
+	if (!OHC_encoder->save()) return false;
 
-	return 1;
+	return true;
 }
 
 bool ophSig::load(const char *real, const char *imag)
@@ -793,7 +793,7 @@ bool ophSig::sigConvertHPO(Real depth, Real_t redRate) {
 		
 	}
 	
-		auto end_time = CUR_TIME;
+	auto end_time = CUR_TIME;
 	auto during_time = ((std::chrono::duration<Real>)(end_time - start_time)).count();
 	LOG("Implement time : %.5lf sec\n", during_time);
 	return true;
@@ -1004,7 +1004,7 @@ bool ophSig::readConfig(const char* fname)
 	tinyxml2::XMLDocument xml_doc;
 	tinyxml2::XMLNode* xml_node;
 
-	if (checkExtension(fname, ".xml") == 0)
+	if (!checkExtension(fname, ".xml"))
 	{
 		LOG("file's extension is not 'xml'\n");
 		return false;

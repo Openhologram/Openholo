@@ -157,7 +157,7 @@ bool ophGen::readConfig(const char* fname)
 	tinyxml2::XMLDocument xml_doc;
 	XMLNode *xml_node = nullptr;
 	
-	if (checkExtension(fname, ".xml") == 0)
+	if (!checkExtension(fname, ".xml"))
 	{
 		LOG("file's extension is not 'xml'\n");
 		return false;
@@ -216,14 +216,6 @@ bool ophGen::readConfig(const char* fname)
 	return true;
 }
 
-
-/**
-* @brief Angular spectrum propagation method
-* @details The propagation results of all depth levels are accumulated in the variable 'U_complex_'.
-* @param input_u : each depth plane data.
-* @param propagation_dist : the distance from the object to the hologram plane.
-* @see Calc_Holo_by_Depth, Calc_Holo_CPU, fftwShift
-*/
 void ophGen::propagationAngularSpectrum(int ch, Complex<Real>* input_u, Real propagation_dist, Real k, Real lambda)
 {
 	const int pnX = context_.pixel_number[_X];
@@ -259,12 +251,6 @@ void ophGen::propagationAngularSpectrum(int ch, Complex<Real>* input_u, Real pro
 }
 
 void ophGen::normalize(void)
-{
-	for (uint ch = 0; ch < context_.waveNum; ch++)
-		oph::normalize((Real*)holo_encoded[ch], holo_normalized[ch], context_.pixel_number[_X], context_.pixel_number[_Y]);
-}
-
-void ophGen::normalizeEncoded(void)
 {
 	for (uint ch = 0; ch < context_.waveNum; ch++)
 		oph::normalize((Real*)holo_encoded[ch], holo_normalized[ch], context_.pixel_number[_X], context_.pixel_number[_Y]);
@@ -356,9 +342,9 @@ void* ophGen::load(const char * fname)
 	return nullptr;
 }
 
-int ophGen::loadAsOhc(const char * fname)
+bool ophGen::loadAsOhc(const char * fname)
 {
-	if (Openholo::loadAsOhc(fname) == -1) return -1;
+	if (!Openholo::loadAsOhc(fname)) return false;
 
 	const uint nChannel = context_.waveNum;
 	const uint pnXY = context_.pixel_number[_X] * context_.pixel_number[_Y];
@@ -371,7 +357,7 @@ int ophGen::loadAsOhc(const char * fname)
 		holo_normalized[ch] = new uchar[pnXY];
 		memset(holo_normalized, 0, sizeof(uchar) * pnXY);
 	}
-	return 0;
+	return true;
 }
 
 void ophGen::resetBuffer()

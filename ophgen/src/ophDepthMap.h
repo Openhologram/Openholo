@@ -61,7 +61,7 @@ using namespace oph;
 /**
 * @addtogroup depthmap
 //@{
-* @detail
+* @details
 
 * @section Introduction
 
