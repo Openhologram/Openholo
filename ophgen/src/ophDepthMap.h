@@ -117,7 +117,15 @@ protected:
 	virtual ~ophDepthMap();
 
 public:
-
+	/**
+	* @brief Set the value of a variable is_CPU(true or false)
+	* @details <pre>
+	if is_CPU == true
+	CPU implementation
+	else
+	GPU implementation </pre>
+	* @param[in] is_CPU the value for specifying whether the hologram generation method is implemented on the CPU or GPU
+	*/
 	void setMode(bool is_CPU);
 	bool readConfig(const char* fname);
 	bool readImageDepth(const char* source_folder, const char* img_prefix, const char* depth_img_prefix);

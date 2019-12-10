@@ -156,6 +156,15 @@ public:
 	const vec3& getObjShift(void) { return objShift; }
 	const vec3&	getIllumination(void) { return illumination; }
 	const Real& getFieldLens(void) { return fieldLength; }
+	/**
+	* @brief Set the value of a variable is_CPU(true or false)
+	* @details <pre>
+	if is_CPU == true
+	CPU implementation
+	else
+	GPU implementation </pre>
+	* @param[in] is_CPU the value for specifying whether the hologram generation method is implemented on the CPU or GPU
+	*/
 	void setMode(bool is_CPU);
 public:
 	/**

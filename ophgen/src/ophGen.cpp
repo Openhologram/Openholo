@@ -57,7 +57,6 @@ ophGen::ophGen(void)
 	: Openholo()
 	, holo_encoded(nullptr)
 	, holo_normalized(nullptr)
-	, bCarried(false)
 	, nOldChannel(0)
 	, elapsedTime(0.0)
 {
@@ -256,9 +255,9 @@ void ophGen::normalize(void)
 		oph::normalize((Real*)holo_encoded[ch], holo_normalized[ch], context_.pixel_number[_X], context_.pixel_number[_Y]);
 }
 
-int ophGen::save(const char * fname, uint8_t bitsperpixel, uchar* src, uint px, uint py)
+bool ophGen::save(const char * fname, uint8_t bitsperpixel, uchar* src, uint px, uint py)
 {
-	if (fname == nullptr) return -1;
+	if (fname == nullptr) return false;
 
 	uchar* source = src;
 	const uint nChannel = context_.waveNum;
@@ -298,9 +297,10 @@ int ophGen::save(const char * fname, uint8_t bitsperpixel, uchar* src, uint px, 
 			Openholo::saveAsImg(buf, bitsperpixel, source, p[_X], p[_Y]);
 		}
 	}
+	return true;
 }
 
-int ophGen::save(const char * fname, uint8_t bitsperpixel, uint px, uint py, uint fnum, uchar* args ...)
+bool ophGen::save(const char * fname, uint8_t bitsperpixel, uint px, uint py, uint fnum, uchar* args ...)
 {
 	std::string file = fname;
 	std::string name;
@@ -327,7 +327,7 @@ int ophGen::save(const char * fname, uint8_t bitsperpixel, uint px, uint py, uin
 
 	__crt_va_end(ap);
 
-	return 0;
+	return true;
 }
 
 void* ophGen::load(const char * fname)
@@ -379,44 +379,6 @@ void ophGen::resetBuffer()
 
 #define for_i(itr, oper) for(int i=0; i<itr; i++){ oper }
 
-void ophGen::loadComplex(char* real_file, char* imag_file, const uint pnX, const uint pnY)
-{
-	context_.pixel_number[_X] = pnX;
-	context_.pixel_number[_Y] = pnY;
-
-	ifstream freal, fimag;
-	freal.open(real_file);
-	fimag.open(imag_file);
-	if (!freal) {
-		cout << "open failed - real" << endl;
-		cin.get();
-		return;
-	}
-	if (!fimag) {
-		cout << "open failed - imag" << endl;
-		cin.get();
-		return;
-	}
-
-	for (uint i = 0; i < context_.waveNum; i++) {
-		if (complex_H[i] != nullptr) delete[] complex_H[i];
-		complex_H[i] = new oph::Complex<Real>[pnX * pnY];
-		memset(complex_H[i], 0.0, sizeof(Complex<Real>) * pnX * pnY);
-
-		Real realVal, imagVal;
-
-		for (int j = 0; j < pnX * pnY; j++) {
-			freal >> realVal;
-			fimag >> imagVal;
-
-			Complex<Real> compVal;
-			compVal(realVal, imagVal);
-			complex_H[i][j] = compVal;
-			if (realVal == EOF || imagVal == EOF)
-				break;
-		}
-	}
-}
 
 void ophGen::encoding(unsigned int ENCODE_FLAG, Complex<Real>* holo, bool bShift)
 {
@@ -973,9 +935,6 @@ void ophGen::fresnelPropagation(Complex<Real>* in, Complex<Real>* out, Real dist
 
 void ophGen::waveCarry(Real carryingAngleX, Real carryingAngleY, Real distance)
 {
-	if (bCarried == FALSE) bCarried = TRUE;
-	else return;
-
 	const uint pnX = context_.pixel_number[_X];
 	const uint pnY = context_.pixel_number[_Y];
 	const uint pnXY = pnX * pnY;
@@ -1304,7 +1263,7 @@ void ophGen::getShiftPhaseValue(oph::Complex<Real>& shift_phase_val, int idx, op
 	}
 }
 
-void ophGen::getRandPhaseValue(oph::Complex<Real>& rand_phase_val, bool rand_phase)
+void ophGen::getRandPhaseValue(Complex<Real>& rand_phase_val, bool rand_phase)
 {
 	if (rand_phase)
 	{

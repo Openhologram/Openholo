@@ -633,7 +633,7 @@ public:
 	CPU implementation
 	else
 	GPU implementation </pre>
-	* @param is_CPU : the value for specifying whether the hologram generation method is implemented on the CPU or GPU
+	* @param[in] is_CPU the value for specifying whether the hologram generation method is implemented on the CPU or GPU
 	*/
 	void setMode(bool is_CPU);
 
@@ -645,7 +645,7 @@ public:
 	*/
 	/**
 	* @brief override
-	* @param InputModelFile PointCloud(*.dat) input file path
+	* @param[in] InputModelFile PointCloud(*.dat) input file path
 	* @return number of Pointcloud (if it failed loading, it returned -1)
 	*/
 	int loadPointCloud(const char* pc_file);

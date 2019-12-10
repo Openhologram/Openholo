@@ -148,26 +148,31 @@ public:
 	int getNumOfPoints() { return n_points; }
 
 	/**
-	* @brief Import Point Cloud Data File (*.PLY)
-	* @details This Function is included memory location of Input Point Clouds.
-	* @param const char* 
-	*					PointCloud(*.PLY) input file path
-	* @return number of Pointcloud (if it failed loading, it returned -1)
+	* @brief load to point cloud data.
+	* @param[in] pc_file Point cloud data file name
+	* @return Type: <B>int</B>\n
+	*				If the function succeeds, the return value is <B>Positive integer</B>.\n
+	*				If the function fails, the return value is <B>Negative interger</B>.
 	*/
 	virtual int loadPointCloud(const char* pc_file);
+	
 	/**
-	* @brief Import Specification Config File(*.config) file
-	* @param const char*
-	*					InputConfigFile Specification Config(*.config) file path
-	* @return If the function succeeds, the return value is nonzero.
-	* If the function failes, the return value is zero.
+	* @brief load to configuration file.
+	* @param[in] fname config file name
+	* @return Type: <B>bool</B>\n
+	*				If the function succeeds, the return value is <B>true</B>.\n
+	*				If the function fails, the return value is <B>false</B>.
 	*/
 	virtual bool readConfig(const char* fname);
 
-//	void encodeHologram(void);
 	/**
-	* @brief Generate a WRP, main funtion.
-	* @return implement time (sec)
+	* @brief Set the value of a variable is_CPU(true or false)
+	* @details <pre>
+	if is_CPU == true
+	CPU implementation
+	else
+	GPU implementation </pre>
+	* @param[in] is_CPU the value for specifying whether the hologram generation method is implemented on the CPU or GPU
 	*/
 	void setMode(bool is_CPU);
 

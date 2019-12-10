@@ -92,7 +92,7 @@ Real ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 	else if (pc_config_.n_streams < 0)
 	{
 		LOG("Invalid value : NumOfStream");
-		return;
+		return 0.0;
 	}
 	else
 		n_streams = pc_config_.n_streams;

@@ -81,7 +81,7 @@ bool Openholo::checkExtension(const char * fname, const char * ext)
 {
 	string filename(fname);
 	string fext(ext);
-	if (0 == filename.substr(filename.find_last_of(".") + 1).compare(fext))
+	if (0 == filename.substr(filename.find_last_of(".")).compare(fext))
 		return true;
 	else
 		return false;

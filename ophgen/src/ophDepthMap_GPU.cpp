@@ -105,13 +105,6 @@ bool ophDepthMap::prepareInputdataGPU(uchar* imgptr, uchar* dimgptr)
 	uint pnX = context_.pixel_number[_X];
 	uint pnY = context_.pixel_number[_Y];
 	const ulonglong pnXY = pnX * pnY;
-	
-	if (img_src_gpu) {
-		HANDLE_ERROR(cudaMemsetAsync(img_src_gpu, 0, sizeof(uchar1)*pnXY));
-	}
-	if (dimg_src_gpu) {
-		HANDLE_ERROR(cudaMemsetAsync(dimg_src_gpu, 0, sizeof(uchar1)*pnXY));
-	}
 
 	HANDLE_ERROR(cudaMemcpyAsync(img_src_gpu, imgptr, sizeof(uchar1)*pnXY, cudaMemcpyHostToDevice), stream_);
 	HANDLE_ERROR(cudaMemcpyAsync(dimg_src_gpu, dimgptr, sizeof(uchar1)*pnXY, cudaMemcpyHostToDevice), stream_);
