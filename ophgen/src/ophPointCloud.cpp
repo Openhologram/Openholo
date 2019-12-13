@@ -57,6 +57,7 @@ ophPointCloud::ophPointCloud(void)
 	, n_percent(0)
 	, n_points(-1)
 {
+	LOG("*** BUILD DATE: %s %s ***\n\n", __DATE__, __TIME__);
 }
 
 ophPointCloud::ophPointCloud(const char* pc_file, const char* cfg_file)
@@ -164,6 +165,7 @@ Real ophPointCloud::generateHologram(uint diff_flag)
 		"GPU");
 	LOG("3) Transform Viewing Window : %s\n", is_ViewingWindow ? "ON" : "OFF");
 	LOG("4) Diffraction Method : %s\n", diff_flag == PC_DIFF_RS ? "R-S" : "Fresnel");
+	LOG("5) Number of Point Cloud : %d\n", n_points);
 
 	// Create CGH Fringe Pattern by 3D Point Cloud
 	if (is_CPU) { //Run CPU
@@ -307,13 +309,11 @@ Real ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 	ss[_Y] = context_.ss[_Y] = pn[_Y] * pp[_Y];
 
 	uint nChannel = context_.waveNum;
-
-
+	
+	bool bIsGrayScale = pc_data_.n_colors == 1 ? true : false;
 
 	int i; // private variable for Multi Threading
 	int num_threads = 1;
-	
-
 	int sum = 0;
 	int prev = 0;
 	n_percent = 0;
@@ -322,6 +322,7 @@ Real ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 		// Wave Number (2 * PI / lambda(wavelength))
 		Real lambda = context_.wave_length[ch];
 		Real k = context_.k = (2 * M_PI / lambda);
+		uint nAdd = bIsGrayScale ? 0 : ch;
 #ifdef _OPENMP
 #pragma omp parallel
 		{
@@ -340,8 +341,8 @@ Real ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 				pcy *= pc_config_.scale[_Y];
 				pcz *= pc_config_.scale[_Z];
 				pcz += pc_config_.offset_depth;
-				Real amplitude = pc_data_.color[color_idx];
-
+				Real amplitude = pc_data_.color[color_idx + nAdd];
+			
 				switch (diff_flag)
 				{
 				case PC_DIFF_RS:

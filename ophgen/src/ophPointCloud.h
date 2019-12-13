@@ -638,6 +638,19 @@ public:
 	void setMode(bool is_CPU);
 
 	/**
+	* @brief get the value of a variable is_CPU(true or false)
+	* @details <pre>
+	if is_CPU == true
+	CPU implementation
+	else
+	GPU implementation </pre>
+	* @return Type: <B>bool</B>\n
+	*				If the function succeeds, the return value is <B>true</B>.\n
+	*				If the function fails, the return value is <B>false</B>.
+	*/
+	bool isCPU() { return is_CPU; }
+
+	/**
 	* @brief override
 	* @{
 	* @brief Import Point Cloud Data Base File : *.dat file.

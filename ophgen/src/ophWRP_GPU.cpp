@@ -150,11 +150,13 @@ void ophWRP::prepareInputdataGPU()
 	HANDLE_ERROR(cudaMalloc((void**)&device_dst, bufferSize * 2));
 
 	Real* host_dst = new Real[pnXY * 2];
-	
+
+	bool bIsGrayScale = (nChannel == 1) ? true : false;
 	for (uint ch = 0; ch < nChannel; ch++) {
 
 		Real lambda = context_.wave_length[ch];
 		Real k = context_.k = (2 * M_PI / lambda);
+		uint nAdd = bIsGrayScale ? 0 : ch;
 		float wm = round(fabs(wz * tan(lambda / (2 * ppX)) / ppX));
 
 		HANDLE_ERROR(cudaMemset(device_pc_xindex, 0., n_points * 3 * sizeof(Real)));
@@ -179,7 +181,7 @@ void ophWRP::prepareInputdataGPU()
 		HANDLE_ERROR(cudaMemset(device_amp_dst, 0., bufferSize));
 
 		cudaGetObjDst(gridSize, blockSize, n_points, device_pc_xindex, device_obj_dst, (WRPGpuConst*)device_config);
-		cudaGetAmpDst(gridSize, blockSize, n_points, device_pc_xindex, device_amp_data, device_amp_dst, (WRPGpuConst*)device_config);
+		cudaGetAmpDst(gridSize, blockSize, n_points, device_pc_xindex, device_amp_data, device_amp_dst, (WRPGpuConst*)device_config, nAdd);
 
 		HANDLE_ERROR(cudaMemcpy(host_obj_dst, device_obj_dst, bufferSize, cudaMemcpyDeviceToHost));
 		HANDLE_ERROR(cudaMemcpy(host_amp_dst, device_amp_dst, bufferSize, cudaMemcpyDeviceToHost));

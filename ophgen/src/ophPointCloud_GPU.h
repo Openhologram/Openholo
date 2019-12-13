@@ -277,13 +277,13 @@ extern "C"
 		const int &nBlocks, const int &nThreads, const int &n_pts_per_stream,
 		Real* cuda_pc_data, Real* cuda_amp_data,
 		Real* cuda_dst_real, Real* cuda_dst_imag,
-		const GpuConstNERS* cuda_config);
+		const GpuConstNERS* cuda_config, const uint &iChannel);
 
 	void cudaGenCghPointCloud_NotEncodedFrsn(
 		const int &nBlocks, const int &nThreads, const int &n_pts_per_stream,
 		Real* cuda_pc_data, Real* cuda_amp_data,
 		Real* cuda_dst_real, Real* cuda_dst_imag,
-		const GpuConstNEFR* cuda_config);
+		const GpuConstNEFR* cuda_config, const uint &iChannel);
 }
 
 #endif

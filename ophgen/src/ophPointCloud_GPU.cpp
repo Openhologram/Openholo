@@ -51,30 +51,33 @@
 //#define USE_ASYNC
 Real ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 {
+	static bool bLog = true;
 	auto begin = CUR_TIME;
 	int devID;
 	HANDLE_ERROR(cudaGetDevice(&devID));
 	cudaDeviceProp devProp;
 	HANDLE_ERROR(cudaGetDeviceProperties(&devProp, devID));
-
+	if (bLog) {
 #ifdef __DEBUG_LOG_GPU_SPEC_
-	cout << "GPU Spec : " << devProp.name << endl;
-	cout << " - Global Memory : " << devProp.totalGlobalMem << endl;
-	cout << " - Const Memory : " << devProp.totalConstMem << endl;	
-	cout << "  - MP(Multiprocessor) Count : " << devProp.multiProcessorCount << endl;
-	cout << "  - Maximum Threads per MP : " << devProp.maxThreadsPerMultiProcessor << endl;
-	cout << "  - Shared Memory per MP : " << devProp.sharedMemPerMultiprocessor << endl;
-	cout << "   - Block per MP : " << devProp.maxThreadsPerMultiProcessor/devProp.maxThreadsPerBlock << endl;
-	
-	cout << "   - Shared Memory per Block : " << devProp.sharedMemPerBlock << endl;
-	cout << "   - Maximum Threads per Block : " << devProp.maxThreadsPerBlock << endl;
-	printf("   - Maximum Threads of each Dimension of a Block (X: %d / Y: %d / Z: %d)\n", 
-		devProp.maxThreadsDim[_X], devProp.maxThreadsDim[_Y], devProp.maxThreadsDim[_Z]);
-	printf("   - Maximum Blocks of each Dimension of a Grid, (X: %d / Y: %d / Z: %d)\n", 
-		devProp.maxGridSize[_X], devProp.maxGridSize[_Y], devProp.maxGridSize[_Z]);
-	cout << "   - Device supports allocating Managed Memory on this system : " << devProp.managedMemory << endl;
-	cout << endl;
+		cout << "GPU Spec : " << devProp.name << endl;
+		cout << " - Global Memory : " << devProp.totalGlobalMem << endl;
+		cout << " - Const Memory : " << devProp.totalConstMem << endl;
+		cout << "  - MP(Multiprocessor) Count : " << devProp.multiProcessorCount << endl;
+		cout << "  - Maximum Threads per MP : " << devProp.maxThreadsPerMultiProcessor << endl;
+		cout << "  - Shared Memory per MP : " << devProp.sharedMemPerMultiprocessor << endl;
+		cout << "   - Block per MP : " << devProp.maxThreadsPerMultiProcessor / devProp.maxThreadsPerBlock << endl;
+
+		cout << "   - Shared Memory per Block : " << devProp.sharedMemPerBlock << endl;
+		cout << "   - Maximum Threads per Block : " << devProp.maxThreadsPerBlock << endl;
+		printf("   - Maximum Threads of each Dimension of a Block (X: %d / Y: %d / Z: %d)\n",
+			devProp.maxThreadsDim[_X], devProp.maxThreadsDim[_Y], devProp.maxThreadsDim[_Z]);
+		printf("   - Maximum Blocks of each Dimension of a Grid, (X: %d / Y: %d / Z: %d)\n",
+			devProp.maxGridSize[_X], devProp.maxGridSize[_Y], devProp.maxGridSize[_Z]);
+		cout << "   - Device supports allocating Managed Memory on this system : " << devProp.managedMemory << endl;
+		cout << endl;
 #endif
+		bLog = false;
+	}
 
 	bool bSupportDouble = false;
 
@@ -123,12 +126,15 @@ Real ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 	}
 
 	uint nChannel = context_.waveNum;
+	bool bIsGrayScale = n_colors == 1 ? true : false;
 
 	for (uint ch = 0; ch < nChannel; ch++)
 	{
+		uint nAdd = bIsGrayScale ? 0 : ch;
 		memset(host_dst, 0., bufferSize * 2);
 		context_.k = (2 * M_PI) / context_.wave_length[ch];
 
+		LOG("ch[%d] wave: %e / k: %lf\n", ch, context_.wave_length[ch], context_.k);
 		GpuConst* host_config = new GpuConst(
 			n_points, n_colors, pc_config_.n_streams,
 			pc_config_.scale, pc_config_.offset_depth,
@@ -177,12 +183,12 @@ Real ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 				stream_points += remainder;
 			}
 			HANDLE_ERROR(cudaMemcpy(device_pc_data + 3 * offset, host_pc_data + 3 * offset, stream_points * 3 * sizeof(Real), cudaMemcpyHostToDevice));
-			HANDLE_ERROR(cudaMemcpy(device_amp_data + n_colors * offset, host_amp_data + n_colors * offset, stream_points * sizeof(Real), cudaMemcpyHostToDevice));
+			HANDLE_ERROR(cudaMemcpy(device_amp_data + n_colors * offset, host_amp_data + n_colors * offset, stream_points * sizeof(Real) * n_colors, cudaMemcpyHostToDevice));
 
 			switch (diff_flag) {
 			case PC_DIFF_RS/*_NOT_ENCODED*/: {
-
-				cudaGenCghPointCloud_NotEncodedRS(gridSize, blockSize, stream_points, device_pc_data + 3 * offset, device_amp_data + n_colors * offset, device_dst, device_dst + pnXY, (GpuConstNERS*)device_config);
+				cudaGenCghPointCloud_NotEncodedRS(gridSize, blockSize, stream_points, device_pc_data + 3 * offset, 
+					device_amp_data + n_colors * offset, device_dst, device_dst + pnXY, (GpuConstNERS*)device_config, nAdd);
 				HANDLE_ERROR(cudaMemcpy(host_dst, device_dst, bufferSize * 2, cudaMemcpyDeviceToHost));
 				HANDLE_ERROR(cudaMemset(device_dst, 0., bufferSize * 2));
 
@@ -193,7 +199,8 @@ Real ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 				break;
 			}
 			case PC_DIFF_FRESNEL/*_NOT_ENCODED*/: {
-				cudaGenCghPointCloud_NotEncodedFrsn(gridSize, blockSize, stream_points, device_pc_data + 3 * offset, device_amp_data + n_colors * offset, device_dst, device_dst + pnXY, (GpuConstNEFR*)device_config);
+				cudaGenCghPointCloud_NotEncodedFrsn(gridSize, blockSize, stream_points, device_pc_data + 3 * offset,
+					device_amp_data + n_colors * offset, device_dst, device_dst + pnXY, (GpuConstNEFR*)device_config, nAdd);
 				HANDLE_ERROR(cudaMemcpy(host_dst, device_dst, bufferSize * 2, cudaMemcpyDeviceToHost));
 				HANDLE_ERROR(cudaMemset(device_dst, 0., bufferSize * 2));
 

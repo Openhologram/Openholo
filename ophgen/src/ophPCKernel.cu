@@ -92,12 +92,11 @@ __global__ void cudaKernel_diffractEncodedRS(Real* pc_data, Real* amp_data, cons
 }
 
 
-__global__ void cudaKernel_diffractNotEncodedRS(Real* pc_data, Real* amp_data, const GpuConstNERS* config, const int n_points_stream, Real* dst_real, Real* dst_imag)
+__global__ void cudaKernel_diffractNotEncodedRS(Real* pc_data, Real* amp_data, const GpuConstNERS* config, const int n_points_stream, Real* dst_real, Real* dst_imag, uint iChannel)
 {
 	ulonglong tid = blockIdx.x * blockDim.x + threadIdx.x;
 	ulonglong tid_offset = blockDim.x * gridDim.x;
 	ulonglong n_pixels = config->pn_X * config->pn_Y;
-	ulonglong tmp = tid;
 
 	for (tid; tid < n_pixels; tid += tid_offset) {
 		int xxtr = tid % config->pn_X;
@@ -107,14 +106,12 @@ __global__ void cudaKernel_diffractNotEncodedRS(Real* pc_data, Real* amp_data, c
 		Real xxx = -config->half_ss_X + (xxtr - 1) * config->pp_X;
 		Real yyy = -config->half_ss_Y + (config->pn_Y - yytr) * config->pp_Y;
 
-		for (int j = 0; j < n_points_stream; ++j) { //Create Fringe Pattern
+		for (int j = 0; j < n_points_stream; ++j) { // Create Fringe Pattern
 			Real pcx = pc_data[3 * j + _X] * config->scale_X;
 			Real pcy = pc_data[3 * j + _Y] * config->scale_Y;
 			Real pcz = pc_data[3 * j + _Z] * config->scale_Z;
 			pcz += config->offset_depth;
-			Real amplitude = amp_data[config->n_colors * j];
-			
-			//boundary test
+			Real amplitude = amp_data[config->n_colors * j + iChannel];			//boundary test
 			Real abs_det_txy_pcz = abs(config->det_tx * pcz);
 			Real _xbound[2] = {
 				pcx + abs_det_txy_pcz,
@@ -161,10 +158,10 @@ __global__ void cudaKernel_diffractNotEncodedRS(Real* pc_data, Real* amp_data, c
 				};
 				//
 
-				if (((xxx < range_x[_X]) && (xxx > range_x[_Y])) && ((yyy < range_y[_X]) && (yyy > range_y[_Y]))) {
+				if (amplitude != 0.0 && ((xxx < range_x[_X]) && (xxx > range_x[_Y])) && ((yyy < range_y[_X]) && (yyy > range_y[_Y]))) {
 					Real r = sqrt(xxx_pcx_sq + yyy_pcy_sq + pcz_sq);
 					Real p = config->k * r;
-					Real a = (amplitude * pcz) / (config->lambda * r * r);;
+					Real a = (amplitude * pcz) / (config->lambda * r * r);
 					Real res_real = sin(p) * a;
 					Real res_imag = -cos(p) * a;
 					*(dst_real + idx) += res_real;
@@ -177,7 +174,7 @@ __global__ void cudaKernel_diffractNotEncodedRS(Real* pc_data, Real* amp_data, c
 }
 
 
-__global__ void cudaKernel_diffractNotEncodedFrsn(Real* pc_data, Real* amp_data, const GpuConstNEFR* config, const int n_points_stream, Real* dst_real, Real* dst_imag)
+__global__ void cudaKernel_diffractNotEncodedFrsn(Real* pc_data, Real* amp_data, const GpuConstNEFR* config, const int n_points_stream, Real* dst_real, Real* dst_imag, uint iChannel)
 {
 	ulonglong tid = blockIdx.x * blockDim.x + threadIdx.x;
 	ulonglong tid_offset = blockDim.x * gridDim.x;
@@ -195,7 +192,7 @@ __global__ void cudaKernel_diffractNotEncodedFrsn(Real* pc_data, Real* amp_data,
 			Real pcx = pc_data[3 * j + _X] * config->scale_X;
 			Real pcy = pc_data[3 * j + _Y] * config->scale_Y;
 			Real pcz = pc_data[3 * j + _Z] * config->scale_Z + config->offset_depth;
-			Real amplitude = amp_data[config->n_colors * j];
+			Real amplitude = amp_data[config->n_colors * j + iChannel];
 
 			//boundary test
 			Real abs_txy_pcz = abs(config->tx * pcz);
@@ -256,18 +253,18 @@ extern "C"
 		const int &nBlocks, const int &nThreads, const int &n_pts_per_stream,
 		Real* cuda_pc_data, Real* cuda_amp_data,
 		Real* cuda_dst_real, Real* cuda_dst_imag,
-		const GpuConstNERS* cuda_config)
+		const GpuConstNERS* cuda_config, const uint &iChannel)
 	{
-		cudaKernel_diffractNotEncodedRS << < nBlocks, nThreads >> > (cuda_pc_data, cuda_amp_data, cuda_config, n_pts_per_stream, cuda_dst_real, cuda_dst_imag);
+		cudaKernel_diffractNotEncodedRS << < nBlocks, nThreads >> > (cuda_pc_data, cuda_amp_data, cuda_config, n_pts_per_stream, cuda_dst_real, cuda_dst_imag, iChannel);
 	}
 
 	void cudaGenCghPointCloud_NotEncodedFrsn(
 		const int &nBlocks, const int &nThreads, const int &n_pts_per_stream,
 		Real* cuda_pc_data, Real* cuda_amp_data,
 		Real* cuda_dst_real, Real* cuda_dst_imag,
-		const GpuConstNEFR* cuda_config)
+		const GpuConstNEFR* cuda_config, const uint &iChannel)
 	{
-		cudaKernel_diffractNotEncodedFrsn << < nBlocks, nThreads >> > (cuda_pc_data, cuda_amp_data, cuda_config, n_pts_per_stream, cuda_dst_real, cuda_dst_imag);
+		cudaKernel_diffractNotEncodedFrsn << < nBlocks, nThreads >> > (cuda_pc_data, cuda_amp_data, cuda_config, n_pts_per_stream, cuda_dst_real, cuda_dst_imag, iChannel);
 	}
 }
 

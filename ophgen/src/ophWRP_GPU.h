@@ -160,7 +160,7 @@ extern "C"
 	void cudaGetAmpDst(
 		const int &nBlocks, const int &nThreads, const int &n_pts_per_stream,
 		Real* cuda_pc_index, Real* cuda_pc_amp, Real* cuda_amp_dst,
-		const WRPGpuConst* cuda_config);
+		const WRPGpuConst* cuda_config, const uint &iAdd);
 
 
 

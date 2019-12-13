@@ -142,7 +142,7 @@ __global__ void cudaKernel_GetObjDst(Real* pc_index, Real* obj_dst, const WRPGpu
 
 	}
 }
-__global__ void cudaKernel_GetAmpDst(Real* pc_index, Real* pc_amp, Real* amp_dst, const WRPGpuConst* config, const int n_points_stream)
+__global__ void cudaKernel_GetAmpDst(Real* pc_index, Real* pc_amp, Real* amp_dst, const WRPGpuConst* config, const int n_points_stream, const uint iAdd)
 {
 	ulonglong tid = blockIdx.x * blockDim.x + threadIdx.x;
 	ulonglong tid_offset = blockDim.x * gridDim.x;
@@ -157,7 +157,7 @@ __global__ void cudaKernel_GetAmpDst(Real* pc_index, Real* pc_amp, Real* amp_dst
 		ox = pc_index[3 * tid];
 		oy = pc_index[3 * tid + 1];
 		o_index = ox + oy * config->pn_X;
-		amp_dst[o_index] = pc_amp[3 * tid];
+		amp_dst[o_index] = pc_amp[3 * tid + iAdd];
 	}
 }
 
@@ -191,9 +191,9 @@ extern "C"
 	void cudaGetAmpDst(
 		const int &nBlocks, const int &nThreads, const int &n_pts_per_stream,
 		Real* cuda_pc_index, Real* cuda_pc_amp, Real* cuda_amp_dst,
-		const WRPGpuConst* cuda_config)
+		const WRPGpuConst* cuda_config, const uint &iAdd)
 	{
-		cudaKernel_GetAmpDst << <nBlocks, nThreads >> > (cuda_pc_index, cuda_pc_amp, cuda_amp_dst, cuda_config, n_pts_per_stream);
+		cudaKernel_GetAmpDst << <nBlocks, nThreads >> > (cuda_pc_index, cuda_pc_amp, cuda_amp_dst, cuda_config, n_pts_per_stream, iAdd);
 	}
 
 

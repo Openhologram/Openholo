@@ -55,6 +55,7 @@ ophWRP::ophWRP(void)
 	p_wrp_ = nullptr;
 	is_CPU = true;
 	is_ViewingWindow = false;
+	LOG("*** BUILD DATE: %s %s ***\n\n", __DATE__, __TIME__);
 }
 
 ophWRP::~ophWRP(void)
@@ -353,12 +354,13 @@ double ophWRP::calculateWRPCPU(void)
 	memset(p_wrp_, 0.0, sizeof(Complex<Real>) * pnXY);
 
 	int num_threads = 1;
+	bool bIsGrayScale = (nChannel == 1) ? true : false;
 
 	for (uint ch = 0; ch < nChannel; ch++) {
 
 		Real lambda = context_.wave_length[ch];  //wave_length
 		Real k = context_.k = 2 * M_PI / lambda;
-
+		uint nAdd = bIsGrayScale ? 0 : ch;
 		int i;
 #ifdef _OPENMP
 #pragma omp parallel
@@ -373,7 +375,7 @@ double ophWRP::calculateWRPCPU(void)
 				Real x = scaledVertex[idx + _X];
 				Real y = scaledVertex[idx + _Y];
 				Real z = scaledVertex[idx + _Z];
-				Real amplitude = pc.color[color_idx];
+				Real amplitude = pc.color[color_idx + nAdd];
 
 				float dz = wrp_d - z;
 				float tw = (int)fabs(lambda * dz / ppX / ppX / 2 + 0.5) * 2 - 1;
