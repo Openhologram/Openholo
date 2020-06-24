@@ -1,9 +1,12 @@
 #include "ImgEncoder.h"
 #include <string.h>
 #include <gdiplus.h>
-
+#include <Shlwapi.h>
+#include <omp.h>
+#include "sys.h"
+#include "function.h"
 #pragma comment(lib, "gdiplus.lib")
-using namespace Gdiplus;
+
 ImgEncoder* ImgEncoder::instance = nullptr;
 
 ImgEncoder::ImgEncoder()
@@ -15,34 +18,8 @@ ImgEncoder::~ImgEncoder()
 {
 }
 
-bool ImgEncoder::SaveJPG(const char *path, BYTE *pSrc, UINT len)
-{
-	bool bOK = false;
-	BYTE *pDest = new BYTE[len];
-	memcpy(pDest, pSrc, len);
-	
-	CComPtr<IStream> pStream;
-	pStream.Attach(SHCreateMemStream(pDest, len));
-	Image img(pStream, FALSE);
-	GdiplusStartupInput gsi;
-	ULONG_PTR token = NULL;
-
-	if (GdiplusStartup(&token, &gsi, NULL) == Ok) {
-		
-		CLSID clsid;
-		if (GetEncoderClsid(L"image/jpeg", &clsid) != -1) {
-			if (img.Save(CA2W(path), &clsid, NULL) != Ok)
-				bOK = true;
-		}
-	}
-	GdiplusShutdown(token);
-	pStream.Detach();
-	
-	delete[] pDest;
-	return bOK;
-}
-
-bool ImgEncoder::SavePNG(const char *path, BYTE *pSrc, UINT len)
+using namespace Gdiplus;
+bool ImgEncoder::Save(const char *path, BYTE *pSrc, UINT len, int quality)
 {
 	bool bOK = false;
 	BYTE *pDest = new BYTE[len];
@@ -56,62 +33,57 @@ bool ImgEncoder::SavePNG(const char *path, BYTE *pSrc, UINT len)
 
 	if (GdiplusStartup(&token, &gsi, NULL) == Ok) {
 		CLSID clsid;
-		if (GetEncoderClsid(L"image/png", &clsid) != -1) {
-			if (img.Save(CA2W(path), &clsid, NULL) != Ok)
-				bOK = true;
+		wchar_t format[256] = { 0, };
+		wsprintfW(format, L"image/%s", PathFindExtensionW(CA2W(path)) + 1);
+
+		bool bParam = false;
+		EncoderParameters params;
+		memset(&params, 0, sizeof(EncoderParameters));
+		if (!_stricmp(PathFindExtensionA(path) + 1, "jpg") ||
+			!_stricmp(PathFindExtensionA(path) + 1, "jpeg")) {
+
+			wsprintfW(format, L"image/%s", L"jpeg");
+
+			ULONG q = (quality > 100 || quality < 0) ? 100 : quality;
+			params.Count = 1;
+			params.Parameter[0].Guid = EncoderQuality;
+			params.Parameter[0].Type = EncoderParameterValueTypeLong;
+			params.Parameter[0].NumberOfValues = 1;
+			params.Parameter[0].Value = &q;
+			bParam = true;
+		}
+		else if (!_stricmp(PathFindExtensionA(path) + 1, "tif")) {
+			wsprintfW(format, L"image/%s", L"tiff");
+		}
+		if (GetEncoderClsid(format, &clsid) != -1) {
+			bOK = (img.Save(CA2W(path), &clsid, bParam ? &params : NULL) != Ok) ? false : true;
 		}
 	}
 	GdiplusShutdown(token);
 	pStream.Detach();
-
-	delete[] pDest;
-	return bOK;
-}
-
-bool ImgEncoder::SaveGIF(const char *path, BYTE *pSrc, UINT len)
-{
-	bool bOK = false;
-	BYTE *pDest = new BYTE[len];
-	memcpy(pDest, pSrc, len);
-
-	CComPtr<IStream> pStream;
-	pStream.Attach(SHCreateMemStream(pDest, len));
-	Image img(pStream, FALSE);
-	GdiplusStartupInput gsi;
-	ULONG_PTR token = NULL;
-
-	if (GdiplusStartup(&token, &gsi, NULL) == Ok) {
-		CLSID clsid;
-		if (GetEncoderClsid(L"image/gif", &clsid) != -1) {
-			if (img.Save(CA2W(path), &clsid, NULL) != Ok)
-				bOK = true;
-		}
-	}
-	GdiplusShutdown(token);
-	pStream.Detach();
-
+	pStream.Release();
 	delete[] pDest;
 	return bOK;
 }
 
 int ImgEncoder::GetEncoderClsid(const WCHAR *format, CLSID *pClsid)
 {
-	UINT  num = 0;            // number of image encoders
-	UINT  size = 0;           // size of the image encoder array in bytes
+	UINT nEncoder = 0; // number of image encoders
+	UINT nSize = 0; // size of the image encoder array in bytes
 
 	ImageCodecInfo* pImageCodecInfo = NULL;
 
-	GetImageEncodersSize(&num, &size);
-	if (size == 0)
+	GetImageEncodersSize(&nEncoder, &nSize);
+	if (nSize == 0)
 		return -1;  // Failure
 
-	pImageCodecInfo = (ImageCodecInfo*)malloc(size);
+	pImageCodecInfo = (ImageCodecInfo*)malloc(nSize);
 	if (pImageCodecInfo == NULL)
 		return -1;  // Failure
 
-	GetImageEncoders(num, size, pImageCodecInfo);
+	GetImageEncoders(nEncoder, nSize, pImageCodecInfo);
 
-	for (UINT j = 0; j < num; ++j)
+	for (UINT j = 0; j < nEncoder; ++j)
 	{
 		if (wcscmp(pImageCodecInfo[j].MimeType, format) == 0)
 		{
@@ -122,4 +94,328 @@ int ImgEncoder::GetEncoderClsid(const WCHAR *format, CLSID *pClsid)
 	}
 	free(pImageCodecInfo);
 	return -1;
+}
+
+
+void ImgEncoder::Resize(unsigned char* src, unsigned char* dst, int w, int h, int neww, int newh, int ch)
+{
+	auto begin = CUR_TIME;
+	int nBytePerLine = ((w * ch) + 3) & ~3; // src
+	int nNewBytePerLine = ((neww * ch) + 3) & ~3; // dst
+	int num_threads = 1;
+#ifdef _OPENMP
+	int y;
+#pragma omp parallel
+	{
+		num_threads = omp_get_num_threads();
+#pragma omp for private(y)
+		for (y = 0; y < newh; y++)
+#else
+		for (int y = 0; y < newh; y++)
+#endif
+		{
+			int nbppY = y * nNewBytePerLine;
+			for (int x = 0; x < neww; x++)
+			{
+				float gx = (x / (float)neww) * (w - 1);
+				float gy = (y / (float)newh) * (h - 1);
+
+				int gxi = (int)gx;
+				int gyi = (int)gy;
+
+				if (ch == 1) {
+					uint32_t a00, a01, a10, a11;
+
+					a00 = src[gxi + 0 + gyi * nBytePerLine];
+					a01 = src[gxi + 1 + gyi * nBytePerLine];
+					a10 = src[gxi + 0 + (gyi + 1) * nBytePerLine];
+					a11 = src[gxi + 1 + (gyi + 1) * nBytePerLine];
+
+					float dx = gx - gxi;
+					float dy = gy - gyi;
+
+					float w1 = (1 - dx) * (1 - dy);
+					float w2 = dx * (1 - dy);
+					float w3 = (1 - dx) * dy;
+					float w4 = dx * dy;
+
+					dst[x + y * neww] = int(a00 * w1 + a01 * w2 + a10 * w3 + a11 * w4);
+				}
+				else if (ch == 3) {
+					uint32_t b00[3], b01[3], b10[3], b11[3];
+					int srcX = gxi * ch;
+					int dstX = x * ch;
+
+					b00[0] = src[srcX + 0 + gyi * nBytePerLine];
+					b00[1] = src[srcX + 1 + gyi * nBytePerLine];
+					b00[2] = src[srcX + 2 + gyi * nBytePerLine];
+
+					b01[0] = src[srcX + 3 + gyi * nBytePerLine];
+					b01[1] = src[srcX + 4 + gyi * nBytePerLine];
+					b01[2] = src[srcX + 5 + gyi * nBytePerLine];
+
+					b10[0] = src[srcX + 0 + (gyi + 1) * nBytePerLine];
+					b10[1] = src[srcX + 1 + (gyi + 1) * nBytePerLine];
+					b10[2] = src[srcX + 2 + (gyi + 1) * nBytePerLine];
+
+					b11[0] = src[srcX + 3 + (gyi + 1) * nBytePerLine];
+					b11[1] = src[srcX + 4 + (gyi + 1) * nBytePerLine];
+					b11[2] = src[srcX + 5 + (gyi + 1) * nBytePerLine];
+
+					float dx = gx - gxi;
+					float dy = gy - gyi;
+
+					float w1 = (1 - dx) * (1 - dy);
+					float w2 = dx * (1 - dy);
+					float w3 = (1 - dx) * dy;
+					float w4 = dx * dy;
+
+					dst[dstX + 0 + nbppY] = int(b00[0] * w1 + b01[0] * w2 + b10[0] * w3 + b11[0] * w4);
+					dst[dstX + 1 + nbppY] = int(b00[1] * w1 + b01[1] * w2 + b10[1] * w3 + b11[1] * w4);
+					dst[dstX + 2 + nbppY] = int(b00[2] * w1 + b01[2] * w2 + b10[2] * w3 + b11[2] * w4);
+				}
+			}
+		}
+#ifdef _OPENMP
+	}
+#endif
+	auto end = CUR_TIME;
+	LOG("Image Size Scaled (%d threads): (%d bit) (%dx%d) => (%dx%d) : %lf(s)\n",
+		num_threads, ch * 8,
+		w, h, neww, newh,
+		ELAPSED_TIME(begin, end));
+}
+
+bool ImgEncoder::Rotate(double rotate, unsigned char *src, unsigned char *dst, int w, int h, int neww, int newh, int ch)
+{
+	if (!src || !dst) return false;
+	if (ch > 4) return false;
+	auto begin = CUR_TIME;
+	unsigned char *tmp = nullptr;
+
+	bool bChangeSize = false;
+	if (neww != w || newh != h) {
+		bChangeSize = true;
+	}
+
+	if (bChangeSize) {
+		tmp = new unsigned char[neww * newh * ch];
+		Resize(src, tmp, w, h, neww, newh, ch);
+		w = neww;
+		h = newh;
+	}
+	else {
+		tmp = src;
+	}
+
+	int nBytePerLine = ((w * ch) + 3) & ~3;
+	double radian = rotate * M_PI / 180.0;
+	double cc = cos(radian);
+	double ss = sin(-radian);
+	double centerX = (double)w / 2.0;
+	double centerY = (double)h / 2.0;
+
+	int num_threads = 1;
+#ifdef _OPENMP
+#pragma omp parallel
+	{
+		int y;
+		num_threads = omp_get_num_threads();
+#pragma omp for private(y)
+		for (y = 0; y < h; y++) {
+#else
+		for (int y = 0; y < h; y++) {
+#endif
+			int dstY = y * nBytePerLine;
+			for (int x = 0; x < w; x++) {
+				int origX = (int)(centerX + ((double)y - centerY)*ss + ((double)x - centerX)*cc);
+				int origY = (int)(centerY + ((double)y - centerY)*cc - ((double)x - centerX)*ss);
+
+				unsigned char pixels[4] = { 0, };
+				if ((origY >= 0 && origY < h) && (origX >= 0 && origX < w)) {
+					int offsetX = origX * ch;
+					int offsetY = origY * nBytePerLine;
+
+					memcpy(pixels, &tmp[offsetY + offsetX], sizeof(unsigned char) * ch);
+				}
+				memcpy(&dst[dstY + (x * ch)], pixels, sizeof(unsigned char) * ch);
+			}
+		}
+#ifdef _OPENMP
+	}
+#endif
+
+	if (bChangeSize) {
+		delete[] tmp;
+	}
+
+	auto end = CUR_TIME;
+	LOG("Image Rotate (%d threads): (%d bit) (%dx%d) (%lf degree) : %lf(s)\n",
+		num_threads, ch * 8,
+		w, h, rotate,
+		ELAPSED_TIME(begin, end));
+	return true;
+}
+
+bool ImgEncoder::Flip(FLIP mode, unsigned char *src, unsigned char *dst, int w, int h, int ch)
+{
+	if (!src) return false;
+	auto begin = CUR_TIME;
+	bool bOK = true;
+	if (!dst) dst = new unsigned char[CalcBitmapSize(w, h, ch)];
+
+	int nBytePerLine = ((w * ch) + 3) & ~3;
+
+	int num_threads = 1;
+
+	if (mode == FLIP::VERTICAL) {
+#ifdef _OPENMP
+		int y;
+#pragma omp parallel
+		{
+			num_threads = omp_get_num_threads();
+#pragma omp for private(y)
+			for (y = 0; y < h; y++) {
+#else
+			for (int y = 0; y < h; y++) {
+#endif
+				int offset = y * nBytePerLine;
+				for (int x = 0; x < w; x++) {
+					memcpy(&dst[offset + (x * ch)], &src[offset + ((w * ch) - ((x + 1) * ch))], sizeof(unsigned char) * ch);
+				}
+			}
+#ifdef _OPENMP
+		}
+#endif
+	}
+	else if (mode == FLIP::HORIZONTAL) {
+#ifdef _OPENMP
+	int y;
+#pragma omp parallel
+	{
+		num_threads = omp_get_num_threads();
+#pragma omp for private(y)
+		for (y = 0; y < h; y++) {
+#else
+	for (int y = 0; y < h; y++) {
+#endif
+		int offset = y * nBytePerLine;
+		int offset2 = (h - y - 1) * nBytePerLine;
+		for (int x = 0; x < w; x++) {
+			memcpy(&dst[offset + (x * ch)], &src[offset2 + (x * ch)], sizeof(unsigned char) * ch);
+		}
+		}
+#ifdef _OPENMP
+	}
+#endif
+	}
+	else if (mode == FLIP::BOTH) {
+#ifdef _OPENMP
+	int y;
+#pragma omp parallel
+	{
+		num_threads = omp_get_num_threads();
+#pragma omp for private(y)
+		for (y = 0; y < h; y++) {
+#else
+	for (int y = 0; y < h; y++) {
+#endif
+		int offset = y * nBytePerLine;
+		int offset2 = (h - y - 1) * nBytePerLine;
+		for (int x = 0; x < w; x++) {
+			memcpy(&dst[offset + (x * ch)], &src[offset2 + ((w * ch) - ((x + 1) * ch))], sizeof(unsigned char) * ch);
+		}
+		}
+#ifdef _OPENMP
+	}
+#endif
+	}
+	else {
+	// do nothing
+	bOK = false;
+	}
+
+	auto end = CUR_TIME;
+	LOG("Image Flip (%d threads): (%d bit) %s (%dx%d) : %lf(s)\n",
+		num_threads, ch * 8,
+		mode == FLIP::VERTICAL ?
+		"Vertical" :
+		mode == FLIP::HORIZONTAL ?
+		"Horizontal" :
+		mode == FLIP::BOTH ?
+		"Both" : "Unknown",
+		w, h,
+		ELAPSED_TIME(begin, end));
+	return bOK;
+}
+
+bool ImgEncoder::Crop(unsigned char *src, unsigned char *dst, int w, int h, int ch, int x, int y, int neww, int newh)
+{
+	if (!src || !dst) return false;
+	if (x < 0 || y < 0 || x + neww > w || y + newh > h) return false;
+
+	auto begin = CUR_TIME;
+	bool bOK = true;
+	int nBytePerLine = ((neww * ch) + 3) & ~3;
+	int nBytePerLine2 = ((w * ch) + 3) & ~3;
+	int offsetX = x * ch; // fix
+
+	memset(dst, 0, sizeof(unsigned char) * nBytePerLine * newh);
+	int num_threads = 1;
+
+#ifdef _OPENMP
+	int yy;
+#pragma omp parallel
+	{
+		num_threads = omp_get_num_threads();
+#pragma omp for private(yy)
+		for (yy = 0; yy < newh; yy++) {
+#else
+		for (int yy = 0; yy < newh; yy++) {
+#endif
+			int offset = yy * nBytePerLine;
+			int offsetY = (y + yy) * nBytePerLine2;
+			memcpy(&dst[offset], &src[offsetY + offsetX], sizeof(unsigned char) * ch * neww);
+		}
+#ifdef _OPENMP
+	}
+#endif	
+	auto end = CUR_TIME;
+	LOG("Image Crop (%d threads): (%d bit) (%dx%d) : %lf(s)\n",
+		num_threads, ch * 8, neww, newh,
+		ELAPSED_TIME(begin, end));
+	return bOK;
+}
+
+bool ImgEncoder::GetSize(const char* path, unsigned int *size)
+{
+	auto begin = CUR_TIME;
+	bool bOK = true;
+	*size = 0;
+	int num_threads = 1;
+	FILE *fp;
+	fopen_s(&fp, path, "rb");
+
+	if (!fp) {
+		bOK = false;
+		goto RETURN;
+	}
+	fseek(fp, 0, SEEK_END);
+	*size = ftell(fp);
+	fclose(fp);
+
+RETURN:
+	auto end = CUR_TIME;
+	LOG("Get Size (%d threads): (%d bytes)\n",
+		num_threads, *size,
+		ELAPSED_TIME(begin, end));
+
+	return bOK;
+}
+
+char* ImgEncoder::GetExtension(const char* path)
+{
+	const char *ext = PathFindExtensionA(path) + 1;
+
+	return (char *)ext;
 }

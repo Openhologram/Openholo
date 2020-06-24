@@ -81,8 +81,10 @@ oph::ImgCodecOhc::ImgCodecOhc(const std::string &_fname, const ohcHeader &_Heade
 }
 
 void oph::ImgCodecOhc::initOHCheader() {
-	if (this->Header != nullptr)
+	if (this->Header != nullptr) {
 		delete this->Header;
+		this->Header = nullptr;
+	}
 
 	this->Header = new ohcHeader();
 }
@@ -94,8 +96,10 @@ bool oph::ImgCodecOhc::setFileName(const std::string &_fname) {
 }
 
 bool oph::ImgCodecOhc::setOHCheader(const ohcHeader &_Header) {
-	if (this->Header != nullptr)
+	if (this->Header != nullptr) {
 		delete this->Header;
+		this->Header = nullptr;
+	}
 
 	this->Header = new ohcHeader(_Header);
 
@@ -145,13 +149,22 @@ void oph::ImgCodecOhc::getComplexFieldData(Complex<Real>*** cmplx_field)
 }
 
 void oph::ImgCodecOhc::releaseOHCheader() {
-	delete this->Header;
+	if (this->Header != nullptr) {
+		delete this->Header;
+		this->Header = nullptr;
+	}
 }
 
 void oph::ImgCodecOhc::releaseCodeBuffer() {
 	//delete[] this->buf;
-	delete[] this->buf_f32;
-	delete[] this->buf_f64;
+	if (this->buf_f32) {
+		delete[] this->buf_f32;
+		this->buf_f32 = nullptr;
+	}
+	if (this->buf_f64) {
+		delete[] this->buf_f64;
+		this->buf_f64 = nullptr;
+	}
 }
 
 void oph::ImgCodecOhc::releaseFldData() {
@@ -827,8 +840,10 @@ oph::ImgEncoderOhc::~ImgEncoderOhc()
 }
 
 void oph::ImgEncoderOhc::initOHCheader() {
-	if (this->Header != nullptr)
+	if (this->Header != nullptr) {
 		delete this->Header;
+		this->Header = nullptr;
+	}
 
 	this->Header = new ohcHeader();
 
@@ -1051,7 +1066,7 @@ bool oph::ImgEncoderOhc::save() {
 	//if (fp) {
 	if (this->File.is_open()) {
 		if (this->Header == nullptr) {
-			this->Header = new ohcHeader();
+			//this->Header = new ohcHeader();
 			this->initOHCheader();
 		}
 
