@@ -177,6 +177,9 @@ public:
 	*/
 	virtual bool loadAsOhc(const char *fname);
 
+	bool mergeColor(int idx, int width, int height, uchar *src, uchar *dst);
+	bool separateColor(int idx, int width, int height, uchar *src, uchar *dst);
+
 protected:
 	/**
 	* @brief Called when saving multiple hologram data at a time
@@ -196,6 +199,7 @@ protected:
 	*/
 	void resetBuffer();
 
+
 public:
 	/**
 	* @brief	Encoding Functions
@@ -208,10 +212,11 @@ public:
 	*	ENCODE_TWOPHASE		:	Two Phase Encoding@n
 	* @param[in] ENCODE_FLAG encoding method.
 	* @param[in] holo buffer to encode.
-	* @param[in] bShift shift or not.
 	* @overload
 	*/
-	virtual void encoding(unsigned int ENCODE_FLAG, Complex<Real>* holo = nullptr, bool bShift = false);
+	void encoding(unsigned int ENCODE_FLAG, Complex<Real>* holo = nullptr);
+	
+	void encoding();
 	/*
 	* @brief	Encoding Functions
 	* @details
@@ -223,10 +228,11 @@ public:
 	* @overload
 	*/
 	virtual void encoding(unsigned int ENCODE_FLAG, unsigned int SSB_PASSBAND, Complex<Real>* holo = nullptr);
-	void encoding();
 	enum SSB_PASSBAND { SSB_LEFT, SSB_RIGHT, SSB_TOP, SSB_BOTTOM };
 
 public:
+
+	bool Shift(Real x, Real y);
 	/**
 	* @brief Wave carry
 	* @param[in] carryingAngleX	Wave carrying angle in horizontal direction
@@ -235,7 +241,7 @@ public:
 	*/
 	void waveCarry(Real carryingAngleX, Real carryingAngleY, Real distance);
 
-protected:
+protected:	
 	/// Encoded hologram size, varied from encoding type.
 	ivec2					encode_size; 
 	/// Encoding method flag.
@@ -253,7 +259,14 @@ private:
 	/// previous number of channel.
 	int						nOldChannel;
 
+protected:
+	Real					m_nFieldLength;
+	int						m_nStream;
+
 public:
+	void transVW(int nSize, Real *dst, Real *src);
+	int getStream() { return m_nStream; }
+	Real getFieldLength() { return m_nFieldLength; }
 	/**
 	* @brief Function for getting encode size
 	* @return Type: <B>ivec2&</B>\n
@@ -267,7 +280,7 @@ public:
 	* @param[in] resolution buffer size.
 	*/
 	void setResolution(ivec2 resolution);
-
+	
 	/**
 	* @brief Function for getting elapsed time.	
 	* @return Type: <B>Real</B>\n
@@ -282,10 +295,14 @@ protected:
 	* @param[out] encoded Destination data.
 	* @param[in] size size of encode.
 	*/
-	void numericalInterference(Complex<Real>* holo, Real* encoded, const int size);
-	void twoPhaseEncoding(Complex<Real>* holo, Real* encoded, const int size);
-	void burckhardt(Complex<Real>* holo, Real* encoded, const int size);
-	
+	void RealPart(Complex<Real>* holo, Real* encoded, const int size);
+
+	void Phase(Complex<Real>* holo, Real* encoded, const int size);
+	void Amplitude(Complex<Real>* holo, Real* encoded, const int size);
+	void TwoPhase(Complex<Real>* holo, Real* encoded, const int size);
+	void Burckhardt(Complex<Real>* holo, Real* encoded, const int size);
+	void SimpleNI(Complex<Real>* holo, Real* encoded, const int size);
+
 	/**
 	* @brief	Encoding method.
 	* @param[in] holo Source data.
@@ -381,7 +398,7 @@ protected:
 	* @param[in] rand_phase random or not.
 	*/
 	void getRandPhaseValue(Complex<Real>& rand_phase_val, bool rand_phase);
-
+	
 protected:
 	/**
 	* @brief Pure virtual function for override in child classes
@@ -394,14 +411,10 @@ protected:
 * @brief Configuration for Point Cloud
 */
 struct GEN_DLL OphPointCloudConfig {
-	/// fieldLength variable for viewing window.
-	Real fieldLength;
-	/// stream count for CUDA
-	int n_streams;
 	/// Scaling factor of coordinate of point cloud
 	vec3 scale;
 	/// Offset value of point cloud
-	Real offset_depth;
+	Real distance;
 	/// Shape of spatial bandpass filter ("Circle" or "Rect" for now)
 	int8_t* filter_shape_flag;
 	/// Width of spatial bandpass filter
@@ -416,7 +429,7 @@ struct GEN_DLL OphPointCloudConfig {
 	vec2 tilt_angle;
 
 	OphPointCloudConfig() 
-		: n_streams(0), scale(0, 0, 0), offset_depth(0), filter_shape_flag(0), focal_length_lens_in(0), focal_length_lens_out(0), focal_length_lens_eye_piece(0), tilt_angle(0, 0)
+		: scale(0, 0, 0), distance(0), filter_shape_flag(0), focal_length_lens_in(0), focal_length_lens_out(0), focal_length_lens_eye_piece(0), tilt_angle(0, 0)
 	{}
 };
 
@@ -522,4 +535,20 @@ struct GEN_DLL OphWRPConfig {
 
 };
 
+/**
+* @struct OphIFTAConfig
+*/
+struct GEN_DLL OphIFTAConfig {
+	/// near value of depth in object
+	Real				near_depthmap;
+	/// far value of depth in object
+	Real				far_depthmap;
+	/// num_of_depth = NUMBER_OF_DEPTH_QUANTIZATION
+	int					num_of_depth;
+
+	int					num_of_iteration;
+
+	OphIFTAConfig() :near_depthmap(0), far_depthmap(0), num_of_depth(0), num_of_iteration(0) {}
+};
 #endif // !__ophGen_h
+

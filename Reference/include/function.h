@@ -56,6 +56,7 @@
 namespace oph
 {
 #define CUR_TIME std::chrono::system_clock::now()
+#define ELAPSED_TIME(x,y) ((std::chrono::duration<double>)(y - x)).count()
 #define CUR_TIME_DURATION CUR_TIME.time_since_epoch()
 #define CUR_TIME_DURATION_MILLI_SEC std::chrono::duration_cast<std::chrono::milliseconds>(CUR_TIME_DURATION).count()
 
@@ -138,8 +139,13 @@ namespace oph
 	template<typename T>
 	inline void absCplxArr(const oph::Complex<T>* src, T* dst, const int& size) {
 		for (int i = 0; i < size; i++) {
-			absCplx<T>(*(src + i),*(dst + i));
+			absCplx<T>(*(src + i), *(dst + i));
 		}
+	}
+
+	template<typename T>
+	inline T getReal(const oph::Complex<T> src) {
+		return src->_Val[_RE];
 	}
 
 	template<typename T>
@@ -205,6 +211,7 @@ namespace oph
 				}
 			}
 		}
+		
 		for (oph::uint ydx = 0; ydx < ny; ydx++) {
 			for (oph::uint xdx = 0; xdx < nx; xdx++) {
 				T *src_pos = src + xdx + ydx * nx;
@@ -277,8 +284,12 @@ namespace oph
 
 	/**
 	* @brief Get random Real value from min to max 
-	* @param _SEED_VALUE : Random seed value can be used to create a specific random number pattern.
+	* @param[in] min minimum value.
+	* @param[in] max maximum value.
+	* @param[in] _SEED_VALUE : Random seed value can be used to create a specific random number pattern@n
 	*					   If the seed values are the same, random numbers of the same pattern are always output.
+	* @return Type: <B>Real</B>\n
+	*				The return value is <B>random value</B>.
 	*/
 	inline Real rand(const Real min, const Real max, oph::ulong _SEED_VALUE = 0) {
 		std::mt19937_64 rand_dev;
@@ -291,9 +302,13 @@ namespace oph
 	}
 
 	/**
-	* @brief Get random integer vaue from min to max
-	* @param _SEED_VALUE : Random seed value can be used to create a specific random number pattern.
+	* @brief Get random Integer value from min to max
+	* @param[in] min minimum value.
+	* @param[in] max maximum value.
+	* @param[in] _SEED_VALUE : Random seed value can be used to create a specific random number pattern@n
 	*					   If the seed values are the same, random numbers of the same pattern are always output.
+	* @return Type: <B>int</B>\n
+	*				The return value is <B>random value</B>.
 	*/
 	inline int rand(const int min, const int max, oph::ulong _SEED_VALUE = 0) {
 		std::mt19937_64 rand_dev;
@@ -310,7 +325,6 @@ namespace oph
 		for (int i = 0; i < size; i++) {
 			*(dst + i) = angle<Real>(*(src + i)) + M_PI;
 		}
-	
 	}
 
 	inline void getAmplitude(oph::Complex<Real>* src, Real* dst, const int& size) {

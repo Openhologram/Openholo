@@ -61,6 +61,7 @@
 ophDepthMap::ophDepthMap()
 	: ophGen()
 	, n_percent(0)
+	, bSinglePrecision(false)
 {
 	is_CPU = true;
 
@@ -81,6 +82,7 @@ ophDepthMap::ophDepthMap()
 	dstep = 0;
 	dlevel.clear();
 	setViewingWindow(FALSE);
+	LOG("*** DEPTH MAP : BUILD DATE: %s %s ***\n\n", __DATE__, __TIME__);
 }
 
 /**
@@ -287,7 +289,7 @@ bool ophDepthMap::readImageDepth(const char* source_folder, const char* img_pref
 	memset(rgb_img, 0, sizeof(char)*pnX*pnY);
 
 	if (w != pnX || h != pnY)
-		imgScaleBilnear(img, rgb_img, w, h, pnX, pnY);
+		imgScaleBilinear(img, rgb_img, w, h, pnX, pnY);
 	else
 		memcpy(rgb_img, img, sizeof(char)*pnX*pnY);
 
@@ -302,7 +304,7 @@ bool ophDepthMap::readImageDepth(const char* source_folder, const char* img_pref
 	memset(depth_img, 0, sizeof(char)*pnX*pnY);
 
 	if (dw != pnX || dh != pnY)
-		imgScaleBilnear(dimg, depth_img, dw, dh, pnX, pnY);
+		imgScaleBilinear(dimg, depth_img, dw, dh, pnX, pnY);
 	else
 		memcpy(depth_img, dimg, sizeof(char)*pnX*pnY);
 	// 2019-10-14 mwnam
@@ -365,11 +367,13 @@ void ophDepthMap::encodeHologram(void)
 
 void ophDepthMap::encoding(unsigned int ENCODE_FLAG)
 {
-	ophGen::encoding(ENCODE_FLAG, nullptr, true);
+	//ophGen::encoding(ENCODE_FLAG, nullptr, true);
+	ophGen::encoding(ENCODE_FLAG, nullptr);
 }
 
 void ophDepthMap::encoding(unsigned int ENCODE_FLAG, unsigned int SSB_PASSBAND)
 {
+	auto begin = CUR_TIME;
 	const uint pnX = context_.pixel_number[_X];
 	const uint pnY = context_.pixel_number[_Y];
 	const uint nChannel = context_.waveNum;
@@ -401,6 +405,8 @@ void ophDepthMap::encoding(unsigned int ENCODE_FLAG, unsigned int SSB_PASSBAND)
 		else ophGen::encoding(ENCODE_FLAG, SSB_PASSBAND, dst);
 	}
 	delete[] dst;
+	auto end = CUR_TIME;
+	LOG("Elapsed Time: %lf(s)\n", ELAPSED_TIME(begin, end));
 }
 
 
@@ -508,9 +514,8 @@ void ophDepthMap::initCPU()
 */
 bool ophDepthMap::prepareInputdataCPU(uchar* imgptr, uchar* dimgptr)
 {
-#ifdef CHECK_PROC_TIME
 	auto begin = CUR_TIME;
-#endif
+
 	const int pnX = context_.pixel_number[_X];
 	const int pnY = context_.pixel_number[_Y];
 	const uint pnXY = pnX * pnY;
@@ -540,10 +545,10 @@ bool ophDepthMap::prepareInputdataCPU(uchar* imgptr, uchar* dimgptr)
 #ifdef _OPENMP
 	}
 #endif
-#ifdef CHECK_PROC_TIME
+
 	auto end = CUR_TIME;
 	LOG("\n%s : %lf(s)\n\n", __FUNCTION__, ((std::chrono::duration<Real>)(end - begin)).count());
-#endif
+
 	return true;
 }
 
@@ -554,9 +559,8 @@ bool ophDepthMap::prepareInputdataCPU(uchar* imgptr, uchar* dimgptr)
 */
 void ophDepthMap::changeDepthQuanCPU()
 {
-#ifdef CHECK_PROC_TIME
 	auto begin = CUR_TIME;
-#endif
+
 	const uint pnX = context_.pixel_number[_X];
 	const uint pnY = context_.pixel_number[_Y];
 	const uint pnXY = pnX * pnY;
@@ -592,10 +596,10 @@ void ophDepthMap::changeDepthQuanCPU()
 		}
 #endif
 	}
-#ifdef CHECK_PROC_TIME
+
 	auto end = CUR_TIME;
 	LOG("\n%s : %lf(s)\n\n", __FUNCTION__, ((std::chrono::duration<Real>)(end - begin)).count());
-#endif
+
 	//writeIntensity_gray8_bmp("test.bmp", pnX, pnY, depth_index_);
 }
 
@@ -613,9 +617,8 @@ void ophDepthMap::changeDepthQuanCPU()
 */
 void ophDepthMap::calcHoloCPU()
 {
-#ifdef CHECK_PROC_TIME
 	auto begin = CUR_TIME;
-#endif
+
 	const uint pnX = context_.pixel_number[_X];
 	const uint pnY = context_.pixel_number[_Y];
 	const uint pnXY = pnX * pnY;
@@ -625,77 +628,72 @@ void ophDepthMap::calcHoloCPU()
 
 	Complex<Real> *in = nullptr, *out = nullptr;
 	fft2(ivec2(pnX, pnY), in, OPH_FORWARD, OPH_ESTIMATE);
-	int p = 0;
+
 	int sum = 0;
 
 	for (int ch = 0; ch < nChannel; ch++) {
 		Real lambda = context_.wave_length[ch];
 		Real k = context_.k = (2 * M_PI / lambda);
+		for (int p = 0; p < depth_sz; ++p) {
+			int dtr = dm_config_.render_depth[p];
 
-#ifdef _OPENMP
-#pragma omp parallel
-		{
-			int tid = omp_get_thread_num();
-#pragma omp for private(p)
-#endif
-			for (p = 0; p < depth_sz; ++p) {
-				int dtr = dm_config_.render_depth[p];
+			Real temp_depth = (is_ViewingWindow) ? dlevel_transform[dtr - 1] : dlevel[dtr - 1];
 
-				Real temp_depth = (is_ViewingWindow) ? dlevel_transform[dtr - 1] : dlevel[dtr - 1];
+			Complex<Real> *input = new Complex<Real>[pnXY];
+			memset(input, 0.0, sizeof(Complex<Real>) * pnXY);
+			//Complex<Real> *output = new Complex<Real>[pnXY];
+			//memset(output, 0.0, sizeof(Complex<Real>) * pnXY);
 
-				Complex<Real> *input = new Complex<Real>[pnXY];
-				memset(input, 0.0, sizeof(Complex<Real>) * pnXY);
-				//Complex<Real> *output = new Complex<Real>[pnXY];
-				//memset(output, 0.0, sizeof(Complex<Real>) * pnXY);
-
-				Real locsum = 0.0;
-				for (int i = 0; i < pnXY; i++)
-				{
-					input[i][_RE] += img_src[i] * alpha_map[i] * (depth_index[i] == dtr ? 1.0 : 0.0);
+			Real locsum = 0.0;
+			for (int i = 0; i < pnXY; i++)
+			{
+				input[i][_RE] = img_src[i] * alpha_map[i] * (depth_index[i] == dtr ? 1.0 : 0.0);
+				if (locsum == 0.0)
 					locsum += input[i][_RE];
-				}
-
-				if (locsum > 0.0)
-				{
-					//LOG("Depth: %d of %d, z = %f mm\n", dtr, dm_config_.num_of_depth, -temp_depth * 1000);
-					Complex<Real> rand_phase_val;
-					getRandPhaseValue(rand_phase_val, dm_config_.RANDOM_PHASE);
-
-					Complex<Real> carrier_phase_delay(0, k * temp_depth);
-					carrier_phase_delay.exp();
-
-					for (int i = 0; i < pnXY; i++)
-						input[i] = input[i] * rand_phase_val * carrier_phase_delay;
-									
-					Openholo::fftwShift(input, input, pnX, pnY, OPH_FORWARD, false);
-					propagationAngularSpectrum(ch, input, -temp_depth, k, lambda);					
-				}
-				else {
-					//LOG("Depth: %d of %d : Nothing here\n", dtr, dm_config_.num_of_depth);
-				}
-				delete[] input;
-
-#pragma omp atomic
-				sum++;
-
-				n_percent = (int)((Real)sum * 100 / ((Real)depth_sz * nChannel));
 			}
-#ifdef _OPENMP
-		}
-#endif
 
-		LOG("\n%s (%d/%d) : %lf(s)\n\n", __FUNCTION__, ch+1, nChannel, ((std::chrono::duration<Real>)(CUR_TIME - begin)).count());
+			if (locsum > 0.0)
+			{
+				//LOG("Depth: %d of %d, z = %f mm\n", dtr, dm_config_.num_of_depth, -temp_depth * 1000);
+				Complex<Real> rand_phase_val;
+				getRandPhaseValue(rand_phase_val, dm_config_.RANDOM_PHASE);
+
+				Complex<Real> carrier_phase_delay(0, k * temp_depth);
+				carrier_phase_delay.exp();
+
+				for (int i = 0; i < pnXY; i++) {
+					input[i] = input[i] * rand_phase_val * carrier_phase_delay;
+				}
+				Openholo::fftwShift(input, input, pnX, pnY, OPH_FORWARD, false);
+				propagationAngularSpectrum(ch, input, -temp_depth, k, lambda);
+			}
+			else {
+				//LOG("Depth: %d of %d : Nothing here\n", dtr, dm_config_.num_of_depth);
+			}
+			delete[] input;
+			//delete[] output;
+			n_percent = (int)((Real)(ch * depth_sz + p) * 100 / (depth_sz * nChannel));
+
+		}
+		LOG("\n%s (%d/%d) : %lf(s)\n\n", __FUNCTION__, ch + 1, nChannel, ((std::chrono::duration<Real>)(CUR_TIME - begin)).count());
 	}
-#ifdef CHECK_PROC_TIME
+
 	auto end = CUR_TIME;
 	LOG("\n%s : %lf(s)\n\n", __FUNCTION__, ((std::chrono::duration<Real>)(end - begin)).count());
-#endif
+
 }
 
 void ophDepthMap::ophFree(void)
 {
-	if(depth_img) delete[] depth_img;
-	if(rgb_img) delete[] rgb_img;
+	ophGen::ophFree();
+	if (depth_img) {
+		delete[] depth_img;
+		depth_img = nullptr;
+	}
+	if (rgb_img) {
+		delete[] rgb_img;
+		rgb_img = nullptr;
+	}
 }
 
 void ophDepthMap::setResolution(ivec2 resolution)

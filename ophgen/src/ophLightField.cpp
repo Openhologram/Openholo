@@ -44,9 +44,7 @@
 //M*/
 
 #include "ophLightField.h"
-
 #include "include.h"
-
 #include "sys.h"
 #include "tinyxml2.h"
 
@@ -60,7 +58,9 @@ ophLF::ophLF(void)
 	, is_ViewingWindow(false)
 	, LF(nullptr)
 	, RSplane_complex_field(nullptr)
+	, bSinglePrecision(false)
 {
+	LOG("*** LIGHT FIELD : BUILD DATE: %s %s ***\n\n", __DATE__, __TIME__);
 }
 
 void ophLF::setMode(bool isCPU)
@@ -305,9 +305,8 @@ void ophLF::initializeLF()
 
 void ophLF::convertLF2ComplexField()
 {
-#ifdef CHECK_PROC_TIME
 	auto begin = CUR_TIME;
-#endif
+
 	const uint nX = num_image[_X];
 	const uint nY = num_image[_Y];
 	const uint nXY = nX * nY;
@@ -367,10 +366,8 @@ void ophLF::convertLF2ComplexField()
 	}
 	delete[] complexLF, FFTLF;
 	fftFree();
-#ifdef CHECK_PROC_TIME
 	auto end = CUR_TIME;
 	LOG("\n%s : %lf(s)\n\n", __FUNCTION__, ((std::chrono::duration<Real>)(end - begin)).count());
-#endif
 }
 
 void ophLF::writeIntensity_gray8_bmp(const char* fileName, int nx, int ny, Complex<Real>* complexvalue, int k)

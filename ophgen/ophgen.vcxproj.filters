@@ -31,6 +31,21 @@
     <Filter Include="_1_Generation\_ophTriangleMesh">
       <UniqueIdentifier>{f7251fc7-2938-44bb-80cf-9066fa9a62b9}</UniqueIdentifier>
     </Filter>
+    <Filter Include="_2_Common">
+      <UniqueIdentifier>{00b6b2c6-c8ed-4ec4-8888-7c39ab91bd33}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="_2_Common\_opencl">
+      <UniqueIdentifier>{f81b7735-976a-4be4-a7aa-21407417791b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="_2_Common\_cuda">
+      <UniqueIdentifier>{c4a60b0e-c28c-4f08-ad20-a693c2837503}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="_1_Generation\_ophIFTA">
+      <UniqueIdentifier>{eb90f59e-0839-4452-91f4-077e185a6739}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="_1_Generation\_ophSimulator">
+      <UniqueIdentifier>{34efbfe4-c4f1-4027-abaf-f08824d08b48}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\ophGen.h">
@@ -79,6 +94,19 @@
     <ClInclude Include="src\ophTriMesh_GPU.h">
       <Filter>_1_Generation\_ophTriangleMesh</Filter>
     </ClInclude>
+    <ClInclude Include="src\OpenCL.h">
+      <Filter>_2_Common\_opencl</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h" />
+    <ClInclude Include="src\CUDA.h">
+      <Filter>_2_Common\_cuda</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ophIFTA.h">
+      <Filter>_1_Generation\_ophIFTA</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ophSimulator.h">
+      <Filter>_1_Generation\_ophSimulator</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\ophDepthMap_GPU.cpp">
@@ -124,6 +152,18 @@
     <ClCompile Include="src\ophTriMesh_GPU.cpp">
       <Filter>_1_Generation\_ophTriangleMesh</Filter>
     </ClCompile>
+    <ClCompile Include="src\OpenCL.cpp">
+      <Filter>_2_Common\_opencl</Filter>
+    </ClCompile>
+    <ClCompile Include="src\CUDA.cpp">
+      <Filter>_2_Common\_cuda</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ophIFTA.cpp">
+      <Filter>_1_Generation\_ophIFTA</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ophSimulator.cpp">
+      <Filter>_1_Generation\_ophSimulator</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="src\ophDMKernel.cu">
@@ -141,5 +181,10 @@
     <CudaCompile Include="src\ophTriMeshKernel.cu">
       <Filter>_1_Generation\_ophTriangleMesh</Filter>
     </CudaCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="src\ophPCKernel.cl">
+      <Filter>_1_Generation\_ophPointCloud</Filter>
+    </None>
   </ItemGroup>
 </Project>

@@ -54,19 +54,22 @@
 #include "fftw3.h"
 
 #include "ImgCodecOhc.h"
+#include <vector>
 
 using namespace oph;
 
-
 struct OPH_DLL OphConfig
 {
-	oph::ivec2		pixel_number;				//< SLM_PIXEL_NUMBER_X & SLM_PIXEL_NUMBER_Y
-	oph::vec2		pixel_pitch;				//< SLM_PIXEL_PITCH_X & SLM_PIXEL_PITCH_Y
-
+	bool			bUseDP;						// use double precision
+	ivec2			pixel_number;				//< SLM_PIXEL_NUMBER_X & SLM_PIXEL_NUMBER_Y
+	vec2			pixel_pitch;				//< SLM_PIXEL_PITCH_X & SLM_PIXEL_PITCH_Y
+	vec3			shift;						// shift
 	Real			k;							//< 2 * PI / lambda(wavelength)
 	vec2			ss;							//< pn * pp
 	uint			waveNum;					// wave num
 	Real*			wave_length;				//< wave length
+	bool			bRotation;
+	bool			bMergeImg;					
 };
 
 
@@ -77,8 +80,8 @@ struct OPH_DLL OphConfig
 /**
 * @ingroup oph
 * @brief Abstract class
-* @detail Top class of Openholo library. Common functions required by subclasses are implemented.
-* @author Kim Ryeon-woo
+* @details Top class of Openholo library. Common functions required by subclasses are implemented.
+* @author Kim Ryeon-woo, Nam Min-woo
 */
 class OPH_DLL Openholo : public Base{
 
@@ -91,143 +94,197 @@ public:
 protected:
 	/**
 	* @brief Destructor
-	* @detail Pure virtual function for class abstraction
+	* @details Pure virtual function for class abstraction
 	*/
 	virtual ~Openholo(void) = 0;
 
 protected:
 	/**
 	* @brief Functions for extension checking
-	* @param const char* File name
-	* @param const char* File extension
-	* @return int return 0 : The extension of "fname" and "ext" is the same
-	*			  return 1 : The extension of "fname" and "ext" is not the same
+	* @param[in] fname File name
+	* @param[in] ext File extension
+	* @return Type: <B>bool</B>\n
+	*				If fname contains ext, the return value is <B>true</B>.\n
+	*				If fname not contains ext, the return value is <B>false</B>.
 	*/
-	int checkExtension(const char* fname, const char* ext);
+	bool checkExtension(const char* fname, const char* ext);
 
 public:
 	/**
 	* @brief Function for creating image files
-	* @param const char* Output file name
-	* @param uint8_t Bit per pixel
-	* @param unsigned char* Source of Image file's data
-	* @param int Number of pixel - width
-	* @param int Number of pixel - height
-	* @return int  return -1 : Failed to save image file
-	*			   return  1 : Success to save image file
+	* @param[in] fname Output file name
+	* @param[in] bitsperpixel Bit per pixel
+	* @param[in] src Source of Image file's data
+	* @param[in] width Number of pixel - width
+	* @param[in] height Number of pixel - height
+	* @return Type: <B>bool</B>\n
+	*				If the succeeds to save image file, the return value is <B>true</B>.\n
+	*				If the fails to save image file, the return value is <B>false</B>.
 	*/
-	virtual int saveAsImg(const char* fname, uint8_t bitsperpixel, uchar* src, int pic_width, int pic_height);
+	virtual bool saveAsImg(const char* fname, uint8_t bitsperpixel, uchar* src, int width, int height);
 
 	/**
 	* @brief Function for loading image files
-	* @param const char* Input file name
-	* @return unsigned char* Image file's data
+	* @param[in] fname Input file name
+	* @return Type: <B>uchar*</B>\n
+	*				If the succeeds to load image file, the return value is <B>image data' pointer</B>.\n
+	*				If the fails to load image file, the return value is <B>nullptr</B>.
 	*/
 	virtual uchar* loadAsImg(const char* fname);
 
 	/**
-	* @brief Function to write OHC file
+	* @brief Function to write OHC file	
+	* @param[in] fname File name
+	* @return Type: <B>bool</B>\n
+	*				If the succeeds to save OHC file, the return value is <B>true</B>.\n
+	*				If the fails to save OHC file, the return value is <B>false</B>.
 	*/
-	virtual int saveAsOhc(const char *fname);
+	virtual bool saveAsOhc(const char *fname);
+
 
 	/**
 	* @brief Function to read OHC file
+	* @param[in] fname File name
+	* @return Type: <B>bool</B>\n
+	*				If the succeeds to load OHC file, the return value is <B>true</B>.\n
+	*				If the fails to load OHC file, the return value is <B>false</B>.
 	*/
-	virtual int loadAsOhc(const char *fname);
+	virtual bool loadAsOhc(const char *fname);
 
-	inline oph::Complex<Real>** getComplexField(void) { return complex_H; }
+	
+	/**
+	* @brief Function for getting the complex field
+	* @return Type: <B>Complex<Real>**</B>\n
+	*				If the succeeds to get complex field, the return value is <B>complex field data's pointer</B>.\n
+	*				If the fails to get complex field, the return value is <B>nullptr</B>.
+	*/
+	inline Complex<Real>** getComplexField(void) { return complex_H; }
+	
+	
+	/**
+	* @brief Function for getting the current context
+	* @return Type: <B>OphConfig&</B>\n
+	*				If the succeeds to get context, the return value is <B>cotext pointer</B>.\n
+	*				If the fails to get context, the return value is <B>nullptr</B>.
+	*/
 	OphConfig& getContext(void) { return context_; }
 
+	/**
+	* @brief Function for setting the output resolution
+	* @param[in] n resolution vector value.
+	*/
 	inline void setPixelNumber(ivec2 n) { context_.pixel_number[_X] = n[_X]; context_.pixel_number[_Y] = n[_Y]; }
+	inline void setPixelNumber(int width, int height) { context_.pixel_number[_X] = width; context_.pixel_number[_Y] = height; }
+
+	/**
+	* @brief Function for setting the output pixel pitch
+	* @param[in] p pitch vector value.
+	*/
 	inline void setPixelPitch(vec2 p) { context_.pixel_pitch[_X] = p[_X]; context_.pixel_pitch[_Y] = p[_Y]; }
-	inline void setWaveLength(Real w, const uint idx) { context_.wave_length[idx] = w; }
+	inline void setPixelPitch(Real pitchX, Real pitchY) { context_.pixel_pitch[_X] = pitchX; context_.pixel_pitch[_Y] = pitchY; }
+	
+	/**
+	* @brief Function for setting the wave length
+	* @param[in] w wave length.
+	* @param[in] idx index of channel.
+	*/
+	inline void setWaveLength(Real w, const uint idx = 0) { context_.wave_length[idx] = w; }
+
+	void setWaveNum(int nNum);
+
 protected:
 	/**
 	* @brief Function for loading image files | Output image data upside down
-	* @param const char* Input file name
-	* @return unsigned char* Image file's data
+	* @param[in] Input file name.
+	* @param[out] destination to load.
+	* @return Type: <B>bool</B>\n
+	*				If the function succeeds, the return value is <B>true</B>.\n
+	*				If the function fails, the return value is <B>false</B>.
 	*/
-	int loadAsImgUpSideDown(const char* fname, uchar* dst);
+	bool loadAsImgUpSideDown(const char* fname, uchar* dst);
 
 	/**
 	* @brief Function for getting the image size
-	* @param int& Image size - width
-	* @param int& Image size - Height
-	* @param int& Bytes per pixel
-	* @param const char* Input file name
+	* @param[out] w Image size - width.
+	* @param[out] h Image size - Height.
+	* @param[out] bytesperpixel Bytes per pixel.
+	* @param[in] fname Input file name.
+	* @return Type: <B>bool</B>\n
+	*				If the function succeeds, the return value is <B>true</B>.\n
+	*				If the function fails, the return value is <B>false</B>.
 	*/
-	int getImgSize(int& w, int& h, int& bytesperpixel, const char* file_name);
+	bool getImgSize(int& w, int& h, int& bytesperpixel, const char* fname);
 
 	/**
 	* @brief Function for change image size
-	* @param unsigned char* Source image data
-	* @param unsigned char* Dest image data
-	* @param int Original width
-	* @param int Original height
-	* @param int Width to replace
-	* @param int Height to replace
+	* @param[in] src Source image data.
+	* @param[in] dst Destination image data.
+	* @param[in] w Original width.
+	* @param[in] h Original height.
+	* @param[in] neww Width to replace.
+	* @param[in] newh Height to replace.
 	*/
-	void imgScaleBilnear(unsigned char* src, unsigned char* dst, int w, int h, int neww, int newh);
-
+	void imgScaleBilinear(uchar* src, uchar* dst, int w, int h, int neww, int newh, int channels = 1);
+	void ImageRotation(double rotate, uchar* src, uchar* dst, int w, int h, int channels);
 	/**
 	* @brief Function for convert image format to gray8
-	* @param unsigned char* Source image data
-	* @param unsigned char* Dest image data
-	* @param int Image size, width
-	* @param int Image size, Height
-	* @param int Bytes per pixel
+	* @param[in] src Source image data.
+	* @param[in] dst Destination image data.
+	* @param[in] w Image size, width.
+	* @param[in] h Image size, Height.
+	* @param[in] bytesperpixel Bytes per pixel.
 	*/
-	void convertToFormatGray8(unsigned char* src, unsigned char* dst, int w, int h, int bytesperpixel);
-
-
+	void convertToFormatGray8(uchar* src, uchar* dst, int w, int h, int bytesperpixel);
+	
 	/**
 	* @brief Functions for performing fftw 1-dimension operations inside Openholo
-	* @param int Number of data
-	* @param Complex<Real>* Source of data
-	* @param int Sign of FFTW(FORWARD or BACKWARD)
-	* @param unsigned int Flag of FFTW(MEASURE, DESTROY_INPUT, UNALIGNED, CONSERVE_MEMORY, EXHAUSTIVE, PRESERVE_INPUT, PATIENT, ESTIMATE, WISDOM_ONLY)
+	* @param[in] n Number of data.
+	* @param[in] in Source of data.
+	* @param[in] sign Sign of FFTW(FORWARD or BACKWARD)
+	* @param[in] flag Flag of FFTW(MEASURE, DESTROY_INPUT, UNALIGNED, CONSERVE_MEMORY, EXHAUSTIVE, PRESERVE_INPUT, PATIENT, ESTIMATE, WISDOM_ONLY)
 	*/
 	void fft1(int n, Complex<Real>* in, int sign = OPH_FORWARD, uint flag = OPH_ESTIMATE);
+	
 	/**
 	* @brief Functions for performing fftw 2-dimension operations inside Openholo
-	* @param oph::ivec2 Number of data(int x, int y)
-	* @param Complex<Real>* Source of data
-	* @param int Sign of FFTW(FORWARD or BACKWARD)
-	* @param unsigned int Flag of FFTW(MEASURE, DESTROY_INPUT, UNALIGNED, CONSERVE_MEMORY, EXHAUSTIVE, PRESERVE_INPUT, PATIENT, ESTIMATE, WISDOM_ONLY)
+	* @param[in] n Number of data(int x, int y)
+	* @param[in] in Source of data.
+	* @param[in] sign Sign of FFTW(FORWARD or BACKWARD)
+	* @param[in] flag Flag of FFTW(MEASURE, DESTROY_INPUT, UNALIGNED, CONSERVE_MEMORY, EXHAUSTIVE, PRESERVE_INPUT, PATIENT, ESTIMATE, WISDOM_ONLY)
 	*/
-	void fft2(oph::ivec2 n, Complex<Real>* in, int sign = OPH_FORWARD, uint flag = OPH_ESTIMATE);
+	void fft2(ivec2 n, Complex<Real>* in, int sign = OPH_FORWARD, uint flag = OPH_ESTIMATE);
 	/**
 	* @brief Functions for performing fftw 3-dimension operations inside Openholo
-	* @param oph::ivec3 Number of data(int x, int y, int z)
-	* @param Complex<Real>* Source of data
-	* @param int Sign of FFTW(FORWARD or BACKWARD)
-	* @param unsigned int Flag of FFTW(MEASURE, DESTROY_INPUT, UNALIGNED, CONSERVE_MEMORY, EXHAUSTIVE, PRESERVE_INPUT, PATIENT, ESTIMATE, WISDOM_ONLY)
+	* @param[in] n Number of data(int x, int y, int z)
+	* @param[in] in Source of data.
+	* @param[in] sign Sign of FFTW(FORWARD or BACKWARD)
+	* @param[in] flag Flag of FFTW(MEASURE, DESTROY_INPUT, UNALIGNED, CONSERVE_MEMORY, EXHAUSTIVE, PRESERVE_INPUT, PATIENT, ESTIMATE, WISDOM_ONLY)
 	*/
-	void fft3(oph::ivec3 n, Complex<Real>* in, int sign = OPH_FORWARD, uint flag = OPH_ESTIMATE);
+	void fft3(ivec3 n, Complex<Real>* in, int sign = OPH_FORWARD, uint flag = OPH_ESTIMATE);
 
 	/**
 	* @brief Execution functions to be called after fft1, fft2, and fft3
-	* @param Complex<Real>* Dest of data
+	* @param[out] out Dest of data.
 	*/
-	void fftExecute(Complex<Real>* out);
+	void fftExecute(Complex<Real>* out, bool bReverse = false);
 	void fftFree(void);
 	/**
 	* @brief Convert data from the spatial domain to the frequency domain using 2D FFT on CPU.
-	* @param Complex<Real>* Input data variable
-	* @param Complex<Real>* Output data variable
-	* @param int the number of column of the input data
-	* @param int the number of row of the input data
-	* @param int If type == 1, forward FFT, if type == -1, backward FFT.
-	* @param bool If bNomarlized == true, normalize the result after FFT.
+	* @param[in] src Input data variable.
+	* @param[out] dst Output data variable.
+	* @param[in] nx the number of column of the input data.
+	* @param[in] ny the number of row of the input data.
+	* @param[in] type If type == 1, forward FFT, if type == -1, backward FFT.
+	* @param[in] bNormalized If bNomarlized == true, normalize the result after FFT.
 	*/
 	void fftwShift(Complex<Real>* src, Complex<Real>* dst, int nx, int ny, int type, bool bNormalized = false);
 
 	/**
 	* @brief Swap the top-left quadrant of data with the bottom-right , and the top-right quadrant with the bottom-left.
-	* @param int the number of column of the input data
-	* @param int the number of row of the input data
-	* @param Complex<Real>* input data variable
-	* @param Complex<Real>* output data variable
+	* @param[in] nx the number of column of the input data.
+	* @param[in] ny the number of row of the input data.
+	* @param[in] input input data variable.
+	* @param[out] output output data variable.
 	*/
 	void fftShift(int nx, int ny, Complex<Real>* input, Complex<Real>* output);
 
@@ -345,7 +402,7 @@ protected:
 	//inline void getCompressedFormatType(const CompresType compress_type)
 	//	{ OHC_encoder->setCompressedFormatType(compress_type); }
 
-
+	
 };
 
 #endif // !__Openholo_h

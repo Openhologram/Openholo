@@ -55,12 +55,46 @@
 
 static const int kBlockThreads = 512;
 
-__global__ void fftShift(int N, int nx, int ny, cufftDoubleComplex* input, cufftDoubleComplex* output, bool bNormailzed)
+__global__ void fftShift(int N, int nx, int ny, cufftDoubleComplex* input, cufftDoubleComplex* output, bool bNormalized)
 {
 	int tid = threadIdx.x + blockIdx.x*blockDim.x;
+#if 0
+	__shared__ int pnXY;
+	__shared__ int pnX;
+	__shared__ int pnY;
+	__shared__ bool bNormal;
+
+	if (threadIdx.x == 0) {
+		pnXY = N;
+		pnX = nx;
+		pnY = ny;
+		bNormal = bNormalized;
+	}
+	__syncthreads();
 
 	double normalF = 1.0;
-	if (bNormailzed == true)
+	if (bNormal == true)
+		normalF = pnX * pnY;
+
+	while (tid < pnXY)
+	{
+		int i = tid % pnX;
+		int j = tid / pnX;
+
+		int ti = i - pnX / 2; if (ti < 0) ti += pnX;
+		int tj = j - pnY / 2; if (tj < 0) tj += pnY;
+
+		int oindex = tj * pnX + ti;
+
+
+		output[tid].x = input[oindex].x / normalF;
+		output[tid].y = input[oindex].y / normalF;
+
+		tid += blockDim.x * gridDim.x;
+	}
+#else
+	double normalF = 1.0;
+	if (bNormalized == true)
 		normalF = nx * ny;
 
 	while (tid < N)
@@ -79,6 +113,7 @@ __global__ void fftShift(int N, int nx, int ny, cufftDoubleComplex* input, cufft
 
 		tid += blockDim.x * gridDim.x;
 	}
+#endif
 }
 
 __device__  void exponent_complex(cuDoubleComplex* val)
@@ -100,14 +135,12 @@ void cudaFFT(CUstream_st* stream, int nx, int ny, cufftDoubleComplex* in_field, 
 	fftShift << <nblocks, kBlockThreads, 0, stream >> >(N, nx, ny, in_field, output_field, false);
 
 	cufftHandle plan;
-
 	// fft
 	if (cufftPlan2d(&plan, ny, nx, CUFFT_Z2Z) != CUFFT_SUCCESS)
 	{
 		//LOG("FAIL in creating cufft plan");
 		return;
 	};
-
 	cufftResult result;
 
 	if (direction == -1)

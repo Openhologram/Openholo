@@ -107,14 +107,14 @@ namespace oph {
 			if (std::is_same<double, T>::value)
 				return atan2(_Val[_IM], _Val[_RE]);
 			else if (std::is_same<float, T>::value)
-				return atan2f(_Val[_IM], _Val[_RE]);
+				return atan2f((float)_Val[_IM], (float)_Val[_RE]);
 		}
 
 		Complex<T>& exp() {
 			Complex<T> p(_Val[_RE], _Val[_IM]);
 			if (std::is_same<double, T>::value) {
-				_Val[_RE] = std::exp((float)p._Val[_RE]) * cos((float)p._Val[_IM]);
-				_Val[_IM] = std::exp((float)p._Val[_RE]) * sin((float)p._Val[_IM]);
+				_Val[_RE] = std::exp(p._Val[_RE]) * cos(p._Val[_IM]);
+				_Val[_IM] = std::exp(p._Val[_RE]) * sin(p._Val[_IM]);
 			}
 			else {
 				_Val[_RE] = std::expf(p._Val[_RE]) * cos(p._Val[_IM]);

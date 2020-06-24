@@ -99,19 +99,18 @@ void ophDepthMap::initGPU()
 */
 bool ophDepthMap::prepareInputdataGPU(uchar* imgptr, uchar* dimgptr)
 {
-#ifdef CHECK_PROC_TIME
 	auto begin = CUR_TIME;
-#endif
+
 	uint pnX = context_.pixel_number[_X];
 	uint pnY = context_.pixel_number[_Y];
 	const ulonglong pnXY = pnX * pnY;
 
 	HANDLE_ERROR(cudaMemcpyAsync(img_src_gpu, imgptr, sizeof(uchar1)*pnXY, cudaMemcpyHostToDevice), stream_);
 	HANDLE_ERROR(cudaMemcpyAsync(dimg_src_gpu, dimgptr, sizeof(uchar1)*pnXY, cudaMemcpyHostToDevice), stream_);
-#ifdef CHECK_PROC_TIME
+
 	auto end = CUR_TIME;
 	LOG("\n%s : %lf(s)\n\n", __FUNCTION__, ((std::chrono::duration<Real>)(end - begin)).count());
-#endif
+
 	return true;
 }
 
@@ -122,9 +121,8 @@ bool ophDepthMap::prepareInputdataGPU(uchar* imgptr, uchar* dimgptr)
 */
 void ophDepthMap::changeDepthQuanGPU()
 {
-#ifdef CHECK_PROC_TIME
 	auto begin = CUR_TIME;
-#endif
+
 	const uint pnX = context_.pixel_number[_X];
 	const uint pnY = context_.pixel_number[_Y];
 
@@ -141,10 +139,8 @@ void ophDepthMap::changeDepthQuanGPU()
 		cudaChangeDepthQuanKernel(stream_, pnX, pnY, depth_index_gpu, dimg_src_gpu, 
 			dtr, d1, d2, dm_config_.num_of_depth, dm_config_.far_depthmap, dm_config_.near_depthmap);
 	}
-#ifdef CHECK_PROC_TIME
 	auto end = CUR_TIME;
 	LOG("\n%s : %lf(s)\n\n", __FUNCTION__, ((std::chrono::duration<Real>)(end - begin)).count());
-#endif
 }
 
 /**
@@ -162,9 +158,8 @@ void ophDepthMap::changeDepthQuanGPU()
 */
 void ophDepthMap::calcHoloGPU(void)
 {
-#ifdef CHECK_PROC_TIME
 	auto begin = CUR_TIME;
-#endif
+
 	if (!stream_)
 		cudaStreamCreate(&stream_);
 
@@ -191,12 +186,14 @@ void ophDepthMap::calcHoloGPU(void)
 			carrier_phase_delay.exp();
 
 			HANDLE_ERROR(cudaMemsetAsync(u_o_gpu_, 0, sizeof(cufftDoubleComplex) * pnNY, stream_));
-
+			
 			cudaDepthHoloKernel(stream_, pnX, pnY, u_o_gpu_, img_src_gpu, dimg_src_gpu, depth_index_gpu,
 				dtr, rand_phase_val[_RE], rand_phase_val[_IM], carrier_phase_delay[_RE], carrier_phase_delay[_IM], dm_config_.FLAG_CHANGE_DEPTH_QUANTIZATION, dm_config_.DEFAULT_DEPTH_QUANTIZATION);
 
 			HANDLE_ERROR(cudaMemsetAsync(k_temp_d_, 0, sizeof(cufftDoubleComplex) * pnNY, stream_));
+			
 			cudaFFT(stream_, pnX, pnY, u_o_gpu_, k_temp_d_, -1);
+			
 			propagationAngularSpectrumGPU(ch, u_o_gpu_, -temp_depth);
 			
 			//LOG("Depth: %3d of %d, z = %6.5lf mm\n", dtr, dm_config_.num_of_depth, -temp_depth * 1000);
@@ -207,20 +204,21 @@ void ophDepthMap::calcHoloGPU(void)
 		cufftDoubleComplex* p_holo_gen = new cufftDoubleComplex[pnNY];
 		memset(p_holo_gen, 0, sizeof(cufftDoubleComplex) * pnNY);
 		cudaMemcpy(p_holo_gen, u_complex_gpu_, sizeof(cufftDoubleComplex) * pnNY, cudaMemcpyDeviceToHost);
-
-		for (int n = 0; n < pnNY; n++) {
-			complex_H[ch][n][_RE] = p_holo_gen[n].x;
-			complex_H[ch][n][_IM] = p_holo_gen[n].y;
+		int n;
+#pragma omp parallel
+		{
+#pragma omp for private(n)
+			for (n = 0; n < pnNY; n++) {
+				complex_H[ch][n][_RE] = p_holo_gen[n].x;
+				complex_H[ch][n][_IM] = p_holo_gen[n].y;
+			}
 		}
 		delete[] p_holo_gen;
 		LOG("\n%s (%d/%d) : %lf(s)\n\n", __FUNCTION__, ch + 1, nChannel, ((std::chrono::duration<Real>)(CUR_TIME - begin)).count());
 
 	}
-
-#ifdef CHECK_PROC_TIME;
 	auto end = CUR_TIME;
 	LOG("\n%s : %lf(s)\n\n", __FUNCTION__, ((std::chrono::duration<Real>)(end - begin)).count());
-#endif
 }
 
 /**

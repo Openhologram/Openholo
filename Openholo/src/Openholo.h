@@ -54,19 +54,22 @@
 #include "fftw3.h"
 
 #include "ImgCodecOhc.h"
+#include <vector>
 
 using namespace oph;
 
-
 struct OPH_DLL OphConfig
 {
-	oph::ivec2		pixel_number;				//< SLM_PIXEL_NUMBER_X & SLM_PIXEL_NUMBER_Y
-	oph::vec2		pixel_pitch;				//< SLM_PIXEL_PITCH_X & SLM_PIXEL_PITCH_Y
-
+	bool			bUseDP;						// use double precision
+	ivec2			pixel_number;				//< SLM_PIXEL_NUMBER_X & SLM_PIXEL_NUMBER_Y
+	vec2			pixel_pitch;				//< SLM_PIXEL_PITCH_X & SLM_PIXEL_PITCH_Y
+	vec3			shift;						// shift
 	Real			k;							//< 2 * PI / lambda(wavelength)
 	vec2			ss;							//< pn * pp
 	uint			waveNum;					// wave num
 	Real*			wave_length;				//< wave length
+	bool			bRotation;
+	bool			bMergeImg;					
 };
 
 
@@ -138,6 +141,7 @@ public:
 	*/
 	virtual bool saveAsOhc(const char *fname);
 
+
 	/**
 	* @brief Function to read OHC file
 	* @param[in] fname File name
@@ -146,6 +150,7 @@ public:
 	*				If the fails to load OHC file, the return value is <B>false</B>.
 	*/
 	virtual bool loadAsOhc(const char *fname);
+
 	
 	/**
 	* @brief Function for getting the complex field
@@ -169,19 +174,24 @@ public:
 	* @param[in] n resolution vector value.
 	*/
 	inline void setPixelNumber(ivec2 n) { context_.pixel_number[_X] = n[_X]; context_.pixel_number[_Y] = n[_Y]; }
-	
+	inline void setPixelNumber(int width, int height) { context_.pixel_number[_X] = width; context_.pixel_number[_Y] = height; }
+
 	/**
 	* @brief Function for setting the output pixel pitch
 	* @param[in] p pitch vector value.
 	*/
 	inline void setPixelPitch(vec2 p) { context_.pixel_pitch[_X] = p[_X]; context_.pixel_pitch[_Y] = p[_Y]; }
+	inline void setPixelPitch(Real pitchX, Real pitchY) { context_.pixel_pitch[_X] = pitchX; context_.pixel_pitch[_Y] = pitchY; }
 	
 	/**
 	* @brief Function for setting the wave length
 	* @param[in] w wave length.
 	* @param[in] idx index of channel.
 	*/
-	inline void setWaveLength(Real w, const uint idx) { context_.wave_length[idx] = w; }
+	inline void setWaveLength(Real w, const uint idx = 0) { context_.wave_length[idx] = w; }
+
+	void setWaveNum(int nNum);
+
 protected:
 	/**
 	* @brief Function for loading image files | Output image data upside down
@@ -214,8 +224,8 @@ protected:
 	* @param[in] neww Width to replace.
 	* @param[in] newh Height to replace.
 	*/
-	void imgScaleBilnear(uchar* src, uchar* dst, int w, int h, int neww, int newh);
-
+	void imgScaleBilinear(uchar* src, uchar* dst, int w, int h, int neww, int newh, int channels = 1);
+	void ImageRotation(double rotate, uchar* src, uchar* dst, int w, int h, int channels);
 	/**
 	* @brief Function for convert image format to gray8
 	* @param[in] src Source image data.
@@ -256,7 +266,7 @@ protected:
 	* @brief Execution functions to be called after fft1, fft2, and fft3
 	* @param[out] out Dest of data.
 	*/
-	void fftExecute(Complex<Real>* out);
+	void fftExecute(Complex<Real>* out, bool bReverse = false);
 	void fftFree(void);
 	/**
 	* @brief Convert data from the spatial domain to the frequency domain using 2D FFT on CPU.
@@ -392,7 +402,7 @@ protected:
 	//inline void getCompressedFormatType(const CompresType compress_type)
 	//	{ OHC_encoder->setCompressedFormatType(compress_type); }
 
-
+	
 };
 
 #endif // !__Openholo_h

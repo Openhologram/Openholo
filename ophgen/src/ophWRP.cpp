@@ -50,12 +50,13 @@
 ophWRP::ophWRP(void)
 	: ophGen()
 	, scaledVertex(nullptr)
+	, bSinglePrecision(false)
 {
 	n_points = -1;
 	p_wrp_ = nullptr;
 	is_CPU = true;
 	is_ViewingWindow = false;
-	LOG("*** BUILD DATE: %s %s ***\n\n", __DATE__, __TIME__);
+	LOG("*** WRP : BUILD DATE: %s %s ***\n\n", __DATE__, __TIME__);
 }
 
 ophWRP::~ophWRP(void)
@@ -69,9 +70,8 @@ void ophWRP::setViewingWindow(bool is_ViewingWindow)
 
 void ophWRP::autoScaling()
 {
-#ifdef CHECK_PROC_TIME
 	auto begin = CUR_TIME;
-#endif
+
 	const uint pnX = context_.pixel_number[_X];
 	const uint pnY = context_.pixel_number[_Y];
 	const Real ppX = context_.pixel_pitch[_X];//wrp pitch
@@ -145,13 +145,12 @@ void ophWRP::autoScaling()
 	delete[] x;
 	delete[] y;
 	delete[] z;
-#ifdef CHECK_PROC_TIME
+
 	auto end = CUR_TIME;
 	LOG("\n%s : %lf(s) <%d threads>\n\n", 
 		__FUNCTION__, 
 		((chrono::duration<Real>)(end - begin)).count(),
 		num_threads);
-#endif
 }
 
 int ophWRP::loadPointCloud(const char* pc_file)
@@ -327,9 +326,7 @@ void ophWRP::setMode(bool isCPU)
 
 double ophWRP::calculateWRPCPU(void)
 {
-#ifdef CHECK_PROC_TIME
 	auto begin = CUR_TIME;
-#endif
 
 	const uint pnX = context_.pixel_number[_X]; //slm_pixelNumberX
 	const uint pnY = context_.pixel_number[_Y]; //slm_pixelNumberY
@@ -435,13 +432,12 @@ double ophWRP::calculateWRPCPU(void)
 	p_wrp_ = nullptr;
 	scaledVertex = nullptr;
 
-#ifdef CHECK_PROC_TIME
 	auto end = CUR_TIME;
 	LOG("\n%s : %lf(s) <%d threads>\n\n",
 		__FUNCTION__,
 		((chrono::duration<Real>)(end - begin)).count(),
 		num_threads);
-#endif
+
 	return 0.;
 }
 
@@ -504,9 +500,14 @@ Complex<Real>** ophWRP::calculateMWRP(void)
 
 void ophWRP::ophFree(void)
 {
-	//	delete[] obj_.vertex;
-	//	delete[] obj_.color;
-
+	if (obj_.vertex) {
+		delete[] obj_.vertex;
+		obj_.vertex = nullptr;
+	}
+	if (obj_.color) {
+		delete[] obj_.color;
+		obj_.color = nullptr;
+	}
 }
 
 void ophWRP::transVW(Real* dst, Real* src, int size)

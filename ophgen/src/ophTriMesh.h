@@ -47,6 +47,7 @@
 #define __ophTriMesh_h
 
 #include "ophGen.h"
+#include "sys.h"
 
 //Build Option : Multi Core Processing (OpenMP)
 #ifdef _OPENMP
@@ -109,6 +110,9 @@ public:
 		scaledMeshData = nullptr;
 		normalizedMeshData = nullptr;
 		angularSpectrum = nullptr;
+		bSinglePrecision = false;
+
+		LOG("*** MESH : BUILD DATE: %s %s ***\n\n", __DATE__, __TIME__);
 	}
 
 protected:
@@ -131,7 +135,7 @@ private:
 
 private:
 	Real fieldLength;
-	Real objSize;							/// Object maximum of width and height / unit :[m]
+	vec3 objSize;							/// Object maximum of width and height / unit :[m]
 	vec3 objShift;							/// Object shift value / Data structure - [shiftX, shiftY, shiftZ] / unit : [m]
 
 	Real carrierWave[3] = { 0,0,1 };		/// Carrier wave direction / default : {0, 0, 1}
@@ -140,7 +144,7 @@ private:
 	int SHADING_TYPE;						/// SHADING_FLAT, SHADING_CONTINUOUS
 
 public:
-	void setObjSize(Real in) { objSize = in; }
+	void setObjSize(vec3 in) { objSize = in; }
 	void setObjShift(vec3 in) { objShift[_X] = in[_X]; objShift[_Y] = in[_Y]; objShift[_Z] = in[_Z]; }
 	void setObjShift(vector<Real> in) { objShift[_X] = in[_X]; objShift[_Y] = in[_Y]; objShift[_Z] = in[_Z]; }
 	void setCarrierWave(Real in1, Real in2, Real in3) { carrierWave[_X] = in1; carrierWave[_Y] = in2; carrierWave[_Z] = in3; }
@@ -152,7 +156,7 @@ public:
 	Complex<Real>* getAngularSpectrum() { return angularSpectrum; }
 	Real* getScaledMeshData() {	return scaledMeshData; }
 
-	const Real& getObjSize(void) { return objSize; }
+	const vec3& getObjSize(void) { return objSize; }
 	const vec3& getObjShift(void) { return objShift; }
 	const vec3&	getIllumination(void) { return illumination; }
 	const Real& getFieldLens(void) { return fieldLength; }
@@ -166,6 +170,13 @@ public:
 	* @param[in] is_CPU the value for specifying whether the hologram generation method is implemented on the CPU or GPU
 	*/
 	void setMode(bool is_CPU);
+
+	/**
+	* @brief Function for setting precision
+	* @param[in] precision level.
+	*/
+	void setPrecision(bool bPrecision) { bSinglePrecision = bPrecision; }
+	bool getPrecision() { return bSinglePrecision; }
 public:
 	/**
 	* @brief	Triangular mesh basc CGH configuration file load
@@ -193,8 +204,8 @@ public:
 	* @overload
 	*/
 	void objScaleShift();
-	void objScaleShift(Real objSize_, vector<Real> objShift_);
-	void objScaleShift(Real objSize_, vec3 objShift_);
+	void objScaleShift(vec3 objSize_, vector<Real> objShift_);
+	void objScaleShift(vec3 objSize_, vec3 objShift_);
 
 	enum SHADING_FLAG { SHADING_FLAT, SHADING_CONTINUOUS };
 
@@ -236,10 +247,7 @@ private:
 	uint refToGlobal();
 
 	uint loadMeshText(const char* fileName);
-	inline Real transVW(Real pt) {
-		Real transPt = -fieldLength * pt / (pt - fieldLength);
-		return transPt;
-	}
+
 	void initialize_GPU();
 	void generateAS_GPU(uint SHADING_FLAG);
 	void refAS_GPU(int idx, uint SHADING_FLAG);
@@ -290,6 +298,7 @@ private:
 	Complex<Real>* phaseTerm;
 	Complex<Real>* convol;
 	bool is_ViewingWindow;
+	bool bSinglePrecision;
 
 };
 

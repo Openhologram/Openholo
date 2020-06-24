@@ -59,7 +59,6 @@
 /**
 * @ingroup rec
 * @brief
-* @detail
 * @author
 */
 class RECON_DLL ophRec : public Openholo

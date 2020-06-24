@@ -52,10 +52,10 @@
 #include <cufft.h>
 #include <device_launch_parameters.h>
 #include <device_functions.h>
+#include <npp.h>
 //#include <complex.h>
 #include "typedef.h"
 #include "ophSig.h"
-#include <npp.h>
 
 
 static const int kBlockThreads = 1024;
@@ -66,7 +66,7 @@ static const int kBlockThreads = 1024;
 __global__ void cudaKernel_FFT(int nx, int ny, cufftDoubleComplex* input, cufftDoubleComplex* output, bool bNormailzed)
 {
 	int tid = threadIdx.x + blockIdx.x * blockDim.x;
-	double normalF = nx*ny;
+	double normalF = nx * ny;
 
 	output[tid].x = input[tid].x / normalF;
 	output[tid].y = input[tid].y / normalF;
@@ -74,8 +74,8 @@ __global__ void cudaKernel_FFT(int nx, int ny, cufftDoubleComplex* input, cufftD
 
 __global__ void cudaKernel_CvtFieldToCuFFT(Complex<Real> *src_data, cufftDoubleComplex *dst_data, int nx, int ny) {
 	int tid = threadIdx.x + blockIdx.x * blockDim.x;
-	if (tid < nx*ny) {	
-			dst_data[tid] = make_cuDoubleComplex(src_data[tid]._Val[_RE], src_data[tid]._Val[_IM]);
+	if (tid < nx*ny) {
+		dst_data[tid] = make_cuDoubleComplex(src_data[tid]._Val[_RE], src_data[tid]._Val[_IM]);
 	}
 }
 
@@ -91,24 +91,24 @@ __global__ void cudaKernel_CreateSphtialCarrier() {
 	int tid = threadIdx.x + blockIdx.x * blockDim.x;
 
 }
-__global__ void cudaKernel_sigCvtOFF(Complex<Real> *src_data, Real *dst_data, ophSigConfig *device_config,  int nx, int ny, Real wl, Complex<Real> *F, Real *angle) {
+__global__ void cudaKernel_sigCvtOFF(Complex<Real> *src_data, Real *dst_data, ophSigConfig *device_config, int nx, int ny, Real wl, Complex<Real> *F, Real *angle) {
 	int tid = threadIdx.x + blockIdx.x * blockDim.x;
-	int r = tid%ny;
-	int c = tid/ny;
+	int r = tid % ny;
+	int c = tid / ny;
 	Real x, y;
 	if (tid < nx*ny)
 	{
-		x= (device_config->height / (ny - 1)*r - device_config->height / 2);
+		x = (device_config->height / (ny - 1)*r - device_config->height / 2);
 		y = (device_config->width / (nx - 1)*c - device_config->width / 2);
 		F[tid]._Val[_RE] = cos(((2 * M_PI) / wl)*(x * sin(angle[_X]) + y * sin(angle[_Y])));
 		F[tid]._Val[_IM] = sin(((2 * M_PI) / wl)*(x * sin(angle[_X]) + y * sin(angle[_Y])));
 		dst_data[tid] = (src_data[tid]._Val[_RE] * F[tid]._Val[_RE] - src_data[tid]._Val[_IM] * F[tid]._Val[_IM]);
-		
-		
+
+
 	}
 
 }
-__global__ void cudaKernel_sigCvtHPO( ophSigConfig *device_config, Complex<Real> *F,int nx, int ny, Real Rephase, Real Imphase) {
+__global__ void cudaKernel_sigCvtHPO(ophSigConfig *device_config, Complex<Real> *F, int nx, int ny, Real Rephase, Real Imphase) {
 	int tid = threadIdx.x + blockIdx.x * blockDim.x;
 	int r = tid % ny;
 	int c = tid / ny;
@@ -118,14 +118,14 @@ __global__ void cudaKernel_sigCvtHPO( ophSigConfig *device_config, Complex<Real>
 
 	if (tid < nx*ny)
 	{
-		int ii = (r + yshift) % ny; 
+		int ii = (r + yshift) % ny;
 		int jj = (c + xshift) % nx;
 		y = (2 * M_PI * (c) / device_config->width - M_PI * (nx - 1) / device_config->width);
 		F[ny*jj + ii]._Val[_RE] = exp(Rephase*y * y)*cos(Imphase*y * y);
 		F[ny*jj + ii]._Val[_IM] = exp(Rephase*y * y)*sin(Imphase*y * y);
 	}
 }
-__global__ void cudaKernel_sigCvtCAC( Complex<Real> *FFZP, ophSigConfig *device_config, int nx, int ny, Real sigmaf, Real radius) {
+__global__ void cudaKernel_sigCvtCAC(Complex<Real> *FFZP, ophSigConfig *device_config, int nx, int ny, Real sigmaf, Real radius) {
 	int tid = threadIdx.x + blockIdx.x * blockDim.x;
 	int r = tid % ny;
 	int c = tid / ny;
@@ -137,9 +137,9 @@ __global__ void cudaKernel_sigCvtCAC( Complex<Real> *FFZP, ophSigConfig *device_
 		int ii = (r + yshift) % ny;
 		int jj = (c + xshift) % nx;
 		y = (2 * M_PI * c) / radius - (M_PI*(nx - 1)) / radius;
-		x= (2 * M_PI * r) / radius - (M_PI*(ny - 1)) / radius;
+		x = (2 * M_PI * r) / radius - (M_PI*(ny - 1)) / radius;
 
-		FFZP[ny*jj + ii]._Val[_RE] = cos(sigmaf * (x*x+ y * y));
+		FFZP[ny*jj + ii]._Val[_RE] = cos(sigmaf * (x*x + y * y));
 		FFZP[ny*jj + ii]._Val[_IM] = -sin(sigmaf * (x*x + y * y));
 
 	}
@@ -190,8 +190,8 @@ __global__ void cudaKernel_GetParamAT1(Complex<Real> *src_data, Complex<Real> *F
 	Real x, y;
 	if (tid < nx*ny)
 	{
-		x = 2 * M_PI * (c) / device_config->height - M_PI*(nx - 1) / device_config->height;
-		y = 2 * M_PI * (r) / device_config->width - M_PI*(ny - 1) / device_config->width;
+		x = 2 * M_PI * (c) / device_config->height - M_PI * (nx - 1) / device_config->height;
+		y = 2 * M_PI * (r) / device_config->width - M_PI * (ny - 1) / device_config->width;
 
 		G[tid]._Val[_RE] = exp(-M_PI * pow((wl) / (2 * M_PI * NA_g), 2) * (x * x + y * y));
 
@@ -220,11 +220,11 @@ __global__ void cudaKernel_GetParamAT2(Complex<Real> *Flr, Complex<Real> *Fli, C
 	}
 }
 
-__global__ void cudaKernel_sigGetParamSF(cufftDoubleComplex *src_data, Real *f, int nx, int ny ,float th ) {
+__global__ void cudaKernel_sigGetParamSF(cufftDoubleComplex *src_data, Real *f, int nx, int ny, float th) {
 	int tid = threadIdx.x + blockIdx.x * blockDim.x;
 	int r = tid % ny;
 	int c = tid / ny;
-	Real ret1 =0, ret2 = 0;
+	Real ret1 = 0, ret2 = 0;
 	if (tid < (nx)*(ny))
 	{
 		f[tid] = 0;
@@ -233,23 +233,23 @@ __global__ void cudaKernel_sigGetParamSF(cufftDoubleComplex *src_data, Real *f, 
 			if (c != nx - 2 && c != nx - 1)
 			{
 				ret1 = abs(src_data[r + (c + 2)*ny].x - src_data[tid].x);
-				ret2 = abs(src_data[(r + 2) + c*ny].x - src_data[tid].x);
+				ret2 = abs(src_data[(r + 2) + c * ny].x - src_data[tid].x);
 			}
 		}
-		if (ret1 >= th) { f[tid] = ret1 * ret1;   }
+		if (ret1 >= th) { f[tid] = ret1 * ret1; }
 		else if (ret2 >= th) { f[tid] = ret2 * ret2; }
 	}
 }
-__global__ void cudaKernel_sub(Real *data,int nx, int ny,Real *Min)
+__global__ void cudaKernel_sub(Real *data, int nx, int ny, Real *Min)
 {
 	int tid = threadIdx.x + blockIdx.x*blockDim.x;
 	data[tid] = data[tid] - *Min;
 }
 
-__global__ void cudaKernel_div(Real *src_data,Complex<Real> *dst_data, int nx, int ny, Real *Max)
+__global__ void cudaKernel_div(Real *src_data, Complex<Real> *dst_data, int nx, int ny, Real *Max)
 {
 	int tid = threadIdx.x + blockIdx.x*blockDim.x;
-	dst_data[tid]._Val[_RE] = src_data[tid]/ *Max;
+	dst_data[tid]._Val[_RE] = src_data[tid] / *Max;
 	dst_data[tid]._Val[_IM] = 0;
 }
 __global__ void fftShift(int N, int nx, int ny, cufftDoubleComplex* input, cufftDoubleComplex* output, bool bNormailzed)
@@ -259,7 +259,7 @@ __global__ void fftShift(int N, int nx, int ny, cufftDoubleComplex* input, cufft
 	if (bNormailzed == true)
 		normalF = nx * ny;
 
-	
+
 	int r = tid % ny;
 	int c = tid / ny;
 	int xshift = nx / 2;
@@ -296,7 +296,7 @@ extern "C"
 	void cudaFFT(int nx, int ny, cufftDoubleComplex* in_field, cufftDoubleComplex* output_field, int direction, bool bNormalized)
 	{
 		unsigned int nblocks = (nx*ny + kBlockThreads - 1) / kBlockThreads;
-		int N = nx * ny;	
+		int N = nx * ny;
 		cufftHandle plan;
 
 		cufftResult result;
@@ -333,8 +333,8 @@ extern "C"
 
 	void cudaCuFFT(cufftHandle* plan, cufftDoubleComplex *src_data, cufftDoubleComplex *dst_data, int nx, int ny, int direction) {
 		unsigned int nBlocks = (nx*ny + kBlockThreads - 1) / kBlockThreads;
-		
-		
+
+
 		cufftResult result;
 		result = cufftExecZ2Z(*plan, src_data, dst_data, CUFFT_FORWARD);
 
@@ -351,8 +351,8 @@ extern "C"
 		unsigned int nBlocks = (nx*ny + kBlockThreads - 1) / kBlockThreads;
 		cufftResult result;
 		//
-			result = cufftExecZ2Z(*plan, src_data, dst_data, CUFFT_INVERSE);
-			cudaKernel_FFT << < nBlocks, kBlockThreads >> > (nx, ny, dst_data, src_data, direction);
+		result = cufftExecZ2Z(*plan, src_data, dst_data, CUFFT_INVERSE);
+		cudaKernel_FFT << < nBlocks, kBlockThreads >> > (nx, ny, dst_data, src_data, direction);
 
 		if (result != CUFFT_SUCCESS)
 			return;
@@ -362,11 +362,11 @@ extern "C"
 
 	}
 
-	void cudaCvtOFF(Complex<Real> *src_data, Real *dst_data, ophSigConfig *device_config, int nx, int ny, Real wl, Complex<Real> *F,  Real *angle) {
+	void cudaCvtOFF(Complex<Real> *src_data, Real *dst_data, ophSigConfig *device_config, int nx, int ny, Real wl, Complex<Real> *F, Real *angle) {
 		unsigned int nBlocks = (nx * ny + kBlockThreads - 1) / kBlockThreads;
-	
 
-		cudaKernel_sigCvtOFF << < nBlocks, kBlockThreads >> > (src_data, dst_data, device_config, nx, ny, wl, F,  angle);
+
+		cudaKernel_sigCvtOFF << < nBlocks, kBlockThreads >> > (src_data, dst_data, device_config, nx, ny, wl, F, angle);
 		int tid = threadIdx.x + blockIdx.x*blockDim.x;
 		uchar * pDeviceBuffer;
 		Real* pM;
@@ -374,28 +374,28 @@ extern "C"
 		nppsSumGetBufferSize_64f(nx*ny, &nBufferSize);
 		cudaMalloc((void**)(&pDeviceBuffer), nBufferSize);
 		nppsMin_64f(dst_data, nx*ny, pM, pDeviceBuffer);
-		cudaKernel_sub << < nBlocks, kBlockThreads >> >(dst_data, nx, ny, pM);
+		cudaKernel_sub << < nBlocks, kBlockThreads >> > (dst_data, nx, ny, pM);
 		nppsMax_64f(dst_data, nx*ny, pM, pDeviceBuffer);
-		cudaKernel_div << < nBlocks, kBlockThreads >> >(dst_data,src_data, nx, ny, pM);
+		cudaKernel_div << < nBlocks, kBlockThreads >> > (dst_data, src_data, nx, ny, pM);
 		cudaFree(pDeviceBuffer);
-		
+
 	}
 
-	void cudaCvtHPO(CUstream_st* stream, cufftDoubleComplex *src_data, cufftDoubleComplex *dst_data, ophSigConfig *device_config, Complex<Real> *F ,int nx, int ny,Real Rephase, Real Imphase) {
+	void cudaCvtHPO(CUstream_st* stream, cufftDoubleComplex *src_data, cufftDoubleComplex *dst_data, ophSigConfig *device_config, Complex<Real> *F, int nx, int ny, Real Rephase, Real Imphase) {
 		unsigned int nBlocks = (nx * ny + kBlockThreads - 1) / kBlockThreads;
-		cudaKernel_sigCvtHPO << < nBlocks, kBlockThreads,0,stream >> > (device_config,  F,nx,ny,Rephase,Imphase);
+		cudaKernel_sigCvtHPO << < nBlocks, kBlockThreads, 0, stream >> > (device_config, F, nx, ny, Rephase, Imphase);
 		cudaKernel_multiply << < nBlocks, kBlockThreads, 0, stream >> > (src_data, dst_data, F, nx, ny);
-		
+
 	}
-	void cudaCvtCAC(cufftDoubleComplex *src_data, cufftDoubleComplex *dst_data,  Complex<Real> *FFZP , ophSigConfig *device_config, int nx, int ny, Real sigmaf, Real radius) {
+	void cudaCvtCAC(cufftDoubleComplex *src_data, cufftDoubleComplex *dst_data, Complex<Real> *FFZP, ophSigConfig *device_config, int nx, int ny, Real sigmaf, Real radius) {
 		unsigned int nBlocks = (nx * ny + kBlockThreads - 1) / kBlockThreads;
-		cudaKernel_sigCvtCAC << < nBlocks, kBlockThreads >> > (FFZP,device_config,nx,ny,sigmaf,radius);
+		cudaKernel_sigCvtCAC << < nBlocks, kBlockThreads >> > (FFZP, device_config, nx, ny, sigmaf, radius);
 		cudaKernel_multiply << < nBlocks, kBlockThreads >> > (src_data, dst_data, FFZP, nx, ny);
 	}
 
 	void cudaPropagation(cufftDoubleComplex *src_data, cufftDoubleComplex *dst_data, Complex<Real> *FH, ophSigConfig *device_config, int nx, int ny, Real sigmaf) {
 		unsigned int nBlocks = (nx * ny + kBlockThreads - 1) / kBlockThreads;
-		cudaKernel_Propagation << < nBlocks, kBlockThreads >> > (FH,device_config,nx,ny,sigmaf);
+		cudaKernel_Propagation << < nBlocks, kBlockThreads >> > (FH, device_config, nx, ny, sigmaf);
 		cudaKernel_multiply << < nBlocks, kBlockThreads >> > (src_data, dst_data, FH, nx, ny);
 		//__syncthreads();
 	}
@@ -430,13 +430,13 @@ extern "C"
 		nppsSumGetBufferSize_64f(nx*ny, &nBufferSize);
 		cudaMalloc((void**)(&pDeviceBuffer), nBufferSize);
 		Real dz = (zMax - zMin) / sampN;
-		for (int n = 0; n < sampN+1; n++)
+		for (int n = 0; n < sampN + 1; n++)
 		{
 
 			Real z = ((n)* dz + zMin);
 			Real_t sigmaf = (z*wl) / (4 * M_PI);
 			//propagation
-			cudaPropagation(src_data, dst_data,  FH, device_config, nx, ny, sigmaf);
+			cudaPropagation(src_data, dst_data, FH, device_config, nx, ny, sigmaf);
 			cudaCuIFFT(fftplan, dst_data, temp_data, nx, ny, CUFFT_INVERSE);
 			//SF
 			cudaKernel_sigGetParamSF << < nBlocks, kBlockThreads >> > (dst_data, f, nx, ny, th);
@@ -458,7 +458,7 @@ extern "C"
 	}
 
 
-}
+};
 
 
 #endif

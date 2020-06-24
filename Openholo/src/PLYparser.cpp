@@ -161,8 +161,9 @@ bool PLYparser::loadPLY(const std::string& fileName, ulonglong &n_points, int &c
 			return false;
 		}
 		else {
+#ifdef _DEBUG
 			std::cout << "Parsing *.PLY file for OpenHolo Point Cloud Generation..." << std::endl;
-
+#endif
 			//parse PLY header
 			while (std::getline(File, line)) {
 				//std::istringstream lineStr(line);
@@ -191,6 +192,7 @@ bool PLYparser::loadPLY(const std::string& fileName, ulonglong &n_points, int &c
 				else if (token == "end_header") break;
 			}
 
+#ifdef _DEBUG
 			//print comment list
 			for (auto cmt : comments) {
 				std::cout << "Comment : " << cmt << std::endl;
@@ -204,7 +206,7 @@ bool PLYparser::loadPLY(const std::string& fileName, ulonglong &n_points, int &c
 					std::cout << "\tProperty : " << Property.name << " : ( " << PropertyTable[Property.propertyType].second << " )" << std::endl;
 				}
 			}
-
+#endif
 			longlong idxE_color = -1;
 			int idxP_channel = -1;
 			bool ok_channel = findIdxOfPropertiesAndElement(elements, "color", "channel", idxE_color, idxP_channel);
@@ -426,8 +428,9 @@ bool PLYparser::loadPLY(const std::string& fileName, ulonglong &n_points, int &c
 				}
 			}
 
+#ifdef _DEBUG
 			std::cout << "Success loading " << n_points << " Point Clouds, Color Channels : " << color_channels << std::endl;
-
+#endif
 			return true;
 		}
 	}

@@ -48,7 +48,6 @@
 
 #include "ophGen.h"
 #include <cufft.h>
-
 #include "include.h"
 
 //Build Option : Multi Core Processing (OpenMP)
@@ -127,8 +126,17 @@ public:
 	* @param[in] is_CPU the value for specifying whether the hologram generation method is implemented on the CPU or GPU
 	*/
 	void setMode(bool is_CPU);
+
+	/**
+	* @brief Function for setting precision
+	* @param[in] precision level.
+	*/
+	void setPrecision(bool bPrecision) { bSinglePrecision = bPrecision; }
+	bool getPrecision() { return bSinglePrecision; }
+
 	bool readConfig(const char* fname);
 	bool readImageDepth(const char* source_folder, const char* img_prefix, const char* depth_img_prefix);
+	//bool readImageDepth(const char* rgb, const char* depth);
 	
 	/**
 	* @brief Generate a hologram, main funtion. When the calculation is finished, the angular spectrum is performed.
@@ -201,6 +209,7 @@ protected:
 private:
 	bool					is_CPU;								///< if true, it is implemented on the CPU, otherwise on the GPU.
 	bool					is_ViewingWindow;
+	bool					bSinglePrecision;
 	unsigned char*			depth_img;
 	unsigned char*			rgb_img;
 	ivec2					m_vecRGBImg;

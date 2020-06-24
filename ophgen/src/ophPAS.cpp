@@ -151,7 +151,7 @@ bool ophPAS::readConfig(const char* fname, OphPointCloudConfig& configdata) {
 	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&configdata.scale[_Z]))
 		return false;
 	next = xml_node->FirstChildElement("OffsetInDepth");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&configdata.offset_depth))
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&configdata.distance))
 		return false;
 	next = xml_node->FirstChildElement("SLMpixelPitchX");
 	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&context_.pixel_pitch[_X]))
@@ -600,7 +600,7 @@ void ophPAS::PAS(long voxelnum, OphPointCloudData *data, double * m_pHologram, O
 	float xiInterval = getContext().pixel_pitch[_X];//_CGHE->xiInterval;
 	float etaInterval = getContext().pixel_pitch[_Y];//_CGHE->etaInterval;
 	float cghScale = conf.scale[_X];// _CGHE->CGHScale;
-	float defaultDepth = conf.offset_depth;//_CGHE->DefaultDepth;
+	float defaultDepth = conf.distance;//_CGHE->DefaultDepth;
 
 	DataInit(FFT_SEGMENT_SIZE, getContext().pixel_number[_X], getContext().pixel_number[_Y], xiInterval, etaInterval);
 

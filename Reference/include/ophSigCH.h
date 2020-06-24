@@ -9,7 +9,7 @@
 /**
 * @addtogroup CH
 //@{
-* @detail
+* @details
 * @section Introduction
 
 This module is related methods which perform compressed holography algorithm.

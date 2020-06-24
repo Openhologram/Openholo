@@ -176,6 +176,14 @@ public:
 	*/
 	void setMode(bool is_CPU);
 
+	/**
+	* @brief Function for setting precision
+	* @param[in] precision level.
+	*/
+	void setPrecision(bool bPrecision) { bSinglePrecision = bPrecision; }
+	bool getPrecision() { return bSinglePrecision; }
+
+
 	double calculateWRPCPU(void);
 	double calculateWRPGPU(void);
 
@@ -236,6 +244,7 @@ protected:
 private:
 	bool is_ViewingWindow;
 	bool is_CPU;
+	bool bSinglePrecision;
 	Real zmax_;
 
 };

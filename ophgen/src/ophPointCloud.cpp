@@ -45,7 +45,6 @@
 
 #include "ophPointCloud.h"
 #include "include.h"
-
 #include "tinyxml2.h"
 #include <sys.h>
 #include <cufft.h>
@@ -56,8 +55,9 @@ ophPointCloud::ophPointCloud(void)
 	, is_ViewingWindow(false)
 	, n_percent(0)
 	, n_points(-1)
+	, bSinglePrecision(false)
 {
-	LOG("*** BUILD DATE: %s %s ***\n\n", __DATE__, __TIME__);
+	LOG("*** POINT CLOUD : BUILD DATE: %s %s ***\n\n", __DATE__, __TIME__);
 }
 
 ophPointCloud::ophPointCloud(const char* pc_file, const char* cfg_file)
@@ -120,14 +120,8 @@ bool ophPointCloud::readConfig(const char* fname)
 	}
 
 	xml_node = xml_doc.FirstChild();
-	
-	// about viewing window
-	auto next = xml_node->FirstChildElement("FieldLength");
-	if (!next || XML_SUCCESS != next->QueryDoubleText(&pc_config_.fieldLength))
-		return false;
-
 	// about point
-	next = xml_node->FirstChildElement("ScaleX");
+	auto next = xml_node->FirstChildElement("ScaleX");
 	if (!next || XML_SUCCESS != next->QueryDoubleText(&pc_config_.scale[_X]))
 		return false;
 	next = xml_node->FirstChildElement("ScaleY");
@@ -136,11 +130,8 @@ bool ophPointCloud::readConfig(const char* fname)
 	next = xml_node->FirstChildElement("ScaleZ");
 	if (!next || XML_SUCCESS != next->QueryDoubleText(&pc_config_.scale[_Z]))
 		return false;
-	next = xml_node->FirstChildElement("OffsetInDepth");
-	if (!next || XML_SUCCESS != next->QueryDoubleText(&pc_config_.offset_depth))
-		return false;
-	next = xml_node->FirstChildElement("NumOfStream");
-	if (!next || XML_SUCCESS != next->QueryIntText(&pc_config_.n_streams))
+	next = xml_node->FirstChildElement("Distance");
+	if (!next || XML_SUCCESS != next->QueryDoubleText(&pc_config_.distance))
 		return false;
 
 	auto end = CUR_TIME;
@@ -153,10 +144,15 @@ bool ophPointCloud::readConfig(const char* fname)
 
 Real ophPointCloud::generateHologram(uint diff_flag)
 {
+	if (diff_flag < PC_DIFF_RS || diff_flag > PC_DIFF_FRESNEL) {
+		LOG("Wrong Diffraction Method.\n");
+		return 0.0;
+	}
+
 	resetBuffer();
 	auto begin = CUR_TIME;
 	LOG("1) Algorithm Method : Point Cloud\n");
-	LOG("2) Generate Hologram with %s\n", is_CPU ? 
+	LOG("2) Generate Hologram with %s\n", is_CPU ?
 #ifdef _OPENMP
 		"Multi Core CPU" :
 #else
@@ -166,6 +162,7 @@ Real ophPointCloud::generateHologram(uint diff_flag)
 	LOG("3) Transform Viewing Window : %s\n", is_ViewingWindow ? "ON" : "OFF");
 	LOG("4) Diffraction Method : %s\n", diff_flag == PC_DIFF_RS ? "R-S" : "Fresnel");
 	LOG("5) Number of Point Cloud : %d\n", n_points);
+	LOG("6) Precision Level : %s\n", getPrecision() ? "Single" : "Double");
 
 	// Create CGH Fringe Pattern by 3D Point Cloud
 	if (is_CPU) { //Run CPU
@@ -267,7 +264,7 @@ void ophPointCloud::encodeHologram(const vec2 band_limit, const vec2 spectrum_sh
 
 void ophPointCloud::encoding(unsigned int ENCODE_FLAG)
 {
-	ophGen::encoding(ENCODE_FLAG);
+	ophGen::encoding(ENCODE_FLAG, nullptr);
 }
 
 void ophPointCloud::encoding(unsigned int ENCODE_FLAG, unsigned int SSB_PASSBAND)
@@ -276,14 +273,6 @@ void ophPointCloud::encoding(unsigned int ENCODE_FLAG, unsigned int SSB_PASSBAND
 	else if (ENCODE_FLAG == ENCODE_OFFSSB) ophGen::encoding(ENCODE_FLAG, SSB_PASSBAND);
 }
 
-void ophPointCloud::transVW(int nSize, Real *dst, Real *src)
-{
-	Real fieldLens = this->getFieldLens();
-	//memcpy(dst, src, sizeof(Real) * nSize);
-	for (int i = 0; i < nSize; i++) {
-		*(dst + i) = -fieldLens * src[i] / (src[i] - fieldLens);
-	}
-}
 
 Real ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 {
@@ -309,7 +298,7 @@ Real ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 	ss[_Y] = context_.ss[_Y] = pn[_Y] * pp[_Y];
 
 	uint nChannel = context_.waveNum;
-	
+
 	bool bIsGrayScale = pc_data_.n_colors == 1 ? true : false;
 
 	int i; // private variable for Multi Threading
@@ -318,10 +307,20 @@ Real ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 	int prev = 0;
 	n_percent = 0;
 
+	Real *pVertex = nullptr;
+	if (is_ViewingWindow) {
+		pVertex = new Real[n_points * 3];
+		transVW(n_points * 3, pVertex, pc_data_.vertex);
+	}
+	else {
+		pVertex = pc_data_.vertex;
+	}
+	
 	for (uint ch = 0; ch < nChannel; ++ch) {
 		// Wave Number (2 * PI / lambda(wavelength))
 		Real lambda = context_.wave_length[ch];
 		Real k = context_.k = (2 * M_PI / lambda);
+
 		uint nAdd = bIsGrayScale ? 0 : ch;
 #ifdef _OPENMP
 #pragma omp parallel
@@ -332,17 +331,20 @@ Real ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 #pragma omp for private(i)
 #endif
 			for (i = 0; i < n_points; ++i) { //Create Fringe Pattern
-				uint idx = 3 * i;
-				uint color_idx = pc_data_.n_colors * i;
-				Real pcx = (is_ViewingWindow) ? transVW(pc_data_.vertex[idx + _X]) : pc_data_.vertex[idx + _X];
-				Real pcy = (is_ViewingWindow) ? transVW(pc_data_.vertex[idx + _Y]) : pc_data_.vertex[idx + _Y];
-				Real pcz = (is_ViewingWindow) ? transVW(pc_data_.vertex[idx + _Z]) : pc_data_.vertex[idx + _Z];
+				uint iVertex = 3 * i; // x, y, z
+				uint iColor = pc_data_.n_colors * i + nAdd; // rgb or gray-scale
+				Real pcx, pcy, pcz;
+
+				pcx = pVertex[iVertex + _X];
+				pcy = pVertex[iVertex + _Y];
+				pcz = pVertex[iVertex + _Z];
 				pcx *= pc_config_.scale[_X];
 				pcy *= pc_config_.scale[_Y];
 				pcz *= pc_config_.scale[_Z];
-				pcz += pc_config_.offset_depth;
-				Real amplitude = pc_data_.color[color_idx + nAdd];
-			
+				pcz += pc_config_.distance;
+				
+				Real amplitude = pc_data_.color[iColor];
+
 				switch (diff_flag)
 				{
 				case PC_DIFF_RS:
@@ -353,7 +355,7 @@ Real ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 					break;
 				}
 #pragma omp atomic
-				sum ++;
+				sum++;
 
 				n_percent = (int)((Real)sum * 100 / ((Real)n_points * nChannel));
 			}
@@ -362,6 +364,9 @@ Real ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 #endif
 	}
 
+	if (is_ViewingWindow) {
+		delete[] pVertex;
+	}
 	auto end = CUR_TIME;
 	Real elapsed_time = ((chrono::duration<Real>)(end - begin)).count();
 	LOG("\n%s : %lf(s) <%d threads>\n\n",
@@ -437,23 +442,23 @@ void ophPointCloud::diffractNotEncodedRS(uint channel, ivec2 pn, vec2 pp, vec2 s
 				pc[_X] + abs(tx / sqrtX * sqrt((yyy - pc[_Y]) * (yyy - pc[_Y]) + zz)),
 				pc[_X] - abs(tx / sqrtX * sqrt((yyy - pc[_Y]) * (yyy - pc[_Y]) + zz))
 		};
-		
+
 		for (int xxtr = Xbound[_Y]; xxtr < Xbound[_X]; ++xxtr)
 		{
 			Real xxx = x + ((xxtr - 1) * pp[_X]);
-			Real r = sqrt((xxx - pc[_X]) * (xxx - pc[_X]) + (yyy - pc[_Y]) * (yyy - pc[_Y]) + zz);			
+			Real r = sqrt((xxx - pc[_X]) * (xxx - pc[_X]) + (yyy - pc[_Y]) * (yyy - pc[_Y]) + zz);
 			Real range_y[2] = {
 				pc[_Y] + abs(ty / sqrtY * sqrt((xxx - pc[_X]) * (xxx - pc[_X]) + zz)),
 				pc[_Y] - abs(ty / sqrtY * sqrt((xxx - pc[_X]) * (xxx - pc[_X]) + zz))
 			};
 
 			if (((xxx < range_x[_X]) && (xxx > range_x[_Y])) && ((yyy < range_y[_X]) && (yyy > range_y[_Y]))) {
-			//	int idx = (flag) ? pn[_X] * i + j : pn[_Y] * j + i;
+				//	int idx = (flag) ? pn[_X] * i + j : pn[_Y] * j + i;
 				Real kr = k * r;
 				Real operand = lambda * r * r;
 				Real res_real = (ampZ * sin(kr)) / operand;
 				Real res_imag = (-ampZ * cos(kr)) / operand;
-#ifdef _OPENMP
+#ifdef _OPENMP 
 #pragma omp atomic
 				complex_H[channel][offset + xxtr][_RE] += res_real;
 #pragma omp atomic
@@ -531,7 +536,16 @@ void ophPointCloud::diffractNotEncodedFrsn(uint channel, ivec2 pn, vec2 pp, vec2
 
 void ophPointCloud::ophFree(void)
 {
-	delete[] pc_data_.vertex;
-	delete[] pc_data_.color;
-	delete[] pc_data_.phase;
+	if (pc_data_.vertex) {
+		delete[] pc_data_.vertex;
+		pc_data_.vertex = nullptr;
+	}
+	if (pc_data_.color) {
+		delete[] pc_data_.color;
+		pc_data_.color = nullptr;
+	}
+	if (pc_data_.phase) {
+		delete[] pc_data_.phase;
+		pc_data_.phase = nullptr;
+	}
 }

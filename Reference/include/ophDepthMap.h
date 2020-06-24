@@ -48,7 +48,6 @@
 
 #include "ophGen.h"
 #include <cufft.h>
-
 #include "include.h"
 
 //Build Option : Multi Core Processing (OpenMP)
@@ -61,7 +60,7 @@ using namespace oph;
 /**
 * @addtogroup depthmap
 //@{
-* @detail
+* @details
 
 * @section Introduction
 
@@ -117,10 +116,27 @@ protected:
 	virtual ~ophDepthMap();
 
 public:
-
+	/**
+	* @brief Set the value of a variable is_CPU(true or false)
+	* @details <pre>
+	if is_CPU == true
+	CPU implementation
+	else
+	GPU implementation </pre>
+	* @param[in] is_CPU the value for specifying whether the hologram generation method is implemented on the CPU or GPU
+	*/
 	void setMode(bool is_CPU);
+
+	/**
+	* @brief Function for setting precision
+	* @param[in] precision level.
+	*/
+	void setPrecision(bool bPrecision) { bSinglePrecision = bPrecision; }
+	bool getPrecision() { return bSinglePrecision; }
+
 	bool readConfig(const char* fname);
 	bool readImageDepth(const char* source_folder, const char* img_prefix, const char* depth_img_prefix);
+	//bool readImageDepth(const char* rgb, const char* depth);
 	
 	/**
 	* @brief Generate a hologram, main funtion. When the calculation is finished, the angular spectrum is performed.
@@ -131,25 +147,34 @@ public:
 	void encodeHologram(void);
 	virtual void encoding(unsigned int ENCODE_FLAG);
 	virtual void encoding(unsigned int ENCODE_FLAG, unsigned int SSB_PASSBAND);
-
-	virtual int save(const char* fname, uint8_t bitsperpixel = 24);/**
+	
+	/**
 	* @brief Set the value of a variable is_ViewingWindow(true or false)
 	* @details <pre>
 	if is_ViewingWindow == true
 	Transform viewing window
 	else
-	GPU implementation </pre>
-	* @param is_TransVW : the value for specifying whether the hologram generation method is implemented on the viewing window
+	Hologram </pre>
+	* @param is_ViewingWindow : the value for specifying whether the hologram generation method is implemented on the viewing window
 	*/
 	void setViewingWindow(bool is_ViewingWindow);
 
+	ivec2 getRGBImgSize() { return m_vecRGBImg; };
+	ivec2 getDepthImgSize() { return m_vecDepthImg; };
+
+	void setConfig(OphDepthMapConfig config) {
+		dm_config_ = config;
+	};
+	void setResolution(ivec2 resolution);
+	uint* getPercent() { return &n_percent; }
+
 public:
-	inline void setFieldLens(Real fieldlens) { dm_config_.field_lens = fieldlens; }
+	inline void setFieldLens(Real fieldlens) { dm_config_.fieldLength = fieldlens; }
 	inline void setNearDepth(Real neardepth) { dm_config_.near_depthmap = neardepth; }
 	inline void setFarDepth(Real fardetph) { dm_config_.far_depthmap = fardetph; }
 	inline void setNumOfDepth(uint numofdepth) { dm_config_.num_of_depth = numofdepth; }
 
-	inline Real getFieldLens(void) { return dm_config_.field_lens; }
+	inline Real getFieldLens(void) { return dm_config_.fieldLength; }
 	inline Real getNearDepth(void) { return dm_config_.near_depthmap; }
 	inline Real getFarDepth(void) { return dm_config_.far_depthmap; }
 	inline uint getNumOfDepth(void) { return dm_config_.num_of_depth; }
@@ -170,12 +195,11 @@ private:
 	void changeDepthQuanCPU();
 	void changeDepthQuanGPU();
 
-	void transformViewingWindow();
+	void transVW();
 
-	void calcHoloByDepth(void);
 	void calcHoloCPU(void);
 	void calcHoloGPU(void);
-	void propagationAngularSpectrumGPU(cufftDoubleComplex* input_u, Real propagation_dist);
+	void propagationAngularSpectrumGPU(uint channel, cufftDoubleComplex* input_u, Real propagation_dist);
 
 protected:
 	void free_gpu(void);
@@ -185,9 +209,11 @@ protected:
 private:
 	bool					is_CPU;								///< if true, it is implemented on the CPU, otherwise on the GPU.
 	bool					is_ViewingWindow;
+	bool					bSinglePrecision;
 	unsigned char*			depth_img;
 	unsigned char*			rgb_img;
-
+	ivec2					m_vecRGBImg;
+	ivec2					m_vecDepthImg;
 	unsigned char*			img_src_gpu;						///< GPU variable - image source data, values are from 0 to 255.
 	unsigned char*			dimg_src_gpu;						///< GPU variable - depth map data, values are from 0 to 255.
 	Real*					depth_index_gpu;					///< GPU variable - quantized depth map data.
@@ -200,10 +226,13 @@ private:
 	Real*					dmap;								///< CPU variable - physical distances of depth map.
 
 	Real					dstep;								///< the physical increment of each depth map layer.
-	std::vector<Real>		dlevel;								///< the physical value of all depth map layer.
-	std::vector<Real>		dlevel_transform;					///< transfomed dlevel variable
+	vector<Real>			dlevel;								///< the physical value of all depth map layer.
+	vector<Real>			dlevel_transform;					///< transfomed dlevel variable
 
 	OphDepthMapConfig		dm_config_;							///< structure variable for depthmap hologram configuration.
+
+
+	uint n_percent;
 };
 
 #endif //>__ophDepthMap_h

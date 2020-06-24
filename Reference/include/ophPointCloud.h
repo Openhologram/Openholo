@@ -68,7 +68,7 @@ using namespace oph;
 /**
 * @addtogroup pointcloud
 //@{
-* @detail
+* @details
 
 * @section Introduction
 
@@ -569,14 +569,14 @@ protected:
 
 public:
 	inline void setScale(Real sx, Real sy, Real sz) { pc_config_.scale.v[0] = sx; pc_config_.scale.v[1] = sy; pc_config_.scale.v[2] = sz; }
-	inline void setOffsetDepth(Real offset_depth) { pc_config_.offset_depth = offset_depth; }
+	inline void setDistance(Real distance) { pc_config_.distance = distance; }
 	inline void setFilterShapeFlag(int8_t* fsf) { pc_config_.filter_shape_flag = fsf; }
 	inline void setFilterWidth(Real wx, Real wy) { pc_config_.filter_width.v[0] = wx; pc_config_.filter_width.v[1] = wy; }
 	inline void setFocalLength(Real lens_in, Real lens_out, Real lens_eye_piece) { pc_config_.focal_length_lens_in = lens_in; pc_config_.focal_length_lens_out = lens_out; pc_config_.focal_length_lens_eye_piece = lens_eye_piece; }
 	inline void setTiltAngle(Real ax, Real ay) { pc_config_.tilt_angle.v[0] = ax; pc_config_.tilt_angle.v[1] = ay; }
 
 	inline void getScale(vec3& scale) { scale = pc_config_.scale; }
-	inline Real getOffsetDepth(void) { return pc_config_.offset_depth; }
+	inline Real getDistance(void) { return pc_config_.distance; }
 	inline int8_t* getFilterShapeFlag(void) { return pc_config_.filter_shape_flag; }
 	inline void getFilterWidth(vec2& filterwidth) { filterwidth = pc_config_.filter_width; }
 	inline void getFocalLength(Real* lens_in, Real* lens_out, Real* lens_eye_piece) {
@@ -594,25 +594,35 @@ public:
 		pc_data_.phase = phase;
 	}
 	inline void getPointCloudModel(Real *vertex, Real *color, Real *phase) {
-		getModelLocation(vertex);
+		getModelVertex(vertex);
 		getModelColor(color);
 		getModelPhase(phase);
 	}
 
 	/**
-	* @brief Directly Set Basic Data
+	* @brief Directly Get Basic Data
+	* @param Vertex 3D Point Cloud Geometry Data
 	*/
+	inline const Real* getModelVertex(Real *vertex) { vertex != NULL ? vertex = pc_data_.vertex : vertex; return pc_data_.vertex; }
 	/**
-	* @param Location 3D Point Cloud Geometry Data
+	* @brief Directly Get Basic Data
 	* @param Color 3D Point Cloud Color Data
-	* @param Amplitude 3D Point Cloud Model Amplitude Data of Point-Based Light Wave
+	*/
+	inline const Real* getModelColor(Real *color) { color != NULL ? color = pc_data_.color : color; return pc_data_.color; }
+	/**
+	* @brief Directly Get Basic Data
 	* @param Phase 3D Point Cloud Model Phase Data of Point-Based Light Wave
 	*/
-	inline const Real* getModelLocation(Real *vertex) { vertex != NULL ? vertex = pc_data_.vertex : vertex; return pc_data_.vertex; }
-	inline const Real* getModelColor(Real *color) { color != NULL ? color = pc_data_.color : color; return pc_data_.color; }
 	inline const Real* getModelPhase(Real *phase) { phase != NULL ? phase = pc_data_.phase : phase; return pc_data_.phase; }
+	/**
+	* @brief Directly Get Basic Data
+	* @return int 3D Point Cloud count
+	*/
 	inline int getNumberOfPoints() { return n_points; }
-	inline Real getFieldLens(void) { return pc_config_.field_lens; }
+	/**
+	* @brief Directly Set Basic Data
+	*/
+	inline void setNumberOfPoints(int nPoint) { n_points = nPoint; }
 
 public:
 	/**
@@ -622,9 +632,29 @@ public:
 	CPU implementation
 	else
 	GPU implementation </pre>
-	* @param is_CPU : the value for specifying whether the hologram generation method is implemented on the CPU or GPU
+	* @param[in] is_CPU the value for specifying whether the hologram generation method is implemented on the CPU or GPU
 	*/
 	void setMode(bool is_CPU);
+
+	/**
+	* @brief Function for setting precision
+	* @param[in] precision level.
+	*/
+	void setPrecision(bool bPrecision) { bSinglePrecision = bPrecision; }
+	bool getPrecision() { return bSinglePrecision; }
+
+	/**
+	* @brief get the value of a variable is_CPU(true or false)
+	* @details <pre>
+	if is_CPU == true
+	CPU implementation
+	else
+	GPU implementation </pre>
+	* @return Type: <B>bool</B>\n
+	*				If the function succeeds, the return value is <B>true</B>.\n
+	*				If the function fails, the return value is <B>false</B>.
+	*/
+	bool isCPU() { return is_CPU; }
 
 	/**
 	* @brief override
@@ -634,7 +664,7 @@ public:
 	*/
 	/**
 	* @brief override
-	* @param InputModelFile PointCloud(*.dat) input file path
+	* @param[in] InputModelFile PointCloud(*.dat) input file path
 	* @return number of Pointcloud (if it failed loading, it returned -1)
 	*/
 	int loadPointCloud(const char* pc_file);
@@ -657,6 +687,11 @@ public:
 	* @return implement time (sec)
 	*/
 	Real generateHologram(uint diff_flag = PC_DIFF_RS);
+	/**
+	* @brief encode Single-side band
+	* @param Vector band limit
+	* @param Vector specturm shift
+	*/
 	void encodeHologram(vec2 band_limit = vec2(0.8, 0.5), vec2 spectrum_shift = vec2(0.0, 0.5));
 
 	virtual void encoding(unsigned int ENCODE_FLAG);
@@ -668,62 +703,52 @@ public:
 	if is_ViewingWindow == true
 	Transform viewing window
 	else
-	GPU implementation </pre>
-	* @param is_TransVW : the value for specifying whether the hologram generation method is implemented on the viewing window
+	Hologram </pre>
+	* @param is_ViewingWindow : the value for specifying whether the hologram generation method is implemented on the viewing window
 	*/
 	void setViewingWindow(bool is_ViewingWindow);
+
+	/**
+	* @brief Get the value of a CGH progress status
+	* @details 
+	* @return pointer of percent
+	*/
+	uint* getPercent() { return &n_percent; }
+
+	//int AddPoint(vec3 vertex) { points.push_back(vertex); }
+	
 private:
 	/**
 	* @brief Calculate Integral Fringe Pattern of 3D Point Cloud based Computer Generated Holography
-	* @param VertexArray Input 3D PointCloud Model Coordinate Array Data
-	* @param AmplitudeArray Input 3D PointCloud Model Amplitude Array Data
-	* @param dst Output Fringe Pattern
+	* @param Select diffraction flag\n
+	*		PC_DIFF_RS: Diffraction using R-S integral\n
+	*		PC_DIFF_FRESNEL: Diffraction using Fresnel integral
 	* @return implement time (sec)
 	*/
-	void genCghPointCloudCPU(uint diff_flag);
-	void diffractEncodedRS(ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Real k, Real amplitude, vec2 theta);
-	void diffractNotEncodedRS(ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Real k, Real amplitude, Real lambda, vec2 theta);
+	Real genCghPointCloudCPU(uint diff_flag);
+	
+	void diffractEncodedRS(uint channel, ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Real k, Real amplitude, vec2 theta);
+	void diffractNotEncodedRS(uint channel, ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Real k, Real amplitude, Real lambda);
+
 	void diffractEncodedFrsn(void);
-	void diffractNotEncodedFrsn(ivec2 pn, vec2 pp, vec3 pc, Real amplitude, Real lambda, vec2 theta);
-	inline Real transformViewingWindow(Real pt) {
-		Real fieldLens = this->getFieldLens();
-		Real transPt = -fieldLens * pt / (pt - fieldLens);
-		return transPt;
-	}
-	void transformViewingWindow(int nSize, Real *dst, Real *src);
+	void diffractNotEncodedFrsn(uint channel, ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Real k, Real amplitude, Real lambda);
+
+
 	/**
-	* @overload
-	* @param Model Input 3D PointCloud Model Data
-	* @param dst Output Fringe Pattern
+	* @brief GPGPU Accelation of genCghPointCloud() using NVIDIA CUDA
+	* @param Select diffraction flag\n
+	*		PC_DIFF_RS: Diffraction using R-S integral\n
+	*		PC_DIFF_FRESNEL: Diffraction using Fresnel integral
 	* @return implement time (sec)
 	*/
-	//double genCghPointCloud(const std::vector<PointCloud> &Model, float *dst);
-	/** @}	*/
+	Real genCghPointCloudGPU(uint diff_flag);
 
-	/**
-	* @brief GPGPU Accelation of genCghPointCloud() using nVidia CUDA
-	* @param VertexArray Input 3D PointCloud Model Coordinate Array Data
-	* @param AmplitudeArray Input 3D PointCloud Model Amplitude Array Data
-	* @param dst Output Fringe Pattern
-	* @return implement time (sec)
-	*/
-	void genCghPointCloudGPU(uint diff_flag);
-
-	/** @}	*/
-
-	/**
-	* @brief normalize calculated fringe pattern to 8bit grayscale value.
-	* @param src: Input float type pointer
-	* @param dst: Output char tpye pointer
-	* @param nx: The number of pixels in X
-	* @param ny: The number of pixels in Y
-	*/
 	virtual void ophFree(void);
-
 	bool is_CPU;
 	bool is_ViewingWindow;
+	bool bSinglePrecision;
 	int n_points;
-
+	uint n_percent;
 	OphPointCloudConfig pc_config_;
 	OphPointCloudData	pc_data_;
 };

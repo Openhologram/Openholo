@@ -318,7 +318,7 @@ double ophSig::sigGetParamSF_GPU(float zMax, float zMin, int sampN, float th) {
 	Complex<Real> *host_data, *temp_data, *FH;
 	cufftDoubleComplex *fft_temp_data, *out_data, *Ftemp_data;
 	cufftHandle fftplan;
-	cufftResult a;
+	//cufftResult a;
 	Real wl = *context_.wave_length;
 	Real depth;
 	Real *f;
@@ -394,7 +394,7 @@ double ophSig::sigGetParamAT_GPU() {
 	cufftHandle fftplan;
 	vector<Real> t, tn;
 
-	cufftResult a;
+	//cufftResult a;
 	//a = cufftPlan2d(&fftplan, nx, ny, CUFFT_Z2Z);
 	//cout << a << endl;
 	if (cufftPlan2d(&fftplan, nx, ny, CUFFT_Z2Z) != CUFFT_SUCCESS)

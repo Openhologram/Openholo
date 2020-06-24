@@ -68,25 +68,22 @@
 #undef __CUDA_INTERNAL_COMPILATION__
 
 #define OPH_CUDA_N_STREAM 100
-
-
-static void handleError(cudaError_t err, const char *file, int line) {
+static void HandleError(cudaError_t err,
+	const char *file,
+	int line) {
 	if (err != cudaSuccess) {
-		printf("%s in %s at line %d\n", cudaGetErrorString(err), file, line);
+		printf("%s in %s at line %d\n", cudaGetErrorString(err),
+			file, line);
 		exit(EXIT_FAILURE);
 	}
 }
-#define HANDLE_ERROR(err) (handleError(err, __FILE__, __LINE__))
+#define HANDLE_ERROR( err ) (HandleError( err, __FILE__, __LINE__ ))
 
 
-#define HANDLE_NULL(a) { \
-	if (a == NULL) { \
-		printf("Host memory failed in %s at line %d\n", __FILE__, __LINE__); \
-		exit(EXIT_FAILURE); \
-	} \
-}
-
-
+#define HANDLE_NULL( a ) {if (a == NULL) { \
+                            printf( "Host memory failed in %s at line %d\n", \
+                                    __FILE__, __LINE__ ); \
+                            exit( EXIT_FAILURE );}} 
 // for PointCloud only GPU
 typedef struct KernelConst {
 	int n_points;	/// number of point cloud
@@ -147,6 +144,7 @@ typedef struct KernelConst {
 	}
 } GpuConst;
 
+cudaStream_t *streams;
 
 typedef struct KernelConst_EncodedRS : public KernelConst {
 	double sin_thetaX; ///sin(tiltAngleX)
@@ -267,23 +265,24 @@ typedef struct KernelConst_NotEncodedFrsn : public KernelConst {
 
 extern "C"
 {
+	/*
 	void cudaGenCghPointCloud_EncodedRS(
 		const int &nBlocks, const int &nThreads, const int &n_pts_per_stream,
 		Real* cuda_pc_data, Real* cuda_amp_data,
 		Real* cuda_dst,
 		const GpuConstERS* cuda_config);
-
+		*/
 	void cudaGenCghPointCloud_NotEncodedRS(
 		const int &nBlocks, const int &nThreads, const int &n_pts_per_stream,
 		Real* cuda_pc_data, Real* cuda_amp_data,
 		Real* cuda_dst_real, Real* cuda_dst_imag,
-		const GpuConstNERS* cuda_config);
+		const GpuConstNERS* cuda_config, const uint &iChannel);
 
 	void cudaGenCghPointCloud_NotEncodedFrsn(
 		const int &nBlocks, const int &nThreads, const int &n_pts_per_stream,
 		Real* cuda_pc_data, Real* cuda_amp_data,
 		Real* cuda_dst_real, Real* cuda_dst_imag,
-		const GpuConstNEFR* cuda_config);
+		const GpuConstNEFR* cuda_config, const uint &iChannel);
 }
 
 #endif

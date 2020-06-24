@@ -151,7 +151,7 @@ bool ophACPAS::readConfig(const char* fname, OphPointCloudConfig& configdata) {
 	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&configdata.scale[_Z]))
 		return false;
 	next = xml_node->FirstChildElement("OffsetInDepth");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&configdata.offset_depth))
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&configdata.distance))
 		return false;
 	next = xml_node->FirstChildElement("SLMpixelPitchX");
 	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&context_.pixel_pitch[_X]))
@@ -589,7 +589,7 @@ void ophACPAS::ACPAS(long voxelnum, OphPointCloudData *data, OphPointCloudConfig
 		// point coordinate
 		X = (data->vertex[no]) * conf.scale[_X];
 		Y = (data->vertex[no+1]) * conf.scale[_X];
-		Z = data->vertex[no+2] * conf.scale[_X] - conf.offset_depth;
+		Z = data->vertex[no+2] * conf.scale[_X] - conf.distance;
 		Amplitude = data->phase[no/3];
 		phase = data->phase[no / 3];
 

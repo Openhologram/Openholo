@@ -44,8 +44,6 @@
 //M*/
 
 #include "ophTriMesh.h"
-
-#include "sys.h"
 #include "tinyxml2.h"
 #include "PLYparser.h"
 
@@ -160,16 +158,20 @@ bool ophTri::readConfig(const char* fname)
 	}
 
 	xml_node = xml_doc.FirstChild();
-
-	// about viewing window
-	auto next = xml_node->FirstChildElement("FieldLength");
-	if (!next || XML_SUCCESS != next->QueryDoubleText(&fieldLength))
-		return false;
-
+	
 	// about object
-	next = xml_node->FirstChildElement("ObjectSize");
-	if (!next || XML_SUCCESS != next->QueryDoubleText(&objSize))
+	auto next = xml_node->FirstChildElement("ScaleX");
+	if (!next || XML_SUCCESS != next->QueryDoubleText(&objSize[_X]))
 		return false;
+	next = xml_node->FirstChildElement("ScaleY");
+	if (!next || XML_SUCCESS != next->QueryDoubleText(&objSize[_Y]))
+		return false;
+	next = xml_node->FirstChildElement("ScaleZ");
+	if (!next || XML_SUCCESS != next->QueryDoubleText(&objSize[_Z]))
+		return false;
+
+	objShift = context_.shift;
+	/*
 	next = xml_node->FirstChildElement("ObjectShiftX");
 	if (!next || XML_SUCCESS != next->QueryDoubleText(&objShift[_X]))
 		return false;
@@ -179,6 +181,7 @@ bool ophTri::readConfig(const char* fname)
 	next = xml_node->FirstChildElement("ObjectShiftZ");
 	if (!next || XML_SUCCESS != next->QueryDoubleText(&objShift[_Z]))
 		return false;
+	*/
 	next = xml_node->FirstChildElement("LampDirectionX");
 	if (!next || XML_SUCCESS != next->QueryDoubleText(&illumination[_X]))
 		return false;
@@ -284,68 +287,42 @@ void ophTri::objScaleShift()
 	
 	objNormCenter();
 
+	Real *pMesh = nullptr;
+
+	if (is_ViewingWindow) {
+		pMesh = new Real[meshData->n_faces * 9];
+		transVW(meshData->n_faces * 9, pMesh, normalizedMeshData);
+	}
+	else {
+		pMesh = normalizedMeshData;
+	}
+
+	vec3 shift = getContext().shift;
+
 	int i;
-#if 1
 #ifdef _OPENMP
 	int num_threads;
 #pragma omp parallel
-	num_threads = omp_get_num_threads(); // get number of Multi Threading
+	{
+		num_threads = omp_get_num_threads(); // get number of Multi Threading
 #pragma omp for private(i)
 #endif
-#endif
-	for (i = 0; i < meshData->n_faces * 3; i++) {
-		Real pcx = (is_ViewingWindow) ? 
-			transVW(*(normalizedMeshData + 3 * i + _X)) : *(normalizedMeshData + 3 * i + _X);
-		Real pcy = (is_ViewingWindow) ?
-			transVW(*(normalizedMeshData + 3 * i + _Y)) : *(normalizedMeshData + 3 * i + _Y);
-		Real pcz = (is_ViewingWindow) ?
-			transVW(*(normalizedMeshData + 3 * i + _Z)) : *(normalizedMeshData + 3 * i + _Z);	
+		for (i = 0; i < meshData->n_faces * 3; i++) {
+			Real pcx = *(pMesh + 3 * i + _X);
+			Real pcy = *(pMesh + 3 * i + _Y);
+			Real pcz = *(pMesh + 3 * i + _Z);
 
-		*(scaledMeshData + 3 * i + _X) = pcx * objSize + objShift[_X];
-		*(scaledMeshData + 3 * i + _Y) = pcy * objSize + objShift[_Y];
-		*(scaledMeshData + 3 * i + _Z) = pcz * objSize + objShift[_Z];
+			*(scaledMeshData + 3 * i + _X) = pcx * objSize[_X] + shift[_X];
+			*(scaledMeshData + 3 * i + _Y) = pcy * objSize[_Y] + shift[_Y];
+			*(scaledMeshData + 3 * i + _Z) = pcz * objSize[_Z] + shift[_Z];
+		}
 	}
 
-	delete[] normalizedMeshData;
-
-	cout << "Object Scaling and Shifting Finishied.." << endl;
-#if 1
-#ifdef _OPENMP
-	cout << ">>> All " << num_threads << " threads" << endl;
-#endif
-#endif
-}
-
-void ophTri::objScaleShift(Real objSize_, vector<Real> objShift_) 
-{
-	setObjSize(objSize_);
-	setObjShift(objShift_);
-
-	scaledMeshData = new Real[meshData->n_faces * 9];
-
-	objNormCenter();
-	int i;
-
-#ifdef _OPENMP
-	int num_threads;
-#pragma omp parallel
-	num_threads = omp_get_num_threads(); // get number of Multi Threading
-#pragma omp for private(i)
-#endif
-	for (i = 0; i < meshData->n_faces * 3; i++) {
-		Real pcx = (is_ViewingWindow) ?
-			transVW(*(normalizedMeshData + 3 * i + _X)) : *(normalizedMeshData + 3 * i + _X);
-		Real pcy = (is_ViewingWindow) ?
-			transVW(*(normalizedMeshData + 3 * i + _Y)) : *(normalizedMeshData + 3 * i + _Y);
-		Real pcz = (is_ViewingWindow) ?
-			transVW(*(normalizedMeshData + 3 * i + _Z)) : *(normalizedMeshData + 3 * i + _Z);
-
-		*(scaledMeshData + 3 * i + _X) = pcx * objSize + objShift[_X];
-		*(scaledMeshData + 3 * i + _Y) = pcy * objSize + objShift[_Y];
-		*(scaledMeshData + 3 * i + _Z) = pcz * objSize + objShift[_Z];
+	if (is_ViewingWindow) {
+		delete[] pMesh;
 	}
-
 	delete[] normalizedMeshData;
+
 	cout << "Object Scaling and Shifting Finishied.." << endl;
 
 #ifdef _OPENMP
@@ -353,7 +330,7 @@ void ophTri::objScaleShift(Real objSize_, vector<Real> objShift_)
 #endif
 }
 
-void ophTri::objScaleShift(Real objSize_, vec3 objShift_)
+void ophTri::objScaleShift(vec3 objSize_, vector<Real> objShift_) 
 {
 	setObjSize(objSize_);
 	setObjShift(objShift_);
@@ -361,6 +338,17 @@ void ophTri::objScaleShift(Real objSize_, vec3 objShift_)
 	scaledMeshData = new Real[meshData->n_faces * 9];
 
 	objNormCenter();
+	Real *pMesh = nullptr;
+
+	if (is_ViewingWindow) {
+		pMesh = new Real[meshData->n_faces * 9];
+		transVW(meshData->n_faces * 9, pMesh, normalizedMeshData);
+	}
+	else {
+		pMesh = normalizedMeshData;
+	}
+
+	vec3 shift = getContext().shift;
 	int i;
 
 #ifdef _OPENMP
@@ -371,25 +359,72 @@ void ophTri::objScaleShift(Real objSize_, vec3 objShift_)
 #pragma omp for private(i)
 #endif
 		for (i = 0; i < meshData->n_faces * 3; i++) {
-			Real pcx = (is_ViewingWindow) ?
-				transVW(*(normalizedMeshData + 3 * i + _X)) : *(normalizedMeshData + 3 * i + _X);
-			Real pcy = (is_ViewingWindow) ?
-				transVW(*(normalizedMeshData + 3 * i + _Y)) : *(normalizedMeshData + 3 * i + _Y);
-			Real pcz = (is_ViewingWindow) ?
-				transVW(*(normalizedMeshData + 3 * i + _Z)) : *(normalizedMeshData + 3 * i + _Z);
+			Real pcx = *(pMesh + 3 * i + _X);
+			Real pcy = *(pMesh + 3 * i + _Y);
+			Real pcz = *(pMesh + 3 * i + _Z);
 
-			*(scaledMeshData + 3 * i + _X) = pcx * objSize + objShift[_X];
-			*(scaledMeshData + 3 * i + _Y) = pcy * objSize + objShift[_Y];
-			*(scaledMeshData + 3 * i + _Z) = pcz * objSize + objShift[_Z];
+			*(scaledMeshData + 3 * i + _X) = pcx * objSize[_X] + shift[_X];
+			*(scaledMeshData + 3 * i + _Y) = pcy * objSize[_Y] + shift[_Y];
+			*(scaledMeshData + 3 * i + _Z) = pcz * objSize[_Z] + shift[_Z];
 		}
+	}
 
-		delete[] normalizedMeshData;
-		cout << "Object Scaling and Shifting Finishied.." << endl;
+	if (is_ViewingWindow) {
+		delete[] pMesh;
+	}
+	delete[] normalizedMeshData;
+	cout << "Object Scaling and Shifting Finishied.." << endl;
 
+#ifdef _OPENMP
+	cout << ">>> All " << num_threads << " threads" << endl;
+#endif
+}
+
+void ophTri::objScaleShift(vec3 objSize_, vec3 objShift_)
+{
+	setObjSize(objSize_);
+	setObjShift(objShift_);
+
+	scaledMeshData = new Real[meshData->n_faces * 9];
+
+	objNormCenter();
+	Real *pMesh = nullptr;
+
+	if (is_ViewingWindow) {
+		pMesh = new Real[meshData->n_faces * 9];
+		transVW(meshData->n_faces * 9, pMesh, normalizedMeshData);
+	}
+	else {
+		pMesh = normalizedMeshData;
+	}
+	vec3 shift = getContext().shift;
+	int i;
+
+#ifdef _OPENMP
+	int num_threads;
+#pragma omp parallel
+	{
+		num_threads = omp_get_num_threads(); // get number of Multi Threading
+#pragma omp for private(i)
+#endif
+		for (i = 0; i < meshData->n_faces * 3; i++) {
+			Real pcx = *(pMesh + 3 * i + _X);
+			Real pcy = *(pMesh + 3 * i + _Y);
+			Real pcz = *(pMesh + 3 * i + _Z);
+
+			*(scaledMeshData + 3 * i + _X) = pcx * objSize[_X] + shift[_X];
+			*(scaledMeshData + 3 * i + _Y) = pcy * objSize[_Y] + shift[_Y];
+			*(scaledMeshData + 3 * i + _Z) = pcz * objSize[_Z] + shift[_Z];
+		}
 #ifdef _OPENMP
 	}
 	cout << ">>> All " << num_threads << " threads" << endl;
 #endif
+	if (is_ViewingWindow) {
+		delete[] pMesh;
+	}
+	delete[] normalizedMeshData;
+	cout << "Object Scaling and Shifting Finishied.." << endl;
 }
 
 vec3 vecCross(const vec3& a, const vec3& b)

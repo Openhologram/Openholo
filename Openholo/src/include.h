@@ -47,7 +47,7 @@
 #define __include_h
 
 #define _OPH_LIB_VERSION_MAJOR_ 0
-#define _OPH_LIB_VERSION_MINOR_ 2
+#define _OPH_LIB_VERSION_MINOR_ 4
 
 #include <stdio.h>
 #include <stdlib.h>

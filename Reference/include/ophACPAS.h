@@ -42,7 +42,6 @@ public:
 	//int saveAsImg(const char * fname, uint8_t bitsperpixel, void* src, int pic_width, int pic_height);	// 이미지 저장
 	int save(const char * fname, uint8_t bitsperpixel, uchar* src, uint px, uint py);
 
-
 	//util 
 	char* trim(char *s); // 문자열 좌우 공백 모두 삭제 함수
 	char* ltrim(char *s); // 문자열 좌측 공백 제거 함수

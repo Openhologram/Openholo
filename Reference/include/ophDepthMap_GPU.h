@@ -60,7 +60,6 @@
 /* CUDA Library Include */
 #include	<cuda_runtime.h>
 #include	<cufft.h>
-
 static void HandleError(cudaError_t err,
 	const char *file,
 	int line) {
@@ -77,7 +76,6 @@ static void HandleError(cudaError_t err,
                             printf( "Host memory failed in %s at line %d\n", \
                                     __FILE__, __LINE__ ); \
                             exit( EXIT_FAILURE );}} 
-
 cufftDoubleComplex *u_o_gpu_;
 cufftDoubleComplex *u_complex_gpu_;
 cufftDoubleComplex *k_temp_d_;

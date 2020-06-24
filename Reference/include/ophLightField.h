@@ -60,7 +60,7 @@ using namespace oph;
 /**
 * @addtogroup lightfield
 //@{
-* @detail
+* @details
 
 * @section Introduction
 
@@ -147,7 +147,7 @@ public:
 	* @return	context_.pixel_number
 	* @return	context_.lambda
 	*/
-	int readLFConfig(const char* LF_config);
+	bool readConfig(const char* fname);
 
 	/**
 	* @brief	Light Field images load
@@ -169,8 +169,23 @@ public:
 	//virtual int saveAsOhc(const char* fname);
 
 	//virtual int saveAsOhc(const char* fname);
-
+	/**
+	* @brief Set the value of a variable is_CPU(true or false)
+	* @details <pre>
+	if is_CPU == true
+	CPU implementation
+	else
+	GPU implementation </pre>
+	* @param[in] is_CPU the value for specifying whether the hologram generation method is implemented on the CPU or GPU
+	*/
 	void setMode(bool is_CPU);
+
+	/**
+	* @brief Function for setting precision
+	* @param[in] precision level.
+	*/
+	void setPrecision(bool bPrecision) { bSinglePrecision = bPrecision; }
+	bool getPrecision() { return bSinglePrecision; }
 
 	// for Testing 
 	void writeIntensity_gray8_bmp(const char* fileName, int nx, int ny, Complex<Real>* complexvalue, int k = -1);
@@ -180,8 +195,8 @@ public:
 	if is_ViewingWindow == true
 	Transform viewing window
 	else
-	GPU implementation </pre>
-	* @param is_TransVW : the value for specifying whether the hologram generation method is implemented on the viewing window
+	Hologram </pre>
+	* @param is_ViewingWindow : the value for specifying whether the hologram generation method is implemented on the viewing window
 	*/
 	void setViewingWindow(bool is_ViewingWindow);
 protected:
@@ -203,6 +218,7 @@ private:
 	Real distanceRS2Holo;					/// Distance from Ray Sampling plane to Hologram plane
 	Real fieldLens;
 	bool is_ViewingWindow;
+	bool bSinglePrecision;
 	int nImages;
 };
 

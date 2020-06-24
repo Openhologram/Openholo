@@ -52,9 +52,8 @@ void cudaFFT(CUstream_st* stream, int nx, int ny, cufftDoubleComplex* in_filed, 
 
 void ophLF::prepareInputdataGPU()
 {
-#ifdef CHECK_PROC_TIME
 	auto begin = CUR_TIME;
-#endif
+
 	const int nX = num_image[_X];
 	const int nY = num_image[_Y];
 	const int nXY = nX * nY;
@@ -86,17 +85,15 @@ void ophLF::prepareInputdataGPU()
 	if (RSplane_complex_field_gpu)
 		cudaFree(RSplane_complex_field_gpu);
 	HANDLE_ERROR(cudaMalloc((void**)&RSplane_complex_field_gpu, sizeof(cufftDoubleComplex) * nXY * rXY));
-#ifdef CHECK_PROC_TIME
+
 	auto end = CUR_TIME;
 	LOG("\n%s : %lf(s)\n\n", __FUNCTION__, ((chrono::duration<Real>)(end - begin)).count());
-#endif
 }
 
 void ophLF::convertLF2ComplexField_GPU()
 {
-#ifdef CHECK_PROC_TIME
 	auto begin = CUR_TIME;
-#endif
+
 	const int nX = num_image[_X];
 	const int nY = num_image[_Y];
 	const int nXY = nX * nY;
@@ -143,17 +140,15 @@ void ophLF::convertLF2ComplexField_GPU()
 	procMultiplyPhase(streamLF, nX, nY, rX, rY, FFTLF_temp_gpu, RSplane_complex_field_gpu, CUDART_PI);
 	cudaFree(complexLF_gpu);
 	cudaFree(FFTLF_temp_gpu);
-#ifdef CHECK_PROC_TIME
+
 	auto end = CUR_TIME;
 	LOG("\n%s : %lf(s)\n\n", __FUNCTION__, ((std::chrono::duration<Real>)(end - begin)).count());
-#endif
 }
 
 void ophLF::fresnelPropagation_GPU()
 {
-#ifdef CHECK_PROC_TIME
 	auto begin = CUR_TIME;
-#endif
+
 	const int pnX = context_.pixel_number[_X];
 	const int pnY = context_.pixel_number[_Y];
 	const int pnXY = pnX * pnY;
@@ -197,8 +192,7 @@ void ophLF::fresnelPropagation_GPU()
 	}
 	cudaFree(in2x);
 	cudaFree(temp);
-#ifdef CHECK_PROC_TIME
+
 	auto end = CUR_TIME;
 	LOG("\n%s : %lf(s)\n\n", __FUNCTION__, ((std::chrono::duration<Real>)(end - begin)).count());
-#endif
 }

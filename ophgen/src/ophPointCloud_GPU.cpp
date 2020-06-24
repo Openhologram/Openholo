@@ -45,44 +45,163 @@
 
 #include "ophPointCloud.h"
 #include "ophPointCloud_GPU.h"
-
+#include "CUDA.h"
+//#include "ophPCKernel.cl"
 #include <sys.h> //for LOG() macro
+#if 0
+#include "OpenCL.h"
 
-//#define USE_ASYNC
+
 Real ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 {
-	static bool bLog = true;
+	int nErr;
 	auto begin = CUR_TIME;
-	int devID;
-	HANDLE_ERROR(cudaGetDevice(&devID));
-	cudaDeviceProp devProp;
-	HANDLE_ERROR(cudaGetDeviceProperties(&devProp, devID));
-	if (bLog) {
-#ifdef __DEBUG_LOG_GPU_SPEC_
-		cout << "GPU Spec : " << devProp.name << endl;
-		cout << " - Global Memory : " << devProp.totalGlobalMem << endl;
-		cout << " - Const Memory : " << devProp.totalConstMem << endl;
-		cout << "  - MP(Multiprocessor) Count : " << devProp.multiProcessorCount << endl;
-		cout << "  - Maximum Threads per MP : " << devProp.maxThreadsPerMultiProcessor << endl;
-		cout << "  - Shared Memory per MP : " << devProp.sharedMemPerMultiprocessor << endl;
-		cout << "   - Block per MP : " << devProp.maxThreadsPerMultiProcessor / devProp.maxThreadsPerBlock << endl;
+	OpenCL *cl = OpenCL::getInstance();
+	cl_context context = cl->getContext();
+	cl_command_queue commands = cl->getCommand();
+	cl_kernel *kernel = cl->getKernel();
+	cl_mem device_pc_data;
+	cl_mem device_amp_data;
+	cl_mem result;
+	cl_mem device_config;
 
-		cout << "   - Shared Memory per Block : " << devProp.sharedMemPerBlock << endl;
-		cout << "   - Maximum Threads per Block : " << devProp.maxThreadsPerBlock << endl;
-		printf("   - Maximum Threads of each Dimension of a Block (X: %d / Y: %d / Z: %d)\n",
-			devProp.maxThreadsDim[_X], devProp.maxThreadsDim[_Y], devProp.maxThreadsDim[_Z]);
-		printf("   - Maximum Blocks of each Dimension of a Grid, (X: %d / Y: %d / Z: %d)\n",
-			devProp.maxGridSize[_X], devProp.maxGridSize[_Y], devProp.maxGridSize[_Z]);
-		cout << "   - Device supports allocating Managed Memory on this system : " << devProp.managedMemory << endl;
-		cout << endl;
-#endif
-		bLog = false;
+	//threads number
+	const ulonglong pnXY = context_.pixel_number[_X] * context_.pixel_number[_Y];
+	const ulonglong bufferSize = pnXY * sizeof(Real);
+
+	//Host Memory Location
+	const int n_colors = pc_data_.n_colors;
+	Real* host_pc_data = nullptr;
+	Real* host_amp_data = pc_data_.color;
+	Real* host_dst = nullptr;
+
+	// Keep original buffer
+	if (is_ViewingWindow) {
+		host_pc_data = new Real[n_points * 3];
+		transVW(n_points * 3, host_pc_data, pc_data_.vertex);
+	}
+	else {
+		host_pc_data = pc_data_.vertex;
 	}
 
-	bool bSupportDouble = false;
+	if ((diff_flag == PC_DIFF_RS) || (diff_flag == PC_DIFF_FRESNEL)) {
+		host_dst = new Real[pnXY * 2];
+		memset(host_dst, 0., bufferSize * 2);
+	}
+	context_.k = (2 * M_PI) / context_.wave_length[0];
+	GpuConst* host_config = new GpuConst(
+		n_points, n_colors, pc_config_.n_streams,
+		pc_config_.scale, pc_config_.offset_depth,
+		context_.pixel_number,
+		context_.pixel_pitch,
+		context_.ss,
+		context_.k
+	);
+
+	host_config = new GpuConstNERS(*host_config, context_.wave_length[0]);
+	device_config = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(GpuConstNERS), nullptr, &nErr);
+	device_pc_data = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(Real) * n_points * 3, nullptr, &nErr);
+	device_amp_data = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(Real) * n_points * n_colors, nullptr, &nErr);
+	result = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sizeof(Real) * pnXY * 2, nullptr, &nErr);
+	Real *host_result = new Real[pnXY * 2];
+	memset(host_result, 0, sizeof(Real) * pnXY * 2);
+	nErr = clEnqueueWriteBuffer(commands, device_config, CL_TRUE, 0, sizeof(GpuConstNERS), host_config, 0, nullptr, nullptr);
+	nErr = clEnqueueWriteBuffer(commands, device_pc_data, CL_TRUE, 0, sizeof(Real) * n_points * 3, host_pc_data, 0, nullptr, nullptr);
+	nErr = clEnqueueWriteBuffer(commands, device_amp_data, CL_TRUE, 0, sizeof(Real) * n_points * n_colors, host_amp_data, 0, nullptr, nullptr);
+	clSetKernelArg(kernel[0], 0, sizeof(cl_mem), &result);
+	clSetKernelArg(kernel[0], 1, sizeof(cl_mem), &device_pc_data);
+	clSetKernelArg(kernel[0], 2, sizeof(cl_mem), &device_amp_data);
+	clSetKernelArg(kernel[0], 3, sizeof(cl_mem), &device_config);
+	clSetKernelArg(kernel[0], 4, sizeof(uint), &pnXY);
+
+	size_t global[2] = { 1024, 1024 };
+	size_t local[2] = { 32, 32 };
+	LOG("Group Size: <Global:%d> <Local:%d>\n", global, local);
+	nErr = clEnqueueNDRangeKernel(commands, kernel[0], 2, nullptr, global, local, 0, nullptr, nullptr);
+
+	nErr = clFlush(commands);
+	nErr = clFinish(commands);
+
+	if (nErr != CL_SUCCESS) cl->errorCheck(nErr, "Check", __FILE__, __LINE__);
+
+	nErr = clEnqueueReadBuffer(commands, result, CL_TRUE, 0, sizeof(Real) * pnXY * 2, host_result, 0, nullptr, nullptr);
+	memcpy(complex_H[0], host_result, sizeof(Real) * pnXY * 2);
+	/*
+	
+
+	cl_mem d_a;
+	cl_mem d_b;
+	cl_mem d_result;
+	int cnt = 1024;
+	int *a = new int[cnt];
+	int *b = new int[cnt];
+	int *result = new int[cnt];
+	ZeroMemory(a, cnt);
+	ZeroMemory(b, cnt);
+	ZeroMemory(result, cnt);
+
+	for (int i = 0; i < cnt; i++) {
+		a[i] = i % cnt;
+		b[i] = i / 2;
+	}
+
+	d_a = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(int) * cnt, nullptr, &nErr);
+	d_b = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(int) * cnt, nullptr, &nErr);
+	d_result = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sizeof(int) * cnt, nullptr, &nErr);
+	nErr = clEnqueueWriteBuffer(commands, d_a, CL_TRUE, 0, sizeof(int) * cnt, a, 0, nullptr, nullptr);
+	nErr = clEnqueueWriteBuffer(commands, d_b, CL_TRUE, 0, sizeof(int) * cnt, b, 0, nullptr, nullptr);
+
+	nErr = clSetKernelArg(kernel[0], 0, sizeof(cl_mem), &d_a);
+	nErr != clSetKernelArg(kernel[0], 1, sizeof(cl_mem), &d_b);
+	nErr != clSetKernelArg(kernel[0], 2, sizeof(cl_mem), &d_result);
+	nErr != clSetKernelArg(kernel[0], 3, sizeof(unsigned int), &cnt);
+	// 1 CU : 1024x1024x64 (28 CU)
+	size_t global[2] = { 1920, 1080 };
+	auto begin = CUR_TIME;
+	nErr = clEnqueueNDRangeKernel(commands, kernel[0], 2, nullptr, global, nullptr, 0, nullptr, nullptr);
+	nErr = clFinish(commands);
+	auto end = CUR_TIME;
+	LOG("%lf\n", ((std::chrono::duration<Real>)(end - begin)).count());
+
+	nErr = clEnqueueReadBuffer(commands, d_result, CL_TRUE, 0, sizeof(int) * cnt, result, 0, nullptr, nullptr);
+
+	//for (int i = 0; i < cnt; i++) {
+	//	LOG("%d\n", result[i]);
+	//}
+
+	clReleaseMemObject(d_a);
+	clReleaseMemObject(d_b);
+	clReleaseMemObject(d_result);
+	delete[] a;
+	delete[] b;
+	delete[] result;
+	// do something
+	
+	*/
+
+	clReleaseMemObject(result);
+	clReleaseMemObject(device_amp_data);
+	clReleaseMemObject(device_pc_data);
+	delete host_config;
+	if (host_dst)	delete[] host_dst;
+	if (is_ViewingWindow && host_pc_data)	delete[] host_pc_data;
+	if (host_result) delete[] host_result;
+	auto end = CUR_TIME;
+	Real elapsed_time = ((chrono::duration<Real>)(end - begin)).count();
+	LOG("\n%s : %lf(s) \n\n",
+		__FUNCTION__,
+		elapsed_time);
+	return elapsed_time;
+}
+#else
+
+
+Real ophPointCloud::genCghPointCloudGPU(uint diff_flag)
+{
+	auto begin = CUR_TIME;
 
 	const ulonglong pnXY = context_.pixel_number[_X] * context_.pixel_number[_Y];
-	const int blockSize = 512; //n_threads // blockSize < devProp.maxThreadsPerBlock
+	const int blockSize = CUDA::getInstance()->getMaxThreads(); //n_threads // blockSize < devProp.maxThreadsPerBlock
 	const ulonglong gridSize = (pnXY + blockSize - 1) / blockSize; //n_blocks
 
 	cout << ">>> All " << blockSize * gridSize << " threads in CUDA" << endl;
@@ -90,15 +209,15 @@ Real ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 
 	//const int n_streams = OPH_CUDA_N_STREAM;
 	int n_streams;
-	if (pc_config_.n_streams == 0)
+	if (getStream() == 0)
 		n_streams = pc_data_.n_points / 300 + 1;
-	else if (pc_config_.n_streams < 0)
+	else if (getStream() < 0)
 	{
 		LOG("Invalid value : NumOfStream");
 		return 0.0;
 	}
 	else
-		n_streams = pc_config_.n_streams;
+		n_streams = getStream();
 
 	LOG(">>> Number Of Stream : %d\n", n_streams);
 
@@ -122,7 +241,6 @@ Real ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 	
 	if ((diff_flag == PC_DIFF_RS) || (diff_flag == PC_DIFF_FRESNEL)) {
 		host_dst = new Real[pnXY * 2];
-		memset(host_dst, 0., bufferSize * 2);
 	}
 
 	uint nChannel = context_.waveNum;
@@ -134,10 +252,9 @@ Real ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 		memset(host_dst, 0., bufferSize * 2);
 		context_.k = (2 * M_PI) / context_.wave_length[ch];
 
-		LOG("ch[%d] wave: %e / k: %lf\n", ch, context_.wave_length[ch], context_.k);
 		GpuConst* host_config = new GpuConst(
-			n_points, n_colors, pc_config_.n_streams,
-			pc_config_.scale, pc_config_.offset_depth,
+			n_points, n_colors, n_streams,
+			pc_config_.scale, pc_config_.distance,
 			context_.pixel_number,
 			context_.pixel_pitch,
 			context_.ss,
@@ -154,7 +271,7 @@ Real ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 		Real* device_dst = nullptr;
 		if ((diff_flag == PC_DIFF_RS) || (diff_flag == PC_DIFF_FRESNEL)) {
 			HANDLE_ERROR(cudaMalloc((void**)&device_dst, bufferSize * 2));
-			HANDLE_ERROR(cudaMemset(device_dst, 0., bufferSize * 2));
+			HANDLE_ERROR(cudaMemsetAsync(device_dst, 0., bufferSize * 2));
 		}
 
 		GpuConst* device_config = nullptr;
@@ -168,7 +285,7 @@ Real ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 		case PC_DIFF_FRESNEL/*_NOT_ENCODED*/: {
 			host_config = new GpuConstNEFR(*host_config, context_.wave_length[ch]);
 			HANDLE_ERROR(cudaMalloc((void**)&device_config, sizeof(GpuConstNEFR)));
-			HANDLE_ERROR(cudaMemcpy(device_config, host_config, sizeof(GpuConstNEFR), cudaMemcpyHostToDevice));
+			HANDLE_ERROR(cudaMemcpyAsync(device_config, host_config, sizeof(GpuConstNEFR), cudaMemcpyHostToDevice));
 			break;
 		}
 		}
@@ -182,15 +299,15 @@ Real ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 			if (i == n_streams - 1) { // 마지막 스트림 연산 시,
 				stream_points += remainder;
 			}
-			HANDLE_ERROR(cudaMemcpy(device_pc_data + 3 * offset, host_pc_data + 3 * offset, stream_points * 3 * sizeof(Real), cudaMemcpyHostToDevice));
-			HANDLE_ERROR(cudaMemcpy(device_amp_data + n_colors * offset, host_amp_data + n_colors * offset, stream_points * sizeof(Real) * n_colors, cudaMemcpyHostToDevice));
+			HANDLE_ERROR(cudaMemcpyAsync(device_pc_data + 3 * offset, host_pc_data + 3 * offset, stream_points * 3 * sizeof(Real), cudaMemcpyHostToDevice));
+			HANDLE_ERROR(cudaMemcpyAsync(device_amp_data + n_colors * offset, host_amp_data + n_colors * offset, stream_points * sizeof(Real) * n_colors, cudaMemcpyHostToDevice));
 
 			switch (diff_flag) {
 			case PC_DIFF_RS/*_NOT_ENCODED*/: {
-				cudaGenCghPointCloud_NotEncodedRS(gridSize, blockSize, stream_points, device_pc_data + 3 * offset, 
+				cudaGenCghPointCloud_NotEncodedRS(gridSize, blockSize, stream_points, device_pc_data + 3 * offset,
 					device_amp_data + n_colors * offset, device_dst, device_dst + pnXY, (GpuConstNERS*)device_config, nAdd);
-				HANDLE_ERROR(cudaMemcpy(host_dst, device_dst, bufferSize * 2, cudaMemcpyDeviceToHost));
-				HANDLE_ERROR(cudaMemset(device_dst, 0., bufferSize * 2));
+				HANDLE_ERROR(cudaMemcpyAsync(host_dst, device_dst, bufferSize * 2, cudaMemcpyDeviceToHost));
+				HANDLE_ERROR(cudaMemsetAsync(device_dst, 0., bufferSize * 2));
 
 				for (ulonglong n = 0; n < pnXY; ++n) {
 					complex_H[ch][n][_RE] += host_dst[n];
@@ -201,8 +318,8 @@ Real ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 			case PC_DIFF_FRESNEL/*_NOT_ENCODED*/: {
 				cudaGenCghPointCloud_NotEncodedFrsn(gridSize, blockSize, stream_points, device_pc_data + 3 * offset,
 					device_amp_data + n_colors * offset, device_dst, device_dst + pnXY, (GpuConstNEFR*)device_config, nAdd);
-				HANDLE_ERROR(cudaMemcpy(host_dst, device_dst, bufferSize * 2, cudaMemcpyDeviceToHost));
-				HANDLE_ERROR(cudaMemset(device_dst, 0., bufferSize * 2));
+				HANDLE_ERROR(cudaMemcpyAsync(host_dst, device_dst, bufferSize * 2, cudaMemcpyDeviceToHost));
+				HANDLE_ERROR(cudaMemsetAsync(device_dst, 0., bufferSize * 2));
 
 				for (ulonglong n = 0; n < pnXY; ++n) {
 					complex_H[ch][n][_RE] += host_dst[n];
@@ -241,3 +358,4 @@ Real ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 
 	return elapsed_time;
 }
+#endif
