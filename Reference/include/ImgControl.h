@@ -1,8 +1,8 @@
 #pragma once
-#ifndef __ImgEncoder_h
-#define __ImgEncoder_h
-#include <atlbase.h>
+#ifndef __ImgControl_h
+#define __ImgControl_h
 
+#include <atlbase.h>
 enum FLIP
 {
 	VERTICAL,
@@ -26,19 +26,19 @@ enum TYPE
 #endif
 namespace oph
 {
-	class OPH_DLL ImgEncoder
+	class OPH_DLL ImgControl
 	{
 	private:
-		ImgEncoder();
-		~ImgEncoder();
-		static ImgEncoder *instance;
+		ImgControl();
+		~ImgControl();
+		static ImgControl *instance;
 		static void Destroy() {
 			delete instance;
 		}
 	public:
-		static ImgEncoder* getInstance() {
+		static ImgControl* getInstance() {
 			if (instance == nullptr) {
-				instance = new ImgEncoder();
+				instance = new ImgControl();
 				atexit(Destroy);
 			}
 			return instance;

@@ -50,7 +50,7 @@
 #include <omp.h>
 #include "sys.h"
 #include "ImgCodecOhc.h"
-#include "ImgEncoder.h"
+#include "ImgControl.h"
 
 Openholo::Openholo(void)
 	: Base()
@@ -168,9 +168,9 @@ bool Openholo::saveAsImg(const char * fname, uint8_t bitsperpixel, uchar* src, i
 	}
 
 	if (context_.bRotation) {
-		ImgEncoder *pEncoder = ImgEncoder::getInstance();
+		ImgControl *pControl = ImgControl::getInstance();
 		uchar *pTmp = new uchar[_pixelbytesize];
-		pEncoder->Rotate(180.0, src, pTmp, _width, _height, _width, _height, bitsperpixel / 8);
+		pControl->Rotate(180.0, src, pTmp, _width, _height, _width, _height, bitsperpixel / 8);
 		memcpy(&pBitmap[iCur], pTmp, _pixelbytesize);
 		delete[] pTmp;
 	}
@@ -196,8 +196,8 @@ bool Openholo::saveAsImg(const char * fname, uint8_t bitsperpixel, uchar* src, i
 		}
 	}
 	else {
-		ImgEncoder *pEncoder = ImgEncoder::getInstance();
-		pEncoder->Save(fname, pBitmap, _filesize);
+		ImgControl *pControl = ImgControl::getInstance();
+		pControl->Save(fname, pBitmap, _filesize);
 	}
 
 	if(hasColorTable && table) delete[] table;
@@ -802,3 +802,4 @@ void Openholo::ophFree(void)
 		OHC_decoder = nullptr;
 	}
 }
+

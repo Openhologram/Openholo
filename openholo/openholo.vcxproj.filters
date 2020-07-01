@@ -79,7 +79,7 @@
       <Filter>_1_Openholo</Filter>
     </ClInclude>
     <ClInclude Include="src\ophKernel.cuh" />
-    <ClInclude Include="src\ImgEncoder.h">
+    <ClInclude Include="src\ImgControl.h">
       <Filter>__utilities\header</Filter>
     </ClInclude>
   </ItemGroup>
@@ -102,7 +102,7 @@
     <ClCompile Include="src\ImgCodecOhc.cpp">
       <Filter>_2_ImgFmt</Filter>
     </ClCompile>
-    <ClCompile Include="src\ImgEncoder.cpp">
+    <ClCompile Include="src\ImgControl.cpp">
       <Filter>__utilities\cpp</Filter>
     </ClCompile>
   </ItemGroup>

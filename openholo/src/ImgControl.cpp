@@ -1,4 +1,4 @@
-#include "ImgEncoder.h"
+#include "ImgControl.h"
 #include <string.h>
 #include <gdiplus.h>
 #include <Shlwapi.h>
@@ -7,19 +7,19 @@
 #include "function.h"
 #pragma comment(lib, "gdiplus.lib")
 
-ImgEncoder* ImgEncoder::instance = nullptr;
+ImgControl* ImgControl::instance = nullptr;
 
-ImgEncoder::ImgEncoder()
+ImgControl::ImgControl()
 {
 }
 
 
-ImgEncoder::~ImgEncoder()
+ImgControl::~ImgControl()
 {
 }
 
 using namespace Gdiplus;
-bool ImgEncoder::Save(const char *path, BYTE *pSrc, UINT len, int quality)
+bool ImgControl::Save(const char *path, BYTE *pSrc, UINT len, int quality)
 {
 	Status stat = Ok;
 	GdiplusStartupInput gsi;
@@ -35,7 +35,12 @@ bool ImgEncoder::Save(const char *path, BYTE *pSrc, UINT len, int quality)
 
 		CLSID clsid;
 		wchar_t format[256] = { 0, };
-		wsprintfW(format, L"image/%s", PathFindExtensionW(CA2W(path)) + 1);
+		wchar_t wpath[256] = { 0, };	
+
+		int len = MultiByteToWideChar(CP_ACP, 0, (LPCTSTR)path, strlen(path), NULL, NULL);
+		MultiByteToWideChar(CP_ACP, 0, (LPCTSTR)path, strlen(path), wpath, len);
+
+		wsprintfW(format, L"image/%s", PathFindExtensionW(wpath) + 1);
 
 		bool bHasParam = false;
 		EncoderParameters params;
@@ -57,7 +62,7 @@ bool ImgEncoder::Save(const char *path, BYTE *pSrc, UINT len, int quality)
 			wsprintfW(format, L"image/%s", L"tiff");
 		}
 		if (GetEncoderClsid(format, &clsid) != -1) {
-			stat = img.Save(CA2W(path), &clsid, bHasParam ? &params : NULL);
+			stat = img.Save(wpath, &clsid, bHasParam ? &params : NULL);
 		}
 		pStream.Detach();
 		pStream.Release();
@@ -67,7 +72,7 @@ bool ImgEncoder::Save(const char *path, BYTE *pSrc, UINT len, int quality)
 	return stat == Ok ? true : false;
 }
 
-int ImgEncoder::GetEncoderClsid(const WCHAR *format, CLSID *pClsid)
+int ImgControl::GetEncoderClsid(const WCHAR *format, CLSID *pClsid)
 {
 	UINT nEncoder = 0; // number of image encoders
 	UINT nSize = 0; // size of the image encoder array in bytes
@@ -98,7 +103,7 @@ int ImgEncoder::GetEncoderClsid(const WCHAR *format, CLSID *pClsid)
 }
 
 
-void ImgEncoder::Resize(unsigned char* src, unsigned char* dst, int w, int h, int neww, int newh, int ch)
+void ImgControl::Resize(unsigned char* src, unsigned char* dst, int w, int h, int neww, int newh, int ch)
 {
 	auto begin = CUR_TIME;
 	int nBytePerLine = ((w * ch) + 3) & ~3; // src
@@ -187,7 +192,7 @@ void ImgEncoder::Resize(unsigned char* src, unsigned char* dst, int w, int h, in
 		ELAPSED_TIME(begin, end));
 }
 
-bool ImgEncoder::Rotate(double rotate, unsigned char *src, unsigned char *dst, int w, int h, int neww, int newh, int ch)
+bool ImgControl::Rotate(double rotate, unsigned char *src, unsigned char *dst, int w, int h, int neww, int newh, int ch)
 {
 	if (!src || !dst) return false;
 	if (ch > 4) return false;
@@ -258,7 +263,7 @@ bool ImgEncoder::Rotate(double rotate, unsigned char *src, unsigned char *dst, i
 	return true;
 }
 
-bool ImgEncoder::Flip(FLIP mode, unsigned char *src, unsigned char *dst, int w, int h, int ch)
+bool ImgControl::Flip(FLIP mode, unsigned char *src, unsigned char *dst, int w, int h, int ch)
 {
 	if (!src) return false;
 	auto begin = CUR_TIME;
@@ -350,7 +355,7 @@ bool ImgEncoder::Flip(FLIP mode, unsigned char *src, unsigned char *dst, int w, 
 	return bOK;
 }
 
-bool ImgEncoder::Crop(unsigned char *src, unsigned char *dst, int w, int h, int ch, int x, int y, int neww, int newh)
+bool ImgControl::Crop(unsigned char *src, unsigned char *dst, int w, int h, int ch, int x, int y, int neww, int newh)
 {
 	if (!src || !dst) return false;
 	if (x < 0 || y < 0 || x + neww > w || y + newh > h) return false;
@@ -388,7 +393,7 @@ bool ImgEncoder::Crop(unsigned char *src, unsigned char *dst, int w, int h, int 
 	return bOK;
 }
 
-bool ImgEncoder::GetSize(const char* path, unsigned int *size)
+bool ImgControl::GetSize(const char* path, unsigned int *size)
 {
 	auto begin = CUR_TIME;
 	bool bOK = true;
@@ -414,7 +419,7 @@ RETURN:
 	return bOK;
 }
 
-char* ImgEncoder::GetExtension(const char* path)
+char* ImgControl::GetExtension(const char* path)
 {
 	const char *ext = PathFindExtensionA(path) + 1;
 
