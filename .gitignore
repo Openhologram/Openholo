@@ -286,8 +286,6 @@ __pycache__/
 *.btm.cs
 *.odx.cs
 *.xsd.cs
-*.dll
-*.lib
 /ophgen/src/src.zip
 images/LF_1.png
 images/LF_2.png
