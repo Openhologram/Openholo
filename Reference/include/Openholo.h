@@ -75,8 +75,6 @@ struct OPH_DLL OphConfig
 
 
 
-
-
 /**
 * @ingroup oph
 * @brief Abstract class
@@ -189,6 +187,7 @@ public:
 	* @param[in] idx index of channel.
 	*/
 	inline void setWaveLength(Real w, const uint idx = 0) { context_.wave_length[idx] = w; }
+	inline void setMergeImage(bool bMerge) { context_.bMergeImg = bMerge; }
 
 	void setWaveNum(int nNum);
 

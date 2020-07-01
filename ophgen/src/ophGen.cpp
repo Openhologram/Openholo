@@ -565,9 +565,9 @@ bool ophGen::loadAsOhc(const char * fname)
 	holo_normalized = new uchar*[nChannel];
 	for (uint ch = 0; ch < nChannel; ch++) {
 		holo_encoded[ch] = new Real[pnXY];
-		memset(holo_encoded, 0, sizeof(Real) * pnXY);
+		memset(holo_encoded[ch], 0, sizeof(Real) * pnXY);
 		holo_normalized[ch] = new uchar[pnXY];
-		memset(holo_normalized, 0, sizeof(uchar) * pnXY);
+		memset(holo_normalized[ch], 0, sizeof(uchar) * pnXY);
 	}
 	return true;
 }

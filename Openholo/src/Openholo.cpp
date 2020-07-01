@@ -270,6 +270,7 @@ bool Openholo::loadAsOhc(const char * fname)
 	OHC_decoder->setFileName(fullname.c_str());
 	if (!OHC_decoder->load()) return false;
 
+	context_.waveNum = OHC_decoder->getNumOfWavlen();
 	context_.pixel_number = OHC_decoder->getNumOfPixel();
 	context_.pixel_pitch = OHC_decoder->getPixelPitch();
 

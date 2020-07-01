@@ -323,7 +323,7 @@ bool oph::ImgDecoderOhc::load() {
 			File.seekg(ios::beg); // Move file pointer
 			File.read((char *)&FHeader, sizeof(FHeader));
 			printf("Reading Openholo Complex Field File...\n%s\n", fname.c_str());
-			printf("OHC File was made on OpenHolo version %c.%c...\n", FHeader.fileVersionMajor, FHeader.fileVersionMinor);
+			printf("OHC File was made on OpenHolo version v%x.%x...\n", FHeader.fileVersionMajor, FHeader.fileVersionMinor);
 		}
 
 		// Read Field Info Header
