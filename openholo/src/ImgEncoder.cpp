@@ -21,22 +21,23 @@ ImgEncoder::~ImgEncoder()
 using namespace Gdiplus;
 bool ImgEncoder::Save(const char *path, BYTE *pSrc, UINT len, int quality)
 {
-	bool bOK = false;
-	BYTE *pDest = new BYTE[len];
-	memcpy(pDest, pSrc, len);
-
-	CComPtr<IStream> pStream;
-	pStream.Attach(SHCreateMemStream(pDest, len));
-	Image img(pStream, FALSE);
+	Status stat = Ok;
 	GdiplusStartupInput gsi;
 	ULONG_PTR token = NULL;
 
 	if (GdiplusStartup(&token, &gsi, NULL) == Ok) {
+		BYTE *pDest = new BYTE[len];
+		memcpy(pDest, pSrc, len);
+
+		CComPtr<IStream> pStream;
+		pStream.Attach(SHCreateMemStream(pDest, len));
+		Image img(pStream, FALSE);
+
 		CLSID clsid;
 		wchar_t format[256] = { 0, };
 		wsprintfW(format, L"image/%s", PathFindExtensionW(CA2W(path)) + 1);
 
-		bool bParam = false;
+		bool bHasParam = false;
 		EncoderParameters params;
 		memset(&params, 0, sizeof(EncoderParameters));
 		if (!_stricmp(PathFindExtensionA(path) + 1, "jpg") ||
@@ -50,20 +51,20 @@ bool ImgEncoder::Save(const char *path, BYTE *pSrc, UINT len, int quality)
 			params.Parameter[0].Type = EncoderParameterValueTypeLong;
 			params.Parameter[0].NumberOfValues = 1;
 			params.Parameter[0].Value = &q;
-			bParam = true;
+			bHasParam = true;
 		}
 		else if (!_stricmp(PathFindExtensionA(path) + 1, "tif")) {
 			wsprintfW(format, L"image/%s", L"tiff");
 		}
 		if (GetEncoderClsid(format, &clsid) != -1) {
-			bOK = (img.Save(CA2W(path), &clsid, bParam ? &params : NULL) != Ok) ? false : true;
+			stat = img.Save(CA2W(path), &clsid, bHasParam ? &params : NULL);
 		}
+		pStream.Detach();
+		pStream.Release();
+		delete[] pDest;
 	}
-	GdiplusShutdown(token);
-	pStream.Detach();
-	pStream.Release();
-	delete[] pDest;
-	return bOK;
+ 	GdiplusShutdown(token);
+	return stat == Ok ? true : false;
 }
 
 int ImgEncoder::GetEncoderClsid(const WCHAR *format, CLSID *pClsid)

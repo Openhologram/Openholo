@@ -104,7 +104,7 @@ bool Openholo::checkExtension(const char * fname, const char * ext)
 
 bool Openholo::saveAsImg(const char * fname, uint8_t bitsperpixel, uchar* src, int width, int height)
 {
-	LOG("Saving...%s...", fname);
+	LOG("Saving...%s...\n", fname);
 	bool bOK = true;
 	auto start = CUR_TIME;
 	int _width = width, _height = height;

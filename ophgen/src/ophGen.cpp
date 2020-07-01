@@ -468,6 +468,16 @@ bool ophGen::save(const char * fname, uint8_t bitsperpixel, uchar* src, uint px,
 		sprintf_s(path, "%s.bmp", path);
 		sprintf_s(ext, ".bmp");
 	}
+	if (!strlen(drive)) { // Relative path to Absolute path
+		char curDir[MAX_PATH] = { 0, };
+		GetCurrentDirectory(MAX_PATH, curDir);
+		sprintf_s(path, "%s\\%s", curDir, fname);
+		for (int i = 0; i < strlen(path); i++) {
+			char ch = path[i];
+			if (ch == '/')
+				path[i] = '\\';
+		}
+	}
 
 	
 	if (src == nullptr) {
