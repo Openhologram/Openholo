@@ -166,7 +166,7 @@ public:
 		dm_config_ = config;
 	};
 	void setResolution(ivec2 resolution);
-	uint* getPercent() { return &n_percent; }
+	uint* getProgress() { return &m_nProgress; }
 
 public:
 	inline void setFieldLens(Real fieldlens) { dm_config_.fieldLength = fieldlens; }
@@ -232,7 +232,7 @@ private:
 	OphDepthMapConfig		dm_config_;							///< structure variable for depthmap hologram configuration.
 
 
-	uint n_percent;
+	uint m_nProgress;
 };
 
 #endif //>__ophDepthMap_h

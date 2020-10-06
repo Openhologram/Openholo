@@ -76,55 +76,62 @@ void ophTri::generateAS_GPU(uint SHADING_FLAG)
 	mesh_local = new Real[9];
 	Real* mesh = new Real[9];
 
-	findNormals(SHADING_FLAG);
+	uint nChannel = context_.waveNum;
 
-	HANDLE_ERROR(cudaMemsetAsync(angularSpectrum_GPU, 0, sizeof(cufftDoubleComplex) * pnXY, streamTriMesh));
+	for (uint ch = 0; ch < nChannel; ch++) {
+		memset(mesh_local, 0.0, 9);
+		memset(mesh, 0.0, 9);
 
-	for (int j = 0; j < meshData->n_faces; j++) {
+		findNormals(SHADING_FLAG);
 
-		for (int i = 0; i < 9; i++)
-			mesh[i] = scaledMeshData[9 * j + i];
+		HANDLE_ERROR(cudaMemsetAsync(angularSpectrum_GPU, 0, sizeof(cufftDoubleComplex) * pnXY, streamTriMesh));
 
-		if (checkValidity(mesh, *(no + j)) != 1)
-			continue;
+		for (int j = 0; j < meshData->n_faces; j++) {
 
-		if (findGeometricalRelations(mesh, *(no + j)) != 1)
-			continue;
+			for (int i = 0; i < 9; i++)
+				mesh[i] = scaledMeshData[9 * j + i];
 
-		refAS_GPU(j, SHADING_FLAG);
+			if (checkValidity(mesh, *(no + j)) != 1)
+				continue;
 
-		char szLog[MAX_PATH];
-		sprintf_s(szLog, "%d / %llu\n", j + 1, meshData->n_faces);
-		LOG(szLog);
+			if (findGeometricalRelations(mesh, *(no + j)) != 1)
+				continue;
 
+			refAS_GPU(j, ch, SHADING_FLAG);
+
+			char szLog[MAX_PATH];
+			sprintf_s(szLog, "%d / %llu\n", j + 1, meshData->n_faces);
+			LOG(szLog);
+
+		}
+
+		HANDLE_ERROR(cudaMemsetAsync(ffttemp, 0, sizeof(cufftDoubleComplex) * pnXY, streamTriMesh));
+		call_fftGPU(pnX, pnY, angularSpectrum_GPU, ffttemp, streamTriMesh);
+
+		cufftDoubleComplex* output = (cufftDoubleComplex*)malloc(sizeof(cufftDoubleComplex) * pnXY);
+		memset(output, 0.0, sizeof(cufftDoubleComplex) * pnXY);
+
+		HANDLE_ERROR(cudaMemcpyAsync(output, ffttemp, sizeof(cufftDoubleComplex) * pnXY, cudaMemcpyDeviceToHost, streamTriMesh));
+		//HANDLE_ERROR(cudaMemcpyAsync(output, angularSpectrum_GPU, sizeof(cufftDoubleComplex)*nx*ny, cudaMemcpyDeviceToHost), streamTriMesh);
+
+		for (int i = 0; i < pnXY; ++i)
+		{
+			complex_H[ch][i][_RE] = output[i].x;
+			complex_H[ch][i][_IM] = output[i].y;
+		}
+		delete[] output;
 	}
-	
-	HANDLE_ERROR(cudaMemsetAsync(ffttemp, 0, sizeof(cufftDoubleComplex) * pnXY, streamTriMesh));
-	call_fftGPU(pnX, pnY, angularSpectrum_GPU, ffttemp, streamTriMesh);
-
-	cufftDoubleComplex* output = (cufftDoubleComplex*)malloc(sizeof(cufftDoubleComplex) * pnXY);
-	memset(output, 0.0, sizeof(cufftDoubleComplex) * pnXY);
-	
-	HANDLE_ERROR(cudaMemcpyAsync(output, ffttemp, sizeof(cufftDoubleComplex) * pnXY, cudaMemcpyDeviceToHost), streamTriMesh);
-	//HANDLE_ERROR(cudaMemcpyAsync(output, angularSpectrum_GPU, sizeof(cufftDoubleComplex)*nx*ny, cudaMemcpyDeviceToHost), streamTriMesh);
-
-	for (int i = 0; i < pnXY; ++i)
-	{
-		complex_H[0][i][_RE] = output[i].x;
-		complex_H[0][i][_IM] = output[i].y;
-	}
-	delete[] output;
 	delete[] mesh, scaledMeshData, no, na, nv, mesh_local;
 }
 
 
-void ophTri::refAS_GPU(int idx, uint SHADING_FLAG)
+void ophTri::refAS_GPU(int idx, int ch, uint SHADING_FLAG)
 {
 	int nx = context_.pixel_number[_X];
 	int ny = context_.pixel_number[_Y];
 	double px = context_.pixel_pitch[_X];
 	double py = context_.pixel_pitch[_Y];
-	double waveLength = context_.wave_length[0];
+	double waveLength = context_.wave_length[ch];
 	   
 	shadingFactor = 0;		
 	vec3 av(0, 0, 0);

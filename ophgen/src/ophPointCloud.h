@@ -713,7 +713,7 @@ public:
 	* @details 
 	* @return pointer of percent
 	*/
-	uint* getPercent() { return &n_percent; }
+	uint* getProgress() { return &m_nProgress; }
 
 	//int AddPoint(vec3 vertex) { points.push_back(vertex); }
 	
@@ -748,7 +748,7 @@ private:
 	bool is_ViewingWindow;
 	bool bSinglePrecision;
 	int n_points;
-	uint n_percent;
+	uint m_nProgress;
 	OphPointCloudConfig pc_config_;
 	OphPointCloudData	pc_data_;
 };

@@ -52,7 +52,7 @@ bool ophLUT::loadConfig(const char* filename, CGHEnvironmentData* conf)
 			{
 				char* token = NULL;
 				char* parameter = NULL;
-				char* context;
+				char* context = nullptr;
 				token = strtok_s(inputString, "=", &context);
 
 				// 데이터 받아서 구조체에 저장

@@ -1174,14 +1174,14 @@ bool oph::ImgEncoderOhc::save() {
 			size_t dataTypeSize = sizeof(float);
 			ulonglong maxIdx = dataSize / dataTypeSize;
 			for (ulonglong i = 0; i < maxIdx; i++)
-				File.write((char *)&buf_f32[i], sizeof(float));
+				File.write((char *)&buf_f32[i], dataTypeSize);
 		}
 		else if (FldInfo.cmplxFldType == DataType::Float64)
 		{
 			size_t dataTypeSize = sizeof(double);
 			ulonglong maxIdx = dataSize / dataTypeSize;
 			for (ulonglong i = 0; i < maxIdx; i++)
-				File.write((char *)&buf_f64[i], sizeof(double));
+				File.write((char *)&buf_f64[i], dataTypeSize);
 		}
 		//this->File.write((char*)this->buf, sizeof(dataSize));
 

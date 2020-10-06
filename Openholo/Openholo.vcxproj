@@ -233,7 +233,7 @@ xcopy /y "$(ProjectDir)src\*.cuh" "$(USERPROFILE)\source\repos\OpenholoRefApp\Re
       <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>cudart.lib;cufft.lib;cuda.lib;libfftw3-3.lib;libfftw3f-3.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>npps.lib;cudart.lib;cufft.lib;cuda.lib;libfftw3-3.lib;libfftw3f-3.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(ProjectDir)lib\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>/FORCE:multiple %(AdditionalOptions)</AdditionalOptions>
       <Profile>true</Profile>
@@ -281,7 +281,7 @@ xcopy /y "$(ProjectDir)src\*.cuh" "$(USERPROFILE)\source\repos\OpenholoRefApp\Re
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>cudart.lib;cufft.lib;cuda.lib;libfftw3-3.lib;libfftw3f-3.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;d3d9.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>npps.lib;cudart.lib;cufft.lib;cuda.lib;libfftw3-3.lib;libfftw3f-3.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(ProjectDir)lib\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>/FORCE:multiple %(AdditionalOptions)</AdditionalOptions>
       <Profile>true</Profile>

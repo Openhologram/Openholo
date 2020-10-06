@@ -123,10 +123,10 @@ bool ophSigPU::loadPhaseOriginal(const char * fname, int bitpixel)
 
 			string RGB_name[] = { "_B","_G","_R" };
 			double *phasedata = new  double[total];
-
+			char *context = nullptr;
 			for (int z = 0; z < (bitpixel / 8); z++)
 			{
-				ifstream fphase(strtok((char*)fnamestr.c_str(), ".") + RGB_name[z] + "bin", ifstream::binary);
+				ifstream fphase(strtok_s((char*)fnamestr.c_str(), ".", &context) + RGB_name[z] + "bin", ifstream::binary);
 
 				fphase.read(reinterpret_cast<char*>(phasedata), sizeof(double) * total);
 

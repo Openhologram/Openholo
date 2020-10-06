@@ -763,11 +763,12 @@ bool ophSigCH::loadCHtemp(const char * real, const char * imag, uint8_t bitpixel
 			string RGB_name[] = { "_B","_G","_R" };
 			double *realdata = new  double[total];
 			double *imagdata = new  double[total];
+			char* context = nullptr;
 
 			for (int z = 0; z < (bitpixel / 8); z++)
 			{
-				ifstream freal(strtok((char*)realname.c_str(), ".") + RGB_name[z] + "bin", ifstream::binary);
-				ifstream fimag(strtok((char*)imagname.c_str(), ".") + RGB_name[z] + "bin", ifstream::binary);
+				ifstream freal(strtok_s((char*)realname.c_str(), ".", &context) + RGB_name[z] + "bin", ifstream::binary);
+				ifstream fimag(strtok_s((char*)imagname.c_str(), ".", &context) + RGB_name[z] + "bin", ifstream::binary);
 
 				freal.read(reinterpret_cast<char*>(realdata), sizeof(double) * total);
 				fimag.read(reinterpret_cast<char*>(imagdata), sizeof(double) * total);

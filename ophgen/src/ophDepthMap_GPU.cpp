@@ -105,8 +105,8 @@ bool ophDepthMap::prepareInputdataGPU(uchar* imgptr, uchar* dimgptr)
 	uint pnY = context_.pixel_number[_Y];
 	const ulonglong pnXY = pnX * pnY;
 
-	HANDLE_ERROR(cudaMemcpyAsync(img_src_gpu, imgptr, sizeof(uchar1)*pnXY, cudaMemcpyHostToDevice), stream_);
-	HANDLE_ERROR(cudaMemcpyAsync(dimg_src_gpu, dimgptr, sizeof(uchar1)*pnXY, cudaMemcpyHostToDevice), stream_);
+	HANDLE_ERROR(cudaMemcpyAsync(img_src_gpu, imgptr, sizeof(uchar1)*pnXY, cudaMemcpyHostToDevice, stream_));
+	HANDLE_ERROR(cudaMemcpyAsync(dimg_src_gpu, dimgptr, sizeof(uchar1)*pnXY, cudaMemcpyHostToDevice, stream_));
 
 	auto end = CUR_TIME;
 	LOG("\n%s : %lf(s)\n\n", __FUNCTION__, ((std::chrono::duration<Real>)(end - begin)).count());
@@ -198,7 +198,7 @@ void ophDepthMap::calcHoloGPU(void)
 			
 			//LOG("Depth: %3d of %d, z = %6.5lf mm\n", dtr, dm_config_.num_of_depth, -temp_depth * 1000);
 
-			n_percent = (int)((Real)(ch*depth_sz + p + 1) * 100 / ((Real)depth_sz * nChannel));
+			m_nProgress = (int)((Real)(ch*depth_sz + p + 1) * 100 / ((Real)depth_sz * nChannel));
 		}
 
 		cufftDoubleComplex* p_holo_gen = new cufftDoubleComplex[pnNY];

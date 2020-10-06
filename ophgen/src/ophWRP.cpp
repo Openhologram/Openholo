@@ -353,6 +353,10 @@ double ophWRP::calculateWRPCPU(void)
 	int num_threads = 1;
 	bool bIsGrayScale = (nChannel == 1) ? true : false;
 
+	int sum = 0;
+	m_nProgress = 0;
+	Real ppXX = ppX * ppX * 2;
+
 	for (uint ch = 0; ch < nChannel; ch++) {
 
 		Real lambda = context_.wave_length[ch];  //wave_length
@@ -406,8 +410,6 @@ double ophWRP::calculateWRPCPU(void)
 								uint adr = tmpX + tmpY * pnX;
 								if (adr == 0)
 									std::cout << ".0";
-
-
 #ifdef _OPENMP
 #pragma omp atomic
 								p_wrp_[adr][_RE] += tmp[_RE];
@@ -424,6 +426,7 @@ double ophWRP::calculateWRPCPU(void)
 #ifdef _OPENMP
 		}
 #endif
+		//Fresnel_FFT(p_wrp_, complex_H[ch], lambda, 1.0, distance);
 		fresnelPropagation(p_wrp_, complex_H[ch], distance, ch);
 		memset(p_wrp_, 0.0, sizeof(Complex<Real>) * pnXY);
 	}
@@ -462,9 +465,9 @@ void ophWRP::generateHologram(void)
 	is_CPU ? calculateWRPCPU() : calculateWRPGPU();
 
 	auto end = CUR_TIME;
-	elapsedTime = ((std::chrono::duration<Real>)(end - begin)).count();
+	m_elapsedTime = ((std::chrono::duration<Real>)(end - begin)).count();
 
-	LOG("Total Elapsed Time: %lf (s)\n", elapsedTime);
+	LOG("Total Elapsed Time: %lf (s)\n", m_elapsedTime);
 }
 
 Complex<Real>** ophWRP::calculateMWRP(void)

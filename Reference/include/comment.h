@@ -136,9 +136,9 @@ Generation Hologram - Triangle Mesh Example
 
 		// Save as Encoded Image
 		Hologram->normalize();												// Normalize the encoded hologram to generate image file
-		ivec2 encode_size = Hologram->getEncodeSize();						// Get encoded hologram size
+		ivec2 m_vecEncodeSize = Hologram->getEncodeSize();						// Get encoded hologram size
 		Hologram->save("result/TriMesh/Mesh_0.1m_ni_-0.3deg.bmp",
-			8, nullptr, encode_size[_X], encode_size[_Y]);					// Save the encoded hologram image
+			8, nullptr, m_vecEncodeSize[_X], m_vecEncodeSize[_Y]);					// Save the encoded hologram image
 
 		Hologram->release();												// Release memory used to Generate Triangle Mesh
 @endcode
@@ -169,9 +169,9 @@ Generation Hologram - Light Field Example
 
 		// Save as Encoded Image
 		Hologram->normalize();														// Normalize the encoded hologram to generate image file
-		ivec2 encode_size = Hologram->getEncodeSize();								// Get encoded hologram size
+		ivec2 m_vecEncodeSize = Hologram->getEncodeSize();								// Get encoded hologram size
 		Hologram->save("result/LightField/Light_Field_NI_carrier.bmp",
-			8, nullptr, encode_size[_X], encode_size[_Y]);							// Save the encoded hologram image
+			8, nullptr, m_vecEncodeSize[_X], m_vecEncodeSize[_Y]);							// Save the encoded hologram image
 
 		Hologram->release();														// Release memory used to Generate Light Field
 @endcode

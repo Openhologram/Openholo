@@ -37,8 +37,8 @@ bool ImgControl::Save(const char *path, BYTE *pSrc, UINT len, int quality)
 		wchar_t format[256] = { 0, };
 		wchar_t wpath[256] = { 0, };	
 
-		int len = MultiByteToWideChar(CP_ACP, 0, (LPCTSTR)path, strlen(path), NULL, NULL);
-		MultiByteToWideChar(CP_ACP, 0, (LPCTSTR)path, strlen(path), wpath, len);
+		int len = MultiByteToWideChar(CP_ACP, 0, (LPCTSTR)path, (int)strlen(path), NULL, NULL);
+		MultiByteToWideChar(CP_ACP, 0, (LPCTSTR)path, (int)strlen(path), wpath, len);
 
 		wsprintfW(format, L"image/%s", PathFindExtensionW(wpath) + 1);
 

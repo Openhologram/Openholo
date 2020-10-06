@@ -53,10 +53,8 @@
 #include <device_launch_parameters.h>
 #include <device_functions.h>
 #include <npp.h>
-//#include <complex.h>
 #include "typedef.h"
 #include "ophSig.h"
-
 
 static const int kBlockThreads = 1024;
 
@@ -89,8 +87,8 @@ __global__ void cudaKernel_CvtCuFFTToField(cufftDoubleComplex *src_data, Complex
 
 __global__ void cudaKernel_CreateSphtialCarrier() {
 	int tid = threadIdx.x + blockIdx.x * blockDim.x;
-
 }
+
 __global__ void cudaKernel_sigCvtOFF(Complex<Real> *src_data, Real *dst_data, ophSigConfig *device_config, int nx, int ny, Real wl, Complex<Real> *F, Real *angle) {
 	int tid = threadIdx.x + blockIdx.x * blockDim.x;
 	int r = tid % ny;

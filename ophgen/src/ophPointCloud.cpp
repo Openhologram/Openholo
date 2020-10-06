@@ -53,7 +53,7 @@ ophPointCloud::ophPointCloud(void)
 	: ophGen()
 	, is_CPU(true)
 	, is_ViewingWindow(false)
-	, n_percent(0)
+	, m_nProgress(0)
 	, n_points(-1)
 	, bSinglePrecision(false)
 {
@@ -64,7 +64,7 @@ ophPointCloud::ophPointCloud(const char* pc_file, const char* cfg_file)
 	: ophGen()
 	, is_CPU(true)
 	, is_ViewingWindow(false)
-	, n_percent(0)
+	, m_nProgress(0)
 {
 	n_points = loadPointCloud(pc_file);
 	if (n_points == -1) std::cerr << "OpenHolo Error : Failed to load Point Cloud Data File(*.dat)" << std::endl;
@@ -172,11 +172,11 @@ Real ophPointCloud::generateHologram(uint diff_flag)
 		genCghPointCloudGPU(diff_flag);
 	}
 
-	n_percent = 0;
+	m_nProgress = 0;
 	auto end = CUR_TIME;
-	elapsedTime = ((std::chrono::duration<Real>)(end - begin)).count();
-	LOG("Total Elapsed Time: %lf (s)\n", elapsedTime);
-	return elapsedTime;
+	m_elapsedTime = ((std::chrono::duration<Real>)(end - begin)).count();
+	LOG("Total Elapsed Time: %lf (s)\n", m_elapsedTime);
+	return m_elapsedTime;
 }
 
 void ophPointCloud::encodeHologram(const vec2 band_limit, const vec2 spectrum_shift)
@@ -194,7 +194,7 @@ void ophPointCloud::encodeHologram(const vec2 band_limit, const vec2 spectrum_sh
 	const Real ppY = context_.pixel_pitch[_Y];
 	const uint pnXY = pnX * pnY;
 
-	encode_size = ivec2(pnX, pnY);
+	m_vecEncodeSize = ivec2(pnX, pnY);
 	context_.ss[_X] = pnX * ppX;
 	context_.ss[_Y] = pnY * ppY;
 	vec2 ss = context_.ss;
@@ -250,7 +250,7 @@ void ophPointCloud::encodeHologram(const vec2 band_limit, const vec2 spectrum_sh
 
 			shift_phase[_RE] = shift_phase[_RE] * (cos(X) * cos(Y) - sin(X) * sin(Y));
 
-			holo_encoded[ch][i] = (h[i] * shift_phase).real();
+			m_lpEncoded[ch][i] = (h[i] * shift_phase).real();
 		}
 	}
 	delete[] h;
@@ -304,8 +304,7 @@ Real ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 	int i; // private variable for Multi Threading
 	int num_threads = 1;
 	int sum = 0;
-	int prev = 0;
-	n_percent = 0;
+	m_nProgress = 0;
 
 	Real *pVertex = nullptr;
 	if (is_ViewingWindow) {
@@ -320,6 +319,8 @@ Real ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 		// Wave Number (2 * PI / lambda(wavelength))
 		Real lambda = context_.wave_length[ch];
 		Real k = context_.k = (2 * M_PI / lambda);
+
+		Real ratio = context_.wave_length[nChannel - 1] / context_.wave_length[ch];
 
 		uint nAdd = bIsGrayScale ? 0 : ch;
 #ifdef _OPENMP
@@ -341,6 +342,9 @@ Real ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 				pcx *= pc_config_.scale[_X];
 				pcy *= pc_config_.scale[_Y];
 				pcz *= pc_config_.scale[_Z];
+				pcx *= ratio;
+				pcy *= ratio;
+#if 1
 				pcz += pc_config_.distance;
 				
 				Real amplitude = pc_data_.color[iColor];
@@ -349,6 +353,14 @@ Real ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 				{
 				case PC_DIFF_RS:
 					diffractNotEncodedRS(ch, pn, pp, ss, vec3(pcx, pcy, pcz), k, amplitude, lambda);
+#else
+				Real amplitude = pc_data_.color[iColor];
+				switch (diff_flag)
+				{
+				case PC_DIFF_RS:
+					RS_Propagation(vec3(pcx, pcy, pcz), complex_H[ch], lambda, pc_config_.distance, amplitude);
+
+#endif
 					break;
 				case PC_DIFF_FRESNEL:
 					diffractNotEncodedFrsn(ch, pn, pp, ss, vec3(pcx, pcy, pcz), k, amplitude, lambda);
@@ -357,13 +369,12 @@ Real ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 #pragma omp atomic
 				sum++;
 
-				n_percent = (int)((Real)sum * 100 / ((Real)n_points * nChannel));
+				m_nProgress = (int)((Real)sum * 100 / ((Real)n_points * nChannel));
 			}
 #ifdef _OPENMP
 		}
 #endif
 	}
-
 	if (is_ViewingWindow) {
 		delete[] pVertex;
 	}
@@ -390,7 +401,7 @@ void ophPointCloud::diffractEncodedRS(uint channel, ivec2 pn, vec2 pp, vec2 ss, 
 			Real p = k * (r - xxx * sin(theta[_X]) - yyy * sin(theta[_Y]));
 			Real res = amplitude * cos(p);
 
-			holo_encoded[channel][xxtr + yytr * pn[_X]] += res;
+			m_lpEncoded[channel][xxtr + yytr * pn[_X]] += res;
 		}
 	}
 }

@@ -196,7 +196,7 @@ void ophSig::fft2(matrix<Complex<T>> &src, matrix<Complex<T>> &dst, int sign, ui
 
 
 
-
+/*
 bool ophSig::loadAsOhc(const char *fname)
 {
 	std::string fullname = fname;
@@ -225,7 +225,7 @@ bool ophSig::loadAsOhc(const char *fname)
 	}
 	return true;
 }
-
+*/
 bool ophSig::saveAsOhc(const char *fname)
 {
 	std::string fullname = fname;

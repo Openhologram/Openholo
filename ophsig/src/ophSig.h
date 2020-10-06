@@ -596,12 +596,13 @@ public:
 	*/
 	bool save(const char *real, const char *imag);
 	bool save(const char *real);
+
 	/**
 	* @brief          Load data as ohc file
 	* @param fname    File name
 	* @return         If works well return 0  or error occurs return -1
 	*/
-	bool loadAsOhc(const char *fname);
+	//bool loadAsOhc(const char *fname);
 	/**
 	* @brief          Save data as ohc file
 	* @param fname    File name

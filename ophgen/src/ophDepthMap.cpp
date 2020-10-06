@@ -60,7 +60,7 @@
 */
 ophDepthMap::ophDepthMap()
 	: ophGen()
-	, n_percent(0)
+	, m_nProgress(0)
 	, bSinglePrecision(false)
 {
 	is_CPU = true;
@@ -321,7 +321,7 @@ Real ophDepthMap::generateHologram(void)
 {
 	resetBuffer();
 
-	encode_size = context_.pixel_number;
+	m_vecEncodeSize = context_.pixel_number;
 	auto start_time = CUR_TIME;
 
 	LOG("1) Algorithm Method : Depth Map\n");
@@ -351,11 +351,11 @@ Real ophDepthMap::generateHologram(void)
 	
 	auto end_time = CUR_TIME;
 
-	elapsedTime = ((std::chrono::duration<Real>)(end_time - start_time)).count();
+	m_elapsedTime = ((std::chrono::duration<Real>)(end_time - start_time)).count();
 
-	LOG("Total Elapsed Time: %lf (s)\n", elapsedTime);
-	n_percent = 0;
-	return elapsedTime;
+	LOG("Total Elapsed Time: %lf (s)\n", m_elapsedTime);
+	m_nProgress = 0;
+	return m_elapsedTime;
 }
 
 void ophDepthMap::encodeHologram(void)
@@ -641,20 +641,18 @@ void ophDepthMap::calcHoloCPU()
 
 			Complex<Real> *input = new Complex<Real>[pnXY];
 			memset(input, 0.0, sizeof(Complex<Real>) * pnXY);
-			//Complex<Real> *output = new Complex<Real>[pnXY];
-			//memset(output, 0.0, sizeof(Complex<Real>) * pnXY);
 
 			Real locsum = 0.0;
 			for (int i = 0; i < pnXY; i++)
 			{
-				input[i][_RE] = img_src[i] * alpha_map[i] * (depth_index[i] == dtr ? 1.0 : 0.0);
-				if (locsum == 0.0)
+				if (depth_index[i] == dtr) {
+					input[i][_RE] = img_src[i] * alpha_map[i];
 					locsum += input[i][_RE];
+				}
 			}
 
 			if (locsum > 0.0)
 			{
-				//LOG("Depth: %d of %d, z = %f mm\n", dtr, dm_config_.num_of_depth, -temp_depth * 1000);
 				Complex<Real> rand_phase_val;
 				getRandPhaseValue(rand_phase_val, dm_config_.RANDOM_PHASE);
 
@@ -664,15 +662,14 @@ void ophDepthMap::calcHoloCPU()
 				for (int i = 0; i < pnXY; i++) {
 					input[i] = input[i] * rand_phase_val * carrier_phase_delay;
 				}
-				Openholo::fftwShift(input, input, pnX, pnY, OPH_FORWARD, false);
+				fftwShift(input, input, pnX, pnY, OPH_FORWARD, false);
 				propagationAngularSpectrum(ch, input, -temp_depth, k, lambda);
 			}
 			else {
 				//LOG("Depth: %d of %d : Nothing here\n", dtr, dm_config_.num_of_depth);
 			}
 			delete[] input;
-			//delete[] output;
-			n_percent = (int)((Real)(ch * depth_sz + p) * 100 / (depth_sz * nChannel));
+			m_nProgress = (int)((Real)(ch * depth_sz + p) * 100 / (depth_sz * nChannel));
 
 		}
 		LOG("\n%s (%d/%d) : %lf(s)\n\n", __FUNCTION__, ch + 1, nChannel, ((std::chrono::duration<Real>)(CUR_TIME - begin)).count());

@@ -297,7 +297,7 @@ Real ophIFTA::generateHologram()
 					complex_H[ch][j] += result2[j];
 				}
 			}
-			n_percent = (int)((Real)(depth*nWave+ch) * 100 / ((Real)nDepth * nWave));
+			m_nProgress = (int)((Real)(depth*nWave+ch) * 100 / ((Real)nDepth * nWave));
 
 			delete[] kernel;
 			delete[] kernel2;
@@ -331,7 +331,7 @@ bool ophIFTA::normalize()
 
 	for (int ch = 0; ch < nWave; ch++) {
 		for (int i = 0; i < pnXY; i++) {
-			holo_normalized[ch][i] = holo_encoded[ch][i] / pi2 * 255;
+			m_lpNormalized[ch][i] = m_lpEncoded[ch][i] / pi2 * 255;
 		}
 	}
 	return true;

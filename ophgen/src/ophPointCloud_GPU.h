@@ -106,6 +106,7 @@ typedef struct KernelConst {
 	double half_ss_Y; /// (pixel_y * ny) / 2
 
 	double k;		  /// Wave Number = (2 * PI) / lambda;
+	double lambda;
 
 	KernelConst(
 		const int &n_points,		/// number of point cloud
@@ -116,14 +117,16 @@ typedef struct KernelConst {
 		const ivec2 &pixel_number,	/// Number of pixel of SLM in x, y direction
 		const vec2 &pixel_pitch,	/// Pixel pitch of SLM in x, y direction
 		const vec2 &ss,				/// (pixel_x * nx), (pixel_y * ny)
-		const Real &k				/// Wave Number = (2 * PI) / lambda
+		const Real &k,				/// Wave Number = (2 * PI) / lambda
+		const Real &lambda,			/// Wave length
+		const Real &ratio			/// Wave ratio
 	)
 	{
 		this->n_points = n_points;
 		this->n_colors = n_colors;
 		this->n_streams = n_streams;
-		this->scale_X = scale_factor[_X];
-		this->scale_Y = scale_factor[_Y];
+		this->scale_X = scale_factor[_X] * ratio;
+		this->scale_Y = scale_factor[_Y] * ratio;
 		this->scale_Z = scale_factor[_Z];
 		this->offset_depth = offset_depth;
 
@@ -141,47 +144,14 @@ typedef struct KernelConst {
 
 		// Wave Number
 		this->k = k;
+
+		this->lambda = lambda;
 	}
 } GpuConst;
 
 cudaStream_t *streams;
 
-typedef struct KernelConst_EncodedRS : public KernelConst {
-	double sin_thetaX; ///sin(tiltAngleX)
-	double sin_thetaY; ///sin(tiltAngleY)
-
-	KernelConst_EncodedRS(
-		const int &n_points,		/// number of point cloud
-		const int &n_colors,		/// number of colors per point cloud
-		const int &n_streams,
-		const vec3 &scale_factor,	/// Scaling factor of x, y, z coordinate of point cloud
-		const Real &offset_depth,	/// Offset value of point cloud in z direction
-		const ivec2 &pixel_number,	/// Number of pixel of SLM in x, y direction
-		const vec2 &pixel_pitch,	/// Pixel pitch of SLM in x, y direction
-		const vec2 &ss,				/// (pixel_x * nx), (pixel_y * ny)
-		const Real &k,				/// Wave Number = (2 * PI) / lambda
-		const vec2 &tilt_angle		/// tilt_Angle_X, tilt_Angle_Y
-	)
-		: KernelConst(n_points, n_colors, n_streams, scale_factor, offset_depth, pixel_number, pixel_pitch, ss, k)
-	{
-		// Tilt Angle
-		this->sin_thetaX = sin(RADIAN(tilt_angle[_X]));
-		this->sin_thetaY = sin(RADIAN(tilt_angle[_Y]));
-	}
-
-	KernelConst_EncodedRS(GpuConst &cuda_config, const vec2 &tilt_angle)
-		: KernelConst(cuda_config)
-	{
-		// Tilt Angle
-		this->sin_thetaX = sin(RADIAN(tilt_angle[_X]));
-		this->sin_thetaY = sin(RADIAN(tilt_angle[_Y]));
-	}
-} GpuConstERS;
-
-
 typedef struct KernelConst_NotEncodedRS : public KernelConst {
-	double lambda;	/// Wave Length
-
 	double det_tx;  /// tx / sqrt(1 - tx^2), tx = lambda / (2 * pp_X)
 	double det_ty;  /// ty / sqrt(1 - ty^2), ty = lambda / (2 * pp_Y)
 
@@ -195,13 +165,11 @@ typedef struct KernelConst_NotEncodedRS : public KernelConst {
 		const vec2 &pixel_pitch,	/// Pixel pitch of SLM in x, y direction
 		const vec2 &ss,				/// (pixel_x * nx), (pixel_y * ny)
 		const Real &k,				/// Wave Number = (2 * PI) / lambda
-		const Real &lambda			/// Wave length = lambda
+		const Real &lambda,			/// Wave length = lambda
+		const Real &ratio			/// Wave ratio
 	)
-		: KernelConst(n_points, n_colors, n_streams, scale_factor, offset_depth, pixel_number, pixel_pitch, ss, k)
+		: KernelConst(n_points, n_colors, n_streams, scale_factor, offset_depth, pixel_number, pixel_pitch, ss, k, lambda, ratio)
 	{
-		// Wave Length
-		this->lambda = lambda;
-
 		double tx = lambda / (2 * pixel_pitch[_X]);
 		double ty = lambda / (2 * pixel_pitch[_Y]);
 
@@ -209,12 +177,9 @@ typedef struct KernelConst_NotEncodedRS : public KernelConst {
 		this->det_ty = ty / sqrt(1 - ty * ty);
 	}
 
-	KernelConst_NotEncodedRS(GpuConst &cuda_config, const Real &lambda)
+	KernelConst_NotEncodedRS(GpuConst &cuda_config)
 		: KernelConst(cuda_config)
 	{
-		// Wave Length
-		this->lambda = lambda;
-
 		double tx = lambda / (2 * cuda_config.pp_X);
 		double ty = lambda / (2 * cuda_config.pp_Y);
 
@@ -225,7 +190,6 @@ typedef struct KernelConst_NotEncodedRS : public KernelConst {
 
 
 typedef struct KernelConst_NotEncodedFrsn : public KernelConst {
-	double lambda;	/// Wave Length
 
 	double tx;	/// tx = lambda / (2 * pp_X)
 	double ty;	/// ty = lambda / (2 * pp_Y)
@@ -240,23 +204,18 @@ typedef struct KernelConst_NotEncodedFrsn : public KernelConst {
 		const vec2 &pixel_pitch,	/// Pixel pitch of SLM in x, y direction
 		const vec2 &ss,				/// (pixel_x * nx), (pixel_y * ny)
 		const Real &k,				/// Wave Number = (2 * PI) / lambda
-		const Real &lambda			/// Wave length = lambda
+		const Real &lambda,			/// Wave length = lambda
+		const Real &ratio			/// Wave ratio
 	)
-		: KernelConst(n_points, n_colors, n_streams, scale_factor, offset_depth, pixel_number, pixel_pitch, ss, k)
+		: KernelConst(n_points, n_colors, n_streams, scale_factor, offset_depth, pixel_number, pixel_pitch, ss, k, lambda, ratio)
 	{
-		// Wave Length
-		this->lambda = lambda;
-
 		this->tx = lambda / (2 * pixel_pitch[_X]);
 		this->ty = lambda / (2 * pixel_pitch[_Y]);
 	}
 
-	KernelConst_NotEncodedFrsn(GpuConst &cuda_config, const Real &lambda)
+	KernelConst_NotEncodedFrsn(GpuConst &cuda_config)
 		: KernelConst(cuda_config)
 	{
-		// Wave Length
-		this->lambda = lambda;
-
 		this->tx = lambda / (2 * cuda_config.pp_X);
 		this->ty = lambda / (2 * cuda_config.pp_Y);
 	}
@@ -265,13 +224,6 @@ typedef struct KernelConst_NotEncodedFrsn : public KernelConst {
 
 extern "C"
 {
-	/*
-	void cudaGenCghPointCloud_EncodedRS(
-		const int &nBlocks, const int &nThreads, const int &n_pts_per_stream,
-		Real* cuda_pc_data, Real* cuda_amp_data,
-		Real* cuda_dst,
-		const GpuConstERS* cuda_config);
-		*/
 	void cudaGenCghPointCloud_NotEncodedRS(
 		const int &nBlocks, const int &nThreads, const int &n_pts_per_stream,
 		Real* cuda_pc_data, Real* cuda_amp_data,

@@ -199,10 +199,9 @@ Real ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 Real ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 {
 	auto begin = CUR_TIME;
-
 	const ulonglong pnXY = context_.pixel_number[_X] * context_.pixel_number[_Y];
-	const int blockSize = CUDA::getInstance()->getMaxThreads(); //n_threads // blockSize < devProp.maxThreadsPerBlock
-	const ulonglong gridSize = (pnXY + blockSize - 1) / blockSize; //n_blocks
+	int blockSize = CUDA::getInstance()->getMaxThreads(); //n_threads // blockSize < devProp.maxThreadsPerBlock
+	ulonglong gridSize = (pnXY + blockSize - 1) / blockSize; //n_blocks
 
 	cout << ">>> All " << blockSize * gridSize << " threads in CUDA" << endl;
 	cout << ">>> " << blockSize << " threads/block, " << gridSize << " blocks/grid" << endl;
@@ -251,6 +250,7 @@ Real ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 		uint nAdd = bIsGrayScale ? 0 : ch;
 		memset(host_dst, 0., bufferSize * 2);
 		context_.k = (2 * M_PI) / context_.wave_length[ch];
+		Real ratio = context_.wave_length[nChannel - 1] / context_.wave_length[ch];
 
 		GpuConst* host_config = new GpuConst(
 			n_points, n_colors, n_streams,
@@ -258,7 +258,9 @@ Real ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 			context_.pixel_number,
 			context_.pixel_pitch,
 			context_.ss,
-			context_.k
+			context_.k,
+			context_.wave_length[ch],
+			ratio
 		);
 
 		//Device(GPU) Memory Location
@@ -271,21 +273,33 @@ Real ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 		Real* device_dst = nullptr;
 		if ((diff_flag == PC_DIFF_RS) || (diff_flag == PC_DIFF_FRESNEL)) {
 			HANDLE_ERROR(cudaMalloc((void**)&device_dst, bufferSize * 2));
+#ifndef _DEBUG
 			HANDLE_ERROR(cudaMemsetAsync(device_dst, 0., bufferSize * 2));
+#else
+			HANDLE_ERROR(cudaMemset(device_dst, 0., bufferSize * 2));
+#endif
 		}
 
 		GpuConst* device_config = nullptr;
 		switch (diff_flag) {
-		case PC_DIFF_RS/*_NOT_ENCODED*/: {
-			host_config = new GpuConstNERS(*host_config, context_.wave_length[ch]);
+		case PC_DIFF_RS: {
+			host_config = new GpuConstNERS(*host_config);
 			HANDLE_ERROR(cudaMalloc((void**)&device_config, sizeof(GpuConstNERS)));
+#ifndef _DEBUG
+			HANDLE_ERROR(cudaMemcpyAsync(device_config, host_config, sizeof(GpuConstNERS), cudaMemcpyHostToDevice));
+#else
 			HANDLE_ERROR(cudaMemcpy(device_config, host_config, sizeof(GpuConstNERS), cudaMemcpyHostToDevice));
+#endif
 			break;
 		}
-		case PC_DIFF_FRESNEL/*_NOT_ENCODED*/: {
-			host_config = new GpuConstNEFR(*host_config, context_.wave_length[ch]);
+		case PC_DIFF_FRESNEL: {
+			host_config = new GpuConstNEFR(*host_config);
 			HANDLE_ERROR(cudaMalloc((void**)&device_config, sizeof(GpuConstNEFR)));
+#ifndef _DEBUG
 			HANDLE_ERROR(cudaMemcpyAsync(device_config, host_config, sizeof(GpuConstNEFR), cudaMemcpyHostToDevice));
+#else
+			HANDLE_ERROR(cudaMemcpy(device_config, host_config, sizeof(GpuConstNEFR), cudaMemcpyHostToDevice));
+#endif
 			break;
 		}
 		}
@@ -299,28 +313,63 @@ Real ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 			if (i == n_streams - 1) { // 마지막 스트림 연산 시,
 				stream_points += remainder;
 			}
+#ifndef _DEBUG
 			HANDLE_ERROR(cudaMemcpyAsync(device_pc_data + 3 * offset, host_pc_data + 3 * offset, stream_points * 3 * sizeof(Real), cudaMemcpyHostToDevice));
 			HANDLE_ERROR(cudaMemcpyAsync(device_amp_data + n_colors * offset, host_amp_data + n_colors * offset, stream_points * sizeof(Real) * n_colors, cudaMemcpyHostToDevice));
-
+#else
+			HANDLE_ERROR(cudaMemcpy(device_pc_data + 3 * offset, host_pc_data + 3 * offset, stream_points * 3 * sizeof(Real), cudaMemcpyHostToDevice));
+			HANDLE_ERROR(cudaMemcpy(device_amp_data + n_colors * offset, host_amp_data + n_colors * offset, stream_points * sizeof(Real) * n_colors, cudaMemcpyHostToDevice));
+#endif
 			switch (diff_flag) {
-			case PC_DIFF_RS/*_NOT_ENCODED*/: {
+			case PC_DIFF_RS: {
 				cudaGenCghPointCloud_NotEncodedRS(gridSize, blockSize, stream_points, device_pc_data + 3 * offset,
 					device_amp_data + n_colors * offset, device_dst, device_dst + pnXY, (GpuConstNERS*)device_config, nAdd);
+
+				// 20200824_mwnam_
+				cudaError error = cudaGetLastError();
+				if (error != cudaSuccess) {
+					LOG("cudaGetLastError(): %s\n", cudaGetErrorName(error));
+					if (error == cudaErrorLaunchOutOfResources) {
+						i = 0;
+						blockSize /= 2;
+						gridSize *= 2;
+						continue;
+					}
+				}
+#ifndef _DEBUG
 				HANDLE_ERROR(cudaMemcpyAsync(host_dst, device_dst, bufferSize * 2, cudaMemcpyDeviceToHost));
 				HANDLE_ERROR(cudaMemsetAsync(device_dst, 0., bufferSize * 2));
-
+#else
+				HANDLE_ERROR(cudaMemcpy(host_dst, device_dst, bufferSize * 2, cudaMemcpyDeviceToHost));
+				HANDLE_ERROR(cudaMemset(device_dst, 0., bufferSize * 2));
+#endif
 				for (ulonglong n = 0; n < pnXY; ++n) {
 					complex_H[ch][n][_RE] += host_dst[n];
 					complex_H[ch][n][_IM] += host_dst[n + pnXY];
 				}
 				break;
 			}
-			case PC_DIFF_FRESNEL/*_NOT_ENCODED*/: {
+			case PC_DIFF_FRESNEL: {
 				cudaGenCghPointCloud_NotEncodedFrsn(gridSize, blockSize, stream_points, device_pc_data + 3 * offset,
 					device_amp_data + n_colors * offset, device_dst, device_dst + pnXY, (GpuConstNEFR*)device_config, nAdd);
+#ifndef _DEBUG
 				HANDLE_ERROR(cudaMemcpyAsync(host_dst, device_dst, bufferSize * 2, cudaMemcpyDeviceToHost));
 				HANDLE_ERROR(cudaMemsetAsync(device_dst, 0., bufferSize * 2));
-
+#else
+				HANDLE_ERROR(cudaMemcpy(host_dst, device_dst, bufferSize * 2, cudaMemcpyDeviceToHost));
+				HANDLE_ERROR(cudaMemset(device_dst, 0., bufferSize * 2));
+#endif
+				// 20200824_mwnam_
+				cudaError error = cudaGetLastError();
+				if (error != cudaSuccess) {
+					LOG("cudaGetLastError(): %s\n", cudaGetErrorName(error));
+					if (error == cudaErrorLaunchOutOfResources) {
+						i--;
+						blockSize /= 2;
+						gridSize *= 2;
+						continue;
+					}
+				}
 				for (ulonglong n = 0; n < pnXY; ++n) {
 					complex_H[ch][n][_RE] += host_dst[n];
 					complex_H[ch][n][_IM] += host_dst[n + pnXY];
@@ -330,7 +379,7 @@ Real ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 			} // switch
 
 
-			n_percent = (int)((Real)(ch*n_streams + i + 1) * 100 / ((Real)n_streams * nChannel));
+			m_nProgress = (int)((Real)(ch*n_streams + i + 1) * 100 / ((Real)n_streams * nChannel));
 			LOG("GPU(%d/%d) > %.16f / %.16f\n", i+1, n_streams,
 				complex_H[ch][0][_RE], complex_H[ch][0][_IM]);
 
@@ -355,7 +404,7 @@ Real ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 	LOG("\n%s : %lf(s) \n\n",
 		__FUNCTION__,
 		elapsed_time);
-
+	
 	return elapsed_time;
 }
 #endif

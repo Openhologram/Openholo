@@ -250,7 +250,7 @@ private:
 
 	void initialize_GPU();
 	void generateAS_GPU(uint SHADING_FLAG);
-	void refAS_GPU(int idx, uint SHADING_FLAG);
+	void refAS_GPU(int idx, int ch, uint SHADING_FLAG);
 private:
 
 	Real* normalizedMeshData;				/// Normalized mesh array / Data structure : N*9

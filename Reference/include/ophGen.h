@@ -62,7 +62,7 @@ struct OphWRPConfig;
 
 /**
 * @ingroup gen
-* @brief 
+* @brief
 * @author
 */
 class GEN_DLL ophGen : public Openholo
@@ -100,14 +100,14 @@ public:
 	*				If the function succeeds, the return value is <B>encoded complex field data's pointer</B>.\n
 	*				If the function fails, the return value is <B>nullptr</B>.
 	*/
-	inline Real** getEncodedBuffer(void) { return holo_encoded; }
+	inline Real** getEncodedBuffer(void) { return m_lpEncoded; }
 	/**
-	* @brief Function for getting the normalized(0~255) complex field buffer 
+	* @brief Function for getting the normalized(0~255) complex field buffer
 	* @return Type: <B>uchar**</B>\n
 	*				If the function succeeds, the return value is <B>normalized complex field data's pointer</B>.\n
 	*				If the function fails, the return value is <B>nullptr</B>.
 	*/
-	inline uchar** getNormalizedBuffer(void) { return holo_normalized; }
+	inline uchar** getNormalizedBuffer(void) { return m_lpNormalized; }
 
 	/**
 	* @brief Initialize variables for Hologram complex field, encoded data, normalized data
@@ -161,7 +161,7 @@ public:
 	*				If the function fails, the return value is <B>false</B>.
 	*/
 	bool save(const char* fname, uint8_t bitsperpixel = 8, uchar* src = nullptr, uint px = 0, uint py = 0);
-	
+
 	/**
 	* @brief Function for loading image files
 	* @param[in] fname File name.
@@ -215,7 +215,7 @@ public:
 	* @overload
 	*/
 	void encoding(unsigned int ENCODE_FLAG, Complex<Real>* holo = nullptr);
-	
+
 	void encoding();
 	/*
 	* @brief	Encoding Functions
@@ -241,52 +241,52 @@ public:
 	*/
 	void waveCarry(Real carryingAngleX, Real carryingAngleY, Real distance);
 
-protected:	
+protected:
 	/// Encoded hologram size, varied from encoding type.
-	ivec2					encode_size; 
+	ivec2					m_vecEncodeSize;
 	/// Encoding method flag.
 	int						ENCODE_METHOD;
 	/// Passband in Single-side band encoding.
 	int						SSB_PASSBAND;
 	/// Elapsed time of generate hologram.
-	Real					elapsedTime;
+	Real					m_elapsedTime;
 	/// buffer to encoded.
-	Real**					holo_encoded;
+	Real**					m_lpEncoded;
 	/// buffer to normalized.
-	uchar**					holo_normalized;
+	uchar**					m_lpNormalized;
 
 private:
 	/// previous number of channel.
-	int						nOldChannel;
+	int						m_nOldChannel;
 
 protected:
-	Real					m_nFieldLength;
+	Real					m_dFieldLength;
 	int						m_nStream;
 
 public:
 	void transVW(int nSize, Real *dst, Real *src);
 	int getStream() { return m_nStream; }
-	Real getFieldLength() { return m_nFieldLength; }
+	Real getFieldLength() { return m_dFieldLength; }
 	/**
 	* @brief Function for getting encode size
 	* @return Type: <B>ivec2&</B>\n
 	*				If the function succeeds, the return value is <B>encode size</B>.\n
 	*				If the function fails, the return value is <B>nullptr</B>.
 	*/
-	ivec2& getEncodeSize(void) { return encode_size; }
+	ivec2& getEncodeSize(void) { return m_vecEncodeSize; }
 
 	/**
 	* @brief Function for setting buffer size
 	* @param[in] resolution buffer size.
 	*/
 	void setResolution(ivec2 resolution);
-	
+
 	/**
-	* @brief Function for getting elapsed time.	
+	* @brief Function for getting elapsed time.
 	* @return Type: <B>Real</B>\n
 	*				If the function succeeds, the return value is <B>elapsed time</B>.
 	*/
-	Real getElapsedTime() { return elapsedTime; };
+	Real getElapsedTime() { return m_elapsedTime; };
 
 protected:
 	/**
@@ -324,7 +324,7 @@ protected:
 	* @brief	Frequency shift
 	* @param[in] src Source data.
 	* @param[out] dst Destination data.
-	* @param[in] holosize 
+	* @param[in] holosize
 	* @param[in] shift_x X pixel value to shift
 	* @param[in] shift_y Y pixel value to shift
 	*/
@@ -347,7 +347,7 @@ public:
 	*/
 	void fresnelPropagation(Complex<Real>* in, Complex<Real>* out, Real distance, uint channel);
 protected:
-	/** 
+	/**
 	* @brief Encode the CGH according to a signal location parameter.
 	* @param[in] bCPU Select whether to operate with CPU or GPU
 	* @param[in] sig_location Signal location@n
@@ -398,7 +398,24 @@ protected:
 	* @param[in] rand_phase random or not.
 	*/
 	void getRandPhaseValue(Complex<Real>& rand_phase_val, bool rand_phase);
-	
+
+	void ScaleChange(Real *src, Real *dst, int nSize, Real scaleX, Real scaleY, Real scaleZ);
+	void GetMaxMin(Real *src, int len, Real& max, Real& min);
+
+public:
+
+	void AngularSpectrum(Complex<Real> *src, Complex<Real> *dst, Real lambda, Real distance);
+	void RS_Propagation(vec3 src, Complex<Real> *dst, Real lambda, Real distance, Real amplitude);
+	void RS_Propagation(uchar *src, Complex<Real> *dst, Real lambda, Real distance);
+	void Fresnel_Convolution(vec3 src, Complex<Real> *dst, Real lambda, Real distance, Real amplitude);
+	void Fresnel_FFT(Complex<Real> *src, Complex<Real> *dst, Real lambda, Real waveRatio, Real distance);
+	bool readImage(const char* fname, bool bRGB);
+
+	uchar* imgRGB;
+	uchar* imgDepth;
+	int m_width;
+	int m_height;
+	int m_bpp;
 protected:
 	/**
 	* @brief Pure virtual function for override in child classes
@@ -428,7 +445,7 @@ struct GEN_DLL OphPointCloudConfig {
 	/// Tilt angle for spatial filtering
 	vec2 tilt_angle;
 
-	OphPointCloudConfig() 
+	OphPointCloudConfig()
 		: scale(0, 0, 0), distance(0), filter_shape_flag(0), focal_length_lens_in(0), focal_length_lens_out(0), focal_length_lens_eye_piece(0), tilt_angle(0, 0)
 	{}
 };
@@ -466,7 +483,7 @@ struct GEN_DLL OphPointCloudData {
 * num_of_depth = DEFAULT_DEPTH_QUANTIZATION
 * else
 * num_of_depth = NUMBER_OF_DEPTH_QUANTIZATION
-* </pre> 
+* </pre>
 * @param std::vector<int> Used when only few specific depth levels are rendered, usually for test purpose
 * @param bool if true, change the depth quantization from the default value.
 * @param unsigned int default value of the depth quantization - 256
@@ -497,7 +514,7 @@ struct GEN_DLL OphDepthMapConfig {
 	/// If true, random phase is imposed on each depth layer.
 	bool				RANDOM_PHASE;
 
-	OphDepthMapConfig() :fieldLength(0), near_depthmap(0), far_depthmap(0), num_of_depth(0){}
+	OphDepthMapConfig() :fieldLength(0), near_depthmap(0), far_depthmap(0), num_of_depth(0) {}
 };
 
 /**
@@ -525,9 +542,9 @@ struct GEN_DLL OphWRPConfig {
 	/// fieldLength variable for viewing window.
 	Real fieldLength;
 	/// Scaling factor of coordinate of point cloud
-	vec3 scale;	
+	vec3 scale;
 	/// Number of wavefront recording plane(WRP) 
-	int num_wrp; 
+	int num_wrp;
 	/// Location distance of WRP
 	Real wrp_location;
 	/// Distance of Hologram plane

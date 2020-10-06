@@ -212,6 +212,7 @@ public:
 	* @param is_ViewingWindow : the value for specifying whether the hologram generation method is implemented on the viewing window
 	*/
 	void setViewingWindow(bool is_ViewingWindow);
+	uint* getProgress() { return &m_nProgress; }
 	
 protected:
 	// ==== GPU Methods ===============================================
@@ -246,6 +247,7 @@ private:
 	bool is_CPU;
 	bool bSinglePrecision;
 	Real zmax_;
+	uint m_nProgress;
 
 };
 #endif
