@@ -1,0 +1,5 @@
+numpy>=1.10
+matplotlib>=3.0
+plyfile>=0.7.2
+pillow>=7.0
+numba>=0.5
