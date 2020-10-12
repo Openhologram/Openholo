@@ -14,6 +14,8 @@ python -m pip install ophpy
 ### Requirement
 Numpy, Numba, Matplotlib, pillow, plyfile
 
+(Anaconda, Pycharm과 같은 가상환경에서 구동하는 것을 권장합니다)
+
 ### Procedure
 Data input > Propagation > Encoding > Normalization > Save
 
@@ -21,20 +23,23 @@ Data input > Propagation > Encoding > Normalization > Save
 
 Generate Holographic Fringe pattern based on PointCloud data, 2D image, Depthmap image 
 
+## Update
+ver 0.0.3 
 
 ## Example
 ##### Point Cloud
 
 ```python
+import ophpy as oph
 from ophpy import PointCloud
 
 input_data = 'PointCloud_Dice_RGB.ply'
-RS = PointCloud.Propagation(input_data, method='RS', angleY=1)
+plyfiles = PointCloud.get_pointcloud(input_data)
 
-Red_image = RS.CalHolo('red')  # RS integral methods
-plt.imshow(np.angle(Red_image))  # show phase angle data of red light fringe pattern
+red = PointCloud.RSIntegral(plyfiles, 'red')                        # Get complex hologram at red
 
-RS.getRGBImage(Red_image, RS.CalHolo('green'), RS.CalHolo('blue'), 'test file name.bmp', type='angle')
+oph.getRGBImage(red, PointCloud.RSIntegral(plyfiles, 'green'), PointCloud.RSIntegral(plyfiles, 'blue'), 'test file-RS.bmp')
+
 ```
 
 You can use Rayleigh-Sommerfeld diffraction or Fresnel diffraction integral
@@ -65,3 +70,5 @@ Red_image = D.parallelCal('red')  # using parallel calculation
 D.getRGBImage(Red_image, D.parallelCal('green'), D.parallelCal('blue'), 'test file name.bmp', tyep='angle')
 plt.imshow(np.angle(Red_image))
 ```
+
+
