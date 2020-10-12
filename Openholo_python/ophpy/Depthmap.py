@@ -12,17 +12,17 @@ um = mm * mm
 nm = um * mm
 
 
-@njit
+@njit(nogil=True, cache=True)
 def k(wvl):
     return (np.pi * 2) / wvl
 
 
-@njit(nogil=True, cache=True)
+@njit(nogil=True)
 def h_frsn(pixel_pitch_x, pixel_pitch_y, nx, ny, zz, wvl):
     re = np.zeros((ny, nx))
     im = np.zeros((ny, nx))
-    for i in range(nx):
-        for j in range(ny):
+    for i in np.arange(nx):
+        for j in np.arange(ny):
             x = (i - nx / 2) * pixel_pitch_x
             y = (j - ny / 2) * pixel_pitch_y
             re[j, i] = np.cos((np.pi / (wvl * zz)) * (x * x + y * y))
@@ -37,19 +37,19 @@ def alphamap(depthmap, n):
     ww = shape[1]
     hh = shape[0]
     amap = np.zeros((hh, ww))
-    for i in range(ww):
-        for j in range(hh):
+    for i in np.arange(ww):
+        for j in np.arange(hh):
             if depthmap[j, i] == n:
                 amap[j, i] = 1
     return amap
 
 
-@njit
+@njit(nogil=True)
 def refwave(wvl, wr, hr, z, pp, thetaX, thetaY):
     a = np.zeros((hr, wr))
     b = np.zeros((hr, wr))
-    for i in range(hr):
-        for j in range(wr):
+    for i in np.arange(hr):
+        for j in np.arange(wr):
             x = (j - wr / 2) * pp
             y = -(i - hr / 2) * pp
             a[i, j] = np.cos(k(wvl) * (x * np.sin(thetaX) + y * np.sin(thetaY)))
@@ -104,7 +104,7 @@ class Propagation:
         self.img_G = np.double(self.resizeimg(self.wvl_G, self.imagein[:, :, 1]))
         self.img_B = np.double(self.resizeimg(self.wvl_B, self.imagein[:, :, 2]))
         if multicore:
-            self.num_cpu = multiprocessing.cpu_count()
+            self.num_cpu = multiprocessing.cpu_count() // 2
         else:
             self.num_cpu = 1
         self.num_point = [i for i in range(self.DQ)]
@@ -147,21 +147,18 @@ class Propagation:
         wvl = self.wvl_R
         dimg = self.resizeimg(wvl, self.depthimg)
         amap = alphamap(dimg, n)
-        print(n, ' th layer done')
         return self.Prop('red', self.img_R, amap, n)
 
     def prop_G(self, n):
         wvl = self.wvl_G
         dimg = self.resizeimg(wvl, self.depthimg)
         amap = alphamap(dimg, n)
-        print(n, ' th layer done')
         return self.Prop('green', self.img_G, amap, n)
 
     def prop_B(self, n):
         wvl = self.wvl_B
         dimg = self.resizeimg(wvl, self.depthimg)
         amap = alphamap(dimg, n)
-        print(n, ' th layer done')
         return self.Prop('blue', self.img_B, amap, n)
 
     def parallelCal(self, color):
