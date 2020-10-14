@@ -24,7 +24,7 @@ def test(method):
         Red_image = f.ASM('red')  # Fresnel propagation using Single FFT
         f.getRGBImage(Red_image, f.ASM('green'), f.ASM('blue'), 'test file ASM.bmp', type='angle')
 
-    elif method == '2D-Fresenl':
+    elif method == '2D-Fresnel':
         # 2D image base CGH generation using Fresenl FFT
         from ophpy import Image2D
         input_img = 'Dice_RGB.bmp'
@@ -37,7 +37,7 @@ def test(method):
         # 3. Depthmap base CGH generation
         from ophpy import Depthmap
         input_img = 'Dice_RGB.bmp'
-        input_depthmap = 'Dice_depth.png'
+        input_depthmap = 'Dice_depth.bmp'
         D = Depthmap.Propagation(input_img, input_depthmap)
         Red_image = D.parallelCal('red')  # using parallel calculation
         D.getRGBImage(Red_image, D.parallelCal('green'), D.parallelCal('blue'), 'test file name.bmp', type='angle')
