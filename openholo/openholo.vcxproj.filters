@@ -82,6 +82,33 @@
     <ClInclude Include="src\ImgControl.h">
       <Filter>__utilities\header</Filter>
     </ClInclude>
+    <ClInclude Include="src\AngularC_data.h">
+      <Filter>__utilities\header</Filter>
+    </ClInclude>
+    <ClInclude Include="src\AngularC_types.h">
+      <Filter>__utilities\header</Filter>
+    </ClInclude>
+    <ClInclude Include="src\coder_array.h">
+      <Filter>__utilities\header</Filter>
+    </ClInclude>
+    <ClInclude Include="src\FFTImplementationCallback.h">
+      <Filter>__utilities\header</Filter>
+    </ClInclude>
+    <ClInclude Include="src\rt_nonfinite.h">
+      <Filter>__utilities\header</Filter>
+    </ClInclude>
+    <ClInclude Include="src\rtGetInf.h">
+      <Filter>__utilities\header</Filter>
+    </ClInclude>
+    <ClInclude Include="src\rtGetNaN.h">
+      <Filter>__utilities\header</Filter>
+    </ClInclude>
+    <ClInclude Include="src\rtwtypes.h">
+      <Filter>__utilities\header</Filter>
+    </ClInclude>
+    <ClInclude Include="src\tmwtypes.h">
+      <Filter>__utilities\header</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Openholo.cpp">
@@ -103,6 +130,21 @@
       <Filter>_2_ImgFmt</Filter>
     </ClCompile>
     <ClCompile Include="src\ImgControl.cpp">
+      <Filter>__utilities\cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="src\AngularC_data.cpp">
+      <Filter>__utilities\cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="src\FFTImplementationCallback.cpp">
+      <Filter>__utilities\cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="src\rt_nonfinite.cpp">
+      <Filter>__utilities\cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="src\rtGetInf.cpp">
+      <Filter>__utilities\cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="src\rtGetNaN.cpp">
       <Filter>__utilities\cpp</Filter>
     </ClCompile>
   </ItemGroup>

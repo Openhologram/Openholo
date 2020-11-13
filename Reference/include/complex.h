@@ -284,7 +284,7 @@ namespace oph {
 		}
 
 		operator unsigned char() {
-			return oph::uchar(_Val[_RE]);
+			return uchar(_Val[_RE]);
 		}
 
 		operator int() {

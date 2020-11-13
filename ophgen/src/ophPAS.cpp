@@ -16,109 +16,19 @@
 
 using namespace std;
 
-ophPAS::ophPAS():ophGen()
+ophPAS::ophPAS(void)
+	: ophGen()
 {
 }
 
 ophPAS::~ophPAS()
 {
-	delete[] m_pHologram;
+	
 }
 
-int ophPAS::init(const char* _filename, CGHEnvironmentData* _CGHE)
-{
-	cout << _filename << endl;
 
-	loadConfig("ConfigInfo.ini", _CGHE);
 
-	return 0;
-}
-
-bool ophPAS::loadConfig(const char* filename, CGHEnvironmentData* conf)
-{
-#define MAX_SIZE 1000
-	char inputString[MAX_SIZE];
-
-	ifstream inFile(filename);
-	if (!(inFile.is_open()))
-	{
-		cout << "파일을 찾을 수 없습니다." << endl;
-		return false;
-	}
-	else {
-		while (!inFile.eof())
-		{
-			inFile.getline(inputString, MAX_SIZE);
-
-			// 주석 및 빈칸 제거
-			if (!(inputString[0] == NULL || (inputString[0] == '#' && inputString[1] == ' ')))
-			{
-				char* token = NULL;
-				char* parameter = NULL;
-				char* context = nullptr;
-				token = strtok_s(inputString, "=", &context);
-
-				// 데이터 받아서 구조체에 저장
-				if (strcmp(token, "CGH width ") == 0) {
-					token = strtok_s(NULL, "=", &context);
-					conf->CghWidth = atoi(trim(token));
-				}
-				else if (strcmp(token, "CGH height ") == 0) {
-					token = strtok_s(NULL, "=", &context);
-					conf->CghHeight = atoi(trim(token));
-				}
-				else if (strcmp(token, "Segmentation size ") == 0) {
-					token = strtok_s(NULL, "=", &context);
-					conf->SegmentationSize = atoi(trim(token));
-				}
-				else if (strcmp(token, "FFT segmentation size ") == 0) {
-					token = strtok_s(NULL, "=", &context);
-					conf->fftSegmentationSize = atoi(trim(token));
-				}
-				else if (strcmp(token, "Red wavelength ") == 0) {
-					token = strtok_s(NULL, "=", &context);
-					conf->rWaveLength = atof(trim(token));
-				}
-				else if (strcmp(token, "Tilting angle on x axis ") == 0) {
-					token = strtok_s(NULL, "=", &context);
-					conf->ThetaX = atof(trim(token));
-				}
-				else if (strcmp(token, "Tilting angle on y axis ") == 0) {
-					token = strtok_s(NULL, "=", &context);
-					conf->ThetaY = atof(trim(token));
-				}
-				else if (strcmp(token, "Default depth ") == 0) {
-					token = strtok_s(NULL, "=", &context);
-					conf->DefaultDepth = atof(trim(token));
-				}
-				else if (strcmp(token, "3D point interval on x axis ") == 0) {
-					token = strtok_s(NULL, "=", &context);
-					conf->xInterval = atof(trim(token));
-				}
-				else if (strcmp(token, "3D point interval on y axis ") == 0) {
-					token = strtok_s(NULL, "=", &context);
-					conf->yInterval = atof(trim(token));
-				}
-				else if (strcmp(token, "Hologram interval on xi axis ") == 0) {
-					token = strtok_s(NULL, "=", &context);
-					conf->xiInterval = atof(trim(token));
-				}
-				else if (strcmp(token, "Hologram interval on eta axis ") == 0) {
-					token = strtok_s(NULL, "=", &context);
-					conf->etaInterval = atof(trim(token));
-				}
-				else if (strcmp(token, "CGH scale ") == 0) {
-					token = strtok_s(NULL, "=", &context);
-					conf->CGHScale = atof(trim(token));
-				}
-			}
-		}
-	}
-	inFile.close();
-	return false;
-}
-
-bool ophPAS::readConfig(const char* fname, OphPointCloudConfig& configdata) {
+bool ophPAS::readConfig(const char* fname) {
 	LOG("Reading....%s...", fname);
 
 	auto start = CUR_TIME;
@@ -127,12 +37,14 @@ bool ophPAS::readConfig(const char* fname, OphPointCloudConfig& configdata) {
 	tinyxml2::XMLDocument xml_doc;
 	tinyxml2::XMLNode *xml_node;
 
+
 	if (!checkExtension(fname, ".xml"))
 	{
 		LOG("file's extension is not 'xml'\n");
 		return false;
 	}
 	auto ret = xml_doc.LoadFile(fname);
+	LOG("%d", ret);
 	if (ret != tinyxml2::XML_SUCCESS)
 	{
 		LOG("Failed to load file \"%s\"\n", fname);
@@ -141,183 +53,102 @@ bool ophPAS::readConfig(const char* fname, OphPointCloudConfig& configdata) {
 
 	xml_node = xml_doc.FirstChild();
 
-#if REAL_IS_DOUBLE & true
-	auto next = xml_node->FirstChildElement("ScalingXofPointCloud");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&configdata.scale[_X]))
+	int nWave = 1;
+	auto next = xml_node->FirstChildElement("ScaleX");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&pc_config.scale[_X]))
 		return false;
-	next = xml_node->FirstChildElement("ScalingYofPointCloud");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&configdata.scale[_Y]))
+	next = xml_node->FirstChildElement("ScaleY");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&pc_config.scale[_Y]))
 		return false;
-	next = xml_node->FirstChildElement("ScalingZofPointCloud");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&configdata.scale[_Z]))
+	next = xml_node->FirstChildElement("ScaleZ");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&pc_config.scale[_Z]))
 		return false;
-	next = xml_node->FirstChildElement("OffsetInDepth");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&configdata.distance))
+	next = xml_node->FirstChildElement("Distance");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&pc_config.distance))
 		return false;
-	next = xml_node->FirstChildElement("SLMpixelPitchX");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&context_.pixel_pitch[_X]))
+	
+	
+	
+	
+	next = xml_node->FirstChildElement("SLM_WaveNum"); // OffsetInDepth
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryIntText(&nWave))
 		return false;
-	next = xml_node->FirstChildElement("SLMpixelPitchY");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&context_.pixel_pitch[_Y]))
-		return false;
-	next = xml_node->FirstChildElement("WavelengthofLaser");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&context_.wave_length[0]))
-		return false;
-	//(xml_node->FirstChildElement("ScalingXofPointCloud"))->QueryDoubleText(&configdata.scale[_X]);
-	//(xml_node->FirstChildElement("ScalingYofPointCloud"))->QueryDoubleText(&configdata.scale[_Y]);
-	//(xml_node->FirstChildElement("ScalingZofPointCloud"))->QueryDoubleText(&configdata.scale[_Z]);
-	//(xml_node->FirstChildElement("OffsetInDepth"))->QueryDoubleText(&configdata.offset_depth);
-	//(xml_node->FirstChildElement("SLMpixelPitchX"))->QueryDoubleText(&context_.pixel_pitch[_X]);
-	//(xml_node->FirstChildElement("SLMpixelPitchY"))->QueryDoubleText(&context_.pixel_pitch[_Y]);
-	//(xml_node->FirstChildElement("WavelengthofLaser"))->QueryDoubleText(&context_.wave_length[0]);
-	//(xml_node->FirstChildElement("BandpassFilterWidthX"))->QueryDoubleText(&configdata.filter_width[_X]);
-	//(xml_node->FirstChildElement("BandpassFilterWidthY"))->QueryDoubleText(&configdata.filter_width[_Y]);
-	//(xml_node->FirstChildElement("FocalLengthofInputLens"))->QueryDoubleText(&configdata.focal_length_lens_in);
-	//(xml_node->FirstChildElement("FocalLengthofOutputLens"))->QueryDoubleText(&configdata.focal_length_lens_out);
-	//(xml_node->FirstChildElement("FocalLengthofEyepieceLens"))->QueryDoubleText(&configdata.focal_length_lens_eye_piece);
-	//(xml_node->FirstChildElement("TiltAngleX"))->QueryDoubleText(&configdata.tilt_angle[_X]);
-	//(xml_node->FirstChildElement("TiltAngleY"))->QueryDoubleText(&configdata.tilt_angle[_Y]);
-#else
-	auto next = xml_node->FirstChildElement("ScalingXofPointCloud");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryFloatText(&configdata.scale[_X]))
-		return false;
-	next = xml_node->FirstChildElement("ScalingYofPointCloud");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryFloatText(&configdata.scale[_Y]))
-		return false;
-	next = xml_node->FirstChildElement("ScalingZofPointCloud");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryFloatText(&configdata.scale[_Z]))
-		return false;
-	next = xml_node->FirstChildElement("OffsetInDepth");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryFloatText(&configdata.offset_depth))
-		return false;
-	next = xml_node->FirstChildElement("SLMpixelPitchX");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryFloatText(&context_.pixel_pitch[_X]))
-		return false;
-	next = xml_node->FirstChildElement("SLMpixelPitchY");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryFloatText(&context_.pixel_pitch[_Y]))
-		return false;
-	next = xml_node->FirstChildElement("WavelengthofLaser");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryFloatText(&context_.wave_length[0]))
-		return false;
-	//(xml_node->FirstChildElement("ScalingXofPointCloud"))->QueryFloatText(&configdata.scale[_X]);
-	//(xml_node->FirstChildElement("ScalingYofPointCloud"))->QueryFloatText(&configdata.scale[_Y]);
-	//(xml_node->FirstChildElement("ScalingZofPointCloud"))->QueryFloatText(&configdata.scale[_Z]);
-	//(xml_node->FirstChildElement("OffsetInDepth"))->QueryFloatText(&configdata.offset_depth);
-	//(xml_node->FirstChildElement("SLMpixelPitchX"))->QueryFloatText(&context_.pixel_pitch[_X]);
-	//(xml_node->FirstChildElement("SLMpixelPitchY"))->QueryFloatText(&context_.pixel_pitch[_Y]);
-	//(xml_node->FirstChildElement("WavelengthofLaser"))->QueryFloatText(&context_.wave_length[0]);
-	//(xml_node->FirstChildElement("BandpassFilterWidthX"))->QueryFloatText(&configdata.filter_width[_X]);
-	//(xml_node->FirstChildElement("BandpassFilterWidthY"))->QueryFloatText(&configdata.filter_width[_Y]);
-	//(xml_node->FirstChildElement("FocalLengthofInputLens"))->QueryFloatText(&configdata.focal_length_lens_in);
-	//(xml_node->FirstChildElement("FocalLengthofOutputLens"))->QueryFloatText(&configdata.focal_length_lens_out);
-	//(xml_node->FirstChildElement("FocalLengthofEyepieceLens"))->QueryFloatText(&configdata.focal_length_lens_eye_piece);
-	//(xml_node->FirstChildElement("TiltAngleX"))->QueryFloatText(&configdata.tilt_angle[_X]);
-	//(xml_node->FirstChildElement("TiltAngleY"))->QueryFloatText(&configdata.tilt_angle[_Y]);
-#endif
-	next = xml_node->FirstChildElement("SLMpixelNumX");
+
+	context_.waveNum = nWave;
+	if (context_.wave_length) delete[] context_.wave_length;
+	context_.wave_length = new Real[nWave];
+
+	char szNodeName[32] = { 0, };
+	for (int i = 1; i <= nWave; i++) {
+		wsprintfA(szNodeName, "SLM_WaveLength_%d", i);
+		next = xml_node->FirstChildElement(szNodeName);
+		if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&context_.wave_length[i - 1]))
+			return false;
+	}
+	next = xml_node->FirstChildElement("SLM_PixelNumX");
 	if (!next || tinyxml2::XML_SUCCESS != next->QueryIntText(&context_.pixel_number[_X]))
 		return false;
-	next = xml_node->FirstChildElement("SLMpixelNumY");
+	next = xml_node->FirstChildElement("SLM_PixelNumY");
 	if (!next || tinyxml2::XML_SUCCESS != next->QueryIntText(&context_.pixel_number[_Y]))
 		return false;
-	//(xml_node->FirstChildElement("SLMpixelNumX"))->QueryIntText(&context_.pixel_number[_X]);
-	//(xml_node->FirstChildElement("SLMpixelNumY"))->QueryIntText(&context_.pixel_number[_Y]);
-	//configdata.filter_shape_flag = (int8_t*)(xml_node->FirstChildElement("BandpassFilterShape"))->GetText();
+	next = xml_node->FirstChildElement("SLM_PixelPitchX");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&context_.pixel_pitch[_X]))
+		return false;
+	next = xml_node->FirstChildElement("SLM_PixelPitchY");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&context_.pixel_pitch[_Y]))
+		return false;
+	next = xml_node->FirstChildElement("IMG_Rotation");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryBoolText(&context_.bRotation))
+		context_.bRotation = false;
+	next = xml_node->FirstChildElement("IMG_Merge");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryBoolText(&context_.bMergeImg))
+		context_.bMergeImg = true;
+	next = xml_node->FirstChildElement("DoublePrecision");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryBoolText(&context_.bUseDP))
+		context_.bUseDP = true;
+	next = xml_node->FirstChildElement("ShiftX");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&context_.shift[_X]))
+		context_.shift[_X] = 0.0;
+	next = xml_node->FirstChildElement("ShiftY");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&context_.shift[_Y]))
+		context_.shift[_Y] = 0.0;
+	next = xml_node->FirstChildElement("ShiftZ");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&context_.shift[_Z]))
+		context_.shift[_Z] = 0.0;
+	next = xml_node->FirstChildElement("FieldLength");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&m_dFieldLength))
+		m_dFieldLength = 0.0;
+	next = xml_node->FirstChildElement("NumOfStream");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryIntText(&m_nStream))
+		m_nStream = 1;
 
-	this->
-
-	context_.k = (2 * M_PI) / context_.wave_length[0];
 	context_.ss[_X] = context_.pixel_number[_X] * context_.pixel_pitch[_X];
 	context_.ss[_Y] = context_.pixel_number[_Y] * context_.pixel_pitch[_Y];
 
 	Openholo::setPixelNumberOHC(context_.pixel_number);
 	Openholo::setPixelPitchOHC(context_.pixel_pitch);
-	Openholo::setWavelengthOHC(context_.wave_length[0], LenUnit::m);
 
+	OHC_encoder->clearWavelength();
+	for (int i = 0; i < nWave; i++)
+		Openholo::setWavelengthOHC(context_.wave_length[i], LenUnit::m);
+	
 	auto end = CUR_TIME;
 
 	auto during = ((std::chrono::duration<Real>)(end - start)).count();
 
-	LOG("%.5lfsec...done\n", during);
+	//LOG("%.5lfsec...done\n", during);
+	initialize();
 	return true;
 }
 
-bool ophPAS::loadPoint(const char* _filename, VoxelStruct* h_vox)
+int ophPAS::loadPoint(const char* _filename)
 {
-#define MAX_SIZE 1000
-	char inputString[MAX_SIZE];
-
-	ifstream inFile(_filename);
-	if (!(inFile.is_open()))
-	{
-		cout << "포인트 클라우드 파일을 찾을 수 없습니다." << endl;
-		return false;
-	}
-	else
-	{
-		inFile.getline(inputString, MAX_SIZE);
-		int no = 0;
-		while (!inFile.eof())
-		{
-			inFile.getline(inputString, MAX_SIZE);
-
-			if (inputString[0] != NULL)
-			{
-				char* token = NULL;
-				char* context = nullptr;
-
-				token = strtok_s(inputString, "\t", &context);
-				h_vox[no].num = atoi(token);	// 인덱스
-
-				token = strtok_s(NULL, "\t", &context);
-				h_vox[no].x = atof(token);	// x 좌표
-
-				token = strtok_s(NULL, "\t", &context);
-				h_vox[no].y = atof(token);	// y 좌표
-
-				token = strtok_s(NULL, "\t", &context);
-				h_vox[no].z = atof(token);	// z 좌표
-
-				token = strtok_s(NULL, "\t", &context);
-				h_vox[no].ph = atof(token);	// phase
-
-				token = strtok_s(NULL, "\t", &context);
-				h_vox[no].r = atof(token);	// red
-
-				//token = strtok_s(NULL, "\t", &context);
-				//h_vox[no].g = atof(token);	// green
-
-				//token = strtok_s(NULL, "\t", &context);
-				//h_vox[no].b = atof(token);	// blue
-
-				no++;
-			}
-		}
-	}
-	inFile.close();
-	return true;
+	n_points = ophGen::loadPointCloud(_filename, &pc_data);
+	return n_points;
 }
 
 
-bool ophPAS::load_Num_Point(const char* _filename, long* num_point)
-{
-#define MAX_SIZE 1000
-	char inputString[MAX_SIZE];
-	ifstream inFile(_filename);
-	if (!(inFile.is_open()))
-	{
-		cout << "포인트 클라우드 파일을 찾을 수 없습니다." << endl;
-		return false;
-	}
-	else 
-	{
-		inFile.getline(inputString, MAX_SIZE);
-		*num_point = atoi(trim(inputString));
-		//cout << *num_point << endl;
-	}
-	inFile.close();
-	return true;
-}
+
 
 int ophPAS::save(const char * fname, uint8_t bitsperpixel, uchar* src, uint px, uint py)
 {
@@ -330,7 +161,7 @@ int ophPAS::save(const char * fname, uint8_t bitsperpixel, uchar* src, uint px, 
 		source = m_lpNormalized[0];
 	if (px == 0 && py == 0)
 		p = ivec2(context_.pixel_number[_X], context_.pixel_number[_Y]);
-
+	
 	if (checkExtension(fname, ".bmp")) 	// when the extension is bmp
 		return Openholo::saveAsImg(fname, bitsperpixel, source, p[_X], p[_Y]);
 	else {									// when extension is not .ohf, .bmp - force bmp
@@ -341,6 +172,13 @@ int ophPAS::save(const char * fname, uint8_t bitsperpixel, uchar* src, uint px, 
 		return Openholo::saveAsImg(buf, bitsperpixel, source, p[_X], p[_Y]);
 	}
 }
+
+void ophPAS::save(const char * fname)
+{
+	save(fname, 8, cgh_fringe, context_.pixel_number[_X], context_.pixel_number[_Y]);
+	delete[] cgh_fringe;
+}
+
 /*
 int ophPAS::saveAsImg(const char * fname, uint8_t bitsperpixel, void * src, int pic_width, int pic_height)
 {
@@ -396,73 +234,27 @@ int ophPAS::saveAsImg(const char * fname, uint8_t bitsperpixel, void * src, int 
 }
 */
 
-// 문자열 우측 공백문자 삭제 함수
-char* ophPAS::rtrim(char* s)
-{
-	char t[MAX_STR_LEN];
-	char *end;
-
-	// Visual C 2003 이하에서는
-	// strcpy(t, s);
-	// 이렇게 해야 함
-	strcpy_s(t, s); // 이것은 Visual C 2005용
-	end = t + strlen(t) - 1;
-	while (end != t && isspace(*end))
-		end--;
-	*(end + 1) = '\0';
-	s = t;
-
-	return s;
-}
-
-// 문자열 좌측 공백문자 삭제 함수
-char* ophPAS::ltrim(char* s)
-{
-	char* begin;
-	begin = s;
-
-	while (*begin != '\0') {
-		if (isspace(*begin))
-			begin++;
-		else {
-			s = begin;
-			break;
-		}
-	}
-
-	return s;
-}
 
 
-// 문자열 앞뒤 공백 모두 삭제 함수
-char* ophPAS::trim(char* s)
-{
-	return rtrim(ltrim(s));
-}
-
-void ophPAS::DataInit(CGHEnvironmentData* _CGHE)
-{
-	m_pHologram = new double[_CGHE->CghHeight*_CGHE->CghWidth];
-	memset(m_pHologram, 0x00, sizeof(double)*_CGHE->CghHeight*_CGHE->CghWidth);
-
-	for (int i = 0; i<NUMTBL; i++) {
-		float theta = (float)M2_PI * (float)(i + i - 1) / (float)(2 * NUMTBL);
-		m_COStbl[i] = (float)cos(theta);
-		m_SINtbl[i] = (float)sin(theta);
-	}
-}
 
 void ophPAS::DataInit(OphPointCloudConfig &conf)
 {
 	m_pHologram = new double[getContext().pixel_number[_X] * getContext().pixel_number[_Y]];
 	memset(m_pHologram, 0x00, sizeof(double)*getContext().pixel_number[_X] * getContext().pixel_number[_Y]);
-
+	
+	
 	for (int i = 0; i < NUMTBL; i++) {
 		float theta = (float)M2_PI * (float)(i + i - 1) / (float)(2 * NUMTBL);
 		m_COStbl[i] = (float)cos(theta);
 		m_SINtbl[i] = (float)sin(theta);
-	}
+		
+	}// -> gpu 
+	
+	
 }
+
+
+
 /*
 void ophPAS::PASCalcuation(long voxnum, unsigned char * cghfringe, VoxelStruct * h_vox, CGHEnvironmentData * _CGHE)
 {
@@ -497,7 +289,7 @@ void ophPAS::PASCalcuation(long voxnum, unsigned char * cghfringe, VoxelStruct *
 
 }
 */
-void ophPAS::PASCalcuation(long voxnum, unsigned char * cghfringe, OphPointCloudData *data, OphPointCloudConfig& conf) {
+void ophPAS::PASCalculation(long voxnum, unsigned char * cghfringe, OphPointCloudData *data, OphPointCloudConfig& conf) {
 	long i, j;
 
 	double Max = -1E9, Min = 1E9;
@@ -505,6 +297,8 @@ void ophPAS::PASCalcuation(long voxnum, unsigned char * cghfringe, OphPointCloud
 	int cghwidth = getContext().pixel_number[_X];
 	int cghheight = getContext().pixel_number[_Y];
 
+	
+	
 	//DataInit(_CGHE);
 	DataInit(conf);
 
@@ -513,21 +307,27 @@ void ophPAS::PASCalcuation(long voxnum, unsigned char * cghfringe, OphPointCloud
 	//PAS(voxnum, h_vox, m_pHologram, _CGHE);
 	PAS(voxnum, data, m_pHologram, conf);
 	//
-
+	
 	for (i = 0; i < cghheight; i++) {
 		for (j = 0; j < cghwidth; j++) {
 			if (Max < m_pHologram[i*cghwidth + j])	Max = m_pHologram[i*cghwidth + j];
 			if (Min > m_pHologram[i*cghwidth + j])	Min = m_pHologram[i*cghwidth + j];
+			
 		}
 	}
-
+	
 	for (i = 0; i < cghheight; i++) {
 		for (j = 0; j < cghwidth; j++) {
 			myBuffer = 1.0*(((m_pHologram[i*cghwidth + j] - Min) / (Max - Min))*255. + 0.5);
 			if (myBuffer >= 255.0)  cghfringe[i*cghwidth + j] = 255;
 			else					cghfringe[i*cghwidth + j] = (unsigned char)(myBuffer);
+			
 		}
 	}
+	
+
+	delete[] m_pHologram;
+	
 }
 
 /*
@@ -613,22 +413,22 @@ void ophPAS::PAS(long voxelnum, OphPointCloudData *data, double * m_pHologram, O
 	float	Amplitude;
 	float	sf_base = 1.0 / (xiInterval* FFT_SEGMENT_SIZE);
 
-
 	//CString mm;
 	clock_t start, finish;
 	double  duration;
 	start = clock();
 
+	
 	// Iteration according to the point number
 	for (no = 0; no < voxelnum*3; no+=3)
 	{
 		// point coordinate
-		X = (data->vertex[no]) * cghScale;
-		Y = (data->vertex[no+1]) * cghScale;
-		Z = data->vertex[no+2] * cghScale - defaultDepth;
-		Amplitude = data->phase[no/3];
+		X = ((float)data->vertex[no]) * cghScale;
+		Y = ((float)data->vertex[no+1]) * cghScale;
+		Z = ((float)data->vertex[no+2]) * cghScale - defaultDepth;
+		Amplitude = (float)data->phase[no/3];
 
-		std::cout << "X: " << X << ", Y: " << Y << ", Z: " << Z << ", Amp: " << Amplitude << endl;
+		//std::cout << "X: " << X << ", Y: " << Y << ", Z: " << Z << ", Amp: " << Amplitude << endl;
 
 		/*
 		CalcSpatialFrequency(X, Y, Z, Amplitude
@@ -686,6 +486,99 @@ void ophPAS::PAS(long voxelnum, OphPointCloudData *data, double * m_pHologram, O
 	duration = (double)(finish - start) / CLOCKS_PER_SEC;
 	//mm.Format("%f", duration);
 	//AfxMessageBox(mm);
+	
+	MemoryRelease();
+}
+
+void ophPAS::PAS_GPU(long voxelnum, OphPointCloudData * data, double * m_pHologram, OphPointCloudConfig & conf)
+{
+	float xiInterval = getContext().pixel_pitch[_X];//_CGHE->xiInterval;
+	float etaInterval = getContext().pixel_pitch[_Y];//_CGHE->etaInterval;
+	float cghScale = conf.scale[_X];// _CGHE->CGHScale;
+	float defaultDepth = conf.distance;//_CGHE->DefaultDepth;
+
+	DataInit(FFT_SEGMENT_SIZE, getContext().pixel_number[_X], getContext().pixel_number[_Y], xiInterval, etaInterval);
+
+	long  no;			// voxel Number
+
+
+	float	X, Y, Z; ;		// x, y, real distance
+	float	Amplitude;
+	float	sf_base = 1.0 / (xiInterval* FFT_SEGMENT_SIZE);
+
+	//CString mm;
+	clock_t start, finish;
+	double  duration;
+	start = clock();
+
+	cout << sf_base << endl;
+	// Iteration according to the point number
+	for (no = 0; no < voxelnum * 3; no += 3)
+	{
+		// point coordinate
+		X = ((float)data->vertex[no]) * cghScale;
+		Y = ((float)data->vertex[no + 1]) * cghScale;
+		Z = ((float)data->vertex[no + 2]) * cghScale - defaultDepth;
+		Amplitude = (float)data->phase[no / 3];
+
+		std::cout << "X: " << X << ", Y: " << Y << ", Z: " << Z << ", Amp: " << Amplitude << endl;
+
+		/*
+		CalcSpatialFrequency(X, Y, Z, Amplitude
+		, m_segNumx, m_segNumy
+		, m_segSize, m_hsegSize, m_sf_base
+		, m_xc, m_yc
+		, m_SFrequency_cx, m_SFrequency_cy
+		, m_PickPoint_cx, m_PickPoint_cy
+		, m_Coefficient_cx, m_Coefficient_cy
+		, xiInterval, etaInterval, _CGHE);
+		*/
+		CalcSpatialFrequency(X, Y, Z, Amplitude
+			, m_segNumx, m_segNumy
+			, m_segSize, m_hsegSize, m_sf_base
+			, m_xc, m_yc
+			, m_SFrequency_cx, m_SFrequency_cy
+			, m_PickPoint_cx, m_PickPoint_cy
+			, m_Coefficient_cx, m_Coefficient_cy
+			, xiInterval, etaInterval, conf);
+
+		/*
+		CalcCompensatedPhase(X, Y, Z, Amplitude
+		, m_segNumx, m_segNumy
+		, m_segSize, m_hsegSize, m_sf_base
+		, m_xc, m_yc
+		, m_Coefficient_cx, m_Coefficient_cy
+		, m_COStbl, m_SINtbl
+		, m_inRe, m_inIm, _CGHE);
+		*/
+		CalcCompensatedPhase(X, Y, Z, Amplitude
+			, m_segNumx, m_segNumy
+			, m_segSize, m_hsegSize, m_sf_base
+			, m_xc, m_yc
+			, m_Coefficient_cx, m_Coefficient_cy
+			, m_COStbl, m_SINtbl
+			, m_inRe, m_inIm, conf);
+
+	}
+
+	/*
+	RunFFTW(m_segNumx, m_segNumy
+	, m_segSize, m_hsegSize
+	, m_inRe, m_inIm
+	, m_in, m_out
+	, &m_plan, m_pHologram, _CGHE);
+	*/
+	RunFFTW(m_segNumx, m_segNumy
+		, m_segSize, m_hsegSize
+		, m_inRe, m_inIm
+		, m_in, m_out
+		, &m_plan, m_pHologram, conf);
+
+	finish = clock();
+
+	duration = (double)(finish - start) / CLOCKS_PER_SEC;
+	//mm.Format("%f", duration);
+	//AfxMessageBox(mm);
 	cout << duration << endl;
 	MemoryRelease();
 }
@@ -693,36 +586,39 @@ void ophPAS::PAS(long voxelnum, OphPointCloudData *data, double * m_pHologram, O
 void ophPAS::DataInit(int segsize, int cghwidth, int cghheight, float xiinter, float etainter)
 {
 	int i, j;
+	/*
 	for (i = 0; i<NUMTBL; i++) {
-		float theta = (float)M2_PI * (float)(i + i - 1) / (float)(2 * NUMTBL);
-		m_COStbl[i] = (float)cos(theta);
-		m_SINtbl[i] = (float)sin(theta);
+	float theta = (float)M2_PI * (float)(i + i - 1) / (float)(2 * NUMTBL);
+	m_COStbl[i] = (float)cos(theta);
+	m_SINtbl[i] = (float)sin(theta);
 	}
+	*/
+	
 
 	// size
-	m_segSize = segsize;
-	m_hsegSize = (int)(m_segSize / 2);
-	m_dsegSize = m_segSize*m_segSize;
-	m_segNumx = (int)(cghwidth / m_segSize);
-	m_segNumy = (int)(cghheight / m_segSize);
-	m_hsegNumx = (int)(m_segNumx / 2);
-	m_hsegNumy = (int)(m_segNumy / 2);
+	this->m_segSize = segsize;
+	this->m_hsegSize = (int)(m_segSize / 2);
+	this->m_dsegSize = m_segSize*m_segSize;
+	this->m_segNumx = (int)(cghwidth / m_segSize);
+	this->m_segNumy = (int)(cghheight / m_segSize);
+	this->m_hsegNumx = (int)(m_segNumx / 2);
+	this->m_hsegNumy = (int)(m_segNumy / 2);
 
 	// calculation components
-	m_SFrequency_cx = new float[m_segNumx];
-	m_SFrequency_cy = new float[m_segNumy];
-	m_PickPoint_cx = new int[m_segNumx];
-	m_PickPoint_cy = new int[m_segNumy];
-	m_Coefficient_cx = new int[m_segNumx];
-	m_Coefficient_cy = new int[m_segNumy];
-	m_xc = new float[m_segNumx];
-	m_yc = new float[m_segNumy];
+	this->m_SFrequency_cx = new float[m_segNumx];
+	this->m_SFrequency_cy = new float[m_segNumy];
+	this->m_PickPoint_cx = new int[m_segNumx];
+	this->m_PickPoint_cy = new int[m_segNumy];
+	this->m_Coefficient_cx = new int[m_segNumx];
+	this->m_Coefficient_cy = new int[m_segNumy];
+	this->m_xc = new float[m_segNumx];
+	this->m_yc = new float[m_segNumy];
 
 	// base spatial frequency
-	m_sf_base = (float)(1.0 / (xiinter*m_segSize));
+	this->m_sf_base = (float)(1.0 / (xiinter*m_segSize));
 
-	m_inRe = new float *[m_segNumy * m_segNumx];
-	m_inIm = new float *[m_segNumy * m_segNumx];
+	this->m_inRe = new float *[m_segNumy * m_segNumx];
+	this->m_inIm = new float *[m_segNumy * m_segNumx];
 	for (i = 0; i<m_segNumy; i++) {
 		for (j = 0; j<m_segNumx; j++) {
 			m_inRe[i*m_segNumx + j] = new float[m_segSize * m_segSize];
@@ -770,45 +666,29 @@ void ophPAS::MemoryRelease(void)
 	}
 	delete[] m_inRe;
 	delete[] m_inIm;
-
+	
 }
 
-void ophPAS::CalcSpatialFrequency(float cx, float cy, float cz, float amp, int segnumx, int segnumy, int segsize, int hsegsize, float sf_base, float * xc, float * yc, float * sf_cx, float * sf_cy, int * pp_cx, int * pp_cy, int * cf_cx, int * cf_cy, float xiint, float etaint, CGHEnvironmentData* _CGHE)
+void ophPAS::generateHologram()
 {
-	int segx, segy;			// coordinate in a Segment 
-	float theta_cx, theta_cy;
-
-	float rWaveLength = _CGHE->rWaveLength;
-	float thetaX = _CGHE->ThetaX;
-	float thetaY = _CGHE->ThetaY;
-
-	for (segx = 0; segx<segnumx; segx++)
-	{
-		theta_cx = (xc[segx] - cx) / cz;
-		sf_cx[segx] = (float)((theta_cx + thetaX) / rWaveLength);
-		(sf_cx[segx] >= 0) ? pp_cx[segx] = (int)(sf_cx[segx] / sf_base + 0.5)
-			: pp_cx[segx] = (int)(sf_cx[segx] / sf_base - 0.5);
-		(abs(pp_cx[segx])<hsegsize) ? cf_cx[segx] = ((segsize - pp_cx[segx]) % segsize)
-			: cf_cx[segx] = 0;
-	}
-
-	for (segy = 0; segy<segnumy; segy++)
-	{
-		theta_cy = (yc[segy] - cy) / cz;
-		sf_cy[segy] = (float)((theta_cy + thetaY) / rWaveLength);
-		(sf_cy[segy] >= 0) ? pp_cy[segy] = (int)(sf_cy[segy] / sf_base + 0.5)
-			: pp_cy[segy] = (int)(sf_cy[segy] / sf_base - 0.5);
-		(abs(pp_cy[segy])<hsegsize) ? cf_cy[segy] = ((segsize - pp_cy[segy]) % segsize)
-			: cf_cy[segy] = 0;
-	}
+	
+	auto begin = CUR_TIME;
+	cgh_fringe = new unsigned char[context_.pixel_number[_X] * context_.pixel_number[_Y]];
+	PASCalculation(n_points, cgh_fringe, &pc_data, pc_config);
+	auto end = CUR_TIME;
+	m_elapsedTime = ((std::chrono::duration<Real>)(end - begin)).count();
+	LOG("Total Elapsed Time: %lf (s)\n", m_elapsedTime);
 }
+
+
+
 
 void ophPAS::CalcSpatialFrequency(float cx, float cy, float cz, float amp, int segnumx, int segnumy, int segsize, int hsegsize, float sf_base, float * xc, float * yc, float * sf_cx, float * sf_cy, int * pp_cx, int * pp_cy, int * cf_cx, int * cf_cy, float xiint, float etaint, OphPointCloudConfig& conf)
 {
 	int segx, segy;			// coordinate in a Segment 
 	float theta_cx, theta_cy;
 
-	float rWaveLength = getContext().wave_length[0];//_CGHE->rWaveLength;
+	float rWaveLength = context_.wave_length[0];//_CGHE->rWaveLength;
 	float thetaX = 0.0;// _CGHE->ThetaX;
 	float thetaY = 0.0;// _CGHE->ThetaY;
 
@@ -833,42 +713,7 @@ void ophPAS::CalcSpatialFrequency(float cx, float cy, float cz, float amp, int s
 	}
 }
 
-void ophPAS::CalcCompensatedPhase(float cx, float cy, float cz, float amp
-									, int		segNumx, int segNumy
-									, int		segsize, int hsegsize, float sf_base
-									, float	*xc, float *yc
-									, int		*cf_cx, int *cf_cy
-									, float	*COStbl, float *SINtbl
-									, float	**inRe, float **inIm, CGHEnvironmentData* _CGHE)
-{
-	int		segx, segy;			// coordinate in a Segment 
-	int		segxx, segyy;
-	float	theta_s, theta_c;
-	int		dtheta_s, dtheta_c;
-	int		idx_c, idx_s;
-	float	theta;
 
-	float rWaveNum = _CGHE->rWaveNumber;
-
-	float R;
-
-	for (segy = 0; segy<segNumy; segy++) {
-		for (segx = 0; segx<segNumx; segx++) {
-			segyy = segy*segNumx + segx;
-			segxx = cf_cy[segy] * segsize + cf_cx[segx];
-			R = (float)(sqrt((xc[segx] - cx)*(xc[segx] - cx) + (yc[segy] - cy)*(yc[segy] - cy) + cz*cz));
-			theta = rWaveNum * R;
-			theta_c = theta;
-			theta_s = theta + PI;
-			dtheta_c = ((int)(theta_c*NUMTBL / M2_PI));
-			dtheta_s = ((int)(theta_s*NUMTBL / M2_PI));
-			idx_c = (dtheta_c) & (NUMTBL2);
-			idx_s = (dtheta_s) & (NUMTBL2);
-			inRe[segyy][segxx] += (float)(amp * COStbl[idx_c]);
-			inIm[segyy][segxx] += (float)(amp * SINtbl[idx_s]);
-		}
-	}
-}
 
 void ophPAS::CalcCompensatedPhase(float cx, float cy, float cz, float amp
 	, int		segNumx, int segNumy
@@ -888,12 +733,15 @@ void ophPAS::CalcCompensatedPhase(float cx, float cy, float cz, float amp
 	float rWaveNum = 9926043.13930423;// _CGHE->rWaveNumber;
 
 	float R;
-
+	auto start = CUR_TIME;
+	
 	for (segy = 0; segy < segNumy; segy++) {
 		for (segx = 0; segx < segNumx; segx++) {
 			segyy = segy * segNumx + segx;
 			segxx = cf_cy[segy] * segsize + cf_cx[segx];
+			
 			R = (float)(sqrt((xc[segx] - cx)*(xc[segx] - cx) + (yc[segy] - cy)*(yc[segy] - cy) + cz * cz));
+			//같음
 			theta = rWaveNum * R;
 			theta_c = theta;
 			theta_s = theta + PI;
@@ -901,40 +749,19 @@ void ophPAS::CalcCompensatedPhase(float cx, float cy, float cz, float amp
 			dtheta_s = ((int)(theta_s*NUMTBL / M2_PI));
 			idx_c = (dtheta_c) & (NUMTBL2);
 			idx_s = (dtheta_s) & (NUMTBL2);
+			
 			inRe[segyy][segxx] += (float)(amp * COStbl[idx_c]);
 			inIm[segyy][segxx] += (float)(amp * SINtbl[idx_s]);
 		}
 	}
+
+	auto end = CUR_TIME;
+	auto during = ((chrono::duration<Real>)(end - start)).count();
+	//LOG("%lf (s)..done\n", during);
+	
 }
 
-void ophPAS::RunFFTW(int segnumx, int segnumy, int segsize, int hsegsize, float ** inRe, float ** inIm, fftw_complex * in, fftw_complex * out, fftw_plan * plan, double * pHologram, CGHEnvironmentData* _CGHE)
-{
-	int		i, j;
-	int		segx, segy;			// coordinate in a Segment 
-	int		segxx, segyy;
 
-	int cghWidth = _CGHE->CghWidth;
-
-	for (segy = 0; segy<segnumy; segy++) {
-		for (segx = 0; segx<segnumx; segx++) {
-			segyy = segy*segnumx + segx;
-			memset(in, 0x00, sizeof(fftw_complex) * segsize * segsize);
-			for (i = 0; i <segsize; i++) {
-				for (j = 0; j < segsize; j++) {
-					segxx = i*segsize + j;
-					in[i*segsize + j][0] = inRe[segyy][segxx];
-					in[i*segsize + j][1] = inIm[segyy][segxx];
-				}
-			}
-			fftw_execute(*plan);
-			for (i = 0; i <segsize; i++) {
-				for (j = 0; j < segsize; j++) {
-					pHologram[(segy*segsize + i)*cghWidth + (segx*segsize + j)] = out[i * segsize + j][0];// - out[l * SEGSIZE + m][1];
-				}
-			}
-		}
-	}
-}
 
 void ophPAS::RunFFTW(int segnumx, int segnumy, int segsize, int hsegsize, float ** inRe, float ** inIm, fftw_complex * in, fftw_complex * out, fftw_plan * plan, double * pHologram, OphPointCloudConfig& conf)
 {
@@ -943,7 +770,7 @@ void ophPAS::RunFFTW(int segnumx, int segnumy, int segsize, int hsegsize, float 
 	int		segxx, segyy;
 
 	int cghWidth = getContext().pixel_number[_X];
-
+	
 	for (segy = 0; segy < segnumy; segy++) {
 		for (segx = 0; segx < segnumx; segx++) {
 			segyy = segy * segnumx + segx;
@@ -951,16 +778,108 @@ void ophPAS::RunFFTW(int segnumx, int segnumy, int segsize, int hsegsize, float 
 			for (i = 0; i < segsize; i++) {
 				for (j = 0; j < segsize; j++) {
 					segxx = i * segsize + j;
+					
 					in[i*segsize + j][0] = inRe[segyy][segxx];
 					in[i*segsize + j][1] = inIm[segyy][segxx];
+					
 				}
 			}
 			fftw_execute(*plan);
 			for (i = 0; i < segsize; i++) {
 				for (j = 0; j < segsize; j++) {
 					pHologram[(segy*segsize + i)*cghWidth + (segx*segsize + j)] = out[i * segsize + j][0];// - out[l * SEGSIZE + m][1];
+					
 				}
 			}
 		}
 	}
+	
+}
+
+void ophPAS::encodeHologram(const vec2 band_limit, const vec2 spectrum_shift)
+{
+	if (complex_H == nullptr) {
+		LOG("Not found diffracted data.");
+		return;
+	}
+
+	LOG("Single Side Band Encoding..");
+	const uint nChannel = context_.waveNum;
+	const uint pnX = context_.pixel_number[_X];
+	const uint pnY = context_.pixel_number[_Y];
+	const Real ppX = context_.pixel_pitch[_X];
+	const Real ppY = context_.pixel_pitch[_Y];
+	const uint pnXY = pnX * pnY;
+
+	m_vecEncodeSize = ivec2(pnX, pnY);
+	context_.ss[_X] = pnX * ppX;
+	context_.ss[_Y] = pnY * ppY;
+	vec2 ss = context_.ss;
+
+	Real cropx = floor(pnX * band_limit[_X]);
+	Real cropx1 = cropx - floor(cropx / 2);
+	Real cropx2 = cropx1 + cropx - 1;
+
+	Real cropy = floor(pnY * band_limit[_Y]);
+	Real cropy1 = cropy - floor(cropy / 2);
+	Real cropy2 = cropy1 + cropy - 1;
+
+	Real* x_o = new Real[pnX];
+	Real* y_o = new Real[pnY];
+
+	for (int i = 0; i < pnX; i++)
+		x_o[i] = (-ss[_X] / 2) + (ppX * i) + (ppX / 2);
+
+	for (int i = 0; i < pnY; i++)
+		y_o[i] = (ss[_Y] - ppY) - (ppY * i);
+
+	Real* xx_o = new Real[pnXY];
+	Real* yy_o = new Real[pnXY];
+
+	for (int i = 0; i < pnXY; i++)
+		xx_o[i] = x_o[i % pnX];
+
+
+	for (int i = 0; i < pnX; i++)
+		for (int j = 0; j < pnY; j++)
+			yy_o[i + j * pnX] = y_o[j];
+
+	Complex<Real>* h = new Complex<Real>[pnXY];
+
+	for (uint ch = 0; ch < nChannel; ch++) {
+		fftwShift(complex_H[ch], h, pnX, pnY, OPH_FORWARD);
+		fft2(ivec2(pnX, pnY), h, OPH_FORWARD);
+		fftExecute(h);
+		fftwShift(h, h, pnX, pnY, OPH_BACKWARD);
+
+		fftwShift(h, h, pnX, pnY, OPH_FORWARD);
+		fft2(ivec2(pnX, pnY), h, OPH_BACKWARD);
+		fftExecute(h);
+		fftwShift(h, h, pnX, pnY, OPH_BACKWARD);
+
+		for (int i = 0; i < pnXY; i++) {
+			Complex<Real> shift_phase(1.0, 0.0);
+			int r = i / pnX;
+			int c = i % pnX;
+
+			Real X = (M_PI * xx_o[i] * spectrum_shift[_X]) / ppX;
+			Real Y = (M_PI * yy_o[i] * spectrum_shift[_Y]) / ppY;
+
+			shift_phase[_RE] = shift_phase[_RE] * (cos(X) * cos(Y) - sin(X) * sin(Y));
+
+			m_lpEncoded[ch][i] = (h[i] * shift_phase).real();
+		}
+	}
+	delete[] h;
+	delete[] x_o;
+	delete[] xx_o;
+	delete[] y_o;
+	delete[] yy_o;
+	
+	LOG("Done.\n");
+}
+
+void ophPAS::encoding(unsigned int ENCODE_FLAG)
+{
+	ophGen::encoding(ENCODE_FLAG);
 }

@@ -46,6 +46,9 @@
     <Filter Include="_1_Generation\_ophSimulator">
       <UniqueIdentifier>{34efbfe4-c4f1-4027-abaf-f08824d08b48}</UniqueIdentifier>
     </Filter>
+    <Filter Include="_1_Generation\_ophAS">
+      <UniqueIdentifier>{50e1103f-5e35-45f7-a02c-9d634f4e783c}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\ophGen.h">
@@ -107,6 +110,15 @@
     <ClInclude Include="src\ophSimulator.h">
       <Filter>_1_Generation\_ophSimulator</Filter>
     </ClInclude>
+    <ClInclude Include="src\ophAS.h">
+      <Filter>_1_Generation\_ophAS</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ophAS_GPU.h">
+      <Filter>_1_Generation\_ophAS</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ophPAS_GPU.h">
+      <Filter>_1_Generation\_ophPAS</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\ophDepthMap_GPU.cpp">
@@ -163,6 +175,15 @@
     </ClCompile>
     <ClCompile Include="src\ophSimulator.cpp">
       <Filter>_1_Generation\_ophSimulator</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ophAS.cpp">
+      <Filter>_1_Generation\_ophAS</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ophAS_GPU.cpp">
+      <Filter>_1_Generation\_ophAS</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ophPAS_GPU.cpp">
+      <Filter>_1_Generation\_ophPAS</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
