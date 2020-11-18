@@ -57,7 +57,7 @@ void ophTri::initialize_GPU()
 
 	if (angularSpectrum_GPU)   cudaFree(angularSpectrum_GPU);
 	HANDLE_ERROR(cudaMalloc((void**)&angularSpectrum_GPU, sizeof(cufftDoubleComplex)*nx*ny));
-	
+
 	if (ffttemp)   cudaFree(ffttemp);
 	HANDLE_ERROR(cudaMalloc((void**)&ffttemp, sizeof(cufftDoubleComplex)*nx*ny));
 
@@ -73,7 +73,7 @@ void ophTri::generateAS_GPU(uint SHADING_FLAG)
 	const uint pnY = context_.pixel_number[_Y];
 	const uint pnXY = pnX * pnY;
 
-	mesh_local = new Real[9];
+	Real* mesh_local = new Real[9];
 	Real* mesh = new Real[9];
 
 	uint nChannel = context_.waveNum;
@@ -126,44 +126,44 @@ void ophTri::generateAS_GPU(uint SHADING_FLAG)
 
 
 void ophTri::refAS_GPU(int idx, int ch, uint SHADING_FLAG)
-{
-	int nx = context_.pixel_number[_X];
-	int ny = context_.pixel_number[_Y];
-	double px = context_.pixel_pitch[_X];
-	double py = context_.pixel_pitch[_Y];
-	double waveLength = context_.wave_length[ch];
-	   
-	shadingFactor = 0;		
-	vec3 av(0, 0, 0);
+{/*
+ int nx = context_.pixel_number[_X];
+ int ny = context_.pixel_number[_Y];
+ double px = context_.pixel_pitch[_X];
+ double py = context_.pixel_pitch[_Y];
+ double waveLength = context_.wave_length[ch];
 
-	if (SHADING_FLAG == SHADING_FLAT) {
-		vec3 no_ = no[idx];
-		n = no_ / norm(no_);
-		if (illumination[_X] == 0 && illumination[_Y] == 0 && illumination[_Z] == 0) {
-			shadingFactor = 1;
-		}
-		else {
-			vec3 normIllu = illumination / norm(illumination);
-			shadingFactor = 2 * (n[_X] * normIllu[_X] + n[_Y] * normIllu[_Y] + n[_Z] * normIllu[_Z]) + 0.3;
-			if (shadingFactor < 0)
-				shadingFactor = 0;
-		}
-	}
-	else if (SHADING_FLAG == SHADING_CONTINUOUS) {
+ shadingFactor = 0;
+ vec3 av(0, 0, 0);
 
-		av[0] = nv[3 * idx + 0][0] * illumination[0] + nv[3 * idx + 0][1] * illumination[1] + nv[3 * idx + 0][2] * illumination[2] + 0.1;
-		av[2] = nv[3 * idx + 1][0] * illumination[0] + nv[3 * idx + 1][1] * illumination[1] + nv[3 * idx + 1][2] * illumination[2] + 0.1;
-		av[1] = nv[3 * idx + 2][0] * illumination[0] + nv[3 * idx + 2][1] * illumination[1] + nv[3 * idx + 2][2] * illumination[2] + 0.1;
+ if (SHADING_FLAG == SHADING_FLAT) {
+ vec3 no_ = no[idx];
+ n = no_ / norm(no_);
+ if (illumination[_X] == 0 && illumination[_Y] == 0 && illumination[_Z] == 0) {
+ shadingFactor = 1;
+ }
+ else {
+ vec3 normIllu = illumination / norm(illumination);
+ shadingFactor = 2 * (n[_X] * normIllu[_X] + n[_Y] * normIllu[_Y] + n[_Z] * normIllu[_Z]) + 0.3;
+ if (shadingFactor < 0)
+ shadingFactor = 0;
+ }
+ }
+ else if (SHADING_FLAG == SHADING_CONTINUOUS) {
 
-		
-	}
+ av[0] = nv[3 * idx + 0][0] * illumination[0] + nv[3 * idx + 0][1] * illumination[1] + nv[3 * idx + 0][2] * illumination[2] + 0.1;
+ av[2] = nv[3 * idx + 1][0] * illumination[0] + nv[3 * idx + 1][1] * illumination[1] + nv[3 * idx + 1][2] * illumination[2] + 0.1;
+ av[1] = nv[3 * idx + 2][0] * illumination[0] + nv[3 * idx + 2][1] * illumination[1] + nv[3 * idx + 2][2] * illumination[2] + 0.1;
 
-	double min_double = (double)2.2250738585072014e-308;
-	double tolerence = 1e-12;
 
-	call_cudaKernel_refAS(angularSpectrum_GPU, nx, ny, px, py, SHADING_FLAG, idx, waveLength, M_PI, shadingFactor, av[0], av[1], av[2],
-		geom.glRot[0], geom.glRot[1], geom.glRot[2], geom.glRot[3], geom.glRot[4], geom.glRot[5], geom.glRot[6], geom.glRot[7], geom.glRot[8],
-		geom.loRot[0], geom.loRot[1], geom.loRot[2], geom.loRot[3], geom.glShift[_X], geom.glShift[_Y], geom.glShift[_Z],
-		carrierWave[_X], carrierWave[_Y], carrierWave[_Z], min_double, tolerence, streamTriMesh);
+ }
 
+ double min_double = (double)2.2250738585072014e-308;
+ double tolerence = 1e-12;
+
+ call_cudaKernel_refAS(angularSpectrum_GPU, nx, ny, px, py, SHADING_FLAG, idx, waveLength, M_PI, shadingFactor, av[0], av[1], av[2],
+ geom.glRot[0], geom.glRot[1], geom.glRot[2], geom.glRot[3], geom.glRot[4], geom.glRot[5], geom.glRot[6], geom.glRot[7], geom.glRot[8],
+ geom.loRot[0], geom.loRot[1], geom.loRot[2], geom.loRot[3], geom.glShift[_X], geom.glShift[_Y], geom.glShift[_Z],
+ carrierWave[_X], carrierWave[_Y], carrierWave[_Z], min_double, tolerence, streamTriMesh);
+ */
 }

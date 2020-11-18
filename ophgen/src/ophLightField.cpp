@@ -57,7 +57,7 @@ ophLF::ophLF(void)
 	, is_CPU(true)
 	, is_ViewingWindow(false)
 	, LF(nullptr)
-	, RSplane_complex_field(nullptr)
+	, complex_field(nullptr)
 	, bSinglePrecision(false)
 {
 	LOG("*** LIGHT FIELD : BUILD DATE: %s %s ***\n\n", __DATE__, __TIME__);
@@ -73,7 +73,7 @@ void ophLF::setViewingWindow(bool is_ViewingWindow)
 	this->is_ViewingWindow = is_ViewingWindow;
 }
 
-bool ophLF::readConfig(const char* fname) 
+bool ophLF::readConfig(const char* fname)
 {
 	if (!ophGen::readConfig(fname))
 		return false;
@@ -103,10 +103,9 @@ bool ophLF::readConfig(const char* fname)
 	// about viewing window
 	auto next = xml_node->FirstChildElement("FieldLength");
 	if (!next || XML_SUCCESS != next->QueryDoubleText(&fieldLens))
-		return false;
 
-	// about image
-	next = xml_node->FirstChildElement("Image_NumOfX");
+		// about image
+		next = xml_node->FirstChildElement("Image_NumOfX");
 	if (!next || XML_SUCCESS != next->QueryIntText(&num_image[_X]))
 		return false;
 	next = xml_node->FirstChildElement("Image_NumOfY");
@@ -118,8 +117,17 @@ bool ophLF::readConfig(const char* fname)
 	next = xml_node->FirstChildElement("Image_Height");
 	if (!next || XML_SUCCESS != next->QueryIntText(&resolution_image[_Y]))
 		return false;
+	next = xml_node->FirstChildElement("Image_PitchX");
+	if (!next || XML_SUCCESS != next->QueryDoubleText(&image_pitch[_X]))
+		return false;
+	next = xml_node->FirstChildElement("Image_PitchY");
+	if (!next || XML_SUCCESS != next->QueryDoubleText(&image_pitch[_Y]))
+		return false;
 	next = xml_node->FirstChildElement("Distance");
 	if (!next || XML_SUCCESS != next->QueryDoubleText(&distanceRS2Holo))
+		return false;
+	next = xml_node->FirstChildElement("Random_Phase");
+	if (!next || XML_SUCCESS != next->QueryBoolText(&randPhase))
 		return false;
 
 	auto end = CUR_TIME;
@@ -237,7 +245,7 @@ int ophLF::loadLF()
 	}
 }
 
-void ophLF::generateHologram() 
+void ophLF::generateHologram()
 {
 	resetBuffer();
 
@@ -255,8 +263,8 @@ void ophLF::generateHologram()
 	if (is_CPU)
 	{
 		convertLF2ComplexField();
-		for(uint ch = 0; ch < context_.waveNum; ch++) 
-			fresnelPropagation(RSplane_complex_field, complex_H[ch], distanceRS2Holo, ch);
+		for (uint ch = 0; ch < context_.waveNum; ch++)
+			fresnelPropagation(complex_field, complex_H[ch], distanceRS2Holo, ch);
 	}
 	else
 	{
@@ -314,49 +322,71 @@ void ophLF::convertLF2ComplexField()
 	const uint rY = resolution_image[_Y];
 	const uint rXY = rX * rY;
 
-	if (RSplane_complex_field) {
-		delete[] RSplane_complex_field;
-		RSplane_complex_field = nullptr;
+	switch (method) {
+	case LF_HOGEL:
+		hogelLFCGH();
+	case LF_NONHOGEL:
+		nonHogelLFCGH();
+	default:
+		LOG("error: WRONG LF_METHOD\n");
+		cin.get();
 	}
-	RSplane_complex_field = new Complex<Real>[nXY * rXY];
-	memset(RSplane_complex_field, 0.0, sizeof(Complex<Real>) * nXY * rXY);
 
-	//Complex<Real>* complexLF = new Complex<Real>[rXY];
+#ifdef CHECK_PROC_TIME
+	auto end = CUR_TIME;
+	LOG("\n%s : %lf(s)\n\n", __FUNCTION__, ((std::chrono::duration<Real>)(end - begin)).count());
+#endif
+}
+
+void ophLF::hogelLFCGH() {
+
+	const uint nx = num_image[_X];
+	const uint ny = num_image[_Y];
+	const uint nXY = nx * ny;
+	const uint rx = resolution_image[_X];
+	const uint ry = resolution_image[_Y];
+	const uint rXY = rx * ry;
+
+	if (complex_field) {
+		delete[] complex_field;
+		complex_field = nullptr;
+	}
+	complex_field = new Complex<Real>[nXY * rXY];
+	memset(complex_field, 0.0, sizeof(Complex<Real>) * nXY * rXY);
+
 	Complex<Real>* complexLF = new Complex<Real>[nXY];
-
 	Complex<Real>* FFTLF = new Complex<Real>[nXY];
 
 	Real randVal;
 	Complex<Real> phase(0.0, 0.0);
 
-	int idxrX;
+	int idxrX, idxrY, idxnX, idxnY;
 	int idxImg = 0;
 
-	for (idxrX = 0; idxrX < rX; idxrX++) { // 192
-		for (int idxrY = 0; idxrY < rY; idxrY++) { // 108
+	for (idxrX = 0; idxrX < rx; idxrX++) { // 192
+		for (idxrY = 0; idxrY < ry; idxrY++) { // 108
 			memset(complexLF, 0.0, sizeof(Complex<Real>) * nXY);
 			memset(FFTLF, 0.0, sizeof(Complex<Real>) * nXY);
 
-			for (int idxnY = 0; idxnY < nY; idxnY++) { // 10
-				for (int idxnX = 0; idxnX < nX; idxnX++) { // 10
-					// LF[img idx][pixel idx]
-					complexLF[idxnX + nX * idxnY] = (Real)(LF[idxnX + nX * idxnY][idxrX + rX * idxrY]);
+			for (idxnY = 0; idxnY < ny; idxnY++) { // 10
+				for (idxnX = 0; idxnX < nx; idxnX++) { // 10
+													   // LF[img idx][pixel idx]
+					complexLF[idxnX + nx * idxnY] = (Real)(LF[idxnX + nx * idxnY][idxrX + rx * idxrY]);
 				}
 			}
 
 			fft2(num_image, complexLF, OPH_FORWARD, OPH_ESTIMATE);
-			fftwShift(complexLF, FFTLF, nX, nY, OPH_FORWARD);
-			//fftExecute(FFTLF);
+			fftwShift(complexLF, FFTLF, nx, ny, OPH_FORWARD);
 
-			for (int idxnX = 0; idxnX < nX; idxnX++) { // 10
-				for (int idxnY = 0; idxnY < nY; idxnY++) { // 10
+			for (int idxnX = 0; idxnX < nx; idxnX++) { // 10
+				for (int idxnY = 0; idxnY < ny; idxnY++) { // 10
 					randVal = rand((Real)0, (Real)1, idxrX * idxrY);
 					phase(0, 2 * M_PI * randVal); // random phase
 
-					//*(RSplane_complex_field + nXY * rX*idxrY + nX * rX*idxnY + nX * idxrX + idxnX) = *(FFTLF + (idxnX + nX * idxnY))*exp(phase);
-					// 100 * 192 * 107 + 10 * 192 * 107 + 10 * 191 + 9
-					RSplane_complex_field[nXY * rX*idxrY + nX * rX*idxnY + nX * idxrX + idxnX] =
-						FFTLF[idxnX + nX * idxnY] * exp(phase);
+												  //*(complex_field + nXY * rx*idxrY + nx * rx*idxnY + nx * idxrX + idxnX) = *(FFTLF + (idxnX + nx * idxnY))*exp(phase);
+												  // 100 * 192 * 107 + 10 * 192 * 107 + 10 * 191 + 9
+					complex_field[nXY * rx*idxrY + nx * rx*idxnY + nx * idxrX + idxnX] =
+						FFTLF[idxnX + nx * idxnY] * exp(phase);
 					//
 					// (20/5) (x:5/y:8) => 165
 				}
@@ -366,8 +396,100 @@ void ophLF::convertLF2ComplexField()
 	}
 	delete[] complexLF, FFTLF;
 	fftFree();
-	auto end = CUR_TIME;
-	LOG("\n%s : %lf(s)\n\n", __FUNCTION__, ((std::chrono::duration<Real>)(end - begin)).count());
+}
+
+void ophLF::nonHogelLFCGH() {
+
+	const uint nx = num_image[_X];
+	const uint ny = num_image[_Y];
+	const uint nXY = nx * ny;
+	const uint rx = resolution_image[_X];
+	const uint ry = resolution_image[_Y];
+	const uint rXY = rx * ry;
+
+	Complex<Real>** complexLF = new Complex<Real>*[rXY];
+	Complex<Real>* FFTLF = new Complex<Real>[nXY];
+
+	uint rx2 = 2 * rx + (nx / 2 + 1) * 2;
+	uint ry2 = 2 * ry + (ny / 2 + 1) * 2;
+
+	Complex<Real> phase(0.0, 0.0);
+	Complex<Real>* phaseTerm = new Complex<Real>[rx2*ry2];
+
+	int idxrX, idxrY, idxnX, idxnY, idxrx2, idxry2;
+
+	// phase term
+	for (idxrX = 0; idxrX < rx2; idxrX++) {
+		for (idxrY = 0; idxrY < ry2; idxrY++) {
+			if (randPhase) {
+				if (idxrX >= (int)(-rx / 2 + rx2 / 2) && idxrX <= (int)(rx / 2 + rx2 / 2) && idxrY >= (int)(-ry / 2 + ry2 / 2) && idxrY <= (int)(ry / 2 + ry2 / 2)) {
+					phase[_IM] = 2 * M_PI*rand((Real)0, (Real)1);
+					phaseTerm[idxrX + rx*idxrY] = rand((Real)0, (Real)1)*exp(phase);
+				}
+				else {
+					phaseTerm[idxrX + rx*idxrY] = Complex<Real>(0.0, 0.0);
+				}
+			}
+			else {
+				phaseTerm[idxrX + rx*idxrY] = 1;
+			}
+		}
+	}
+	if (randPhase) {
+		fftwShift(phaseTerm, phaseTerm, rx2, ry2, OPH_BACKWARD);
+		fft2((rx2, ry2), phaseTerm, OPH_BACKWARD, OPH_ESTIMATE);
+		fftwShift(phaseTerm, phaseTerm, rx2, ry2, OPH_FORWARD);
+	}
+
+	Complex<Real>* holo2x = new Complex<Real>[rx2*ry2];
+	memset(holo2x, 0.0, sizeof(Complex<Real>) * rx2*ry2);
+
+	// complex field
+	for (idxrX = 0; idxrX < rx; idxrX++) { // 192
+		for (idxrY = 0; idxrY < ry; idxrY++) { // 108
+
+			complexLF[idxrX + rx*idxrY] = new Complex<Real>[nXY];
+
+			for (idxnY = 0; idxnY < ny; idxnY++) { // 10
+				for (idxnX = 0; idxnX < nx; idxnX++) { // 10
+					complexLF[idxrX + rx*idxrY][idxnX + nx*idxnY] = LF[idxnX + nx*idxnY][idxrX + rx*idxrY];
+				}
+			}
+
+			fftwShift(complexLF[idxrX + rx*idxrY], FFTLF, nx, ny, OPH_BACKWARD);
+			fft2(num_image, FFTLF, OPH_FORWARD, OPH_ESTIMATE);
+			fftwShift(FFTLF, FFTLF, nx, ny, OPH_FORWARD);
+
+			for (idxnY = 0; idxnY < ny; idxnY++) { // 10
+				for (idxnX = 0; idxnX < nx; idxnX++) { // 10
+
+					holo2x[(idxrX * 2 + idxnX) + rx2*(idxrY * 2 + idxnY)] += phaseTerm[(idxrX * 2 + nx - idxnX - 1) + rx2*(idxrY * 2 + ny - idxnY - 1)] * FFTLF[idxnX + nx*idxnY];
+					holo2x[(idxrX * 2 + idxnX + 1) + rx2*(idxrY * 2 + idxnY)] += phaseTerm[(idxrX * 2 + nx - idxnX - 1 - 1) + rx2*(idxrY * 2 + ny - idxnY - 1)] * FFTLF[idxnX + nx*idxnY];
+					holo2x[(idxrX * 2 + idxnX) + rx2*(idxrY * 2 + idxnY + 1)] += phaseTerm[(idxrX * 2 + nx - idxnX - 1) + rx2*(idxrY * 2 + ny - idxnY - 1 - 1)] * FFTLF[idxnX + nx*idxnY];
+					holo2x[(idxrX * 2 + idxnX + 1) + rx2*(idxrY * 2 + idxnY + 1)] += phaseTerm[(idxrX * 2 + nx - idxnX - 1 - 1) + rx2*(idxrY * 2 + ny - idxnY - 1 - 1)] * FFTLF[idxnX + nx*idxnY];
+				}
+			}
+		}
+	}
+
+	// downsizing
+	if (complex_field) {
+		delete[] complex_field;
+		complex_field = nullptr;
+	}
+	complex_field = new Complex<Real>[rx2 * ry2 / 4];
+	memset(complex_field, 0.0, sizeof(Complex<Real>) * rx2*ry2 / 4);
+
+	for (idxrx2 = 0; idxrx2 < rx2 / 2; idxrx2++) {
+		for (idxry2 = 0; idxry2 < ry2 / 2; idxry2++) {
+			complex_field[idxrx2 + (rx2 / 2)*idxry2] = (holo2x[(2 * idxrx2 - 1) + rx2*(2 * idxry2 - 1)] +
+				holo2x[(2 * idxrx2 - 1) + rx2*(2 * idxry2)] +
+				holo2x[(2 * idxrx2) + rx2*(2 * idxry2 - 1)] +
+				holo2x[(2 * idxrx2) + rx2*(2 * idxry2)]) / (Complex<Real>)4.0;
+		}
+	}
+
+
 }
 
 void ophLF::writeIntensity_gray8_bmp(const char* fileName, int nx, int ny, Complex<Real>* complexvalue, int k)
