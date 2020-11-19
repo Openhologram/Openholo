@@ -902,17 +902,17 @@ void ophGen::conv_fft2(Complex<Real>* src1, Complex<Real>* src2, Complex<Real>* 
 	dstFT = new Complex<Real>[size[_X] * size[_Y]];
 
 
-	fft2(size, src1, OPH_FORWARD, OPH_ESTIMATE);
+	//fft2(size, src1, OPH_FORWARD, OPH_ESTIMATE);
 	fftwShift(src1, src1FT, size[_X], size[_Y], OPH_FORWARD, (bool)OPH_ESTIMATE);
 
-	fft2(size, src2, OPH_FORWARD, OPH_ESTIMATE);
+	//fft2(size, src2, OPH_FORWARD, OPH_ESTIMATE);
 	fftwShift(src2, src2FT, size[_X], size[_Y], OPH_FORWARD, (bool)OPH_ESTIMATE);
 
 
 	for (int i = 0; i < size[_X] * size[_Y]; i++)
 		dstFT[i] = src1FT[i] * src2FT[i];
 
-	fft2(size, dstFT, OPH_BACKWARD, OPH_ESTIMATE);
+	//fft2(size, dstFT, OPH_BACKWARD, OPH_ESTIMATE);
 	fftwShift(dstFT, dst, size[_X], size[_Y], OPH_BACKWARD, (bool)OPH_ESTIMATE);
 
 	//for (int i = 0; i < size[_X] * size[_Y]; i++) {
@@ -1805,8 +1805,7 @@ void ophGen::fresnelPropagation(Complex<Real>* in, Complex<Real>* out, Real dist
 	fft2({ pnX * 2, pnY * 2 }, temp2, OPH_BACKWARD, OPH_ESTIMATE);
 	fftwShift(temp2, temp3, pnX * 2, pnY * 2, OPH_BACKWARD, false);
 
-
-
+	
 	uint idxOut = 0;
 	// 540 ~ 1620
 	// 960 ~ 2880

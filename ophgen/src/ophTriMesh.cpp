@@ -611,15 +611,16 @@ bool ophTri::generateHologram(uint SHADING_FLAG)
 	//initialize();
 	if (is_CPU) {
 		fft2(context_.pixel_number, angularSpectrum, OPH_BACKWARD, OPH_ESTIMATE);
-		fftwShift(angularSpectrum, *(complex_H), context_.pixel_number[_X], context_.pixel_number[_Y], OPH_BACKWARD);
+		fftwShift(angularSpectrum, angularSpectrum, context_.pixel_number[_X], context_.pixel_number[_Y], OPH_BACKWARD);
 		//fft2(context_.pixel_number, *(complex_H), OPH_FORWARD, OPH_ESTIMATE);
 		//fftwShift(*(complex_H), *(complex_H), context_.pixel_number[_X], context_.pixel_number[_Y], OPH_FORWARD);
 		//fftExecute((*complex_H));
 		//*(complex_H) = angularSpectrum;
 	}
 
-	//fresnelPropagation(*(complex_H), *(complex_H), objShift[_Z]);
-	//fresnelPropagation(context_,*(complex_H), *(complex_H), objShift[_Z]);
+	//RS_Propagation()
+	fresnelPropagation(angularSpectrum, *(complex_H), context_.shift[_Z], 1);
+	//fresnelPropagation(context_,*(complex_H), *(complex_H), context_.shift[_Z]);
 
 	auto end = CUR_TIME;
 	m_elapsedTime = ((std::chrono::duration<Real>)(end - start)).count();
@@ -1103,6 +1104,7 @@ bool ophTri::refAS_Flat(vec3 no)
 			conv_fft2(rearAS, refAS, convol, context_.pixel_number);
 			for_i(pnXY,
 				refAS[i] = refAS[i] * shadingFactor - convol[i];
+			cout << refAS[i] << ", " << rearAS[i] << ", " << convol[i] << endl;
 			);
 		}
 	}
