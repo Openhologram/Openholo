@@ -1,10 +1,10 @@
-#pragma once
-
-#ifndef __ophPAS_h
-#define __ophPAS_h
+#ifndef __ophPAS_GPU_h
+#define __ophPAS_GPU_h
 
 #include "ophGen.h"
 
+
+using namespace oph;
 
 #define PI				(3.14159265358979323846f)
 #define M2_PI			(PI*2.0)
@@ -18,46 +18,64 @@
 
 #define FFT_SEGMENT_SIZE 64
 
-struct VoxelStruct;
-struct Segment;
 
-using namespace oph;
+struct constValue {
+	int* cf_cx;
+	int* cf_cy;
+	float* xc;
+	float* yc;
+	
+	float* costbl;
+	float* sintbl;
+	float cx, cy, cz, amplitude;
+	int segx, segy, segn;
 
-class GEN_DLL ophPAS : public ophGen
+	
+};
+
+
+class GEN_DLL ophPAS_GPU : public ophGen
 {
 private:
 	OphPointCloudConfig pc_config;
 	OphPointCloudData pc_data;
+	constValue val_d;
+	
 	int n_points;
 public:
-	explicit ophPAS();
+	explicit ophPAS_GPU();
 protected:
-	virtual ~ophPAS();
+	virtual ~ophPAS_GPU();
 
 public:
-	
 
-	
+
+
 	bool readConfig(const char* fname);
 	int loadPoint(const char* _filename);
-	
+
 	//int saveAsImg(const char * fname, uint8_t bitsperpixel, void* src, int pic_width, int pic_height);	// 이미지 저장
 	int save(const char * fname, uint8_t bitsperpixel, uchar* src, uint px, uint py);
 	void save(const char* fname);
 
+	//util 
+	char* trim(char *s); // 문자열 좌우 공백 모두 삭제 함수
+	char* ltrim(char *s); // 문자열 좌측 공백 제거 함수
+	char* rtrim(char* s); // 문자열 우측 공백 제거 함수
 	
 
 
-	//void PASCalcuation(long voxnum, unsigned char *cghfringe, VoxelStruct* h_vox, CGHEnvironmentData* _CGHE);
+												//void PASCalcuation(long voxnum, unsigned char *cghfringe, VoxelStruct* h_vox, CGHEnvironmentData* _CGHE);
 	void PASCalculation(long voxnum, unsigned char * cghfringe, OphPointCloudData *data, OphPointCloudConfig& conf);
 	//void PAS(long voxelnum, struct VoxelStruct *voxel, double *m_pHologram, CGHEnvironmentData* _CGHE);
 	void PAS(long voxelnum, OphPointCloudData *data, double *m_pHologram, OphPointCloudConfig& conf);
-	void PAS_GPU(long voxelnum, OphPointCloudData *data, double *m_pHologram, OphPointCloudConfig& conf);
 	void DataInit(int segsize, int cghwidth, int cghheight, float xiinter, float etainter);
 	void DataInit(OphPointCloudConfig& conf);
 	void MemoryRelease(void);
 
 	void generateHologram();
+	void PASCalculation_GPU(long voxnum, unsigned char * cghfringe, OphPointCloudData *data, OphPointCloudConfig& conf);
+
 	
 	void CalcSpatialFrequency(float cx, float cy, float cz, float amp, int segnumx, int segnumy, int segsize, int hsegsize, float sf_base, float * xc, float * yc, float * sf_cx, float * sf_cy, int * pp_cx, int * pp_cy, int * cf_cx, int * cf_cy, float xiint, float etaint, OphPointCloudConfig& conf);
 	
@@ -71,8 +89,8 @@ public:
 
 	double *m_pHologram;
 
-	float m_COStbl[NUMTBL];
-	float m_SINtbl[NUMTBL];
+	float* m_COStbl;
+	float* m_SINtbl;
 
 	int m_segSize;
 	int m_hsegSize;
@@ -81,9 +99,6 @@ public:
 	int m_segNumy;
 	int m_hsegNumx;
 	int m_hsegNumy;
-
-	float* m_inRe_h;
-	float* m_inIm_h;
 
 	float	*m_SFrequency_cx;
 	float	*m_SFrequency_cy;
@@ -96,12 +111,15 @@ public:
 	unsigned char* cgh_fringe;
 
 	float	m_sf_base;
-
+	float  *m_inReHost;
+	float  *m_inImHost;
 	fftw_complex *m_in, *m_out;
 	fftw_plan m_plan;
 
 	float	**m_inRe;
 	float	**m_inIm;
+	float   *m_inRe_h;
+	float	*m_inIm_h;
 
 	float	m_cx;
 	float	m_cy;
@@ -109,29 +127,5 @@ public:
 	float	m_amp;
 };
 
-struct GEN_DLL VoxelStruct							// voxel structure - data
-{
-	int num;								// voxel or point number
-	float x;								// x axis coordinate
-	float y;								// y axis coordinate
-	float z;								// z axis coordinate
-	float ph;								// phase
-	float r;								// amplitude in red channel
-	float g;								// amplitude in green channel
-	float b;								// amplitude in blue channel
-};
 
-
-struct GEN_DLL Segment
-{
-	bool	WorkingFlag;
-	long	SegmentIndex;
-	int		SegSize_x;
-	int		SegSize_y;
-	int 	hSegSize_x;		// Half size
-	int 	hSegSize_y;		// Half size
-	double	CenterX;
-	double	CenterY;
-	double	FrequencySlope;
-};
 #endif // !__ophPAS_h
