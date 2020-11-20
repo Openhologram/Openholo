@@ -1,9 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.28307.902
+# Visual Studio 14
+VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "openholo", "openholo\openholo.vcxproj", "{F87DA845-513D-4F3B-9F72-16BB2C18A782}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "openholo", "Openholo\openholo.vcxproj", "{F87DA845-513D-4F3B-9F72-16BB2C18A782}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ophrec", "ophrec\ophrec.vcxproj", "{D0F04385-3806-46B2-93C2-26ECED076074}"
 	ProjectSection(ProjectDependencies) = postProject
@@ -21,9 +21,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ophgen", "ophgen\ophgen.vcx
 	EndProjectSection
 EndProject
 Global
-	GlobalSection(Performance) = preSolution
-		HasPerformanceSessions = true
-	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
 		Debug|x64 = Debug|x64
@@ -69,8 +66,5 @@ Global
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {A963A6B4-A23B-4B78-9CFF-98A24ED7F698}
-	EndGlobalSection
-	GlobalSection(Performance) = preSolution
-		HasPerformanceSessions = true
 	EndGlobalSection
 EndGlobal

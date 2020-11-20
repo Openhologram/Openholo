@@ -46,6 +46,9 @@
     <Filter Include="_1_Generation\_ophSimulator">
       <UniqueIdentifier>{34efbfe4-c4f1-4027-abaf-f08824d08b48}</UniqueIdentifier>
     </Filter>
+    <Filter Include="_1_Generation\_ophNonHogelLF">
+      <UniqueIdentifier>{a53757f2-50af-4c81-a3b1-d2ca7c69286e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\ophGen.h">
@@ -107,6 +110,9 @@
     <ClInclude Include="src\ophSimulator.h">
       <Filter>_1_Generation\_ophSimulator</Filter>
     </ClInclude>
+    <ClInclude Include="src\ophNonHogelLF.h">
+      <Filter>_1_Generation\_ophNonHogelLF</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\ophDepthMap_GPU.cpp">
@@ -163,6 +169,9 @@
     </ClCompile>
     <ClCompile Include="src\ophSimulator.cpp">
       <Filter>_1_Generation\_ophSimulator</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ophNonHogelLF.cpp">
+      <Filter>_1_Generation\_ophNonHogelLF</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

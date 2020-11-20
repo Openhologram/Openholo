@@ -1,0 +1,4 @@
+xcopy /y "C:\Users\JHP\source\Repos\Openhologram\Openholo\Reference\lib\*.lib" "C:\Users\JHP\source\Repos\Openhologram\OpenholoRefApp\Reference\lib\"
+xcopy /y "C:\Users\JHP\source\Repos\Openhologram\Openholo\Reference\dll\*.dll" "C:\Users\JHP\source\Repos\Openhologram\OpenholoRefApp\bin\x64\Debug\"
+xcopy /y "C:\Users\JHP\source\Repos\Openhologram\Openholo\Reference\dll\*.dll" "C:\Users\JHP\source\Repos\Openhologram\OpenholoRefApp\bin\x64\Release\"
+xcopy /y "C:\Users\JHP\source\Repos\Openhologram\Openholo\Reference\include\*.h" "C:\Users\JHP\source\Repos\Openhologram\OpenholoRefApp\Reference\include\"
