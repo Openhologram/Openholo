@@ -66,6 +66,18 @@ struct geometric {
 };
 
 /**
+* @brief	texture mapping parameters
+* @details
+*/
+struct TextMap {
+	Complex<Real>* pattern;
+	ivec2 dim;
+	Real period;
+	Real freq;
+};
+
+
+/**
 * @addtogroup mesh
 //@{
 * @details
@@ -86,9 +98,9 @@ The phase distribution on the mesh is determined by the carrier wave is assumed 
 The amplitude inside each mesh is determined by the surface shading model and it can be either linearly varying for the continuous shading or uniform for the flat shading.
 
 ![continuous shading](pics/ophgen/mesh/mesh_ex_continuous.png)
-	-Fig.continuous shading
+-Fig.continuous shading
 ![flat shading](pics/ophgen/mesh/mesh_ex_flat.png)
-	-Fig.flat shading
+-Fig.flat shading
 
 */
 //! @} mesh
@@ -130,36 +142,46 @@ private:
 	Complex<Real>* angularSpectrum;			/// Angular spectrum of the hologram
 	OphMeshData* meshData;					/// OphMeshData type data structure pointer
 
-	// ==== GPU Variables ===============================================
+											// ==== GPU Variables ===============================================
 	bool	is_CPU;
 
 private:
-	Real fieldLength;
+
+	//Real fieldLength;
 	vec3 objSize;							/// Object maximum of width and height / unit :[m]
-	vec3 objShift;							/// Object shift value / Data structure - [shiftX, shiftY, shiftZ] / unit : [m]
 
 	Real carrierWave[3] = { 0,0,1 };		/// Carrier wave direction / default : {0, 0, 1}
-
 	vec3 illumination;						/// Position of the light source (for shading effect) / No-illumination : {0, 0, 0}
 	int SHADING_TYPE;						/// SHADING_FLAT, SHADING_CONTINUOUS
 
+	bool randPhase;
+	bool occlusion;
+	bool textureMapping;
+	TextMap texture;
+
 public:
 	void setObjSize(vec3 in) { objSize = in; }
-	void setObjShift(vec3 in) { objShift[_X] = in[_X]; objShift[_Y] = in[_Y]; objShift[_Z] = in[_Z]; }
-	void setObjShift(vector<Real> in) { objShift[_X] = in[_X]; objShift[_Y] = in[_Y]; objShift[_Z] = in[_Z]; }
+	void setObjShift(vec3 in) { context_.shift[_X] = in[_X]; context_.shift[_Y] = in[_Y]; context_.shift[_Z] = in[_Z]; }
 	void setCarrierWave(Real in1, Real in2, Real in3) { carrierWave[_X] = in1; carrierWave[_Y] = in2; carrierWave[_Z] = in3; }
 	void setIllumination(vec3 in) { illumination = in; }
 	void setIllumination(Real inx, Real iny, Real inz) { illumination = { inx, iny, inz }; }
 	void setShadingType(int in) { SHADING_TYPE = in; }
+
+	void setRandPhase(bool in) { randPhase = in; }
+	void setOcclusion(bool in) { occlusion = in; }
+	void setTextureMapping(bool in) { textureMapping = in; }
+	void setTextureImgDim(int dim1, int dim2) { texture.dim[0] = dim1; texture.dim[1] = dim2; }
+	void setTexturePeriod(Real in) { texture.period = in; }
+
 	ulonglong getNumMesh() { return meshData->n_faces; }
 	Real* getMeshData() { return triMeshArray; }
 	Complex<Real>* getAngularSpectrum() { return angularSpectrum; }
-	Real* getScaledMeshData() {	return scaledMeshData; }
+	Real* getScaledMeshData() { return scaledMeshData; }
 
 	const vec3& getObjSize(void) { return objSize; }
-	const vec3& getObjShift(void) { return objShift; }
+	const vec3& getObjShift(void) { return context_.shift; }
 	const vec3&	getIllumination(void) { return illumination; }
-	const Real& getFieldLens(void) { return fieldLength; }
+	//const Real& getFieldLens(void) { return fieldLength; }
 	/**
 	* @brief Set the value of a variable is_CPU(true or false)
 	* @details <pre>
@@ -204,19 +226,30 @@ public:
 	* @overload
 	*/
 	void objScaleShift();
-	void objScaleShift(vec3 objSize_, vector<Real> objShift_);
+	//void objScaleShift(vec3 objSize_, vector<Real> objShift_);
 	void objScaleShift(vec3 objSize_, vec3 objShift_);
 
 	enum SHADING_FLAG { SHADING_FLAT, SHADING_CONTINUOUS };
+
+	/**
+	*/
+	void loadTexturePattern(const char* fileName, const char* ext, Real period);
+
 
 	/**
 	* @brief	Hologram generation
 	* @param	SHADING_FLAG : SHADING_FLAT, SHADING_CONTINUOUS
 	* @overload
 	*/
-	void generateHologram(uint SHADING_FLAG);
-	void generateMeshHologram();
-	
+	bool generateHologram(uint SHADING_FLAG);
+	bool generateMeshHologram();
+
+	void reconTest(const char* fname);
+
+	bool TM = false;
+	int idxCarr, idxCarrFx, idxCarrFy;
+	void triTimeMultiplexing(char* dirName, uint ENCODE_METHOD, Real cenFx, Real cenFy, Real rangeFx, Real rangeFy, Real stepFx, Real stepFy);
+
 	/**
 	* @brief Set the value of a variable is_ViewingWindow(true or false)
 	* @details <pre>
@@ -229,32 +262,38 @@ public:
 	void setViewingWindow(bool is_ViewingWindow);
 
 private:
-	
+
 	// Inner functions
 	/// not used for users
-	
+
 	void initializeAS();
 	void objNormCenter();
-	uint checkValidity(Real* mesh, vec3 no);
-	uint findGeometricalRelations(Real* mesh, vec3 no);
+	void objSort();
+	bool checkValidity(Real* mesh, vec3 no);
+	bool findGeometricalRelations(Real* mesh, vec3 no);
 	void calGlobalFrequency();
-	uint calFrequencyTerm();
-	uint refAS_Flat(vec3 na);
-	uint refAS_Continuous(uint n);
-	void randPhaseDist(Complex<Real>* AS);
-	void generateAS(uint SHADING_FLAG);
-	uint findNormals(uint SHADING_FLAG);
-	uint refToGlobal();
+	bool calFrequencyTerm();
+	bool refAS_Flat(vec3 na);
+	void refASInner_flat();
+	bool refAS_Continuous(uint n);
+	bool generateAS(uint SHADING_FLAG);
+	bool findNormals(uint SHADING_FLAG);
+	bool refToGlobal();
 
-	uint loadMeshText(const char* fileName);
+	void genRandPhase(ivec2 pixel_number);
+
+	bool loadMeshText(const char* fileName);
 
 	void initialize_GPU();
 	void generateAS_GPU(uint SHADING_FLAG);
 	void refAS_GPU(int idx, int ch, uint SHADING_FLAG);
 private:
 
+	int pnX, pnY, pnXY;
 	Real* normalizedMeshData;				/// Normalized mesh array / Data structure : N*9
 	Real* scaledMeshData;					/// Scaled and shifted mesh array / Data structure : N*9
+	Real* sortedMeshData;
+
 
 private:
 
@@ -262,6 +301,7 @@ private:
 	///	do not need to consider to users
 
 	Real refTri[9] = { 0,0,0,1,1,0,1,0,0 };
+	Real mesh[9] = { 0.0, };
 	Real* fx;
 	Real* fy;
 	Real* fz;
@@ -274,10 +314,7 @@ private:
 	//	Inner local parameters
 	///	do not need to consider to users
 
-	vec3 n;
-	Real shadingFactor;
 	geometric geom;
-	Real* mesh_local;
 	Real* flx;
 	Real* fly;
 	Real* flz;
@@ -285,19 +322,67 @@ private:
 	Real* freqTermY;
 	Complex<Real>* refAS;
 
+	// calGlobalFrequency()
+	Real dfx, dfy;
+
+	// findNormals()
+
+
+	// findGeometricalRelations()
+	vec3 n;
+	Real mesh_local[9] = { 0.0 };
+	Real th, ph;
+	Real temp;
+
+
+	// calFrequencyTerm()
+	Real k, kk;
+	Real* flxShifted;
+	Real* flyShifted;
+	Real det;
+	Real* invLoRot;
+
+
+	// refAS_Flat() , refAS_Continuous()
+
 	Complex<Real> refTerm1;
 	Complex<Real> refTerm2;
 	Complex<Real> refTerm3;
 
+	/// flat shading
+	Complex<Real> shadingFactor;
+	vec3 normIllu;
+
+
+	/// continuous shading
+	vec3 av;
 	Complex<Real> D1;
 	Complex<Real> D2;
 	Complex<Real> D3;
 
-	Complex<Real>* ASTerm;
-	Complex<Real>* randTerm;
-	Complex<Real>* phaseTerm;
+	/// occlusion
+	Complex<Real>* rearAS;
 	Complex<Real>* convol;
+
+	/// random phase
+	Real randVal;
+	Complex<Real> phase;
+	Complex<Real>* phaseTerm;
+
+
+	// refToGlobal()
+	Complex<Real> term1;
+	Complex<Real> term2;
+
 	bool is_ViewingWindow;
+
+	/// texture mapping
+	Complex<Real>* textFFT;
+	Real textFreqX;
+	Real textFreqY;
+	Complex<Real> refTemp;
+	Real* tempFreqTermX;
+	Real* tempFreqTermY;
 	bool bSinglePrecision;
 
 };

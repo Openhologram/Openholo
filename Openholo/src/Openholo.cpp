@@ -567,7 +567,7 @@ void Openholo::fft2(oph::ivec2 n, Complex<Real>* in, int sign, uint flag)
 #else
 	int i;
 	for (i = 0; i < pnx * pny; i++) {
-		fft_in[i][_RE] = in[i][_RE];
+ 		fft_in[i][_RE] = in[i][_RE];
 		fft_in[i][_IM] = in[i][_IM];
 	}
 #endif
