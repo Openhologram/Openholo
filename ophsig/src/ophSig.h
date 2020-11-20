@@ -1000,7 +1000,7 @@ public:
 	* @param nIter The number of the iterations in estimating the phase shift
 	* @return if works well return 0  or error occurs return -1
 	*/
-	bool getComplexHFrom3ArbStepPSDH(const char* f0, const char* f1, const char* f2, const char* fOI, int nIter);
+	bool getComplexHFrom3ArbStepPSDH(const char* f0, const char* f1, const char* f2, const char* fOI, const char* fRI, int nIter);
 
 };
 

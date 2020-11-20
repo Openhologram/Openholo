@@ -287,6 +287,9 @@ private:
 	void initialize_GPU();
 	void generateAS_GPU(uint SHADING_FLAG);
 	void refAS_GPU(int idx, int ch, uint SHADING_FLAG);
+
+	// correct the output scale of the  ophGen::conv_fft2 
+	void conv_fft2_scale(Complex<Real>* src1, Complex<Real>* src2, Complex<Real>* dst, ivec2 size);
 private:
 
 	int pnX, pnY, pnXY;

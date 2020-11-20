@@ -611,7 +611,7 @@ bool ophTri::generateHologram(uint SHADING_FLAG)
 	//initialize();
 	if (is_CPU) {
 		fft2(context_.pixel_number, angularSpectrum, OPH_BACKWARD, OPH_ESTIMATE);
-		fftwShift(angularSpectrum, angularSpectrum, context_.pixel_number[_X], context_.pixel_number[_Y], OPH_BACKWARD);
+		fftwShift(angularSpectrum, *(complex_H), context_.pixel_number[_X], context_.pixel_number[_Y], OPH_BACKWARD);
 		//fft2(context_.pixel_number, *(complex_H), OPH_FORWARD, OPH_ESTIMATE);
 		//fftwShift(*(complex_H), *(complex_H), context_.pixel_number[_X], context_.pixel_number[_Y], OPH_FORWARD);
 		//fftExecute((*complex_H));
@@ -619,7 +619,7 @@ bool ophTri::generateHologram(uint SHADING_FLAG)
 	}
 
 	//RS_Propagation()
-	fresnelPropagation(angularSpectrum, *(complex_H), context_.shift[_Z], 1);
+	//fresnelPropagation(angularSpectrum, *(complex_H), context_.shift[_Z], 1);
 	//fresnelPropagation(context_,*(complex_H), *(complex_H), context_.shift[_Z]);
 
 	auto end = CUR_TIME;
@@ -1098,13 +1098,15 @@ bool ophTri::refAS_Flat(vec3 no)
 
 			convol[i] = shadingFactor*exp(phase) - rearAS[i];
 			);
-			conv_fft2(refAS, convol, refAS, context_.pixel_number);
+			//conv_fft2(refAS, convol, refAS, context_.pixel_number);
+			conv_fft2_scale(refAS, convol, refAS, context_.pixel_number);
 		}
 		else {
-			conv_fft2(rearAS, refAS, convol, context_.pixel_number);
+			conv_fft2_scale(rearAS, refAS, convol, context_.pixel_number);
+			
 			for_i(pnXY,
 				refAS[i] = refAS[i] * shadingFactor - convol[i];
-			cout << refAS[i] << ", " << rearAS[i] << ", " << convol[i] << endl;
+			//cout << refAS[i] << ", " << rearAS[i] << ", " << convol[i] << endl;
 			);
 		}
 	}
@@ -1119,7 +1121,8 @@ bool ophTri::refAS_Flat(vec3 no)
 			phase[_IM] = 2 * M_PI*randVal;
 			phaseTerm[i] = shadingFactor*exp(phase);
 			);
-			conv_fft2(refAS, phaseTerm, refAS, context_.pixel_number);
+			//conv_fft2(refAS, phaseTerm, refAS, context_.pixel_number);
+			conv_fft2_scale(refAS, phaseTerm, refAS, context_.pixel_number);
 			//for_i(pnXY,
 			//refAS[i] *= shadingFactor;
 			//);
@@ -1303,7 +1306,8 @@ bool ophTri::refAS_Continuous(uint n)
 		phase[_IM] = 2.0 * M_PI*randVal;
 		phaseTerm[i] = exp(phase);
 		);
-		conv_fft2(refAS, phaseTerm, convol, context_.pixel_number);
+		//conv_fft2(refAS, phaseTerm, convol, context_.pixel_number);
+		conv_fft2_scale(refAS, phaseTerm, convol, context_.pixel_number);
 	}
 
 	return true;
@@ -1379,4 +1383,35 @@ void ophTri::reconTest(const char* fname) {
 	encoding(ENCODE_AMPLITUDE, recon);
 	normalize();
 	save(fname, 8, nullptr, m_vecEncodeSize[_X], m_vecEncodeSize[_Y]);
+}
+
+// correct the output scale of the  ophGen::conv_fft2 
+void ophTri::conv_fft2_scale(Complex<Real>* src1, Complex<Real>* src2, Complex<Real>* dst, ivec2 size) {
+
+	const double double_nXY = size[_X] * size[_Y];
+
+	src1FT = new Complex<Real>[size[_X] * size[_Y]];
+	src2FT = new Complex<Real>[size[_X] * size[_Y]];
+	dstFT = new Complex<Real>[size[_X] * size[_Y]];
+
+
+	//fft2(size, src1, OPH_FORWARD, OPH_ESTIMATE);
+	fftwShift(src1, src1FT, size[_X], size[_Y], OPH_FORWARD, (bool)OPH_ESTIMATE);
+
+	//fft2(size, src2, OPH_FORWARD, OPH_ESTIMATE);
+	fftwShift(src2, src2FT, size[_X], size[_Y], OPH_FORWARD, (bool)OPH_ESTIMATE);
+
+
+	for (int i = 0; i < size[_X] * size[_Y]; i++)
+		dstFT[i] = src1FT[i] * src2FT[i] * double_nXY * double_nXY;
+
+	//fft2(size, dstFT, OPH_BACKWARD, OPH_ESTIMATE);
+	fftwShift(dstFT, dst, size[_X], size[_Y], OPH_BACKWARD, (bool)OPH_ESTIMATE);
+
+	//for (int i = 0; i < size[_X] * size[_Y]; i++) {
+	//	if (src2[i][_RE]!=0)
+	//		cout << i << ": " << src2[i] << endl;
+	//}
+	//fftFree();
+	delete[] src1FT, src2FT, dstFT;
 }
