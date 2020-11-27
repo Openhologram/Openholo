@@ -28,29 +28,30 @@ ophPAS::~ophPAS()
 
 
 
-bool ophPAS::readConfig(const char* fname) {
+bool ophPAS::readConfig(const char* fname)
+{
+	if (!ophGen::readConfig(fname))
+		return false;
+
 	LOG("Reading....%s...", fname);
 
 	auto start = CUR_TIME;
 
+	using namespace tinyxml2;
 	/*XML parsing*/
 	tinyxml2::XMLDocument xml_doc;
-	tinyxml2::XMLNode *xml_node;
-
+	XMLNode *xml_node;
 
 	if (!checkExtension(fname, ".xml"))
 	{
 		LOG("file's extension is not 'xml'\n");
 		return false;
 	}
-	auto ret = xml_doc.LoadFile(fname);
-	LOG("%d", ret);
-	if (ret != tinyxml2::XML_SUCCESS)
+	if (xml_doc.LoadFile(fname) != XML_SUCCESS)
 	{
 		LOG("Failed to load file \"%s\"\n", fname);
 		return false;
 	}
-
 	xml_node = xml_doc.FirstChild();
 
 	int nWave = 1;
@@ -66,10 +67,10 @@ bool ophPAS::readConfig(const char* fname) {
 	next = xml_node->FirstChildElement("Distance");
 	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&pc_config.distance))
 		return false;
-	
-	
-	
-	
+
+
+
+
 	next = xml_node->FirstChildElement("SLM_WaveNum"); // OffsetInDepth
 	if (!next || tinyxml2::XML_SUCCESS != next->QueryIntText(&nWave))
 		return false;
@@ -131,12 +132,10 @@ bool ophPAS::readConfig(const char* fname) {
 	OHC_encoder->clearWavelength();
 	for (int i = 0; i < nWave; i++)
 		Openholo::setWavelengthOHC(context_.wave_length[i], LenUnit::m);
-	
 	auto end = CUR_TIME;
+	auto during = ((chrono::duration<Real>)(end - start)).count();
+	LOG("%lf (s)..done\n", during);
 
-	auto during = ((std::chrono::duration<Real>)(end - start)).count();
-
-	//LOG("%.5lfsec...done\n", during);
 	initialize();
 	return true;
 }
