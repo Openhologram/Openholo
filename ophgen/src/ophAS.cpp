@@ -27,7 +27,9 @@ ophAS::~ophAS()
 
 bool ophAS::readConfig(const char * fname)
 {
-	LOG("Reading....%s...", fname);
+	ophGen::readConfig(fname);
+
+	LOG("[%s] %s\n", __FUNCTION__, fname);
 
 	auto start = CUR_TIME;
 
@@ -51,7 +53,6 @@ bool ophAS::readConfig(const char * fname)
 
 	xml_node = xml_doc.FirstChild();
 
-	int nWave = 1;
 	auto next = xml_node->FirstChildElement("ScaleX");
 	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&pc_config.scale[_X]))
 		return false;
@@ -65,77 +66,12 @@ bool ophAS::readConfig(const char * fname)
 	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&pc_config.distance))
 		return false;
 	depth = pc_config.distance;
-
-
-
-	next = xml_node->FirstChildElement("SLM_WaveNum"); // OffsetInDepth
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryIntText(&nWave))
-		return false;
-
-	context_.waveNum = nWave;
-	if (context_.wave_length) delete[] context_.wave_length;
-	context_.wave_length = new Real[nWave];
-
-	char szNodeName[32] = { 0, };
-	for (int i = 1; i <= nWave; i++) {
-		wsprintfA(szNodeName, "SLM_WaveLength_%d", i);
-		
-		next = xml_node->FirstChildElement(szNodeName);
-		if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&context_.wave_length[i - 1]))
-			return false;
-	}
 	wavelength = context_.wave_length[0];
-	next = xml_node->FirstChildElement("SLM_PixelNumX");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryIntText(&context_.pixel_number[_X]))
-		return false;
-	next = xml_node->FirstChildElement("SLM_PixelNumY");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryIntText(&context_.pixel_number[_Y]))
-		return false;
 	this->w = context_.pixel_number[_X];
 	this->h = context_.pixel_number[_Y];
-	next = xml_node->FirstChildElement("SLM_PixelPitchX");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&context_.pixel_pitch[_X]))
-		return false;
-	next = xml_node->FirstChildElement("SLM_PixelPitchY");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&context_.pixel_pitch[_Y]))
-		return false;
+
 	xi_interval = context_.pixel_pitch[_X];
-	eta_interval = context_.pixel_pitch[_Y];
-	next = xml_node->FirstChildElement("IMG_Rotation");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryBoolText(&context_.bRotation))
-		context_.bRotation = false;
-	next = xml_node->FirstChildElement("IMG_Merge");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryBoolText(&context_.bMergeImg))
-		context_.bMergeImg = true;
-	next = xml_node->FirstChildElement("DoublePrecision");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryBoolText(&context_.bUseDP))
-		context_.bUseDP = true;
-	next = xml_node->FirstChildElement("ShiftX");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&context_.shift[_X]))
-		context_.shift[_X] = 0.0;
-	next = xml_node->FirstChildElement("ShiftY");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&context_.shift[_Y]))
-		context_.shift[_Y] = 0.0;
-	next = xml_node->FirstChildElement("ShiftZ");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&context_.shift[_Z]))
-		context_.shift[_Z] = 0.0;
-	next = xml_node->FirstChildElement("FieldLength");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&m_dFieldLength))
-		m_dFieldLength = 0.0;
-	next = xml_node->FirstChildElement("NumOfStream");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryIntText(&m_nStream))
-		m_nStream = 1;
-
-	context_.ss[_X] = context_.pixel_number[_X] * context_.pixel_pitch[_X];
-	context_.ss[_Y] = context_.pixel_number[_Y] * context_.pixel_pitch[_Y];
-
-	Openholo::setPixelNumberOHC(context_.pixel_number);
-	Openholo::setPixelPitchOHC(context_.pixel_pitch);
-
-	OHC_encoder->clearWavelength();
-	for (int i = 0; i < nWave; i++)
-		Openholo::setWavelengthOHC(context_.wave_length[i], LenUnit::m);
-
+	eta_interval = context_.pixel_pitch[_Y];	
 	auto end = CUR_TIME;
 
 	auto during = ((std::chrono::duration<Real>)(end - start)).count();
@@ -145,7 +81,7 @@ bool ophAS::readConfig(const char * fname)
 	return true;
 }
 
-int ophAS::loadPoint(const char * fname)
+int ophAS::loadPointCloud(const char * fname)
 {
 	n_points = ophGen::loadPointCloud(fname, &pc_data);
 	return n_points;
@@ -185,6 +121,7 @@ void ophAS::RayleighSommerfield(double w, double h, double wavelength, double kn
 	double eta_tilting = 0 * pi / 180;
 	double xi_tilting = 0 * pi / 180;
 	int n = log10(w) / log10(2);
+
 	for(int i=0;i<w; i++)
 	{
 		double eta = (i - w / 2)*eta_interval;

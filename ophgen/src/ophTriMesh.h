@@ -96,24 +96,16 @@ The amplitude inside each mesh is determined by the surface shading model and it
 /**
 * @ingroup mesh
 * @brief Openholo Triangular Mesh based CGH generation
-* @author Yeon-Gyeong Ju, Jae-Hyeung Park
+* @author
 */
 class GEN_DLL ophTri : public ophGen
 {
 public:
 	/**
 	* @brief Constructor
+	* @details Initialize variables.
 	*/
-	explicit ophTri(void) {
-		is_ViewingWindow = false;
-		is_CPU = true;
-		scaledMeshData = nullptr;
-		normalizedMeshData = nullptr;
-		angularSpectrum = nullptr;
-		bSinglePrecision = false;
-
-		LOG("*** MESH : BUILD DATE: %s %s ***\n\n", __DATE__, __TIME__);
-	}
+	explicit ophTri(void);
 
 protected:
 	/**
@@ -130,7 +122,6 @@ private:
 	Complex<Real>* angularSpectrum;			/// Angular spectrum of the hologram
 	OphMeshData* meshData;					/// OphMeshData type data structure pointer
 
-	// ==== GPU Variables ===============================================
 	bool	is_CPU;
 
 private:
@@ -154,7 +145,7 @@ public:
 	ulonglong getNumMesh() { return meshData->n_faces; }
 	Real* getMeshData() { return triMeshArray; }
 	Complex<Real>* getAngularSpectrum() { return angularSpectrum; }
-	Real* getScaledMeshData() {	return scaledMeshData; }
+	Real* getScaledMeshData() { return scaledMeshData; }
 
 	const vec3& getObjSize(void) { return objSize; }
 	const vec3& getObjShift(void) { return objShift; }
@@ -215,8 +206,7 @@ public:
 	* @overload
 	*/
 	void generateHologram(uint SHADING_FLAG);
-	void generateMeshHologram();
-	
+
 	/**
 	* @brief Set the value of a variable is_ViewingWindow(true or false)
 	* @details <pre>
@@ -228,11 +218,12 @@ public:
 	*/
 	void setViewingWindow(bool is_ViewingWindow);
 
+	uint* getProgress() { return &m_nProgress; }
 private:
-	
+
 	// Inner functions
 	/// not used for users
-	
+
 	void initializeAS();
 	void objNormCenter();
 	uint checkValidity(Real* mesh, vec3 no);
@@ -274,10 +265,10 @@ private:
 	//	Inner local parameters
 	///	do not need to consider to users
 
+	uint m_nProgress;
 	vec3 n;
 	Real shadingFactor;
 	geometric geom;
-	Real* mesh_local;
 	Real* flx;
 	Real* fly;
 	Real* flz;

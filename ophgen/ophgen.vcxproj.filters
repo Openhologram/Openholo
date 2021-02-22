@@ -113,12 +113,6 @@
     <ClInclude Include="src\ophAS.h">
       <Filter>_1_Generation\_ophAS</Filter>
     </ClInclude>
-    <ClInclude Include="src\ophAS_GPU.h">
-      <Filter>_1_Generation\_ophAS</Filter>
-    </ClInclude>
-    <ClInclude Include="src\ophPAS_GPU.h">
-      <Filter>_1_Generation\_ophPAS</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\ophDepthMap_GPU.cpp">
@@ -179,12 +173,6 @@
     <ClCompile Include="src\ophAS.cpp">
       <Filter>_1_Generation\_ophAS</Filter>
     </ClCompile>
-    <ClCompile Include="src\ophAS_GPU.cpp">
-      <Filter>_1_Generation\_ophAS</Filter>
-    </ClCompile>
-    <ClCompile Include="src\ophPAS_GPU.cpp">
-      <Filter>_1_Generation\_ophPAS</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="src\ophDMKernel.cu">
@@ -202,10 +190,17 @@
     <CudaCompile Include="src\ophTriMeshKernel.cu">
       <Filter>_1_Generation\_ophTriangleMesh</Filter>
     </CudaCompile>
+    <CudaCompile Include="src\ophAS_GPU.cpp" />
+    <CudaCompile Include="src\ophPAS_GPU.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="src\ophPCKernel.cl">
       <Filter>_1_Generation\_ophPointCloud</Filter>
     </None>
+    <None Include="ClassDiagram.cd" />
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="src\ophAS_GPU.h" />
+    <CustomBuild Include="src\ophPAS_GPU.h" />
   </ItemGroup>
 </Project>

@@ -48,18 +48,56 @@
 
 void ophTri::initialize_GPU()
 {
-	int nx = context_.pixel_number[_X];
-	int ny = context_.pixel_number[_Y];
-	int N = nx * ny;
+	const uint pnXY = context_.pixel_number[_X] * context_.pixel_number[_Y];
+	const int N = meshData->n_faces;
+
+	if (normalizedMeshData) {
+		delete[] normalizedMeshData;
+		normalizedMeshData = nullptr;
+	}
+	normalizedMeshData = new Real[N * 9];
+	memset(normalizedMeshData, 0, sizeof(Real) * N * 9);
+
+	if (scaledMeshData) {
+		delete[] scaledMeshData;
+		scaledMeshData = nullptr;
+	}
+	scaledMeshData = new Real[N * 9];
+	memset(scaledMeshData, 0, sizeof(Real) * N * 9);
+
+
+	if (no) {
+		delete[] no;
+		no = nullptr;
+	}
+	no = new vec3[N];
+	memset(no, 0, sizeof(vec3) * N);
+
+
+	if (na) {
+		delete[] na;
+		na = nullptr;
+	}
+	na = new vec3[N];
+	memset(na, 0, sizeof(vec3) * N);
+
+
+	if (nv) {
+		delete[] nv;
+		nv = nullptr;
+	}
+	nv = new vec3[N * 3];
+	memset(nv, 0, sizeof(vec3) * N * 3);
 
 	if (!streamTriMesh)
 		cudaStreamCreate(&streamTriMesh);
 
+
 	if (angularSpectrum_GPU)   cudaFree(angularSpectrum_GPU);
-	HANDLE_ERROR(cudaMalloc((void**)&angularSpectrum_GPU, sizeof(cufftDoubleComplex)*nx*ny));
+	HANDLE_ERROR(cudaMalloc((void**)&angularSpectrum_GPU, sizeof(cufftDoubleComplex) * pnXY));
 	
 	if (ffttemp)   cudaFree(ffttemp);
-	HANDLE_ERROR(cudaMalloc((void**)&ffttemp, sizeof(cufftDoubleComplex)*nx*ny));
+	HANDLE_ERROR(cudaMalloc((void**)&ffttemp, sizeof(cufftDoubleComplex) * pnXY));
 
 }
 void ophTri::generateAS_GPU(uint SHADING_FLAG)
@@ -72,25 +110,29 @@ void ophTri::generateAS_GPU(uint SHADING_FLAG)
 	const uint pnX = context_.pixel_number[_X];
 	const uint pnY = context_.pixel_number[_Y];
 	const uint pnXY = pnX * pnY;
+	int N = meshData->n_faces;
 
-	mesh_local = new Real[9];
 	Real* mesh = new Real[9];
 
 	uint nChannel = context_.waveNum;
 
+	cufftDoubleComplex* output = new cufftDoubleComplex[pnXY];
+
 	for (uint ch = 0; ch < nChannel; ch++) {
-		memset(mesh_local, 0.0, 9);
-		memset(mesh, 0.0, 9);
+		//memset(mesh, 0.0, 9);
+		//memset(output, 0.0, sizeof(cufftDoubleComplex) * pnXY);
 
 		findNormals(SHADING_FLAG);
 
 		HANDLE_ERROR(cudaMemsetAsync(angularSpectrum_GPU, 0, sizeof(cufftDoubleComplex) * pnXY, streamTriMesh));
 
-		for (int j = 0; j < meshData->n_faces; j++) {
-
+		for (int j = 0; j < N; j++) {
+#if 0 // 20210222
 			for (int i = 0; i < 9; i++)
 				mesh[i] = scaledMeshData[9 * j + i];
-
+#else
+			memcpy(mesh, &scaledMeshData[9 * j], sizeof(Real) * 9);
+#endif
 			if (checkValidity(mesh, *(no + j)) != 1)
 				continue;
 
@@ -99,29 +141,25 @@ void ophTri::generateAS_GPU(uint SHADING_FLAG)
 
 			refAS_GPU(j, ch, SHADING_FLAG);
 
-			char szLog[MAX_PATH];
-			sprintf_s(szLog, "%d / %llu\n", j + 1, meshData->n_faces);
-			LOG(szLog);
-
+			m_nProgress = (int)((Real)(ch * N + j + 1) * 50 / ((Real)N * nChannel));
 		}
 
 		HANDLE_ERROR(cudaMemsetAsync(ffttemp, 0, sizeof(cufftDoubleComplex) * pnXY, streamTriMesh));
 		call_fftGPU(pnX, pnY, angularSpectrum_GPU, ffttemp, streamTriMesh);
 
-		cufftDoubleComplex* output = (cufftDoubleComplex*)malloc(sizeof(cufftDoubleComplex) * pnXY);
-		memset(output, 0.0, sizeof(cufftDoubleComplex) * pnXY);
 
+		// GPU Memory -> CPU Memory
 		HANDLE_ERROR(cudaMemcpyAsync(output, ffttemp, sizeof(cufftDoubleComplex) * pnXY, cudaMemcpyDeviceToHost, streamTriMesh));
-		//HANDLE_ERROR(cudaMemcpyAsync(output, angularSpectrum_GPU, sizeof(cufftDoubleComplex)*nx*ny, cudaMemcpyDeviceToHost), streamTriMesh);
 
 		for (int i = 0; i < pnXY; ++i)
 		{
 			complex_H[ch][i][_RE] = output[i].x;
 			complex_H[ch][i][_IM] = output[i].y;
 		}
-		delete[] output;
 	}
-	delete[] mesh, scaledMeshData, no, na, nv, mesh_local;
+
+	m_nProgress = 100;
+	delete[] output, mesh, scaledMeshData, no, na, nv;
 }
 
 
