@@ -91,7 +91,8 @@ void ophTri::setViewingWindow(bool is_ViewingWindow)
 	this->is_ViewingWindow = is_ViewingWindow;
 }
 
-uint ophTri::loadMeshText(const char* fileName) {
+uint ophTri::loadMeshText(const char* fileName)
+{
 
 	cout << "Mesh Text File Load..." << endl;
 
@@ -122,7 +123,8 @@ uint ophTri::loadMeshText(const char* fileName) {
 	return 1;
 }
 
-bool ophTri::loadMeshData(const char* fileName, const char* ext) {
+bool ophTri::loadMeshData(const char* fileName, const char* ext)
+{
 	meshData = new OphMeshData;
 	cout << "ext = " << ext << endl;
 
@@ -331,7 +333,7 @@ void ophTri::objNormCenter()
 	Real* z_point = new Real[N3];
 
 	int i;
-#ifdef _OPENMP
+#ifndef _OPENMP
 #pragma omp parallel for private(i)
 #endif
 	for (i = 0; i < N3; i++) {
@@ -346,7 +348,7 @@ void ophTri::objNormCenter()
 
 	Real* centered = new Real[N * 9];
 
-#ifdef _OPENMP
+#ifndef _OPENMP
 #pragma omp parallel for private(i)
 #endif
 	for (i = 0; i < N3; i++) {
@@ -368,7 +370,7 @@ void ophTri::objNormCenter()
 	Real z_del = (maxOfArr(z_point, N3) - minOfArr(z_point, N3));
 	Real del = maxOfArr({ x_del, y_del, z_del });
 
-#ifdef _OPENMP
+#ifndef _OPENMP
 #pragma omp parallel for private(i)
 #endif
 	for (i = 0; i < N * 9; i++) {
@@ -396,7 +398,7 @@ void ophTri::objScaleShift()
 	vec3 shift = getContext().shift;
 
 	int i;
-#ifdef _OPENMP
+#ifndef _OPENMP
 	int num_threads;
 #pragma omp parallel
 	{
@@ -413,7 +415,7 @@ void ophTri::objScaleShift()
 			scaledMeshData[idx + _Y] = pcy * objSize[_Y] + shift[_Y];
 			scaledMeshData[idx + _Z] = pcz * objSize[_Z] + shift[_Z];
 		}
-#ifdef _OPENMP
+#ifndef _OPENMP
 	}
 #endif
 
@@ -424,7 +426,7 @@ void ophTri::objScaleShift()
 
 	cout << "Object Scaling and Shifting Finishied.." << endl;
 
-#ifdef _OPENMP
+#ifndef _OPENMP
 	if(is_CPU)
 		cout << ">>> All " << num_threads << " threads" << endl;
 #endif
@@ -451,7 +453,7 @@ void ophTri::objScaleShift(vec3 objSize_, vector<Real> objShift_)
 	vec3 shift = getContext().shift;
 	int i;
 
-#ifdef _OPENMP
+#ifndef _OPENMP
 	int num_threads;
 #pragma omp parallel
 	{
@@ -467,7 +469,9 @@ void ophTri::objScaleShift(vec3 objSize_, vector<Real> objShift_)
 			*(scaledMeshData + 3 * i + _Y) = pcy * objSize[_Y] + shift[_Y];
 			*(scaledMeshData + 3 * i + _Z) = pcz * objSize[_Z] + shift[_Z];
 		}
+#ifndef _OPENMP
 	}
+#endif
 
 	if (is_ViewingWindow) {
 		delete[] pMesh;
@@ -475,7 +479,7 @@ void ophTri::objScaleShift(vec3 objSize_, vector<Real> objShift_)
 	delete[] normalizedMeshData;
 	cout << "Object Scaling and Shifting Finishied.." << endl;
 
-#ifdef _OPENMP
+#ifndef _OPENMP
 	cout << ">>> All " << num_threads << " threads" << endl;
 #endif
 }
@@ -500,7 +504,7 @@ void ophTri::objScaleShift(vec3 objSize_, vec3 objShift_)
 	vec3 shift = getContext().shift;
 	int i;
 
-#ifdef _OPENMP
+#ifndef _OPENMP
 	int num_threads;
 #pragma omp parallel
 	{
@@ -516,7 +520,7 @@ void ophTri::objScaleShift(vec3 objSize_, vec3 objShift_)
 			*(scaledMeshData + 3 * i + _Y) = pcy * objSize[_Y] + shift[_Y];
 			*(scaledMeshData + 3 * i + _Z) = pcz * objSize[_Z] + shift[_Z];
 		}
-#ifdef _OPENMP
+#ifndef _OPENMP
 	}
 	cout << ">>> All " << num_threads << " threads" << endl;
 #endif
@@ -607,12 +611,11 @@ void ophTri::generateAS(uint SHADING_FLAG)
 #pragma omp atomic
 #endif
 			sum++;
-			if (checkValidity(mesh, no[j]) != 1)
+			if (!checkValidity(no[j]))
 				continue;
-			if (findGeometricalRelations(mesh, no[j]) != 1)
+			if (!findGeometricalRelations(mesh, no[j]))
 				continue;
-
-			if (calFrequencyTerm() != 1)
+			if (!calFrequencyTerm())
 				continue;
 
 			switch (SHADING_FLAG)
@@ -627,7 +630,7 @@ void ophTri::generateAS(uint SHADING_FLAG)
 				LOG("error: WRONG SHADING_FLAG\n");
 				cin.get();
 			}
-			if (refToGlobal() != 1)
+			if (!refToGlobal())
 				continue;
 
 			//char szLog[MAX_PATH];
@@ -669,8 +672,10 @@ uint ophTri::findNormals(uint SHADING_FLAG)
 	Real normNo = 0;
 
 	int i;
+#if 0 // 반복 사이즈가 클수록 openMP의 효율이 좋기때문에 적정값을 찾을 필요가 있음.
 #ifdef _OPENMP
 #pragma omp parallel for private(i) reduction(+:normNo)
+#endif
 #endif
 	for (i = 0; i < N; i++) {
 		normNo += norm(no[i]) * norm(no[i]);
@@ -678,8 +683,10 @@ uint ophTri::findNormals(uint SHADING_FLAG)
 
 	normNo = sqrt(normNo);
 
+#if 0
 #ifdef _OPENMP
 #pragma omp parallel for firstprivate(normNo)
+#endif
 #endif
 	for (int i = 0; i < N; i++) {
 		na[i] = no[i] / normNo;
@@ -729,18 +736,15 @@ uint ophTri::findNormals(uint SHADING_FLAG)
 	return 1;
 }
 
-uint ophTri::checkValidity(Real* mesh, vec3 no) {
-
-	if (no[_Z] < 0 || (no[_X] == 0 && no[_Y] == 0 && no[_Z] == 0)) {
-		return -1;
-	}
-	if (no[_Z] >= 0)
-		return 1;
-
-	return 0;
+bool ophTri::checkValidity(vec3 no)
+{
+	if (no[_Z] < 0 || (no[_X] == 0 && no[_Y] == 0 && no[_Z] == 0))
+		return false;
+	else
+		return true;
 }
 
-uint ophTri::findGeometricalRelations(Real* mesh, vec3 no)
+bool ophTri::findGeometricalRelations(Real* mesh, vec3 no)
 {
 	vec3 n = no / norm(no);
 	Real mesh_local[9] = { 0.0 };
@@ -757,9 +761,14 @@ uint ophTri::findGeometricalRelations(Real* mesh, vec3 no)
 	geom.glRot[6] = cos(ph)*sin(th);	geom.glRot[7] = sin(ph);	geom.glRot[8] = cos(ph)*cos(th);
 
 	for (int i = 0; i < 3; i++) {
-		mesh_local[3 * i] = geom.glRot[0] * mesh[3 * i] + geom.glRot[1] * mesh[3 * i + 1] + geom.glRot[2] * mesh[3 * i + 2];
-		mesh_local[3 * i + 1] = geom.glRot[3] * mesh[3 * i] + geom.glRot[4] * mesh[3 * i + 1] + geom.glRot[5] * mesh[3 * i + 2];
-		mesh_local[3 * i + 2] = geom.glRot[6] * mesh[3 * i] + geom.glRot[7] * mesh[3 * i + 1] + geom.glRot[8] * mesh[3 * i + 2];
+		int idx = 3 * i;
+		Real x = mesh[idx];
+		Real y = mesh[idx + 1];
+		Real z = mesh[idx + 2];
+
+		mesh_local[idx] = geom.glRot[0] * x + geom.glRot[1] * y + geom.glRot[2] * z;
+		mesh_local[idx + 1] = geom.glRot[3] * x + geom.glRot[4] * y + geom.glRot[5] * z;
+		mesh_local[idx + 2] = geom.glRot[6] * x + geom.glRot[7] * y + geom.glRot[8] * z;
 	}
 
 	geom.glShift[_X] = -mesh_local[_X1];
@@ -767,13 +776,14 @@ uint ophTri::findGeometricalRelations(Real* mesh, vec3 no)
 	geom.glShift[_Z] = -mesh_local[_Z1];
 
 	for (int i = 0; i < 3; i++) {
-		mesh_local[3 * i] += geom.glShift[_X];
-		mesh_local[3 * i + 1] += geom.glShift[_Y];
-		mesh_local[3 * i + 2] += geom.glShift[_Z];
+		int idx = 3 * i;
+		mesh_local[idx] += geom.glShift[_X];
+		mesh_local[idx + 1] += geom.glShift[_Y];
+		mesh_local[idx + 2] += geom.glShift[_Z];
 	}
 
 	if (mesh_local[_X3] * mesh_local[_Y2] == mesh_local[_Y3] * mesh_local[_X2])
-		return -1;
+		return false;
 
 	geom.loRot[0] = (refTri[_X3] * mesh_local[_Y2] - refTri[_X2] * mesh_local[_Y3]) / (mesh_local[_X3] * mesh_local[_Y2] - mesh_local[_Y3] * mesh_local[_X2]);
 	geom.loRot[1] = (refTri[_X3] * mesh_local[_X2] - refTri[_X2] * mesh_local[_X3]) / (-mesh_local[_X3] * mesh_local[_Y2] + mesh_local[_Y3] * mesh_local[_X2]);
@@ -781,10 +791,10 @@ uint ophTri::findGeometricalRelations(Real* mesh, vec3 no)
 	geom.loRot[3] = (refTri[_Y3] * mesh_local[_X2] - refTri[_Y2] * mesh_local[_X3]) / (-mesh_local[_X3] * mesh_local[_Y2] + mesh_local[_Y3] * mesh_local[_X2]);
 
 	if ((geom.loRot[0] * geom.loRot[3] - geom.loRot[1] * geom.loRot[2]) == 0)
-		return -1;
+		return false;
 
 
-	return 1;
+	return true;
 }
 
 void ophTri::calGlobalFrequency()
@@ -794,18 +804,16 @@ void ophTri::calGlobalFrequency()
 	const int pnXY = pnX * pnY;
 	const Real ppX = context_.pixel_pitch[_X];
 	const Real ppY = context_.pixel_pitch[_Y];
-	const Real ssX = context_.ss[_X] = pnX * ppX;
-	const Real ssY = context_.ss[_Y] = pnY * ppY;
 	const uint nChannel = context_.waveNum;
 
-	Real dfx = 1 / ssX;
-	Real dfy = 1 / ssY;
+	Real dfx = 1 / ppX / pnX;
+	Real dfy = 1 / ppY / pnY;
 	fx = new Real[pnXY];
 	fy = new Real[pnXY];
 	fz = new Real[pnXY];
 	uint k = 0;
 
-	int startX = -pnX / 2;
+	int startX = pnX / 2;
 	int startY = pnY / 2;
 #if 0
 	for (uint ch = 0; ch < nChannel; ch++) {
@@ -817,16 +825,14 @@ void ophTri::calGlobalFrequency()
 		Real sqdfl = dfl * dfl;
 
 		for (int i = startY; i > -startY; i--) {
-			Real x = i * dfx;
-			Real xx = x * x;
-			memset(&fx[k], x, sizeof(Real) * pnX);
+			Real y = i * dfy;
+			Real yy = y * y;
 
-			for (int j = startX; j < -startX; j++) {
-				//fx[k] = i * dfx;
-				//fx[k] = x;
-				fy[k] = j * dfy;
-				//fz[k] = sqrt(sqdfl - (fx[k] * fx[k]) - (fy[k] * fy[k]));
-				fz[k] = sqrt(sqdfl - xx - (fy[k] * fy[k]));
+			for (int j = -startX; j < startX; j++) {
+				fx[k] = j * dfx;
+				fy[k] = y;
+				fz[k] = sqrt(sqdfl - (fx[k] * fx[k]) - yy);
+
 				k++;
 			}
 		}
@@ -835,7 +841,7 @@ void ophTri::calGlobalFrequency()
 #endif
 }
 
-uint ophTri::calFrequencyTerm()
+bool ophTri::calFrequencyTerm()
 {
 	// p.s. 1채널로 구현됨
 	const uint pnXY = context_.pixel_number[_X] * context_.pixel_number[_Y];
@@ -864,9 +870,6 @@ uint ophTri::calFrequencyTerm()
 	invLoRot[2] = -(1 / det)*geom.loRot[1];
 	invLoRot[3] = (1 / det)*geom.loRot[0];
 
-	//#ifdef _OPENMP
-	//#pragma omp for private(i)
-	//#endif
 	for (i = 0; i < pnXY; i++) {
 		freqTermX[i] = invLoRot[0] * flxShifted[i] + invLoRot[1] * flyShifted[i];
 		freqTermY[i] = invLoRot[2] * flxShifted[i] + invLoRot[3] * flyShifted[i];
@@ -875,14 +878,12 @@ uint ophTri::calFrequencyTerm()
 	delete[] flxShifted;
 	delete[] flyShifted;
 	delete[] invLoRot;
-	return 1;
+	return true;
 }
 
 uint ophTri::refAS_Flat(vec3 no)
 {
-	const uint pnX = context_.pixel_number[_X];
-	const uint pnY = context_.pixel_number[_Y];
-	const uint pnXY = pnX * pnY;
+	const uint pnXY = context_.pixel_number[_X] * context_.pixel_number[_Y];
 
 	n = no / norm(no);
 
@@ -1043,7 +1044,7 @@ void ophTri::randPhaseDist(Complex<Real>* AS)
 
 }
 
-uint ophTri::refToGlobal()
+bool ophTri::refToGlobal()
 {
 	const int pnXY = context_.pixel_number[_X] * context_.pixel_number[_Y];
 
@@ -1053,7 +1054,7 @@ uint ophTri::refToGlobal()
 	Real det = geom.loRot[0] * geom.loRot[3] - geom.loRot[1] * geom.loRot[2];
 
 	if (det == 0)
-		return -1;
+		return false;
 
 	term1[_IM] = -2 * M_PI / context_.wave_length[0] * (
 		carrierWave[_X] * (geom.glRot[0] * geom.glShift[_X] + geom.glRot[3] * geom.glShift[_Y] + geom.glRot[6] * geom.glShift[_Z])
@@ -1073,5 +1074,5 @@ uint ophTri::refToGlobal()
 		angularSpectrum[i] += temp;
 	}
 
-	return 1;
+	return true;
 }

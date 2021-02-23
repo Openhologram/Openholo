@@ -226,16 +226,17 @@ private:
 
 	void initializeAS();
 	void objNormCenter();
-	uint checkValidity(Real* mesh, vec3 no);
-	uint findGeometricalRelations(Real* mesh, vec3 no);
+
+	bool checkValidity(vec3 no);
+	bool findGeometricalRelations(Real* mesh, vec3 no);
 	void calGlobalFrequency();
-	uint calFrequencyTerm();
+	bool calFrequencyTerm();
 	uint refAS_Flat(vec3 na);
 	uint refAS_Continuous(uint n);
 	void randPhaseDist(Complex<Real>* AS);
 	void generateAS(uint SHADING_FLAG);
 	uint findNormals(uint SHADING_FLAG);
-	uint refToGlobal();
+	bool refToGlobal();
 
 	uint loadMeshText(const char* fileName);
 

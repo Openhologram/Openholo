@@ -119,24 +119,18 @@ void ophTri::generateAS_GPU(uint SHADING_FLAG)
 	cufftDoubleComplex* output = new cufftDoubleComplex[pnXY];
 
 	for (uint ch = 0; ch < nChannel; ch++) {
-		//memset(mesh, 0.0, 9);
-		//memset(output, 0.0, sizeof(cufftDoubleComplex) * pnXY);
-
+		
 		findNormals(SHADING_FLAG);
 
 		HANDLE_ERROR(cudaMemsetAsync(angularSpectrum_GPU, 0, sizeof(cufftDoubleComplex) * pnXY, streamTriMesh));
 
 		for (int j = 0; j < N; j++) {
-#if 0 // 20210222
-			for (int i = 0; i < 9; i++)
-				mesh[i] = scaledMeshData[9 * j + i];
-#else
 			memcpy(mesh, &scaledMeshData[9 * j], sizeof(Real) * 9);
-#endif
-			if (checkValidity(mesh, *(no + j)) != 1)
+
+			if (!checkValidity(no[j])) // Ignore Invalid
 				continue;
 
-			if (findGeometricalRelations(mesh, *(no + j)) != 1)
+			if (!findGeometricalRelations(mesh, no[j]))
 				continue;
 
 			refAS_GPU(j, ch, SHADING_FLAG);
