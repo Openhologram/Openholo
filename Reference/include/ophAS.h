@@ -40,7 +40,7 @@ public:
 	ophAS();
 	virtual ~ophAS();
 	bool readConfig(const char* fname);
-	int loadPoint(const char* fname);
+	int loadPointCloud(const char* fname);
 	void setmode(bool is_cpu);
 	void ASCalculation(double w, double h, double wavelength, double knumber, double
 		xi_interval, double eta_interval, double depth, coder::

@@ -1,0 +1,17 @@
+<TestSpecCascadedPropagation>
+  <SourceType>IMG</SourceType>
+  <NumColors>3</NumColors>
+  <WavelengthR>0.000000660</WavelengthR>
+  <WavelengthG>0.000000532</WavelengthG>
+  <WavelengthB>0.000000473</WavelengthB>
+  <PixelPitchHor>0.0000684</PixelPitchHor>
+  <PixelPitchVer>0.0000684</PixelPitchVer>
+  <ResolutionHor>768</ResolutionHor>
+  <ResolutionVer>768</ResolutionVer>
+  <FieldLensFocalLength>0.606</FieldLensFocalLength>
+  <DistReconstructionPlaneToPupil>0.225</DistReconstructionPlaneToPupil>
+  <DistPupilToRetina>0.025</DistPupilToRetina>
+  <PupilDiameter>0.004</PupilDiameter>
+  <HologramPath>source/CascadedPropagation/DMDG_RGB_CP.bmp</HologramPath>
+  <Nor>0.1</Nor>       <!-- scaling term in Chang Eun Young's implementation -->  
+</TestSpecCascadedPropagation>

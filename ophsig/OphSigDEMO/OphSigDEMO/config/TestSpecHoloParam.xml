@@ -1,0 +1,12 @@
+<holoParam>  
+  <pixel_number_x>1024</pixel_number_x>
+  <pixel_number_y>1024</pixel_number_y>
+  <width>0.01</width>
+  <height>0.01</height>
+  <wavelength>0.532</wavelength>
+  <wavelength_num>1</wavelength_num>
+  <NA>-0.05</NA>
+  <z>-0.1</z>
+  <reduction_rate>0.022</reduction_rate>
+  <radius_of_lens>0.01</radius_of_lens>
+</holoParam>
