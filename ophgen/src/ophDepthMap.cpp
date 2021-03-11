@@ -44,8 +44,6 @@
 //M*/
 
 #include	"ophDepthMap.h"
-
-#include	<windows.h>
 #include	<random>
 #include	<iomanip>
 #include	<io.h>

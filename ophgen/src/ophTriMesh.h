@@ -225,18 +225,19 @@ private:
 	/// not used for users
 
 	void initializeAS();
+	void prepareMeshData();
 	void objNormCenter();
 
 	bool checkValidity(vec3 no);
 	bool findGeometricalRelations(Real* mesh, vec3 no);
-	void calGlobalFrequency();
-	bool calFrequencyTerm();
-	uint refAS_Flat(vec3 na);
-	uint refAS_Continuous(uint n);
+	void calGlobalFrequency(Real** frequency);
+	bool calFrequencyTerm(Real** frequency, Real** fl, Real* freqTermX, Real* freqTermY);
+	uint refAS_Flat(vec3 na, Real* freqTermX, Real* freqTermY);
+	uint refAS_Continuous(uint n, Real* freqTermX, Real* freqTermY);
 	void randPhaseDist(Complex<Real>* AS);
 	void generateAS(uint SHADING_FLAG);
 	uint findNormals(uint SHADING_FLAG);
-	bool refToGlobal();
+	bool refToGlobal(Real** frequency, Real** fl);
 
 	uint loadMeshText(const char* fileName);
 
@@ -253,10 +254,6 @@ private:
 	//	Inner global parameters
 	///	do not need to consider to users
 
-	Real refTri[9] = { 0,0,0,1,1,0,1,0,0 };
-	Real* fx;
-	Real* fy;
-	Real* fz;
 	vec3* no;
 	vec3* na;
 	vec3* nv;
@@ -268,22 +265,8 @@ private:
 
 	uint m_nProgress;
 	vec3 n;
-	Real shadingFactor;
 	geometric geom;
-	Real* flx;
-	Real* fly;
-	Real* flz;
-	Real* freqTermX;
-	Real* freqTermY;
 	Complex<Real>* refAS;
-
-	Complex<Real> refTerm1;
-	Complex<Real> refTerm2;
-	Complex<Real> refTerm3;
-
-	Complex<Real> D1;
-	Complex<Real> D2;
-	Complex<Real> D3;
 
 	Complex<Real>* ASTerm;
 	Complex<Real>* randTerm;

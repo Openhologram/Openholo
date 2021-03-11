@@ -44,7 +44,6 @@
 //M*/
 
 #include "ophGen.h"
-#include <windows.h>
 #include "sys.h"
 #include "function.h"
 #include <cuda_runtime.h>
@@ -1047,7 +1046,6 @@ void ophGen::resetBuffer()
 		if (m_lpNormalized[ch])
 			memset(m_lpNormalized[ch], 0, sizeof(uchar) * m_vecEncodeSize[_X] * m_vecEncodeSize[_Y]);
 	}
-
 }
 
 void ophGen::encoding(unsigned int ENCODE_FLAG, Complex<Real>* holo)

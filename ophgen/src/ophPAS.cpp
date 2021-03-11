@@ -5,7 +5,6 @@
 #include <iostream>
 #include <string>
 #include <iomanip>
-#include <windows.h>
 
 #include "sys.h"
 

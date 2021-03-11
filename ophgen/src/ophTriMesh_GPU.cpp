@@ -165,7 +165,7 @@ void ophTri::refAS_GPU(int idx, int ch, uint SHADING_FLAG)
 	double py = context_.pixel_pitch[_Y];
 	double waveLength = context_.wave_length[ch];
 	   
-	shadingFactor = 0;		
+	Real shadingFactor = 0;		
 	vec3 av(0, 0, 0);
 
 	if (SHADING_FLAG == SHADING_FLAT) {

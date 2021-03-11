@@ -323,7 +323,7 @@ namespace oph
 
 		inline void operator =(T* p) {
 			for (int x = 0; x < size[_X]; x++) {
-				for (int y = 0; y < size[_y]; y++) {
+				for (int y = 0; y < size[_Y]; y++) {
 					mat[x][y] = *p;
 					p++;
 				}

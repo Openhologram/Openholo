@@ -562,15 +562,11 @@ void Openholo::fft2(oph::ivec2 n, Complex<Real>* in, int sign, uint flag)
 	if (fft_out == nullptr)
 		fft_out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * pnx * pny);
 
-#if 0
-	memcpy(fft_in, in, sizeof(fftw_complex) * pnx * pny);
-#else
 	int i;
 	for (i = 0; i < pnx * pny; i++) {
 		fft_in[i][_RE] = in[i][_RE];
 		fft_in[i][_IM] = in[i][_IM];
 	}
-#endif
 
 	fft_sign = sign;
 

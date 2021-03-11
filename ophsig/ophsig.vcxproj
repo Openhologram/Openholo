@@ -221,7 +221,7 @@ xcopy /y "$(ProjectDir)src\*.h" "$(USERPROFILE)\source\repos\OpenholoRefApp\Refe
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
       <AdditionalDependencies>npps.lib;libfftw3-3.lib;cudart.lib;cufft.lib;cuda.lib;openholo_d.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(ProjectDir)lib;$(SolutionDir)Reference\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(ProjectDir)lib;$(SolutionDir)Reference\lib;$(CudaToolkitLibDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>/FORCE:multiple %(AdditionalOptions)</AdditionalOptions>
       <Profile>true</Profile>
     </Link>
