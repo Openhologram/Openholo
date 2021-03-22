@@ -1,0 +1,12 @@
+<TestSpecPointCloud>
+  <ScalingXofPointCloud>0.01</ScalingXofPointCloud>
+  <ScalingYofPointCloud>0.01</ScalingYofPointCloud>
+  <ScalingZofPointCloud>0.01</ScalingZofPointCloud>
+  <OffsetInDepth>0.3</OffsetInDepth>
+  <SLMpixelPitchX>0.0000043</SLMpixelPitchX>
+  <SLMpixelPitchY>0.0000043</SLMpixelPitchY>
+  <SLMpixelNumX>1920</SLMpixelNumX>
+  <SLMpixelNumY>1080</SLMpixelNumY>
+  <WavelengthofLaser>532e-9</WavelengthofLaser>
+  <NumOfStream>20</NumOfStream>
+</TestSpecPointCloud>

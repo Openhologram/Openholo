@@ -96,24 +96,16 @@ The amplitude inside each mesh is determined by the surface shading model and it
 /**
 * @ingroup mesh
 * @brief Openholo Triangular Mesh based CGH generation
-* @author Yeon-Gyeong Ju, Jae-Hyeung Park
+* @author
 */
 class GEN_DLL ophTri : public ophGen
 {
 public:
 	/**
 	* @brief Constructor
+	* @details Initialize variables.
 	*/
-	explicit ophTri(void) {
-		is_ViewingWindow = false;
-		is_CPU = true;
-		scaledMeshData = nullptr;
-		normalizedMeshData = nullptr;
-		angularSpectrum = nullptr;
-		bSinglePrecision = false;
-
-		LOG("*** MESH : BUILD DATE: %s %s ***\n\n", __DATE__, __TIME__);
-	}
+	explicit ophTri(void);
 
 protected:
 	/**
@@ -130,7 +122,6 @@ private:
 	Complex<Real>* angularSpectrum;			/// Angular spectrum of the hologram
 	OphMeshData* meshData;					/// OphMeshData type data structure pointer
 
-	// ==== GPU Variables ===============================================
 	bool	is_CPU;
 
 private:
@@ -154,7 +145,7 @@ public:
 	ulonglong getNumMesh() { return meshData->n_faces; }
 	Real* getMeshData() { return triMeshArray; }
 	Complex<Real>* getAngularSpectrum() { return angularSpectrum; }
-	Real* getScaledMeshData() {	return scaledMeshData; }
+	Real* getScaledMeshData() { return scaledMeshData; }
 
 	const vec3& getObjSize(void) { return objSize; }
 	const vec3& getObjShift(void) { return objShift; }
@@ -215,8 +206,7 @@ public:
 	* @overload
 	*/
 	void generateHologram(uint SHADING_FLAG);
-	void generateMeshHologram();
-	
+
 	/**
 	* @brief Set the value of a variable is_ViewingWindow(true or false)
 	* @details <pre>
@@ -228,23 +218,25 @@ public:
 	*/
 	void setViewingWindow(bool is_ViewingWindow);
 
+	uint* getProgress() { return &m_nProgress; }
 private:
-	
+
 	// Inner functions
 	/// not used for users
-	
+
 	void initializeAS();
 	void objNormCenter();
-	uint checkValidity(Real* mesh, vec3 no);
-	uint findGeometricalRelations(Real* mesh, vec3 no);
+
+	bool checkValidity(vec3 no);
+	bool findGeometricalRelations(Real* mesh, vec3 no);
 	void calGlobalFrequency();
-	uint calFrequencyTerm();
+	bool calFrequencyTerm();
 	uint refAS_Flat(vec3 na);
 	uint refAS_Continuous(uint n);
 	void randPhaseDist(Complex<Real>* AS);
 	void generateAS(uint SHADING_FLAG);
 	uint findNormals(uint SHADING_FLAG);
-	uint refToGlobal();
+	bool refToGlobal();
 
 	uint loadMeshText(const char* fileName);
 
@@ -261,10 +253,7 @@ private:
 	//	Inner global parameters
 	///	do not need to consider to users
 
-	Real refTri[9] = { 0,0,0,1,1,0,1,0,0 };
-	Real* fx;
-	Real* fy;
-	Real* fz;
+
 	vec3* no;
 	vec3* na;
 	vec3* nv;
@@ -274,24 +263,15 @@ private:
 	//	Inner local parameters
 	///	do not need to consider to users
 
+	uint m_nProgress;
 	vec3 n;
-	Real shadingFactor;
 	geometric geom;
-	Real* mesh_local;
 	Real* flx;
 	Real* fly;
 	Real* flz;
 	Real* freqTermX;
 	Real* freqTermY;
 	Complex<Real>* refAS;
-
-	Complex<Real> refTerm1;
-	Complex<Real> refTerm2;
-	Complex<Real> refTerm3;
-
-	Complex<Real> D1;
-	Complex<Real> D2;
-	Complex<Real> D3;
 
 	Complex<Real>* ASTerm;
 	Complex<Real>* randTerm;

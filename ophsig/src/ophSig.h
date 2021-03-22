@@ -576,6 +576,8 @@ protected:
 	* @return		    If works well return 0  or error occurs return -1
 	*/
 	bool propagationHolo_GPU(float depth);
+
+	bool Color_propagationHolo_GPU(float depth);
 public:
 	/**
 	* @brief Constructor
@@ -602,7 +604,7 @@ public:
 	* @param fname    File name
 	* @return         If works well return 0  or error occurs return -1
 	*/
-	//bool loadAsOhc(const char *fname);
+	bool loadAsOhc(const char *fname);
 	/**
 	* @brief          Save data as ohc file
 	* @param fname    File name
@@ -872,6 +874,11 @@ public:
 	* @return if works well return 0  or error occurs return -1
 	*/
 	bool readConfig(const char* fname);
+	void Parameter_Set(int nx, int ny, double width, double height , double NA );
+	void wavelength_Set(double wavelength);
+	void focal_length_Set(double red , double green, double blue, double rad);
+	void Data_output(uchar  *data, int pos ,int bitpixel);
+	void Wavenumber_output(int &wavenumber);
 
 	/**
 	* @ingroup offaxis

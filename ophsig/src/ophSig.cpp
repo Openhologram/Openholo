@@ -196,7 +196,7 @@ void ophSig::fft2(matrix<Complex<T>> &src, matrix<Complex<T>> &dst, int sign, ui
 
 
 
-/*
+
 bool ophSig::loadAsOhc(const char *fname)
 {
 	std::string fullname = fname;
@@ -225,7 +225,7 @@ bool ophSig::loadAsOhc(const char *fname)
 	}
 	return true;
 }
-*/
+
 bool ophSig::saveAsOhc(const char *fname)
 {
 	std::string fullname = fname;
@@ -233,6 +233,7 @@ bool ophSig::saveAsOhc(const char *fname)
 	OHC_encoder->setFileName(fullname.c_str());
 
 	ohcHeader header;
+
 	OHC_encoder->getOHCheader(header);
 
 	OHC_encoder->setNumOfPixel(context_.pixel_number[_X], context_.pixel_number[_Y]);
@@ -250,6 +251,7 @@ bool ophSig::saveAsOhc(const char *fname)
 	}
 
 	if (!OHC_encoder->save()) return false;
+	
 
 	return true;
 }
@@ -351,10 +353,10 @@ bool ophSig::load(const char *real, const char *imag)
 		LOG("Error: wrong type\n");
 	}
 	//nomalization
-	double realout, imagout;
+	//double realout, imagout;
 	for (int z = 0; z < _wavelength_num; z++)
 	{
-		meanOfMat(realMat[z], realout); meanOfMat(imagMat[z], imagout);
+		/*meanOfMat(realMat[z], realout); meanOfMat(imagMat[z], imagout);
 		
 		realMat[z] / realout; imagMat[z] / imagout;
 		absMat(realMat[z], realMat[z]);
@@ -362,7 +364,7 @@ bool ophSig::load(const char *real, const char *imag)
 		realout = maxOfMat(realMat[z]); imagout = maxOfMat(imagMat[z]);
 		realMat[z] / realout; imagMat[z] / imagout;
 		realout = minOfMat(realMat[z]); imagout = minOfMat(imagMat[z]);
-		realMat[z] - realout; imagMat[z] - imagout;
+		realMat[z] - realout; imagMat[z] - imagout;*/
 
 		ComplexH[z].resize(context_.pixel_number[_X], context_.pixel_number[_Y]);
 
@@ -760,6 +762,259 @@ bool ophSig::save(const char *fname)
 	LOG("Writing Openholo Complex Field...%s\n", fullname.c_str());
 	return TRUE;
 }
+
+void ophSig::Data_output(uchar *data, int pos, int bitpixel)
+{
+
+	int _width = context_.pixel_number[_Y], _height = context_.pixel_number[_X];
+	OphComplexField* abs_data;
+	abs_data = new OphComplexField[1];
+	abs_data->resize(context_.pixel_number[_Y], _height = context_.pixel_number[_X]);
+	if(pos == 0)
+	{ 
+	if (bitpixel == 8)
+	{
+	
+		absMat(ComplexH[0], *abs_data);
+		for (int i = _height - 1; i >= 0; i--)
+		{
+			for (int j = 0; j < _width; j++)
+			{
+				if (abs_data[0].mat[_height - i - 1][j]._Val[_RE] < 0)
+				{
+					abs_data[0].mat[_height - i - 1][j]._Val[_RE] = 0;
+				}
+			}
+		}
+
+		double minVal, iminVal, maxVal, imaxVal;
+		for (int j = 0; j < abs_data[0].size[_Y]; j++) {
+			for (int i = 0; i < abs_data[0].size[_X]; i++) {
+				if ((i == 0) && (j == 0))
+				{
+					minVal = abs_data[0](i, j)._Val[_RE];
+					maxVal = abs_data[0](i, j)._Val[_RE];
+				}
+				else {
+					if (abs_data[0](i, j)._Val[_RE] < minVal)
+					{
+						minVal = abs_data[0](i, j).real();
+					}
+					if (abs_data[0](i, j)._Val[_RE] > maxVal)
+					{
+						maxVal = abs_data[0](i, j).real();
+					}
+				}
+			}
+		}
+		for (int i = _height - 1; i >= 0; i--)
+		{
+			for (int j = 0; j < _width; j++)
+			{
+				data[i*_width + j] = (uchar)((abs_data[0](_height - i - 1, j)._Val[_RE] - minVal) / (maxVal - minVal) * 255 + 0.5);
+			}
+		}
+	}
+
+	else
+	{
+		double minVal, iminVal, maxVal, imaxVal;
+		for (int z = 0; z < 3; z++)
+		{
+			absMat(ComplexH[z], abs_data[0]);
+			for (int j = 0; j < abs_data[0].size[_Y]; j++) {
+				for (int i = 0; i < abs_data[0].size[_X]; i++) {
+					if ((i == 0) && (j == 0))
+					{
+						minVal = abs_data[0](i, j)._Val[_RE];
+						maxVal = abs_data[0](i, j)._Val[_RE];
+					}
+					else {
+						if (abs_data[0](i, j)._Val[_RE] < minVal)
+						{
+							minVal = abs_data[0](i, j)._Val[_RE];
+						}
+						if (abs_data[0](i, j)._Val[_RE] > maxVal)
+						{
+							maxVal = abs_data[0](i, j)._Val[_RE];
+						}
+					}
+				}
+			}
+
+			for (int i = _height - 1; i >= 0; i--)
+			{
+				for (int j = 0; j < _width; j++)
+				{
+					data[3 * j + 3 * i * _width + z] = (uchar)((abs_data[0](_height - i - 1, j)._Val[_RE] - minVal) / (maxVal - minVal) * 255);
+				}
+			}
+		}
+	}
+	}
+
+	else if (pos == 2)
+	{
+		if (bitpixel == 8)
+		{
+			for (int i = _height - 1; i >= 0; i--)
+			{
+				for (int j = 0; j < _width; j++)
+				{
+					if (ComplexH[0].mat[_height - i - 1][j]._Val[_RE] < 0)
+					{
+						ComplexH[0].mat[_height - i - 1][j]._Val[_RE] = 0;
+					}
+				}
+			}
+
+			double minVal, iminVal, maxVal, imaxVal;
+			for (int j = 0; j < ComplexH[0].size[_Y]; j++) {
+				for (int i = 0; i < ComplexH[0].size[_X]; i++) {
+					if ((i == 0) && (j == 0))
+					{
+						minVal = ComplexH[0](i, j)._Val[_RE];
+						maxVal = ComplexH[0](i, j)._Val[_RE];
+					}
+					else {
+						if (ComplexH[0](i, j)._Val[_RE] < minVal)
+						{
+							minVal = ComplexH[0](i, j).real();
+						}
+						if (ComplexH[0](i, j)._Val[_RE] > maxVal)
+						{
+							maxVal = ComplexH[0](i, j).real();
+						}
+					}
+				}
+			}
+			for (int i = _height - 1; i >= 0; i--)
+			{
+				for (int j = 0; j < _width; j++)
+				{
+					data[i*_width + j] = (uchar)((ComplexH[0](_height - i - 1, j)._Val[_RE] - minVal) / (maxVal - minVal) * 255 + 0.5);
+				}
+			}
+		}
+
+		else
+		{
+			double minVal, iminVal, maxVal, imaxVal;
+			for (int z = 0; z < 3; z++)
+			{
+				for (int j = 0; j < ComplexH[0].size[_Y]; j++) {
+					for (int i = 0; i < ComplexH[0].size[_X]; i++) {
+						if ((i == 0) && (j == 0))
+						{
+							minVal = ComplexH[z](i, j)._Val[_RE];
+							maxVal = ComplexH[z](i, j)._Val[_RE];
+						}
+						else {
+							if (ComplexH[z](i, j)._Val[_RE] < minVal)
+							{
+								minVal = ComplexH[z](i, j)._Val[_RE];
+							}
+							if (ComplexH[z](i, j)._Val[_RE] > maxVal)
+							{
+								maxVal = ComplexH[z](i, j)._Val[_RE];
+							}
+						}
+					}
+				}
+
+				for (int i = _height - 1; i >= 0; i--)
+				{
+					for (int j = 0; j < _width; j++)
+					{
+						data[3 * j + 3 * i * _width + z] = (uchar)((ComplexH[z](_height - i - 1, j)._Val[_RE] - minVal) / (maxVal - minVal) * 255);
+					}
+				}
+			}
+		}
+	}
+
+	else if (pos == 1)
+	{
+		if (bitpixel == 8)
+		{
+			for (int i = _height - 1; i >= 0; i--)
+			{
+				for (int j = 0; j < _width; j++)
+				{
+					if (ComplexH[0].mat[_height - i - 1][j]._Val[_IM] < 0)
+					{
+						ComplexH[0].mat[_height - i - 1][j]._Val[_IM] = 0;
+					}
+				}
+			}
+
+			double minVal, iminVal, maxVal, imaxVal;
+			for (int j = 0; j < ComplexH[0].size[_Y]; j++) {
+				for (int i = 0; i < ComplexH[0].size[_X]; i++) {
+					if ((i == 0) && (j == 0))
+					{
+						minVal = ComplexH[0](i, j)._Val[_IM];
+						maxVal = ComplexH[0](i, j)._Val[_IM];
+					}
+					else {
+						if (ComplexH[0](i, j)._Val[_IM] < minVal)
+						{
+							minVal = ComplexH[0](i, j).imag();
+						}
+						if (ComplexH[0](i, j)._Val[_IM] > maxVal)
+						{
+							maxVal = ComplexH[0](i, j).imag();
+						}
+					}
+				}
+			}
+			for (int i = _height - 1; i >= 0; i--)
+			{
+				for (int j = 0; j < _width; j++)
+				{
+					data[i*_width + j] = (uchar)((ComplexH[0](_height - i - 1, j)._Val[_IM] - minVal) / (maxVal - minVal) * 255 + 0.5);
+				}
+			}
+		}
+
+		else
+		{
+			double minVal, iminVal, maxVal, imaxVal;
+			for (int z = 0; z < 3; z++)
+			{
+				for (int j = 0; j < ComplexH[0].size[_Y]; j++) {
+					for (int i = 0; i < ComplexH[0].size[_X]; i++) {
+						if ((i == 0) && (j == 0))
+						{
+							minVal = ComplexH[z](i, j)._Val[_IM];
+							maxVal = ComplexH[z](i, j)._Val[_IM];
+						}
+						else {
+							if (ComplexH[z](i, j)._Val[_IM] < minVal)
+							{
+								minVal = ComplexH[z](i, j)._Val[_IM];
+							}
+							if (ComplexH[z](i, j)._Val[_IM] > maxVal)
+							{
+								maxVal = ComplexH[z](i, j)._Val[_IM];
+							}
+						}
+					}
+				}
+
+				for (int i = _height - 1; i >= 0; i--)
+				{
+					for (int j = 0; j < _width; j++)
+					{
+						data[3 * j + 3 * i * _width + z] = (uchar)((ComplexH[z](_height - i - 1, j)._Val[_IM] - minVal) / (maxVal - minVal) * 255);
+					}
+				}
+			}
+		}
+	}
+}
+
+
 bool ophSig::sigConvertOffaxis(Real angleX, Real angleY) {
 	auto start_time = CUR_TIME;
 	
@@ -828,7 +1083,14 @@ bool ophSig::propagationHolo(float depth) {
 	}
 	else {
 		std::cout << "Start Multi Core GPU" << std::endl;
-		propagationHolo_GPU(depth);
+		if (_wavelength_num == 1)
+		{
+			propagationHolo_GPU(depth);
+		}
+		else if (_wavelength_num == 3)
+		{
+			Color_propagationHolo_GPU(depth);
+		}
 
 	}
 	auto end_time = CUR_TIME;
@@ -994,6 +1256,32 @@ bool ophSig::sigConvertCAC_CPU(double red, double green, double blue) {
 	}
 
 	return true;
+}
+void ophSig::Parameter_Set(int nx, int ny, double width, double height,  double NA)
+{
+	context_.pixel_number[_X] = nx;
+	context_.pixel_number[_Y] = ny;
+	_cfgSig.width = width;
+	_cfgSig.height = height;
+	_cfgSig.NA = NA;
+}
+
+void ophSig::wavelength_Set(double wavelength)
+{
+	*context_.wave_length = wavelength;
+}
+
+void ophSig::focal_length_Set(double red, double green, double blue,double rad)
+{
+	_foc[2] = red;
+	_foc[1] = green;
+	_foc[0] = blue;
+	_radius = rad;
+}
+
+void ophSig::Wavenumber_output(int &wavenumber)
+{
+	wavenumber = _wavelength_num;
 }
 
 bool ophSig::readConfig(const char* fname)

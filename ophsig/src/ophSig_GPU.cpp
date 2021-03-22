@@ -311,6 +311,89 @@ bool ophSig::propagationHolo_GPU(float depth) {
 	return true;
 }
 
+bool ophSig::Color_propagationHolo_GPU(float depth) {
+	int nx = context_.pixel_number[_X];
+	int ny = context_.pixel_number[_Y];
+	Complex<Real> *host_data, *temp_data, *F;
+	cufftDoubleComplex *fft_temp_data, *out_data;
+	cufftHandle fftplan;
+
+	ophSigConfig *device_config = nullptr;
+
+	if (cufftPlan2d(&fftplan, nx, ny, CUFFT_Z2Z) != CUFFT_SUCCESS)
+	{
+		LOG("FAIL in creating cufft plan");
+		return false;
+	};
+
+	cField2Buffer(*ComplexH, &host_data, nx, ny);
+
+	cudaMalloc(&temp_data, sizeof(Complex<Real>)*nx*ny);
+	cudaMalloc(&fft_temp_data, sizeof(cufftDoubleComplex)*nx*ny);
+	cudaMalloc(&out_data, sizeof(cufftDoubleComplex)*nx*ny);
+	cudaMalloc(&F, sizeof(Complex<Real>)*ny*nx);
+	cudaMalloc(&device_config, sizeof(ophSigConfig));
+
+	cudaMemcpy(temp_data, host_data, sizeof(Complex<Real>)*nx*ny, cudaMemcpyHostToDevice);
+	cudaMemcpy(fft_temp_data, 0, sizeof(cufftDoubleComplex)*nx*ny, cudaMemcpyHostToDevice);
+	cudaMemcpy(out_data, 0, sizeof(cufftDoubleComplex)*nx*ny, cudaMemcpyHostToDevice);
+	cudaMemcpy(F, 0, sizeof(cufftDoubleComplex)*nx*ny, cudaMemcpyHostToDevice);
+	cudaMemcpy(device_config, &_cfgSig, sizeof(ophSigConfig), cudaMemcpyHostToDevice);
+
+	Real wl = 0;
+	Real_t sigmaf = 0;
+
+	///////////////
+	wl = 0.000000473;
+	sigmaf = (depth*wl) / (4 * M_PI);
+	ColorField2Buffer(ComplexH[0], &host_data, nx, ny);
+	cudaMemcpy(temp_data, host_data, sizeof(Complex<Real>)*nx*ny, cudaMemcpyHostToDevice);
+	cudaCvtFieldToCuFFT(temp_data, fft_temp_data, nx, ny);
+	cudaCuFFT(&fftplan, fft_temp_data, out_data, nx, ny, CUFFT_FORWARD);
+	cudaPropagation(out_data, fft_temp_data, F, device_config, nx, ny, sigmaf);
+	cudaCuIFFT(&fftplan, fft_temp_data, out_data, nx, ny, CUFFT_INVERSE);
+	cudaCvtCuFFTToField(out_data, temp_data, nx, ny);
+	cudaMemcpy(host_data, temp_data, nx*ny * sizeof(Complex<Real>), cudaMemcpyDeviceToHost);
+	ivec2 size(nx, ny);
+	Buffer2Field(host_data, ComplexH[0], size);
+	//
+	wl = 0.000000532;
+	sigmaf = (depth*wl) / (4 * M_PI);
+	ColorField2Buffer(ComplexH[1], &host_data, nx, ny);
+	cudaMemcpy(temp_data, host_data, sizeof(Complex<Real>)*nx*ny, cudaMemcpyHostToDevice);
+	cudaCvtFieldToCuFFT(temp_data, fft_temp_data, nx, ny);
+	cudaCuFFT(&fftplan, fft_temp_data, out_data, nx, ny, CUFFT_FORWARD);
+
+	cudaPropagation(out_data, fft_temp_data, F, device_config, nx, ny, sigmaf);
+	cudaCuIFFT(&fftplan, fft_temp_data, out_data, nx, ny, CUFFT_INVERSE);
+	cudaCvtCuFFTToField(out_data, temp_data, nx, ny);
+	cudaMemcpy(host_data, temp_data, nx*ny * sizeof(Complex<Real>), cudaMemcpyDeviceToHost);
+	Buffer2Field(host_data, ComplexH[1], size);
+	//
+	wl = 0.000000633;
+	sigmaf = (depth*wl) / (4 * M_PI);
+	ColorField2Buffer(ComplexH[2], &host_data, nx, ny);
+	cudaMemcpy(temp_data, host_data, sizeof(Complex<Real>)*nx*ny, cudaMemcpyHostToDevice);
+	cudaCvtFieldToCuFFT(temp_data, fft_temp_data, nx, ny);
+	cudaCuFFT(&fftplan, fft_temp_data, out_data, nx, ny, CUFFT_FORWARD);
+	cudaPropagation(out_data, fft_temp_data, F, device_config, nx, ny, sigmaf);
+	cudaCuIFFT(&fftplan, fft_temp_data, out_data, nx, ny, CUFFT_INVERSE);
+	cudaCvtCuFFTToField(out_data, temp_data, nx, ny);
+	cudaMemcpy(host_data, temp_data, nx*ny * sizeof(Complex<Real>), cudaMemcpyDeviceToHost);
+	Buffer2Field(host_data, ComplexH[2], size);
+	//
+	cudaFree(F);
+	cudaFree(device_config);
+	cudaFree(temp_data);
+	cudaFree(out_data);
+	cudaFree(fft_temp_data);
+	cufftDestroy(fftplan);
+
+	delete[] host_data;
+
+	return true;
+}
+
 double ophSig::sigGetParamSF_GPU(float zMax, float zMin, int sampN, float th) {
 	int nx = context_.pixel_number[_X];
 	int ny = context_.pixel_number[_Y];
