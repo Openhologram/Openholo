@@ -88,7 +88,7 @@ class data_ptr {
         , owner_(_other.owner_) {
         if (owner_) {
             resize(_other.size_);
-            std::copy(_other.data_, _other.data_ + size_, data_);
+            std::copy(_other.data_, _other.data_ + size_, stdext::checked_array_iterator<T *>(data_, size_));
         }
     }
 
@@ -103,7 +103,7 @@ class data_ptr {
     void reserve(SZ _n) {
         if (_n > capacity_) {
             T* new_data = CODER_NEW(T, _n);
-            std::copy(data_, data_ + size_, new_data);
+            std::copy(data_, data_ + size_, stdext::checked_array_iterator<T *>(new_data, size_));
             if (owner_) {
                 CODER_DELETE(data_);
             }
@@ -144,7 +144,7 @@ class data_ptr {
         owner_ = true;
         size_ = _size;
         capacity_ = size_;
-        std::copy(_data, _data + _size, data_);
+        std::copy(_data, _data + _size, stdext::checked_array_iterator<T *>(data_, _size));
     }
 
     void copy(const data_ptr<T, SZ>& _other) {

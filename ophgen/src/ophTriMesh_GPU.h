@@ -91,8 +91,15 @@ extern "C"
 		double glRot0, double glRot1, double glRot2, double glRot3, double glRot4, double glRot5, double glRot6, double glRot7, double glRot8,
 		double loRot0, double loRot1, double loRot2, double loRot3, double glShiftX, double glShiftY, double glShiftZ,
 		double carrierWaveX, double carrierWaveY, double carrierWaveZ, double min_double, double tolerence, CUstream_st* streamTriMesh);
+	
+	void call_cudaKernel_refASf(cuFloatComplex* output, int nx, int ny, float px, float py, unsigned int sflag, int idx, float waveLength,
+		float pi, float shadingFactor, float av0, float av1, float av2,
+		float glRot0, float glRot1, float glRot2, float glRot3, float glRot4, float glRot5, float glRot6, float glRot7, float glRot8,
+		float loRot0, float loRot1, float loRot2, float loRot3, float glShiftX, float glShiftY, float glShiftZ,
+		float carrierWaveX, float carrierWaveY, float carrierWaveZ, float min_double, float tolerence, CUstream_st* streamTriMesh);
 
 	void call_fftGPU(int nx, int ny, cufftDoubleComplex* input, cufftDoubleComplex* output, CUstream_st* streamTriMesh);
+	void call_fftGPUf(int nx, int ny, cuFloatComplex* input, cuFloatComplex* output, CUstream_st* streamTriMesh);
 
 }
 
