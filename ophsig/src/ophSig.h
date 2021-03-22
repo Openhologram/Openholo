@@ -987,6 +987,27 @@ public:
 	*/
 	bool getComplexHFromPSDH(const char* fname0, const char* fname90, const char* fname180, const char* fname270);
 
+	/**
+	* @addtogroup PSDH_3ArbStep
+	//@{
+	* @details
+	Extract complex field from 3 interference patterns with arbitrary phase shifts of the reference wave
+	Store the result complex field to the member variable ComplexH
+	[ref] L.Z. CAi, Q. Liu, and X.L. Yang, Opt. Lett. 28(19) 1808 (2003)
+	
+	*/
+	//! @} PSDH_3ArbStep
+
+	/**
+	* @ingroup PSDH_3ArbStep
+	* @brief Extraction of complex field from 3 phase shifted interference patterns with arbitrary unknown shifts
+	* @details
+	* @param f0, f1, f2 Input image files for 3 interference patterns
+	* @param fOI, Input image file for object wave intensity 
+	* @param nIter The number of the iterations in estimating the phase shift
+	* @return if works well return 0  or error occurs return -1
+	*/
+	bool getComplexHFrom3ArbStepPSDH(const char* f0, const char* f1, const char* f2, const char* fOI, const char* fRI, int nIter);
 
 };
 

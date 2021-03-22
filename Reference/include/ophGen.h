@@ -78,7 +78,9 @@ public:
 		ENCODE_TWOPHASE,
 		ENCODE_SSB,
 		ENCODE_OFFSSB,
-		ENCODE_SYMMETRIZATION
+		ENCODE_SYMMETRIZATION,
+		ENCODE_SIMPLEBINARY,
+		ENCODE_EDBINARY
 	};
 
 public:
@@ -145,6 +147,16 @@ public:
 	void propagationAngularSpectrum(int ch, Complex<Real>* input_u, Real propagation_dist, Real k, Real lambda);
 
 	/**
+	@brief Convolution between Complex arrays which have same size
+	@param[in] src1 convolution matrix 1
+	@param[in] src2 convolution matrix 2
+	@param[in] dst convolution destination matrix
+	@param[in] size matrix size
+	*/
+	void conv_fft2(Complex<Real>* src1, Complex<Real>* src2, Complex<Real>* dst, ivec2 size);
+
+
+	/**
 	* @brief Normalization function to save as image file after hologram creation
 	*/
 	void normalize(void);
@@ -201,6 +213,9 @@ protected:
 
 
 public:
+
+	void setEncodeMethod(unsigned int ENCODE_FLAG) { ENCODE_METHOD = ENCODE_FLAG; }
+
 	/**
 	* @brief	Encoding Functions
 	* @details
@@ -214,7 +229,8 @@ public:
 	* @param[in] holo buffer to encode.
 	* @overload
 	*/
-	void encoding(unsigned int ENCODE_FLAG, Complex<Real>* holo = nullptr);
+	//void encoding(unsigned int ENCODE_FLAG, Complex<Real>* holo = nullptr);
+	void encoding(unsigned int ENCODE_FLAG, Complex<Real>* holo = nullptr, Real* encoded = nullptr);
 
 	void encoding();
 	/*
@@ -227,8 +243,27 @@ public:
 	* @param[in] holo buffer to encode.
 	* @overload
 	*/
-	virtual void encoding(unsigned int ENCODE_FLAG, unsigned int SSB_PASSBAND, Complex<Real>* holo = nullptr);
+	virtual void encoding(unsigned int ENCODE_FLAG, unsigned int SSB_PASSBAND, Complex<Real>* holo = nullptr, Real* encoded = nullptr);
 	enum SSB_PASSBAND { SSB_LEFT, SSB_RIGHT, SSB_TOP, SSB_BOTTOM };
+
+	/**
+	* @brief	Binary Encoding Functions
+	* @details
+	*	ENCODE_PHASE		:	Phase@n
+	*	ENCODE_AMPLITUDE	:	Amplitude@n
+	*	ENCODE_REAL			:	Real Part@n
+	*	ENCODE_SIMPLENI		:	Simple numerical interference@n
+	*	ENCODE_BURCKHARDT	:	Burckhardt encoding@n
+	*	ENCODE_TWOPHASE		:	Two Phase Encoding@n
+	*	ENCODE_SIMPLEBINARY	:	Simple binary encoding@n
+	*	ENCODE_EDBINARY		:	Error diffusion binary encoding
+	* @param[in] BIN_ENCODE_FLAG binarization method.
+	* @param[in] ENCODE_FLAG encoding method for binarization.
+	* @param[in] threshold threshold for binarization.
+	* @param[in] holo buffer to encode.
+	* @overload
+	*/
+	void encoding(unsigned int BIN_ENCODE_FLAG, unsigned int ENCODE_FLAG, Real threshold, Complex<Real>* holo = nullptr, Real* encoded = nullptr);
 
 public:
 
@@ -241,6 +276,7 @@ public:
 	*/
 	void waveCarry(Real carryingAngleX, Real carryingAngleY, Real distance);
 
+	void waveCarry(Complex<Real>* src, Complex<Real>* dst, Real wavelength, int carryIdxX, int carryIdxY);
 protected:
 	/// Encoded hologram size, varied from encoding type.
 	ivec2					m_vecEncodeSize;
@@ -262,6 +298,11 @@ private:
 protected:
 	Real					m_dFieldLength;
 	int						m_nStream;
+
+	/// buffer to conv_fft2
+	Complex<Real>*			src1FT;
+	Complex<Real>*			src2FT;
+	Complex<Real>*			dstFT;
 
 public:
 	void transVW(int nSize, Real *dst, Real *src);
@@ -329,6 +370,40 @@ protected:
 	* @param[in] shift_y Y pixel value to shift
 	*/
 	void freqShift(Complex<Real>* src, Complex<Real>* dst, const ivec2 holosize, int shift_x, int shift_y);
+
+
+public:
+	enum ED_WType { FLOYD_STEINBERG, SINGLE_RIGHT, SINGLE_DOWN, ITERATIVE_DESIGN };
+	bool saveRefImages(char* fnameW, char* fnameWC, char* fnameAS, char* fnameSSB, char* fnameHP, char* fnameFreq, char* fnameReal, char* fnameBin, char* fnameReconBin, char* fnameReconErr, char* fnameReconNo);
+
+protected:
+	/// Binary Encoding - Error diffusion
+	int ss;
+	Complex<Real>* AS;
+	Complex<Real>* normalized;
+	Complex<Real>* fftTemp;
+	Real* weight;
+	Complex<Real>* weightC;
+	Complex<Real>* freqW;
+	Real* realEnc;
+	Real* binary;
+	Real* maskSSB;
+	Real* maskHP;
+
+	bool binaryErrorDiffusion(Complex<Real>* holo, Real* encoded, const ivec2 holosize, const int type, Real threshold);
+	bool getWeightED(const ivec2 holosize, const int type, ivec2* pNw);
+	bool shiftW(ivec2 holosize);
+	void binarization(Complex<Real>* src, Real* dst, const int size, int ENCODE_FLAG, Real threshold);
+
+
+	//public:
+	//bool carrierWaveMultiplexingEncoding(char* dirName, uint ENCODE_METHOD, Real cenFxIdx, Real cenFyIdx, Real stepFx, Real stepFy, int nFx, int nFy);
+	//bool carrierWaveMultiplexingEncoding(char* dirName, uint ENCODE_METHOD, uint PASSBAND, Real cenFxIdx, Real cenFyIdx, Real stepFx, Real stepFy, int nFx, int nFy);
+
+	//protected:
+
+
+
 public:
 	/**
 	* @brief Fresnel propagation

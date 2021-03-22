@@ -1737,6 +1737,303 @@ bool ophSig::getComplexHFromPSDH(const char * fname0, const char * fname90, cons
 	return true;
 }
 
+bool ophSig::getComplexHFrom3ArbStepPSDH(const char* fname0, const char* fname1, const char* fname2, const char* fnameOI, const char* fnameRI, int nIter)
+{
+	auto start_time = CUR_TIME;
+	string fname0str = fname0;
+	string fname1str = fname1;
+	string fname2str = fname2;
+	string fnameOIstr = fnameOI;
+	string fnameRIstr = fnameRI;
+	int checktype = static_cast<int>(fname0str.rfind("."));
+	OphRealField f0Mat[3], f1Mat[3], f2Mat[3], fOIMat[3], fRIMat[3];
+
+	std::string f0type = fname0str.substr(checktype + 1, fname0str.size());
+
+	uint16_t bitsperpixel;
+	fileheader hf;
+	bitmapinfoheader hInfo;
+
+	if (f0type == "bmp")
+	{
+		FILE *f0, *f1, *f2, *fOI, *fRI;
+		fopen_s(&f0, fname0str.c_str(), "rb"); fopen_s(&f1, fname1str.c_str(), "rb");
+		fopen_s(&f2, fname2str.c_str(), "rb"); fopen_s(&fOI, fnameOIstr.c_str(), "rb");
+		fopen_s(&fRI, fnameRIstr.c_str(), "rb");
+		if (!f0)
+		{
+			LOG("bmp file open fail! (first interference pattern)\n");
+			return false;
+		}
+		if (!f1)
+		{
+			LOG("bmp file open fail! (second interference pattern)\n");
+			return false;
+		}
+		if (!f2)
+		{
+			LOG("bmp file open fail! (third interference pattern)\n");
+			return false;
+		}
+		if (!fOI)
+		{
+			LOG("bmp file open fail! (object wave intensity pattern)\n");
+			return false;
+		}
+		if (!fRI)
+		{
+			LOG("bmp file open fail! (reference wave intensity pattern)\n");
+			return false;
+		}
+		fread(&hf, sizeof(fileheader), 1, f0);
+		fread(&hInfo, sizeof(bitmapinfoheader), 1, f0);
+		fread(&hf, sizeof(fileheader), 1, f1);
+		fread(&hInfo, sizeof(bitmapinfoheader), 1, f1);
+		fread(&hf, sizeof(fileheader), 1, f2);
+		fread(&hInfo, sizeof(bitmapinfoheader), 1, f2);
+		fread(&hf, sizeof(fileheader), 1, fOI);
+		fread(&hInfo, sizeof(bitmapinfoheader), 1, fOI);
+		fread(&hf, sizeof(fileheader), 1, fRI);
+		fread(&hInfo, sizeof(bitmapinfoheader), 1, fRI);
+
+		if (hf.signature[0] != 'B' || hf.signature[1] != 'M') { LOG("Not BMP File!\n"); }
+		if ((hInfo.height == 0) || (hInfo.width == 0))
+		{
+			LOG("bmp header is empty!\n");
+			hInfo.height = context_.pixel_number[_X];
+			hInfo.width = context_.pixel_number[_Y];
+			if (hInfo.height == 0 || hInfo.width == 0)
+			{
+				LOG("check your parameter file!\n");
+				return false;
+			}
+		}
+		if ((context_.pixel_number[_Y] != hInfo.height) || (context_.pixel_number[_X] != hInfo.width)) {
+			LOG("image size is different!\n");
+			context_.pixel_number[_Y] = hInfo.height;
+			context_.pixel_number[_X] = hInfo.width;
+			LOG("changed parameter of size %d x %d\n", context_.pixel_number[_X], context_.pixel_number[_Y]);
+		}
+		bitsperpixel = hInfo.bitsperpixel;
+		if (hInfo.bitsperpixel == 8)
+		{
+			_wavelength_num = 1;
+			rgbquad palette[256];
+			fread(palette, sizeof(rgbquad), 256, f0);
+			fread(palette, sizeof(rgbquad), 256, f1);
+			fread(palette, sizeof(rgbquad), 256, f2);
+			fread(palette, sizeof(rgbquad), 256, fOI);
+			fread(palette, sizeof(rgbquad), 256, fRI);
+
+			f0Mat[0].resize(hInfo.height, hInfo.width);
+			f1Mat[0].resize(hInfo.height, hInfo.width);
+			f2Mat[0].resize(hInfo.height, hInfo.width);
+			fOIMat[0].resize(hInfo.height, hInfo.width);
+			fRIMat[0].resize(hInfo.height, hInfo.width);
+			ComplexH = new OphComplexField;
+			ComplexH[0].resize(hInfo.height, hInfo.width);
+		}
+		else
+		{
+			_wavelength_num = 3;
+			ComplexH = new OphComplexField[3];
+			f0Mat[0].resize(hInfo.height, hInfo.width);
+			f1Mat[0].resize(hInfo.height, hInfo.width);
+			f2Mat[0].resize(hInfo.height, hInfo.width);
+			fOIMat[0].resize(hInfo.height, hInfo.width);
+			fRIMat[0].resize(hInfo.height, hInfo.width);
+			ComplexH[0].resize(hInfo.height, hInfo.width);
+
+			f0Mat[1].resize(hInfo.height, hInfo.width);
+			f1Mat[1].resize(hInfo.height, hInfo.width);
+			f2Mat[1].resize(hInfo.height, hInfo.width);
+			fOIMat[1].resize(hInfo.height, hInfo.width);
+			fRIMat[1].resize(hInfo.height, hInfo.width);
+			ComplexH[1].resize(hInfo.height, hInfo.width);
+
+			f0Mat[2].resize(hInfo.height, hInfo.width);
+			f1Mat[2].resize(hInfo.height, hInfo.width);
+			f2Mat[2].resize(hInfo.height, hInfo.width);
+			fOIMat[2].resize(hInfo.height, hInfo.width);
+			fRIMat[2].resize(hInfo.height, hInfo.width);
+			ComplexH[2].resize(hInfo.height, hInfo.width);
+		}
+
+		uchar* f0data = (uchar*)malloc(sizeof(uchar)*hInfo.width*hInfo.height*(hInfo.bitsperpixel / 8));
+		uchar* f1data = (uchar*)malloc(sizeof(uchar)*hInfo.width*hInfo.height*(hInfo.bitsperpixel / 8));
+		uchar* f2data = (uchar*)malloc(sizeof(uchar)*hInfo.width*hInfo.height*(hInfo.bitsperpixel / 8));
+		uchar* fOIdata = (uchar*)malloc(sizeof(uchar)*hInfo.width*hInfo.height*(hInfo.bitsperpixel / 8));
+		uchar* fRIdata = (uchar*)malloc(sizeof(uchar)*hInfo.width*hInfo.height*(hInfo.bitsperpixel / 8));
+
+		fread(f0data, sizeof(uchar), hInfo.width*hInfo.height*(hInfo.bitsperpixel / 8), f0);
+		fread(f1data, sizeof(uchar), hInfo.width*hInfo.height*(hInfo.bitsperpixel / 8), f1);
+		fread(f2data, sizeof(uchar), hInfo.width*hInfo.height*(hInfo.bitsperpixel / 8), f2);
+		fread(fOIdata, sizeof(uchar), hInfo.width*hInfo.height*(hInfo.bitsperpixel / 8), fOI);
+		fread(fRIdata, sizeof(uchar), hInfo.width*hInfo.height*(hInfo.bitsperpixel / 8), fRI);
+
+		fclose(f0);
+		fclose(f1);
+		fclose(f2);
+		fclose(fOI);
+		fclose(fRI);
+
+		for (int i = hInfo.height - 1; i >= 0; i--)
+		{
+			for (int j = 0; j < static_cast<int>(hInfo.width); j++)
+			{
+				for (int z = 0; z < (hInfo.bitsperpixel / 8); z++)
+				{
+					f0Mat[z](hInfo.height - i - 1, j) = (double)f0data[i*hInfo.width*(hInfo.bitsperpixel / 8) + (hInfo.bitsperpixel / 8)*j + z];
+					f1Mat[z](hInfo.height - i - 1, j) = (double)f1data[i*hInfo.width*(hInfo.bitsperpixel / 8) + (hInfo.bitsperpixel / 8)*j + z];
+					f2Mat[z](hInfo.height - i - 1, j) = (double)f2data[i*hInfo.width*(hInfo.bitsperpixel / 8) + (hInfo.bitsperpixel / 8)*j + z];
+					fOIMat[z](hInfo.height - i - 1, j) = (double)fOIdata[i*hInfo.width*(hInfo.bitsperpixel / 8) + (hInfo.bitsperpixel / 8)*j + z];
+					fRIMat[z](hInfo.height - i - 1, j) = (double)fRIdata[i*hInfo.width*(hInfo.bitsperpixel / 8) + (hInfo.bitsperpixel / 8)*j + z];
+				}
+			}
+		}
+		LOG("PSDH_3ArbStep file load complete!\n");
+
+		free(f0data);
+		free(f1data);
+		free(f2data);
+		free(fOIdata);
+		free(fRIdata);
+
+	}
+	else
+	{
+		LOG("wrong type (only BMP supported)\n");
+	}
+
+	// calculation complexH from 3 arbitrary step intereference patterns and the object wave intensity
+	// prepare some variables
+	double P[2] = { 0.0, }; // please see ref.
+	double C[2] = { 2.0/M_PI, 2.0/M_PI };
+	double alpha[2] = { 0.0, }; //phaseShift[j+1]-phaseShift[j]
+	double ps[3] = { 0.0, };	// reference wave phase shift for each inteference pattern
+	const int nX = context_.pixel_number[_X];
+	const int nY = context_.pixel_number[_Y];
+	const int nXY = nX * nY;
+	
+
+	// calculate difference between interference patterns
+	OphRealField I01Mat, I02Mat, I12Mat, OAMat, RAMat;
+	I01Mat.resize(nY, nX);
+	I02Mat.resize(nY, nX);
+	I12Mat.resize(nY, nX);
+	OAMat.resize(nY, nX);
+	RAMat.resize(nY, nX);
+	
+	double sin2m1h, sin2m0h, sin1m0h, sin0p1h, sin0p2h, cos0p1h, cos0p2h, sin1p2h, cos1p2h;
+	double sinP, cosP;
+	for (int z = 0; z < (hInfo.bitsperpixel / 8); z++)
+	{
+		// initialize
+		P[0] = 0.0;
+		P[1] = 0.0;
+		C[0] = 2.0 / M_PI;
+		C[1] = 2.0 / M_PI;
+
+		// load current channel 
+		for (int i = 0; i < nX; i++)
+		{
+			for (int j = 0; j < nY; j++)
+			{
+				I01Mat[j][i] = (f0Mat[z][j][i] - f1Mat[z][j][i]) / 255.;	// difference & normalize
+				I02Mat[j][i] = (f0Mat[z][j][i] - f2Mat[z][j][i]) / 255.;  // difference & normalize
+				I12Mat[j][i] = (f1Mat[z][j][i] - f2Mat[z][j][i]) / 255.;  // difference & normalize
+				OAMat[j][i] = sqrt(fOIMat[z][j][i] / 255.);			// normalize & then calculate amplitude from intensity
+				RAMat[j][i] = sqrt(fRIMat[z][j][i] / 255.);			// normalize & then calculate amplitude from intensity
+			}
+		}
+
+		// calculate P
+		for (int i = 0; i < nX; i++)
+		{
+			for (int j = 0; j < nY; j++)
+			{
+				P[0] += abs(I01Mat[j][i] / OAMat[j][i] / RAMat[j][i]);
+				P[1] += abs(I12Mat[j][i] / OAMat[j][i] / RAMat[j][i]);
+			}
+		}
+		P[0] = P[0] / (4.*((double) nXY));
+		P[1] = P[1] / (4.*((double) nXY));
+		LOG("P %f  %f\n", P[0], P[1]);
+		
+		// iterative search
+		for (int iter = 0; iter < nIter; iter++)
+		{
+			LOG("C %d %f  %f\n", iter, C[0], C[1]);
+			LOG("ps %d %f  %f  %f\n", iter, ps[0], ps[1], ps[2]);
+
+			alpha[0] = 2.*asin(P[0] / C[0]);
+			alpha[1] = 2.*asin(P[1] / C[1]);
+
+			ps[0] = 0.0;
+			ps[1] = ps[0] + alpha[0];
+			ps[2] = ps[1] + alpha[1];
+
+			sin2m1h = sin((ps[2] - ps[1]) / 2.);
+			sin2m0h = sin((ps[2] - ps[0]) / 2.);
+			sin1m0h = sin((ps[1] - ps[0]) / 2.);
+			sin0p1h = sin((ps[0] + ps[1]) / 2.);
+			sin0p2h = sin((ps[0] + ps[2]) / 2.);
+			cos0p1h = cos((ps[0] + ps[1]) / 2.);
+			cos0p2h = cos((ps[0] + ps[2]) / 2.);
+			for (int i = 0; i < nX; i++)
+			{
+				for (int j = 0; j < nY; j++)
+				{
+					ComplexH[z][j][i]._Val[_RE] = (1. / (4.*RAMat[j][i]*sin2m1h))*((cos0p1h / sin2m0h)*I02Mat[j][i] - (cos0p2h / sin1m0h)*I01Mat[j][i]);
+					ComplexH[z][j][i]._Val[_IM] = (1. / (4.*RAMat[j][i]*sin2m1h))*((sin0p1h / sin2m0h)*I02Mat[j][i] - (sin0p2h / sin1m0h)*I01Mat[j][i]);
+				}
+			}
+
+			// update C
+			C[0] = 0.0;
+			C[1] = 0.0;
+			sin1p2h = sin((ps[1] + ps[2]) / 2.);
+			cos1p2h = cos((ps[1] + ps[2]) / 2.);
+			for (int i = 0; i < nX; i++)
+			{
+				for (int j = 0; j < nY; j++)
+				{
+					sinP = ComplexH[z][j][i]._Val[_IM] / OAMat[j][i];
+					cosP = ComplexH[z][j][i]._Val[_RE] / OAMat[j][i];
+					C[0] += abs(sinP*cos0p1h - cosP*sin0p1h);
+					C[1] += abs(sinP*cos1p2h - cosP*sin1p2h);
+				}
+			}
+			LOG("C1 %d %f  %f\n", iter, C[0], C[1]);
+			C[0] = C[0] / ((double)nXY);
+			C[1] = C[1] / ((double)nXY);	
+			LOG("C2 %d %f  %f\n", iter, C[0], C[1]);
+
+			/// temporary. only because save function clamps negative values to zero.
+			for (int i = 0; i < nX; i++)
+			{
+				for (int j = 0; j < nY; j++)
+				{
+					ComplexH[z][j][i]._Val[_RE] = ComplexH[z][j][i]._Val[_RE] + 0.5;
+					ComplexH[z][j][i]._Val[_IM] = ComplexH[z][j][i]._Val[_IM] + 0.5;
+				}
+			}
+		}
+	}
+	
+
+	LOG("complex field obtained from 3 interference patterns\n");
+
+	auto end_time = CUR_TIME;
+
+	auto during_time = ((std::chrono::duration<Real>)(end_time - start_time)).count();
+
+	LOG("Implement time : %.5lf sec\n", during_time);
+
+	return true;
+}
+
+
 void ophSig::ophFree(void) {
 
 }

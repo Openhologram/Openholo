@@ -73,7 +73,7 @@ void ophLF::setViewingWindow(bool is_ViewingWindow)
 	this->is_ViewingWindow = is_ViewingWindow;
 }
 
-bool ophLF::readConfig(const char* fname) 
+bool ophLF::readConfig(const char* fname)
 {
 	if (!ophGen::readConfig(fname))
 		return false;
@@ -237,7 +237,7 @@ int ophLF::loadLF()
 	}
 }
 
-void ophLF::generateHologram() 
+void ophLF::generateHologram()
 {
 	resetBuffer();
 
@@ -255,7 +255,7 @@ void ophLF::generateHologram()
 	if (is_CPU)
 	{
 		convertLF2ComplexField();
-		for(uint ch = 0; ch < context_.waveNum; ch++) 
+		for (uint ch = 0; ch < context_.waveNum; ch++)
 			fresnelPropagation(RSplane_complex_field, complex_H[ch], distanceRS2Holo, ch);
 	}
 	else
@@ -339,7 +339,7 @@ void ophLF::convertLF2ComplexField()
 
 			for (int idxnY = 0; idxnY < nY; idxnY++) { // 10
 				for (int idxnX = 0; idxnX < nX; idxnX++) { // 10
-					// LF[img idx][pixel idx]
+														   // LF[img idx][pixel idx]
 					complexLF[idxnX + nX * idxnY] = (Real)(LF[idxnX + nX * idxnY][idxrX + rX * idxrY]);
 				}
 			}
@@ -353,8 +353,8 @@ void ophLF::convertLF2ComplexField()
 					randVal = rand((Real)0, (Real)1, idxrX * idxrY);
 					phase(0, 2 * M_PI * randVal); // random phase
 
-					//*(RSplane_complex_field + nXY * rX*idxrY + nX * rX*idxnY + nX * idxrX + idxnX) = *(FFTLF + (idxnX + nX * idxnY))*exp(phase);
-					// 100 * 192 * 107 + 10 * 192 * 107 + 10 * 191 + 9
+												  //*(RSplane_complex_field + nXY * rX*idxrY + nX * rX*idxnY + nX * idxrX + idxnX) = *(FFTLF + (idxnX + nX * idxnY))*exp(phase);
+												  // 100 * 192 * 107 + 10 * 192 * 107 + 10 * 191 + 9
 					RSplane_complex_field[nXY * rX*idxrY + nX * rX*idxnY + nX * idxrX + idxnX] =
 						FFTLF[idxnX + nX * idxnY] * exp(phase);
 					//
