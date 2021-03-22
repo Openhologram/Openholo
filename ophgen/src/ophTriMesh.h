@@ -253,10 +253,7 @@ private:
 	//	Inner global parameters
 	///	do not need to consider to users
 
-	Real refTri[9] = { 0,0,0,1,1,0,1,0,0 };
-	Real* fx;
-	Real* fy;
-	Real* fz;
+
 	vec3* no;
 	vec3* na;
 	vec3* nv;
@@ -268,7 +265,6 @@ private:
 
 	uint m_nProgress;
 	vec3 n;
-	Real shadingFactor;
 	geometric geom;
 	Real* flx;
 	Real* fly;
@@ -276,14 +272,6 @@ private:
 	Real* freqTermX;
 	Real* freqTermY;
 	Complex<Real>* refAS;
-
-	Complex<Real> refTerm1;
-	Complex<Real> refTerm2;
-	Complex<Real> refTerm3;
-
-	Complex<Real> D1;
-	Complex<Real> D2;
-	Complex<Real> D3;
 
 	Complex<Real>* ASTerm;
 	Complex<Real>* randTerm;
