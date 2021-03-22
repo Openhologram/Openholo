@@ -48,6 +48,7 @@
     </Filter>
     <Filter Include="_1_Generation\_ophAS">
       <UniqueIdentifier>{50e1103f-5e35-45f7-a02c-9d634f4e783c}</UniqueIdentifier>
+	</Filter>
     <Filter Include="_1_Generation\_ophNonHogelLF">
       <UniqueIdentifier>{a53757f2-50af-4c81-a3b1-d2ca7c69286e}</UniqueIdentifier>
     </Filter>
@@ -114,6 +115,7 @@
     </ClInclude>
     <ClInclude Include="src\ophAS.h">
       <Filter>_1_Generation\_ophAS</Filter>
+	</ClInclude>
     <ClInclude Include="src\ophNonHogelLF.h">
       <Filter>_1_Generation\_ophNonHogelLF</Filter>
     </ClInclude>
@@ -176,6 +178,7 @@
     </ClCompile>
     <ClCompile Include="src\ophAS.cpp">
       <Filter>_1_Generation\_ophAS</Filter>
+	</ClCompile>
     <ClCompile Include="src\ophNonHogelLF.cpp">
       <Filter>_1_Generation\_ophNonHogelLF</Filter>
     </ClCompile>
