@@ -108,16 +108,24 @@ The amplitude inside each mesh is determined by the surface shading model and it
 /**
 * @ingroup mesh
 * @brief Openholo Triangular Mesh based CGH generation
-* @author
+* @author Yeon-Gyeong Ju, Jae-Hyeung Park
 */
 class GEN_DLL ophTri : public ophGen
 {
 public:
 	/**
 	* @brief Constructor
-	* @details Initialize variables.
 	*/
-	explicit ophTri(void);
+	explicit ophTri(void) {
+		is_ViewingWindow = false;
+		is_CPU = true;
+		scaledMeshData = nullptr;
+		normalizedMeshData = nullptr;
+		angularSpectrum = nullptr;
+		bSinglePrecision = false;
+
+		LOG("*** MESH : BUILD DATE: %s %s ***\n\n", __DATE__, __TIME__);
+	}
 
 protected:
 	/**
@@ -225,7 +233,7 @@ public:
 
 	/**
 	*/
-	void loadTexturePattern(const char* fileName, const char* ext, Real period);
+	void loadTexturePattern(const char* fileName, const char* ext);
 
 
 	/**
@@ -253,14 +261,12 @@ public:
 	*/
 	void setViewingWindow(bool is_ViewingWindow);
 
-	uint* getProgress() { return &m_nProgress; }
 private:
 
 	// Inner functions
 	/// not used for users
 
 	void initializeAS();
-	void prepareMeshData();
 	void objNormCenter();
 	void objSort();
 	bool checkValidity(Real* mesh, vec3 no);
@@ -299,25 +305,22 @@ private:
 
 	Real refTri[9] = { 0,0,0,1,1,0,1,0,0 };
 	Real mesh[9] = { 0.0, };
-	Real* fx;
-	Real* fy;
-	Real* fz;
 	vec3* no;
 	vec3* na;
 	vec3* nv;
+	Real** gFreq;
 
 private:
 
 	//	Inner local parameters
 	///	do not need to consider to users
 
+	uint m_nProgress;
 	geometric geom;
-	Real* flx;
-	Real* fly;
-	Real* flz;
 	Real* freqTermX;
 	Real* freqTermY;
 	Complex<Real>* refAS;
+	Real** lFreq;
 
 	// calGlobalFrequency()
 	Real dfx, dfy;

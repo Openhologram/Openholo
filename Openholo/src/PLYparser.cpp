@@ -527,8 +527,9 @@ bool PLYparser::loadPLY(const char* fileName, ulonglong & n_vertices, int & colo
 
 			//parse PLY header
 			while (std::getline(File, line)) {
+				lineStr.clear();
 				lineStr.str(line);
-				lineStr >> token;
+				std::istream(lineStr.rdbuf()) >> token;
 
 				if (token == "comment") comments.push_back((8 > 0) ? line.erase(0, 8) : line);
 				else if (token == "format") {
@@ -572,6 +573,7 @@ bool PLYparser::loadPLY(const char* fileName, ulonglong & n_vertices, int & colo
 			ok_vertex = findIdxOfPropertiesAndElement(elements, "vertex", "x", idxE_vertex, idxP_x);
 			ok_vertex = findIdxOfPropertiesAndElement(elements, "vertex", "y", idxE_vertex, idxP_y);
 			ok_vertex = findIdxOfPropertiesAndElement(elements, "vertex", "z", idxE_vertex, idxP_z);
+			
 			if (!ok_vertex) {
 				std::cerr << "Error : file is not having vertices data..." << std::endl;
 				return false;
@@ -627,8 +629,9 @@ bool PLYparser::loadPLY(const char* fileName, ulonglong & n_vertices, int & colo
 
 						//line Processing
 						for (int p = 0; p < elements[idxE].properties.size(); ++p) {
+							lineStr.clear();
 							lineStr >> val;
-							if (p == idxP_face_idx) face = std::stoul(val);
+							if (p == idxP_face_idx) face = std::stof(val);
 							if (p == idxP_x) x = std::stof(val);
 							else if (p == idxP_y) y = std::stof(val);
 							else if (p == idxP_z) z = std::stof(val);
@@ -648,7 +651,6 @@ bool PLYparser::loadPLY(const char* fileName, ulonglong & n_vertices, int & colo
 				}
 			}
 			File.close();
-
 			if (ok_channel && (color_channels == 1)) {
 				Real* grayArray = new Real[n_vertices];
 				for (ulonglong i = 0; i < n_vertices; ++i) {
@@ -677,7 +679,6 @@ bool PLYparser::loadPLY(const char* fileName, ulonglong & n_vertices, int & colo
 					*colorArray = grayArray;
 				}
 			}
-
 			std::cout << "Success loading " << n_vertices / 3 << " Triangle Mesh, Color Channels : " << color_channels << std::endl;
 
 			return true;

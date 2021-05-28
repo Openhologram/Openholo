@@ -1066,7 +1066,7 @@ void ophGen::resetBuffer()
 	const uint pnY = context_.pixel_number[_Y];
 	const uint pnXY = pnX * pnY;
 
-	for (uint ch = 0; ch < context_.waveNum; ch++) {
+	for (int ch = 0; ch < context_.waveNum; ch++) {
 		if (complex_H[ch])
 			memset(complex_H[ch], 0., sizeof(Complex<Real>) * pnXY);
 		if (m_lpEncoded[ch])

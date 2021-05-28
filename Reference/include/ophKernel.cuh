@@ -55,44 +55,11 @@
 
 static const int kBlockThreads = 512;
 
+
 __global__ void fftShift(int N, int nx, int ny, cufftDoubleComplex* input, cufftDoubleComplex* output, bool bNormalized)
 {
 	int tid = threadIdx.x + blockIdx.x*blockDim.x;
-#if 0
-	__shared__ int pnXY;
-	__shared__ int pnX;
-	__shared__ int pnY;
-	__shared__ bool bNormal;
 
-	if (threadIdx.x == 0) {
-		pnXY = N;
-		pnX = nx;
-		pnY = ny;
-		bNormal = bNormalized;
-	}
-	__syncthreads();
-
-	double normalF = 1.0;
-	if (bNormal == true)
-		normalF = pnX * pnY;
-
-	while (tid < pnXY)
-	{
-		int i = tid % pnX;
-		int j = tid / pnX;
-
-		int ti = i - pnX / 2; if (ti < 0) ti += pnX;
-		int tj = j - pnY / 2; if (tj < 0) tj += pnY;
-
-		int oindex = tj * pnX + ti;
-
-
-		output[tid].x = input[oindex].x / normalF;
-		output[tid].y = input[oindex].y / normalF;
-
-		tid += blockDim.x * gridDim.x;
-	}
-#else
 	double normalF = 1.0;
 	if (bNormalized == true)
 		normalF = nx * ny;
@@ -113,7 +80,32 @@ __global__ void fftShift(int N, int nx, int ny, cufftDoubleComplex* input, cufft
 
 		tid += blockDim.x * gridDim.x;
 	}
-#endif
+}
+
+__global__ void fftShiftf(int N, int nx, int ny, cuFloatComplex* input, cuFloatComplex* output, bool bNormalized)
+{
+	int tid = threadIdx.x + blockIdx.x*blockDim.x;
+
+	float normalF = 1.0;
+	if (bNormalized == true)
+		normalF = nx * ny;
+
+	while (tid < N)
+	{
+		int i = tid % nx;
+		int j = tid / nx;
+
+		int ti = i - nx / 2; if (ti < 0) ti += nx;
+		int tj = j - ny / 2; if (tj < 0) tj += ny;
+
+		int oindex = tj * nx + ti;
+
+
+		output[tid].x = input[oindex].x / normalF;
+		output[tid].y = input[oindex].y / normalF;
+
+		tid += blockDim.x * gridDim.x;
+	}
 }
 
 __device__  void exponent_complex(cuDoubleComplex* val)

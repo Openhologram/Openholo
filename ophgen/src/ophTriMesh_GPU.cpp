@@ -127,7 +127,7 @@ void ophTri::generateAS_GPU(uint SHADING_FLAG)
 		for (int j = 0; j < N; j++) {
 			memcpy(mesh, &scaledMeshData[9 * j], sizeof(Real) * 9);
 
-			if (!checkValidity(no[j])) // Ignore Invalid
+			if (!checkValidity(mesh,no[j])) // Ignore Invalid
 				continue;
 
 			if (!findGeometricalRelations(mesh, no[j]))
