@@ -55,6 +55,27 @@
 #endif
 
 
+struct RECON_DLL OphRecConfig
+{
+	Real EyeLength;
+	Real EyePupilDiaMeter;
+	Real EyeBoxSizeScale;
+	vec2 EyeBoxSize;
+	int EyeBoxUnit;
+	vec3 EyeCenter;
+	Real EyeFocusDistance;
+	Real ResultSizeScale;
+	Real SimulationTo;
+	Real SimulationFrom;
+	int SimulationStep;
+	int SimulationMode;
+	Real RatioAtRetina;
+	Real RatioAtPupil;
+	bool CreatePupilFieldImg;
+	bool CenteringRetinaImg;
+	bool ViewingWindow;
+	bool SimulationPos[3];
+};
 
 /**
 * @ingroup rec
@@ -75,11 +96,55 @@ protected:
 	*/
 	virtual ~ophRec(void);
 
+private:
+
+	std::vector<Complex<Real>*>	field_set_;
+	std::vector<double*>	field_ret_set_;
+
+	std::vector<double*>	res_set_;
+	std::vector<double*>	res_set_norm_255_;
+
+	std::vector<ivec2>		pn_set_;						// Pixel number of output plane
+	std::vector<vec2>		pp_set_;						// Pixel pitch of output plane
+	std::vector<ivec2>		pn_ret_set_;
+	std::vector<vec2>		pp_ret_set_;
+	std::vector<vec2>		ss_ret_set_;
+
+	std::vector<Real*>		recon_set;
+	std::vector<uchar*>		img_set;
+	std::vector<ivec2>		img_size;
+	std::vector<Real*>		focus_recon_set;
+	std::vector<uchar*>		focus_img_set;
+	std::vector<ivec2>		focus_img_size;
+
+
+	OphRecConfig			rec_config;
 protected:
 	/**
 	* @brief Pure virtual function for override in child classes
 	*/
-	virtual void ophFree(void) = 0;
+	virtual void ophFree(void);
+	void GetPupilFieldFromHologram();
+	void GetPupilFieldFromVWHologram();
+	void Propagation_Fresnel_FFT(int chnum);
+	void GetPupilFieldImage(Complex<Real>* src, double* dst, int pnx, int pny, double ppx, double ppy, double scaleX, double scaleY);
+	void getVarname(int vtr, vec3& var_vals, std::string& varname2);
+public:
+	void SaveImage(const char* path, const char* ext = "bmp");
+	void setConfig(OphRecConfig config) { rec_config = config; }
+	OphRecConfig& getConfig() { return rec_config; }
+	bool ReconstructImage();
+	bool readConfig(const char* fname);
+	bool readImage(const char* path);
+	bool readImagePNA(const char* phase, const char* amplitude);
+	bool readImageRNI(const char* real, const char* imaginary);
+	void Perform_Simulation();
+	void Initialize();
+
+	template<typename T>
+	void normalize(T* src, uchar* dst, int x, int y);
+
 };
+
 
 #endif // !__OphReconstruction_h

@@ -108,7 +108,8 @@ bool Openholo::saveAsImg(const char * fname, uint8_t bitsperpixel, uchar* src, i
 	bool bOK = true;
 	auto start = CUR_TIME;
 	int _width = width, _height = height;
-
+	
+	int padding = 0;
 	int _byteperline = ((_width * bitsperpixel / 8) + 3) & ~3;
 	int _pixelbytesize = _height * _byteperline;
 	int _filesize = _pixelbytesize;
@@ -116,6 +117,9 @@ bool Openholo::saveAsImg(const char * fname, uint8_t bitsperpixel, uchar* src, i
 	int _headersize = sizeof(bitmap);
 	int _iColor = (hasColorTable) ? 256 : 0;
 
+	if (_width % 4 != 0) {
+		padding = 4 - _width % 4;
+	}
 
 	rgbquad *table = nullptr;
 
@@ -167,18 +171,35 @@ bool Openholo::saveAsImg(const char * fname, uint8_t bitsperpixel, uchar* src, i
 		iCur += sizeof(rgbquad) * _iColor;
 	}
 
+
+
 	if (context_.bRotation) {
 		ImgControl *pControl = ImgControl::getInstance();
 		uchar *pTmp = new uchar[_pixelbytesize];
-		pControl->Rotate(180.0, src, pTmp, _width, _height, _width, _height, bitsperpixel / 8);
+
+		pControl->Rotate(180.0, src, pTmp, _width + padding, _height, _width + padding, _height, bitsperpixel / 8);
 		memcpy(&pBitmap[iCur], pTmp, _pixelbytesize);
 		delete[] pTmp;
+		iCur += _pixelbytesize;
 	}
 	else {
-		memcpy(&pBitmap[iCur], src, _pixelbytesize);
+		if (padding != 0)
+		{
+			for (int i = 0; i < _height; i++)
+			{
+				memcpy(&pBitmap[iCur], &src[_width * i], _width);
+				iCur += _width;
+				memset(&pBitmap[iCur], 0x00, padding);
+				iCur += padding;
+			}
+		}
+		else
+		{
+			memcpy(&pBitmap[iCur], src, _pixelbytesize);
+			iCur += _pixelbytesize;
+		}
 	}
 
-	iCur += _pixelbytesize;
 
 
 	if (!bConvert) {
@@ -317,8 +338,10 @@ bool Openholo::loadAsImgUpSideDown(const char * fname, uchar* dst)
 
 	// data upside down
 	int bytesperpixel = hInfo.bitsperpixel / 8;
-	int rowsz = bytesperpixel * hInfo.width;
+	//int rowsz = bytesperpixel * hInfo.width;
 
+	int rowsz = ((hInfo.width * bytesperpixel) + 3) & ~3;
+	
 	for (oph::uint k = 0; k < hInfo.height*rowsz; k++) {
 		int r = k / rowsz;
 		int c = k % rowsz;
@@ -553,19 +576,21 @@ void Openholo::fft1(int n, Complex<Real>* in, int sign, uint flag)
 
 void Openholo::fft2(oph::ivec2 n, Complex<Real>* in, int sign, uint flag)
 {
-	if (in == nullptr) return;
-
 	pnx = n[_X], pny = n[_Y];
+	int N = pnx * pny;
 
 	if (fft_in == nullptr)
-		fft_in = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * pnx * pny);
+		fft_in = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * N);
 	if (fft_out == nullptr)
-		fft_out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * pnx * pny);
+		fft_out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * N);
 
-	int i;
-	for (i = 0; i < pnx * pny; i++) {
- 		fft_in[i][_RE] = in[i][_RE];
-		fft_in[i][_IM] = in[i][_IM];
+	if (in != nullptr)
+	{
+		int i;
+		for (i = 0; i < N; i++) {
+			fft_in[i][_RE] = in[i][_RE];
+			fft_in[i][_IM] = in[i][_IM];
+		}
 	}
 
 	fft_sign = sign;
@@ -678,14 +703,16 @@ void Openholo::fftFree(void)
 
 void Openholo::fftwShift(Complex<Real>* src, Complex<Real>* dst, int nx, int ny, int type, bool bNormalized)
 {
-	Complex<Real>* tmp = new Complex<Real>[nx*ny];
-	memset(tmp, 0., sizeof(Complex<Real>)*nx*ny);
+	const int N = nx * ny;
+
+	Complex<Real>* tmp = new Complex<Real>[N];
+	memset(tmp, 0., sizeof(Complex<Real>) * N);
 	fftShift(nx, ny, src, tmp);
 
-	fftw_complex *in = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * nx * ny);
-	fftw_complex *out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * nx * ny);
+	fftw_complex *in = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * N);
+	fftw_complex *out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * N);
 	
-	memcpy(in, tmp, sizeof(Complex<Real>) * nx * ny);
+	memcpy(in, tmp, sizeof(Complex<Real>) * N);
 
 	fftw_plan plan = nullptr;
 	if (!plan_fwd && !plan_bwd) {
@@ -700,12 +727,12 @@ void Openholo::fftwShift(Complex<Real>* src, Complex<Real>* dst, int nx, int ny,
 	}
 
 	int normalF = 1;
-	if (bNormalized) normalF = nx * ny;
-	memset(tmp, 0, sizeof(Complex<Real>)*nx*ny);
+	if (bNormalized) normalF = N;
+	memset(tmp, 0, sizeof(Complex<Real>) * N);
 
 	int k;
-#pragma omp parallel for private(k)
-	for (k = 0; k < nx*ny; k++) {
+#pragma omp parallel for private(k) firstprivate(normalF)
+	for (k = 0; k < N; k++) {
 		tmp[k][_RE] = out[k][_RE] / normalF;
 		tmp[k][_IM] = out[k][_IM] / normalF;
 	}
@@ -714,7 +741,7 @@ void Openholo::fftwShift(Complex<Real>* src, Complex<Real>* dst, int nx, int ny,
 	if (plan)
 		fftw_destroy_plan(plan);
 
-	memset(dst, 0, sizeof(Complex<Real>)*nx*ny);
+	memset(dst, 0, sizeof(Complex<Real>) * N);
 	fftShift(nx, ny, tmp, dst);
 	delete[] tmp;
 }
@@ -724,39 +751,21 @@ void Openholo::fftShift(int nx, int ny, Complex<Real>* input, Complex<Real>* out
 	int hnx = nx / 2;
 	int hny = ny / 2;
 
-	if (nx <= ny) {
-		int i;
+	int i;
 #ifdef _OPENMP
-#pragma omp for private(i)
+#pragma omp parallel for private(i) firstprivate(hnx, hny)
 #endif
-		for (i = 0; i < nx; i++)
+	for (i = 0; i < nx; i++)
+	{
+		for (int j = 0; j < ny; j++)
 		{
-			for (int j = 0; j < ny; j++)
-			{
-				int ti = i - hnx; if (ti < 0) ti += nx;
-				int tj = j - hny; if (tj < 0) tj += ny;
+			int ti = i - hnx; if (ti < 0) ti += nx;
+			int tj = j - hny; if (tj < 0) tj += ny;
 
-				output[ti + tj * nx] = input[i + j * nx];
-			}
+			output[ti + tj * nx] = input[i + j * nx];
 		}
 	}
-	else {
-		int j;
-#ifdef _OPENMP
-#pragma omp for private(j)
-#endif
-		for (j = 0; j < ny; j++)
-		{
-			for (int i = 0; i < nx; i++)
-			{
-				int ti = i - hnx; if (ti < 0) ti += nx;
-				int tj = j - hny; if (tj < 0) tj += ny;
 
-				output[ti + tj * nx] = input[i + j * nx];
-			}
-		}
-
-	}
 }
 
 void Openholo::setWaveNum(int nNum)

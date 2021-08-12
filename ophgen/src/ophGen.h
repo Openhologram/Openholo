@@ -73,12 +73,12 @@ public:
 		ENCODE_PHASE,
 		ENCODE_AMPLITUDE,
 		ENCODE_REAL,
+		ENCODE_IMAGINEARY,
 		ENCODE_SIMPLENI,
 		ENCODE_BURCKHARDT,
 		ENCODE_TWOPHASE,
 		ENCODE_SSB,
 		ENCODE_OFFSSB,
-		ENCODE_SYMMETRIZATION,
 		ENCODE_SIMPLEBINARY,
 		ENCODE_EDBINARY
 	};
@@ -337,6 +337,7 @@ protected:
 	* @param[in] size size of encode.
 	*/
 	void RealPart(Complex<Real>* holo, Real* encoded, const int size);
+	void ImaginearyPart(Complex<Real>* holo, Real* encoded, const int size);
 
 	void Phase(Complex<Real>* holo, Real* encoded, const int size);
 	void Amplitude(Complex<Real>* holo, Real* encoded, const int size);
@@ -353,14 +354,6 @@ protected:
 	*/
 	void singleSideBand(Complex<Real>* holo, Real* encoded, const ivec2 holosize, int passband);
 
-	/**
-	* @brief	Encoding method.
-	* @param[in] holo Source data.
-	* @param[out] encoded Destination data.
-	* @param[in] sig_loc Signal location.@n
-	*			sig_loc[0]: upper or lower half, sig_loc[1]:left or right half.
-	*/
-	void encodeSymmetrization(Complex<Real>* holo, Real* encoded, const ivec2 sig_loc);
 	/**
 	* @brief	Frequency shift
 	* @param[in] src Source data.
@@ -461,7 +454,7 @@ protected:
 	* @param[in] shift_phase_val output variable.
 	* @param[in] idx the current pixel position.
 	* @param[in] sig_location signal location.
-	* @see encodingSideBand_CPU, encodeSymmetrization
+	* @see encodingSideBand_CPU
 	*/
 	void getShiftPhaseValue(Complex<Real>& shift_phase_val, int idx, ivec2 sig_location);
 

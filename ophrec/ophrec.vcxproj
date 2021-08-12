@@ -185,11 +185,12 @@ xcopy /y "$(ProjectDir)src\*.h" "$(USERPROFILE)\source\repos\OpenholoRefApp\Refe
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;WIN64;_DEBUG;_CONSOLE;RECON_EXPORT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir)Reference\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>cudart.lib;cufft.lib;cuda.lib;openholo_d.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>libfftw3-3.lib;cudart.lib;cufft.lib;cuda.lib;openholo_d.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(ProjectDir)lib;$(SolutionDir)Reference\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <Profile>true</Profile>
     </Link>
@@ -225,13 +226,14 @@ xcopy /y "$(ProjectDir)src\*.h" "$(USERPROFILE)\source\repos\OpenholoRefApp\Refe
       <PreprocessorDefinitions>WIN32;WIN64;NDEBUG;_CONSOLE;RECON_EXPORT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir)Reference\include\;$(CudaToolkitIncludeDir)</AdditionalIncludeDirectories>
       <AdditionalOptions>-Bv %(AdditionalOptions)</AdditionalOptions>
+      <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>cudart.lib;cufft.lib;cuda.lib;openholo.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>libfftw3-3.lib;cufft.lib;cuda.lib;cudart.lib;openholo.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(ProjectDir)lib;$(SolutionDir)Reference\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>/FORCE:multiple %(AdditionalOptions)</AdditionalOptions>
       <Profile>true</Profile>

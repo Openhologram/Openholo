@@ -264,7 +264,7 @@ void ophLF::generateHologram()
 		convertLF2ComplexField_GPU();
 		fresnelPropagation_GPU();
 	}
-
+	fftFree();
 	auto end = CUR_TIME;
 	m_elapsedTime = ((std::chrono::duration<Real>)(end - begin)).count();
 	LOG("Total Elapsed Time: %lf (sec)\n", m_elapsedTime);

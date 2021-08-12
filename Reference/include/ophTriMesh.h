@@ -115,17 +115,9 @@ class GEN_DLL ophTri : public ophGen
 public:
 	/**
 	* @brief Constructor
+	* @details Initialize variables.
 	*/
-	explicit ophTri(void) {
-		is_ViewingWindow = false;
-		is_CPU = true;
-		scaledMeshData = nullptr;
-		normalizedMeshData = nullptr;
-		angularSpectrum = nullptr;
-		bSinglePrecision = false;
-
-		LOG("*** MESH : BUILD DATE: %s %s ***\n\n", __DATE__, __TIME__);
-	}
+	explicit ophTri(void);
 
 protected:
 	/**
@@ -225,9 +217,9 @@ public:
 	* @return	scaledMeshData
 	* @overload
 	*/
-	void objScaleShift();
+	//void objScaleShift();
 	//void objScaleShift(vec3 objSize_, vector<Real> objShift_);
-	void objScaleShift(vec3 objSize_, vec3 objShift_);
+	//void objScaleShift(vec3 objSize_, vec3 objShift_);
 
 	enum SHADING_FLAG { SHADING_FLAT, SHADING_CONTINUOUS };
 
@@ -242,7 +234,6 @@ public:
 	* @overload
 	*/
 	bool generateHologram(uint SHADING_FLAG);
-	bool generateMeshHologram();
 
 	void reconTest(const char* fname);
 
@@ -261,27 +252,26 @@ public:
 	*/
 	void setViewingWindow(bool is_ViewingWindow);
 
+	uint* getProgress() { return &m_nProgress; }
 private:
 
 	// Inner functions
 	/// not used for users
 
 	void initializeAS();
-	void objNormCenter();
-	void objSort();
-	bool checkValidity(Real* mesh, vec3 no);
-	bool findGeometricalRelations(Real* mesh, vec3 no);
-	void calGlobalFrequency();
-	bool calFrequencyTerm();
-	bool refAS_Flat(vec3 na);
-	void refASInner_flat();
-	bool refAS_Continuous(uint n);
+	void prepareMeshData();
+	void objSort(bool isAscending);
+	bool checkValidity(vec3 no);
+	bool findGeometricalRelations(Real* mesh, vec3 no, geometric& geom);
+	void calGlobalFrequency(Real** frequency);
+	bool calFrequencyTerm(Real** frequency, Real** fl, Real* freqTermX, Real* freqTermY, geometric& geom);
+	uint refAS_Flat(vec3 na, Real** frequency, Real* mesh, Real* freqTermX, Real* freqTermY, geometric& geom);
+	void refASInner_flat(Real* freqTermX, Real* freqTermY);
+	bool refAS_Continuous(uint n, Real* freqTermX, Real* freqTermY);
 	bool generateAS(uint SHADING_FLAG);
 	bool findNormals(uint SHADING_FLAG);
-	bool refToGlobal();
-
-	void genRandPhase(ivec2 pixel_number);
-
+	bool refToGlobal(Real** frequency, Real** fl, geometric& geom);
+	
 	bool loadMeshText(const char* fileName);
 
 	void initialize_GPU();
@@ -292,35 +282,23 @@ private:
 	void conv_fft2_scale(Complex<Real>* src1, Complex<Real>* src2, Complex<Real>* dst, ivec2 size);
 private:
 
-	int pnX, pnY, pnXY;
-	Real* normalizedMeshData;				/// Normalized mesh array / Data structure : N*9
 	Real* scaledMeshData;					/// Scaled and shifted mesh array / Data structure : N*9
-	Real* sortedMeshData;
-
 
 private:
 
 	//	Inner global parameters
 	///	do not need to consider to users
-
-	Real refTri[9] = { 0,0,0,1,1,0,1,0,0 };
-	Real mesh[9] = { 0.0, };
 	vec3* no;
 	vec3* na;
 	vec3* nv;
-	Real** gFreq;
 
 private:
 
 	//	Inner local parameters
 	///	do not need to consider to users
 
-	uint m_nProgress;
 	geometric geom;
-	Real* freqTermX;
-	Real* freqTermY;
 	Complex<Real>* refAS;
-	Real** lFreq;
 
 	// calGlobalFrequency()
 	Real dfx, dfy;
@@ -329,7 +307,6 @@ private:
 
 
 	// findGeometricalRelations()
-	vec3 n;
 	Real mesh_local[9] = { 0.0 };
 	Real th, ph;
 	Real temp;
@@ -349,30 +326,17 @@ private:
 	Complex<Real> refTerm2;
 	Complex<Real> refTerm3;
 
-	/// flat shading
-	Complex<Real> shadingFactor;
-	vec3 normIllu;
 
 
 	/// continuous shading
 	vec3 av;
-	Complex<Real> D1;
-	Complex<Real> D2;
-	Complex<Real> D3;
 
 	/// occlusion
 	Complex<Real>* rearAS;
 	Complex<Real>* convol;
 
 	/// random phase
-	Real randVal;
-	Complex<Real> phase;
 	Complex<Real>* phaseTerm;
-
-
-	// refToGlobal()
-	Complex<Real> term1;
-	Complex<Real> term2;
 
 	bool is_ViewingWindow;
 
@@ -384,6 +348,7 @@ private:
 	Real* tempFreqTermX;
 	Real* tempFreqTermY;
 	bool bSinglePrecision;
+	uint m_nProgress;
 
 };
 

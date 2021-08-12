@@ -464,6 +464,7 @@ void ophWRP::generateHologram(void)
 	autoScaling();
 	is_CPU ? calculateWRPCPU() : calculateWRPGPU();
 
+	fftFree();
 	auto end = CUR_TIME;
 	m_elapsedTime = ((std::chrono::duration<Real>)(end - begin)).count();
 
