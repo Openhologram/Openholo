@@ -836,15 +836,16 @@ bool ophGen::separateColor(int idx, int width, int height, uchar *src, uchar *ds
 	int i;
 #ifdef _OPENMP
 #pragma omp parallel for private(i) firstprivate(a)
-	for (i = 0; i < N; i++) {
 #endif
+	for (i = 0; i < N; i++) {
 		dst[i] = src[i * 3 + a];
 	}
 
 	return true;
 }
 
-void ophGen::conv_fft2(Complex<Real>* src1, Complex<Real>* src2, Complex<Real>* dst, ivec2 size) {
+void ophGen::conv_fft2(Complex<Real>* src1, Complex<Real>* src2, Complex<Real>* dst, ivec2 size)
+{
 
 	src1FT = new Complex<Real>[size[_X] * size[_Y]];
 	src2FT = new Complex<Real>[size[_X] * size[_Y]];
@@ -1430,8 +1431,8 @@ bool ophGen::saveRefImages(char* fnameW, char* fnameWC, char* fnameAS, char* fna
 	return true;
 }
 
-bool ophGen::binaryErrorDiffusion(Complex<Real>* holo, Real* encoded, const ivec2 holosize, const int type, Real threshold) {
-
+bool ophGen::binaryErrorDiffusion(Complex<Real>* holo, Real* encoded, const ivec2 holosize, const int type, Real threshold)
+{
 	//cout << "\nin?" << endl;
 	int ss = holosize[_X] * holosize[_Y];
 	weight = new Real[ss];
@@ -1712,6 +1713,7 @@ void ophGen::fresnelPropagation(Complex<Real>* in, Complex<Real>* out, Real dist
 	int beginX = pnX / 2;
 	int endY = pnY + beginY;
 	int endX = pnX + beginX;
+
 #ifdef _OPENMP
 //#pragma omp parallel for private(idxnY) reduction(+:idxIn)
 #endif
@@ -1721,7 +1723,6 @@ void ophGen::fresnelPropagation(Complex<Real>* in, Complex<Real>* out, Real dist
 			in2x[base + idxnX] = in[idxIn++];
 		}
 	}
-
 
 	Complex<Real>* temp1 = new Complex<Real>[pnXY * 4];
 
@@ -2140,6 +2141,26 @@ void ophGen::ImaginearyPart(Complex<Real> *holo, Real *encoded, const int size)
 	}
 }
 
+
+void ophGen::ImaginearyPart(Complex<Real> *holo, Real *encoded, const int size)
+{
+	int num_threads = 1;
+	int i;
+#ifdef _OPENMP
+#pragma omp parallel
+	{
+		num_threads = omp_get_num_threads();
+#pragma omp for private(i)
+#endif
+		for (i = 0; i < size; i++) {
+			encoded[i] = imag(holo[i]);
+		}
+#ifdef _OPENMP
+	}
+#endif
+}
+
+
 void ophGen::Phase(Complex<Real> *holo, Real *encoded, const int size)
 {
 	int i;
@@ -2247,7 +2268,6 @@ void ophGen::Burckhardt(Complex<Real>* holo, Real* encoded, const int size)
 	delete[] phase;
 	delete[] norm;
 }
-
 
 void ophGen::SimpleNI(Complex<Real>* holo, Real* encoded, const int size)
 {
