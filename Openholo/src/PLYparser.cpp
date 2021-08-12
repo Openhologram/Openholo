@@ -608,6 +608,7 @@ bool PLYparser::loadPLY(const char* fileName, ulonglong & n_vertices, int & colo
 			for (size_t idxE = 0; idxE < elements.size(); ++idxE) {
 				for (longlong e = 0; e < elements[idxE].size; ++e) {
 					std::getline(File, line);
+					lineStr.clear();
 					lineStr.str(line);
 					std::string val;
 
