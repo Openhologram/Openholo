@@ -2143,11 +2143,12 @@ void ophGen::ImaginearyPart(Complex<Real> *holo, Real *encoded, const int size)
 void ophGen::Phase(Complex<Real> *holo, Real *encoded, const int size)
 {
 	int i;
+	double pi2 = M_PI * 2;
 #ifdef _OPENMP
-#pragma omp parallel for private(i)
+#pragma omp parallel for private(i) firstprivate(pi2)
 #endif
 	for (i = 0; i < size; i++) {
-		encoded[i] = holo[i].angle() + M_PI;
+		encoded[i] = (holo[i].angle() + M_PI) / pi2;
 	}
 }
 

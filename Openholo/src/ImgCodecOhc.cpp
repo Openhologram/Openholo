@@ -1054,7 +1054,8 @@ void oph::ImgEncoderOhc::addWavelength(const Real wavlen)
 //	this->linkFilePath.push_back(path);
 //}
 
-bool oph::ImgEncoderOhc::save() {
+bool oph::ImgEncoderOhc::save()
+{
 	this->File.open(this->fname, std::ios::out | std::ios::trunc | std::ios::binary);
 
 	//FILE *fp;

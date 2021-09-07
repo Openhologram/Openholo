@@ -144,7 +144,6 @@ public:
 	*/
 	Real generateHologram(void);
 
-	void encodeHologram(void);
 	virtual void encoding(unsigned int ENCODE_FLAG);
 	virtual void encoding(unsigned int ENCODE_FLAG, unsigned int SSB_PASSBAND);
 	

@@ -357,22 +357,8 @@ Real ophDepthMap::generateHologram(void)
 	return m_elapsedTime;
 }
 
-void ophDepthMap::encodeHologram(void)
-{
-	LOG("Single Side Band Encoding..");
-	encodeSideBand(is_CPU, ivec2(0, 1));
-	LOG("Done.\n.");
-}
-
 void ophDepthMap::encoding(unsigned int ENCODE_FLAG)
 {
-	//ophGen::encoding(ENCODE_FLAG, nullptr, true);
-	ophGen::encoding(ENCODE_FLAG, nullptr);
-}
-
-void ophDepthMap::encoding(unsigned int ENCODE_FLAG, unsigned int SSB_PASSBAND)
-{
-	auto begin = CUR_TIME;
 	const uint pnX = context_.pixel_number[_X];
 	const uint pnY = context_.pixel_number[_Y];
 	const uint nChannel = context_.waveNum;
@@ -381,6 +367,19 @@ void ophDepthMap::encoding(unsigned int ENCODE_FLAG, unsigned int SSB_PASSBAND)
 	for (uint ch = 0; ch < nChannel; ch++) {
 		fft2(context_.pixel_number, complex_H[ch], OPH_BACKWARD);
 		fftwShift(complex_H[ch], dst, pnX, pnY, OPH_BACKWARD);
+		//ophGen::encoding(ENCODE_FLAG, nullptr, true);
+		ophGen::encoding(ENCODE_FLAG, dst, nullptr);
+	}
+}
+
+void ophDepthMap::encoding(unsigned int ENCODE_FLAG, unsigned int SSB_PASSBAND)
+{
+	auto begin = CUR_TIME;
+	const uint pnX = context_.pixel_number[_X];
+	const uint pnY = context_.pixel_number[_Y];
+	const uint nChannel = context_.waveNum;
+
+	for (uint ch = 0; ch < nChannel; ch++) {
 
 		if (ENCODE_FLAG == ophGen::ENCODE_SSB) {
 			ivec2 location;
@@ -401,9 +400,15 @@ void ophDepthMap::encoding(unsigned int ENCODE_FLAG, unsigned int SSB_PASSBAND)
 
 			encodeSideBand(is_CPU, location);
 		}
-		else ophGen::encoding(ENCODE_FLAG, SSB_PASSBAND, dst);
+		else
+		{
+			Complex<Real>* dst = new Complex<Real>[pnX * pnY];
+			fft2(context_.pixel_number, complex_H[ch], OPH_BACKWARD);
+			fftwShift(complex_H[ch], dst, pnX, pnY, OPH_BACKWARD);
+			ophGen::encoding(ENCODE_FLAG, SSB_PASSBAND, dst);
+			delete[] dst;
+		}
 	}
-	delete[] dst;
 	auto end = CUR_TIME;
 	LOG("Elapsed Time: %lf(s)\n", ELAPSED_TIME(begin, end));
 }
