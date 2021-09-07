@@ -289,8 +289,8 @@ bool ophRec::readImagePNA(const char *phase, const char *amplitude)
 
 		for (int i = 0; i < N; i++)
 		{
-			Real p = Real(phaseTmp[i]) * PI2 / 255.0;
-			Real a = Real(ampTmp[i]) / 255.0;
+			Real p = Real(phaseTmp[i]) * PI2 / 255.0; // 0 ~ 2pi
+			Real a = Real(ampTmp[i]) / 255.0; // 0 ~ 1
 			Complex<Real> tmp(0, p);
 			tmp.exp();
 
@@ -802,17 +802,6 @@ void ophRec::Perform_Simulation()
 
 			fftwShift(hh_e_, hh_e_, pn_p_x, pn_p_y, FFTW_FORWARD, false);
 
-			if (fp = fopen("d:\\a\\hh_e_.dat", "wb"))
-			{
-				int size = sizeof(Complex<Real>);
-				int cnt = N;
-				for (int i = 0; i < cnt; i++)
-				{
-					fwrite(&hh_e_[i], size, 1, fp);
-				}
-				fclose(fp);
-			}
-
 			//fftw_destroy_plan(fft_plan_fwd_);
 
 			Real pp_ret_x, pp_ret_y;
@@ -941,18 +930,6 @@ void ophRec::Perform_Simulation()
 
 		}
 
-		if (fp = fopen("d:\\a\\res_set_.dat", "wb"))
-		{
-			int size = sizeof(Real);
-			int cnt = pnx_max * pny_max;
-			for (int i = 0; i < cnt; i++)
-			{
-				fwrite(&res_set_[0][i], size, 1, fp);
-			}
-			fclose(fp);
-		}
-
-
 		Real maxvalue = res_set_[0][0];
 		Real minvalue = res_set_[0][0];
 		for (int i = 0; i < nChannel; i++)
@@ -1003,19 +980,6 @@ void ophRec::Perform_Simulation()
 			delete[] res_set_norm;
 		}
 
-		if (fp = fopen("d:\\a\\res_set_norm_255_.dat", "wb"))
-		{
-			int size = sizeof(Real);
-			int cnt = ret_size_x * ret_size_y;
-			for (int i = 0; i < cnt; i++)
-			{
-				fwrite(&res_set_norm_255_[0][i], size, 1, fp);
-			}
-			fclose(fp);
-		}
-
-
-
 		for (int i = 0; i < nChannel; i++)
 			delete[] res_set_[i];
 
@@ -1036,20 +1000,6 @@ void ophRec::Perform_Simulation()
 		std::string fname = std::string("./").append("").append("/").append("").append("_SAT_").append("").append("_").append(varname2).append("_").append(std::to_string(vtr + 1)).append(".bmp");
 		
 		normalize(focus_recon_set[vtr], focus_img_set[vtr], ret_size_x, ret_size_y);
-		
-		char tmp[MAX_PATH] = { 0, };
-		sprintf(tmp, "d:\\a\\focus_recon_set[%d].dat", vtr);
-		if (fp = fopen(tmp, "wb"))
-		{
-			int size = sizeof(Real);
-			int cnt = N * nChannel;
-			for (int i = 0; i < cnt; i++)
-			{
-				fwrite(&focus_recon_set[vtr][i], size, 1, fp);
-			}
-			fclose(fp);
-		}
-
 		
 		focus_img_size[vtr][_X] = (int)ret_size_x;
 		focus_img_size[vtr][_Y] = (int)ret_size_y;
