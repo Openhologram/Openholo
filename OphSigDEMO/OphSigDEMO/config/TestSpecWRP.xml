@@ -1,0 +1,13 @@
+<TestSpecWRP>
+  <ScalingXofPointCloud>0.05</ScalingXofPointCloud>
+  <ScalingYofPointCloud>0.05</ScalingYofPointCloud>
+  <ScalingZofPointCloud>0.05</ScalingZofPointCloud>
+  <SLMpixelPitchX>0.000008</SLMpixelPitchX>
+  <SLMpixelPitchY>0.000008</SLMpixelPitchY>
+  <SLMpixelNumX>1900</SLMpixelNumX>
+  <SLMpixelNumY>1020</SLMpixelNumY>
+   <Wavelength>0.000000532</Wavelength>
+  <NumberOfWRP>1</NumberOfWRP>
+  <LocationOfWRP>0.004</LocationOfWRP>
+  <PropagationDistance>0.45</PropagationDistance>
+  </TestSpecWRP>
