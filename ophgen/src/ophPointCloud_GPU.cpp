@@ -250,7 +250,7 @@ Real ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 		uint nAdd = bIsGrayScale ? 0 : ch;
 		memset(host_dst, 0., bufferSize * 2);
 		context_.k = (2 * M_PI) / context_.wave_length[ch];
-		Real ratio = context_.wave_length[nChannel - 1] / context_.wave_length[ch];
+		Real ratio = 1.0; //context_.wave_length[nChannel - 1] / context_.wave_length[ch];
 
 		GpuConst* host_config = new GpuConst(
 			n_points, n_colors, n_streams,
@@ -323,7 +323,7 @@ Real ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 			switch (diff_flag) {
 			case PC_DIFF_RS: {
 				cudaGenCghPointCloud_NotEncodedRS(gridSize, blockSize, stream_points, device_pc_data + 3 * offset,
-					device_amp_data + n_colors * offset, device_dst, device_dst + pnXY, (GpuConstNERS*)device_config, nAdd);
+					device_amp_data + n_colors * offset, device_dst, device_dst + pnXY, (GpuConstNERS*)device_config, nAdd, m_mode);
 
 				// 20200824_mwnam_
 				cudaError error = cudaGetLastError();

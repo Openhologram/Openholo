@@ -152,24 +152,27 @@ Real ophPointCloud::generateHologram(uint diff_flag)
 	resetBuffer();
 	auto begin = CUR_TIME;
 	LOG("1) Algorithm Method : Point Cloud\n");
-	LOG("2) Generate Hologram with %s\n", is_CPU ?
+	LOG("2) Generate Hologram with %s\n", m_mode & MODE_GPU ?
+		"GPU" :
 #ifdef _OPENMP
-		"Multi Core CPU" :
+		"Multi Core CPU"
 #else
-		"Single Core CPU" :
+		"Single Core CPU"
 #endif
-		"GPU");
-	LOG("3) Transform Viewing Window : %s\n", is_ViewingWindow ? "ON" : "OFF");
-	LOG("4) Diffraction Method : %s\n", diff_flag == PC_DIFF_RS ? "R-S" : "Fresnel");
-	LOG("5) Number of Point Cloud : %d\n", n_points);
-	LOG("6) Precision Level : %s\n", getPrecision() ? "Single" : "Double");
+		);
+	//LOG("3) Transform Viewing Window : %s\n", is_ViewingWindow ? "ON" : "OFF");
+	LOG("3) Diffraction Method : %s\n", diff_flag == PC_DIFF_RS ? "R-S" : "Fresnel");
+	LOG("4) Number of Point Cloud : %d\n", n_points);
+	LOG("5) Precision Level : %s\n", m_mode & MODE_FLOAT ? "Single" : "Double");
+	if(m_mode & MODE_GPU)
+		LOG("6) Use FastMath : %s\n", m_mode & MODE_FASTMATH ? "Y" : "N");
 
 	// Create CGH Fringe Pattern by 3D Point Cloud
-	if (is_CPU) { //Run CPU
-		genCghPointCloudCPU(diff_flag);
-	}
-	else { //Run GPU
+	if (m_mode & MODE_GPU) { //Run GPU
 		genCghPointCloudGPU(diff_flag);
+	}
+	else { //Run CPU
+		genCghPointCloudCPU(diff_flag);
 	}
 
 	m_nProgress = 0;
@@ -230,16 +233,22 @@ void ophPointCloud::encodeHologram(const vec2 band_limit, const vec2 spectrum_sh
 	Complex<Real>* h = new Complex<Real>[pnXY];
 
 	for (uint ch = 0; ch < nChannel; ch++) {
-		fftwShift(complex_H[ch], h, pnX, pnY, OPH_FORWARD);
+#if 1
+		fft2(ivec2(pnX, pnY), complex_H[ch], OPH_FORWARD);
+		fft2(complex_H[ch], h, pnX, pnY, OPH_FORWARD);
+		fft2(ivec2(pnX, pnY), h, OPH_BACKWARD);
+		fft2(h, h, pnX, pnY, OPH_BACKWARD);
+#else
+		fft2(complex_H[ch], h, pnX, pnY, OPH_FORWARD);
 		fft2(ivec2(pnX, pnY), h, OPH_FORWARD);
 		fftExecute(h);
-		fftwShift(h, h, pnX, pnY, OPH_BACKWARD);
+		fft2(h, h, pnX, pnY, OPH_BACKWARD);
 
-		fftwShift(h, h, pnX, pnY, OPH_FORWARD);
+		fft2(h, h, pnX, pnY, OPH_FORWARD);
 		fft2(ivec2(pnX, pnY), h, OPH_BACKWARD);
 		fftExecute(h);
-		fftwShift(h, h, pnX, pnY, OPH_BACKWARD);
-
+		fft2(h, h, pnX, pnY, OPH_BACKWARD);
+#endif
 		for (int i = 0; i < pnXY; i++) {
 			Complex<Real> shift_phase(1.0, 0.0);
 			int r = i / pnX;
@@ -264,7 +273,7 @@ void ophPointCloud::encodeHologram(const vec2 band_limit, const vec2 spectrum_sh
 
 void ophPointCloud::encoding(unsigned int ENCODE_FLAG)
 {
-	ophGen::encoding(ENCODE_FLAG, nullptr);
+	ophGen::encoding(ENCODE_FLAG);
 }
 
 void ophPointCloud::encoding(unsigned int ENCODE_FLAG, unsigned int SSB_PASSBAND)
@@ -324,56 +333,49 @@ Real ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 
 		uint nAdd = bIsGrayScale ? 0 : ch;
 #ifdef _OPENMP
-#pragma omp parallel
-		{
-			num_threads = omp_get_num_threads(); // get number of Multi Threading
-			int tid = omp_get_thread_num();
-
-#pragma omp for private(i)
+#pragma omp parallel for private(i) firstprivate(nAdd, lambda)
 #endif
-			for (i = 0; i < n_points; ++i) { //Create Fringe Pattern
-				uint iVertex = 3 * i; // x, y, z
-				uint iColor = pc_data_.n_colors * i + nAdd; // rgb or gray-scale
-				Real pcx, pcy, pcz;
+		for (i = 0; i < n_points; ++i) { //Create Fringe Pattern
+			uint iVertex = 3 * i; // x, y, z
+			uint iColor = pc_data_.n_colors * i + nAdd; // rgb or gray-scale
+			Real pcx, pcy, pcz;
 
-				pcx = pVertex[iVertex + _X];
-				pcy = pVertex[iVertex + _Y];
-				pcz = pVertex[iVertex + _Z];
-				pcx *= pc_config_.scale[_X];
-				pcy *= pc_config_.scale[_Y];
-				pcz *= pc_config_.scale[_Z];
-				pcx *= ratio;
-				pcy *= ratio;
-#if 1
-				pcz += pc_config_.distance;
-				
-				Real amplitude = pc_data_.color[iColor];
+			pcx = pVertex[iVertex + _X];
+			pcy = pVertex[iVertex + _Y];
+			pcz = pVertex[iVertex + _Z];
+			pcx *= pc_config_.scale[_X];
+			pcy *= pc_config_.scale[_Y];
+			pcz *= pc_config_.scale[_Z];
+			//pcx *= ratio;
+			//pcy *= ratio;
+#if 0
+			pcz += pc_config_.distance;
 
-				switch (diff_flag)
-				{
-				case PC_DIFF_RS:
-					diffractNotEncodedRS(ch, pn, pp, ss, vec3(pcx, pcy, pcz), k, amplitude, lambda);
+			Real amplitude = pc_data_.color[iColor];
+
+			switch (diff_flag)
+			{
+			case PC_DIFF_RS:
+				diffractNotEncodedRS(ch, pn, pp, ss, vec3(pcx, pcy, pcz), k, amplitude, lambda);
 #else
-				Real amplitude = pc_data_.color[iColor];
-				switch (diff_flag)
-				{
-				case PC_DIFF_RS:
-					RS_Propagation(vec3(pcx, pcy, pcz), complex_H[ch], lambda, pc_config_.distance, amplitude);
-
+			Real amplitude = pc_data_.color[iColor];
+			switch (diff_flag)
+			{
+			case PC_DIFF_RS:
+				RS_Diffraction(vec3(pcx, pcy, pcz), complex_H[ch], lambda, pc_config_.distance, amplitude);
 #endif
-					break;
-				case PC_DIFF_FRESNEL:
-					diffractNotEncodedFrsn(ch, pn, pp, ss, vec3(pcx, pcy, pcz), k, amplitude, lambda);
-					break;
-				}
-#pragma omp atomic
-				sum++;
-
-				m_nProgress = (int)((Real)sum * 100 / ((Real)n_points * nChannel));
+				break;
+			case PC_DIFF_FRESNEL:
+				diffractNotEncodedFrsn(ch, pn, pp, ss, vec3(pcx, pcy, pcz), k, amplitude, lambda);
+				break;
 			}
 #ifdef _OPENMP
-		}
+#pragma omp atomic
 #endif
+			sum++;
+
+			m_nProgress = (int)((Real)sum * 100 / ((Real)n_points * nChannel));
+		}
 	}
 	if (is_ViewingWindow) {
 		delete[] pVertex;

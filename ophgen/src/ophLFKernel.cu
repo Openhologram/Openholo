@@ -47,122 +47,301 @@
 #define ophLFKernel_cu__
 
 #include "ophKernel.cuh"
+#include "ophLightField_GPU.h"
 #include <curand_kernel.h>
 
-__global__ void cudaKernel_convertLF2ComplexField(int nx, int ny, int rx, int ry, uchar1** LF, cufftDoubleComplex* output)
+__global__ void cudaKernel_CalcData(cufftDoubleComplex *src, const LFGpuConst* config)
 {
-	int tid = threadIdx.x + blockIdx.x*blockDim.x;
-	int c = tid % rx;
-	int r = tid / rx;
+	ulonglong tid = blockIdx.x * blockDim.x + threadIdx.x;
+	__shared__ double s_ppX;
+	__shared__ double s_ppY;
+	__shared__ int s_pnX;
+	__shared__ int s_pnY;
+	__shared__ int s_pnXY;
+	__shared__ double s_ssX;
+	__shared__ double s_ssY;
+	__shared__ double s_z;
+	__shared__ double s_v;
+	__shared__ double s_lambda;
+	__shared__ double s_distance;
+	__shared__ double s_pi2;
+	__shared__ bool s_bRandomPhase;
 
-	if (tid < rx*ry) {
-
-		for (int k = 0; k < nx*ny; k++)
-		{
-			double val = (double)LF[k][r*rx + c].x;
-			output[(r*rx + c)*nx*ny + k] = make_cuDoubleComplex(val, 0);
-		}
+	if (threadIdx.x == 0)
+	{
+		s_ppX = config->ppX;
+		s_ppY = config->ppY;
+		s_pnX = config->pnX;
+		s_pnY = config->pnY;
+		s_pnXY = s_pnX * s_pnY;
+		s_ssX = s_pnX * s_ppX * 2;
+		s_ssY = s_pnY * s_ppY * 2;
+		s_lambda = config->lambda;
+		s_distance = config->distance;
+		s_pi2 = config->pi2;
+		s_z = s_distance * s_pi2;
+		s_v = 1 / (s_lambda * s_lambda);
+		s_bRandomPhase = config->randomPhase;
 	}
-}
+	__syncthreads();
 
-__global__ void cudaKernel_MultiplyPhase(int nx, int ny, int rx, int ry, cufftDoubleComplex* in, cufftDoubleComplex* output, double PI)
-{
-	int tid = threadIdx.x + blockIdx.x*blockDim.x;
-	int c = tid % rx;
-	int r = tid / rx;
-
-	if (tid < rx*ry) {
-
+	if (tid < s_pnXY * 4)
+	{
 		curandState state;
-		curand_init(c*r, 0, 0, &state);
-
-		double randomData;
-
-		for (int k = 0; k < nx*ny; k++)
+		if (s_bRandomPhase)
 		{
-			randomData = curand_uniform_double(&state);
-			cufftDoubleComplex phase = make_cuDoubleComplex(0, randomData * PI * 2);
-			exponent_complex(&phase);
-
-			cufftDoubleComplex val = in[(r*rx + c)*nx*ny + k];
-			int cc = k % nx;
-			int rr = k / nx;
-			output[c*nx + r * rx*nx*ny + cc + rr * nx*rx] = cuCmul(val, phase);
+			curand_init(s_pnXY * 4, 0, 0, &state);
 		}
-	}
+		int pnX2 = s_pnX * 2;
 
-}
+		int w = tid % pnX2;
+		int h = tid / pnX2;
 
-__global__ void cudaKernel_MoveToin2x(int Nx, int Ny, cufftDoubleComplex* in, cufftDoubleComplex* out)
-{
-	int tid = threadIdx.x + blockIdx.x*blockDim.x;
+		double fy = (-s_pnY + h) / s_ssY;
+		double fyy = fy * fy;
+		double fx = (-s_pnX + w) / s_ssX;
+		double fxx = fx * fx;
+		double sqrtpart = sqrt(s_v - fxx - fyy);
 
-	if (tid < Nx*Ny) {
+		cuDoubleComplex prop;
+		prop.x = 0;
+		prop.y = s_z * sqrtpart;
 
-		int c = tid % Nx;
-		int r = tid / Nx;
-		int offsetX = Nx / 2;
-		int offsetY = Ny / 2;
-
-		out[(c + offsetX) + (r + offsetY) * Nx * 2] = in[c + r * Nx];
-
-	}
-
-}
-
-__global__ void cudaKernel_ProcMultiplyProp(int Nx, int Ny, cufftDoubleComplex* inout, double PI, double dist, double wavelength, double ppx, double ppy)
-{
-	int tid = threadIdx.x + blockIdx.x*blockDim.x;
-
-	if (tid < Nx*Ny) {
-
-		int c = tid % Nx;
-		int r = tid / Nx;
-
-		double fx = (-Nx / 2.0 + (double)c) / (Nx*ppx);
-		double fy = (-Ny / 2.0 + (double)r) / (Ny*ppy);
-
-		cufftDoubleComplex prop = make_cuDoubleComplex(0, dist * PI * 2);
-		double sqrtPart = sqrt(1.0 / (wavelength*wavelength) - fx * fx - fy * fy);
-		prop.y *= sqrtPart;
 		exponent_complex(&prop);
 
-		inout[tid] = cuCmul(inout[tid], prop);
+		cuDoubleComplex val;
+		val.x = src[tid].x;
+		val.y = src[tid].y;
 
+		cuDoubleComplex val2 = cuCmul(val, prop);
+
+		src[tid].x = val2.x;
+		src[tid].y = val2.y;
 	}
 }
 
-__global__ void cudaKernel_CopyToOut(int Nx, int Ny, cufftDoubleComplex* in, cufftDoubleComplex* out)
+__global__ void cudaKernel_MoveDataPost(cufftDoubleComplex *src, cuDoubleComplex *dst, const LFGpuConst* config)
 {
-	int tid = threadIdx.x + blockIdx.x*blockDim.x;
+	ulonglong tid = blockIdx.x * blockDim.x + threadIdx.x;
 
-	if (tid < Nx*Ny) {
+	__shared__ int pnX;
+	__shared__ int pnY;
+	__shared__ ulonglong pnXY;
 
-		int c = tid % Nx;
-		int r = tid / Nx;
-		int offsetX = Nx / 2;
-		int offsetY = Ny / 2;
+	if (threadIdx.x == 0)
+	{
+		pnX = config->pnX;
+		pnY = config->pnY;
+		pnXY = pnX * pnY;
+	}
+	__syncthreads();
 
-		out[c + r * Nx] = in[(c + offsetX) + (r + offsetY) * Nx * 2];
+	if (tid < pnXY)
+	{
+		int w = tid % pnX;
+		int h = tid / pnX;
+		ulonglong iSrc = pnX * 2 * (pnY / 2 + h) + pnX / 2;
 
+		dst[tid] = src[iSrc + w];
 	}
 }
+
+__global__ void cudaKernel_MoveDataPre(cuDoubleComplex *src, cufftDoubleComplex *dst, const LFGpuConst* config)
+{
+	ulonglong tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+	__shared__ int pnX;
+	__shared__ int pnY;
+	__shared__ ulonglong pnXY;
+
+	if (threadIdx.x == 0)
+	{
+		pnX = config->pnX;
+		pnY = config->pnY;
+		pnXY = pnX * pnY;
+	}
+	__syncthreads();
+
+	if (tid < pnXY)
+	{
+		int w = tid % pnX;
+		int h = tid / pnX;
+		ulonglong iDst = pnX * 2 * (pnY / 2 + h) + pnX / 2;
+		dst[iDst + w] = src[tid];
+	}
+}
+
+#if false // use constant
+__global__ void cudaKernel_convertLF2ComplexField(/*const LFGpuConst *config, */uchar1** LF, cufftDoubleComplex* output)
+{
+	int tid = threadIdx.x + blockIdx.x * blockDim.x;
+
+	if (tid < img_resolution[0])
+	{
+		int c = tid % img_resolution[1];
+		int r = tid / img_resolution[1];
+		int iWidth = c * channel_info[0] + channel_info[1];
+		int cWidth = (img_resolution[1] * channel_info[0] + 3) & ~3;
+
+		int src = r * cWidth + iWidth;
+		int dst = (r * img_resolution[1] + c) * img_number[0];
+		for (int k = 0; k < img_number[0]; k++)
+		{
+			output[dst + k] = make_cuDoubleComplex((double)LF[k][src].x, 0);
+		}
+	}
+#endif
+
+__global__ void cudaKernel_convertLF2ComplexField(const LFGpuConst *config, uchar1** LF, cufftDoubleComplex* output)
+{
+	int tid = threadIdx.x + blockIdx.x * blockDim.x;
+#if 1
+		int rX = config->rX;
+		int rY = config->rY;
+		int nX = config->nX;
+		int nY = config->nY;
+		int N = nX * nY;
+		int R = rX * rY;
+		int nChannel = config->nChannel;
+		int iAmplitude = config->iAmp;
+
+	if (tid < R)
+	{
+		int c = tid % rX;
+		int r = tid / rX;
+		int iWidth = c * nChannel + iAmplitude;
+		int cWidth = (rX * nChannel + 3) & ~3;
+
+		int src = r * cWidth + iWidth;
+		int dst = (r * rX + c) * N;
+		for (int k = 0; k < N; k++)
+		{
+			output[dst + k] = make_cuDoubleComplex((double)LF[k][src].x, 0);
+		}
+	}
+
+
+#else
+	__shared__ int s_R;
+	__shared__ int s_N;
+	__shared__ int s_rX;
+	__shared__ int s_rY;
+	__shared__ int s_nX;
+	__shared__ int s_nY;
+	__shared__ int s_nChannel;
+	__shared__ int s_iAmplitude;
+
+
+	if (threadIdx.x == 0)
+	{
+		s_rX = config->rX;
+		s_rY = config->rY;
+		s_nX = config->nX;
+		s_nY = config->nY;
+		s_N = s_nX * s_nY;
+		s_R = s_rX * s_rY;
+		s_nChannel = config->nChannel;
+		s_iAmplitude = config->iAmp;
+	}
+	__syncthreads();
+
+	if (tid < s_R)
+	{
+		int c = tid % s_rX;
+		int r = tid / s_rX;
+		int iWidth = c * s_nChannel + s_iAmplitude;
+		int cWidth = (s_rX * s_nChannel + 3) & ~3;
+
+		int src = r * cWidth + iWidth;
+		int dst = (r * s_rX + c) * s_N;
+		for (int k = 0; k < s_N; k++)
+		{
+			output[dst + k] = make_cuDoubleComplex((double)LF[k][src].x, 0);
+		}
+	}
+#endif
+}
+
+__global__ void cudaKernel_MultiplyPhase(const LFGpuConst *config, cufftDoubleComplex* in, cufftDoubleComplex* output)
+{
+	int tid = threadIdx.x + blockIdx.x * blockDim.x;
+
+	__shared__ double s_pi2;
+	__shared__ int s_R;
+	__shared__ int s_N;
+	__shared__ int s_rX;
+	__shared__ int s_rY;
+	__shared__ int s_nX;
+	__shared__ int s_nY;
+	__shared__ bool s_bRandomPhase;
+
+	if (threadIdx.x == 0)
+	{
+		s_pi2 = config->pi2;
+		s_rX = config->rX;
+		s_rY = config->rY;
+		s_nX = config->nX;
+		s_nY = config->nY;
+		s_N = s_nX * s_nY;
+		s_R = s_rX * s_rY;
+		s_bRandomPhase = config->randomPhase;
+	}
+
+
+	__syncthreads();
+	
+	if (tid < s_R) {
+
+		int c = tid % s_rX;
+		int r = tid / s_rX;
+		curandState state;
+		if (s_bRandomPhase)
+		{
+			curand_init(s_N * s_R, tid, 0, &state);
+		}
+
+		int src = (r * s_rX + c) * s_N;
+		int dst = c * s_nX + r * s_rX * s_N;
+
+		for (int n = 0; n < s_N; n++)
+		{
+			double randomData = s_bRandomPhase ? curand_uniform_double(&state) : 1.0;
+
+			if (n == 15 && tid >= 0 && tid <= 10)
+			{
+				printf("bid(%d)tid(%d) : %lf\n", blockIdx.x, threadIdx.x, randomData);
+			}
+
+			cufftDoubleComplex phase = make_cuDoubleComplex(0, randomData * s_pi2);
+			exponent_complex(&phase);
+
+			cufftDoubleComplex val = in[src + n];
+			int cc = n % s_nX; // 0 ~ 9
+			int rr = n / s_nX; // 0 ~ 9
+			output[dst + cc + rr * s_nX * s_rX] = cuCmul(val, phase);
+		}
+	}
+}
+
 
 extern "C"
 {
-	void cudaConvertLF2ComplexField_Kernel(CUstream_st* stream, int nx, int ny,
-		int rx, int ry, uchar1** LF, cufftDoubleComplex* output)
+	void cudaConvertLF2ComplexField_Kernel(CUstream_st* stream, const int &nBlocks, const int &nThreads, const LFGpuConst *config, uchar1** LF, cufftDoubleComplex* output)
 	{
-		dim3 grid((rx*ry + kBlockThreads - 1) / kBlockThreads, 1, 1);
-		cudaKernel_convertLF2ComplexField << <grid, kBlockThreads, 0, stream >> > (nx, ny, rx, ry, LF, output);
+		//cudaKernel_convertLF2ComplexField << <nBlocks, nThreads, 0, stream >> > (config, LF, output);
+		cudaKernel_convertLF2ComplexField << < nBlocks, nThreads >> > (config, LF, output);
+
+		if (cudaDeviceSynchronize() != cudaSuccess)
+			return;
 	}
 
-	void cudaFFT_LF(cufftHandle* plan, CUstream_st* stream, int nx, int ny, cufftDoubleComplex* in_field, cufftDoubleComplex* output_field, int direction)
+	void cudaFFT_LF(cufftHandle *plan, CUstream_st* stream, const int &nBlocks, const int &nThreads, const int &nx, const int &ny, cufftDoubleComplex* in_field, cufftDoubleComplex* output_field, const int &direction)
 	{
-		unsigned int nblocks = (nx*ny + kBlockThreads - 1) / kBlockThreads;
+		//cudaFFT(nullptr, nx, ny, in_field, output_field, CUFFT_FORWARD, false);
 		int N = nx * ny;
-		//fftShift_LF<< <nblocks, kBlockThreads, 0, stream >> > (N, nx, ny, in_field, output_field, false);
-		fftShift << <nblocks, kBlockThreads, 0, stream >> > (N, nx, ny, in_field, output_field, false);
+
+		//fftShift << <nBlocks, nThreads, 0, stream >> > (N, nx, ny, in_field, output_field, false);
+		fftShift << < nBlocks, nThreads >> > (N, nx, ny, in_field, output_field, false);
 
 		cufftResult result;
 		if (direction == -1)
@@ -176,36 +355,47 @@ extern "C"
 		if (cudaDeviceSynchronize() != cudaSuccess)
 			return;
 
-		//fftShift_LF << < nblocks, kBlockThreads, 0, stream >> > (N, nx, ny, in_field, output_field, false);
-		fftShift << < nblocks, kBlockThreads, 0, stream >> > (N, nx, ny, in_field, output_field, false);
-
+		//fftShift << < nBlocks, nThreads, 0, stream >> > (N, nx, ny, in_field, output_field, false);
+		fftShift << < nBlocks, nThreads >> > (N, nx, ny, in_field, output_field, false);
 	}
 
-	void procMultiplyPhase(CUstream_st* stream, int nx, int ny, int rx, int ry, cufftDoubleComplex* input, cufftDoubleComplex* output, double PI)
+	void procMultiplyPhase(CUstream_st* stream, const int &nBlocks, const int &nThreads, const LFGpuConst *config, cufftDoubleComplex* in, cufftDoubleComplex* out)
 	{
-		dim3 grid((rx*ry + kBlockThreads - 1) / kBlockThreads, 1, 1);
-		cudaKernel_MultiplyPhase << <grid, kBlockThreads, 0, stream >> > (nx, ny, rx, ry, input, output, PI);
+		//cudaKernel_MultiplyPhase << <nBlocks, nThreads, 0, stream >> > (config, in, output);
+		cudaKernel_MultiplyPhase << <nBlocks, nThreads >> > (config, in, out);
+
+		if (cudaDeviceSynchronize() != cudaSuccess)
+			return;
 	}
 
-	void procMoveToin2x(CUstream_st* stream, int Nx, int Ny, cufftDoubleComplex* in, cufftDoubleComplex* out)
+	void cudaFresnelPropagationLF(
+		const int &nBlocks, const int&nBlocks2, const int &nThreads, const int &nx, const int &ny,
+		cufftDoubleComplex *src, cufftDoubleComplex *tmp, cufftDoubleComplex *tmp2, cufftDoubleComplex *dst, 
+		const LFGpuConst* cuda_config)
 	{
-		dim3 grid((Nx*Ny + kBlockThreads - 1) / kBlockThreads, 1, 1);
-		cudaKernel_MoveToin2x << <grid, kBlockThreads, 0, stream >> > (Nx, Ny, in, out);
+		cudaError_t error;
+		cudaKernel_MoveDataPre << <nBlocks, nThreads >> > (src, tmp, cuda_config);
+		error = cudaDeviceSynchronize();
+		if (error != cudaSuccess)
+		{
+			LOG("cudaDeviceSynchronize(%d) : Failed\n", __LINE__);
+		}
+		cudaFFT(nullptr, nx * 2, ny * 2, tmp, tmp2, CUFFT_FORWARD, false);
 
-	}
+		cudaKernel_CalcData << <nBlocks2, nThreads >> > (tmp2, cuda_config);
+		error = cudaDeviceSynchronize();
+		if (error != cudaSuccess)
+		{
+			LOG("cudaDeviceSynchronize(%d) : Failed\n", __LINE__);
+		}
+		cudaFFT(nullptr, nx * 2, ny * 2, tmp2, tmp, CUFFT_INVERSE, true);
 
-	void procMultiplyProp(CUstream_st* stream, int Nx, int Ny, cufftDoubleComplex* inout, double PI, double dist, double wavelength, double ppx, double ppy)
-	{
-		dim3 grid((Nx*Ny + kBlockThreads - 1) / kBlockThreads, 1, 1);
-		cudaKernel_ProcMultiplyProp << <grid, kBlockThreads, 0, stream >> > (Nx, Ny, inout, PI, dist, wavelength, ppx, ppy);
-
-	}
-
-	void procCopyToOut(CUstream_st* stream, int Nx, int Ny, cufftDoubleComplex* in, cufftDoubleComplex* out)
-	{
-		dim3 grid((Nx*Ny + kBlockThreads - 1) / kBlockThreads, 1, 1);
-		cudaKernel_CopyToOut << <grid, kBlockThreads, 0, stream >> > (Nx, Ny, in, out);
-
+		cudaKernel_MoveDataPost << <nBlocks, nThreads >> > (tmp, dst, cuda_config);
+		error = cudaDeviceSynchronize();
+		if (error != cudaSuccess)
+		{
+			LOG("cudaDeviceSynchronize(%d) : Failed\n", __LINE__);
+		}
 	}
 }
 

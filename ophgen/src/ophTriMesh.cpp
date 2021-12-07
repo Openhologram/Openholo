@@ -254,7 +254,7 @@ void ophTri::loadTexturePattern(const char* fileName, const char* ext)
 	textFFT = new Complex<Real>[texture.dim[_X] * texture.dim[_Y]];
 	fft2(texture.dim, texture.pattern, OPH_FORWARD, OPH_ESTIMATE);
 	fftExecute(texture.pattern);
-	fftwShift(texture.pattern, textFFT, texture.dim[_X], texture.dim[_Y], OPH_FORWARD);
+	fft2(texture.pattern, textFFT, texture.dim[_X], texture.dim[_Y], OPH_FORWARD);
 
 	tempFreqTermX = new Real[N];
 	tempFreqTermY = new Real[N];
@@ -335,6 +335,8 @@ void ophTri::initializeAS()
 
 void ophTri::objSort(bool isAscending)
 {
+	LOG("%s : ", __FUNCTION__);
+	auto begin = CUR_TIME;
 	int N = meshData->n_faces;
 	Real* centerZ = new Real[N];
 
@@ -419,6 +421,8 @@ void ophTri::objSort(bool isAscending)
 		}
 	}
 	delete[] centerZ;
+	LOG("%lf (s)\n", ELAPSED_TIME(begin, CUR_TIME));
+	
 }
 
 vec3 vecCross(const vec3& a, const vec3& b)
@@ -464,7 +468,7 @@ void ophTri::triTimeMultiplexing(char* dirName, uint ENCODE_METHOD, Real cenFx, 
 			save(strFxFy, 8, nullptr, m_vecEncodeSize[_X], m_vecEncodeSize[_Y]);
 
 			fft2(context_.pixel_number, complex_H[0], OPH_FORWARD);
-			fftwShift(complex_H[0], complex_H[0], context_.pixel_number[_X], context_.pixel_number[_Y], OPH_FORWARD);
+			fft2(complex_H[0], complex_H[0], context_.pixel_number[_X], context_.pixel_number[_Y], OPH_FORWARD);
 
 			setEncodeMethod(ENCODE_AMPLITUDE);
 			encoding();
@@ -477,21 +481,23 @@ void ophTri::triTimeMultiplexing(char* dirName, uint ENCODE_METHOD, Real cenFx, 
 
 bool ophTri::generateHologram(uint SHADING_FLAG)
 {
-	//initialize();
 	resetBuffer();
 
 	auto start_time = CUR_TIME;
 	LOG("1) Algorithm Method : Tri Mesh\n");
-	LOG("2) Generate Hologram with %s\n", is_CPU ?
+	LOG("2) Generate Hologram with %s\n", m_mode & MODE_GPU ?
+		"GPU" :
 #ifdef _OPENMP
-		"Multi Core CPU" :
+		"Multi Core CPU"
 #else
-		"Single Core CPU" :
+		"Single Core CPU"
 #endif
-		"GPU");
+	);
+	LOG("3) Random Phase Use : %s\n", GetRandomPhase() ? "Y" : "N");
 	//LOG("3) Transform Viewing Window : %s\n", is_ViewingWindow ? "ON" : "OFF");
 
-	auto start = CUR_TIME;
+	auto begin = CUR_TIME;
+
 	(is_CPU) ? initializeAS() : initialize_GPU();
 	prepareMeshData();
 	objSort(false);
@@ -501,9 +507,9 @@ bool ophTri::generateHologram(uint SHADING_FLAG)
 
 	if (is_CPU) {
 		fft2(context_.pixel_number, angularSpectrum, OPH_BACKWARD, OPH_ESTIMATE);
-		fftwShift(angularSpectrum, *(complex_H), context_.pixel_number[_X], context_.pixel_number[_Y], OPH_BACKWARD);
+		fft2(angularSpectrum, *(complex_H), context_.pixel_number[_X], context_.pixel_number[_Y], OPH_BACKWARD);
 		//fft2(context_.pixel_number, *(complex_H), OPH_FORWARD, OPH_ESTIMATE);
-		//fftwShift(*(complex_H), *(complex_H), context_.pixel_number[_X], context_.pixel_number[_Y], OPH_FORWARD);
+		//fft2(*(complex_H), *(complex_H), context_.pixel_number[_X], context_.pixel_number[_Y], OPH_FORWARD);
 		//fftExecute((*complex_H));
 		//*(complex_H) = angularSpectrum;
 
@@ -512,16 +518,18 @@ bool ophTri::generateHologram(uint SHADING_FLAG)
 	*/
 	//fresnelPropagation(*(complex_H), *(complex_H), objShift[_Z]);
 	m_nProgress = 0;
-	auto end = CUR_TIME;
-	m_elapsedTime = ELAPSED_TIME(start, end);
 
-	LOG("Total Elapsed Time: %lf (s)\n", m_elapsedTime);
+	LOG("Total Elapsed Time: %lf (s)\n", ELAPSED_TIME(begin, CUR_TIME));
 
 	return true;
 }
 
 bool ophTri::generateAS(uint SHADING_FLAG)
 {
+	LOG("%s : ", __FUNCTION__);
+	LOG("\tMemory Allocation : ");
+	auto begin = CUR_TIME;
+	auto step = CUR_TIME;
 	const uint pnXY = context_.pixel_number[_X] * context_.pixel_number[_Y];
 	int N = meshData->n_faces;
 
@@ -533,10 +541,15 @@ bool ophTri::generateAS(uint SHADING_FLAG)
 	}
 	Real *freqTermX = new Real[pnXY];
 	Real *freqTermY = new Real[pnXY];
-
+	LOG("%lf (s)\n", ELAPSED_TIME(step, CUR_TIME));
+	LOG("\Calc Global Frequency : ");
+	step = CUR_TIME;
 	calGlobalFrequency(freq);
-
+	LOG("%lf (s)\n", ELAPSED_TIME(step, CUR_TIME));
+	LOG("\Find Normals : ");
+	step = CUR_TIME;
 	findNormals(SHADING_FLAG);
+	LOG("%lf (s)\n", ELAPSED_TIME(step, CUR_TIME));
 
 	for (int j = 0; j < N; j++) {
 		Real mesh[9] = { 0.0, };
@@ -568,8 +581,6 @@ bool ophTri::generateAS(uint SHADING_FLAG)
 		m_nProgress = (int)((Real)j * 100 / ((Real)N));
 	}
 
-
-	LOG("Angular Spectrum Generated...\n");
 	for (int i = 0; i < 3; i++) {
 		delete[] freq[i];
 		delete[] fl[i];
@@ -579,6 +590,8 @@ bool ophTri::generateAS(uint SHADING_FLAG)
 	refAS = nullptr;
 	phaseTerm = nullptr;
 	convol = nullptr;
+
+	LOG("%lf (s)\n", ELAPSED_TIME(begin, CUR_TIME));
 
 	return true;
 }
@@ -1131,7 +1144,7 @@ void ophTri::reconTest(const char* fname)
 
 	Complex<Real>* recon = new Complex<Real>[pnXY];
 	fresnelPropagation((*complex_H), recon, context_.shift[_Z], 0);
-	encoding(ENCODE_AMPLITUDE, recon);
+	encoding(ENCODE_AMPLITUDE, recon, nullptr);
 
 	normalize();
 	save(fname, 8, nullptr, m_vecEncodeSize[_X], m_vecEncodeSize[_Y]);
@@ -1148,21 +1161,23 @@ void ophTri::conv_fft2_scale(Complex<Real>* src1, Complex<Real>* src2, Complex<R
 	dstFT = new Complex<Real>[size[_X] * size[_Y]];
 
 
-	fftwShift(src1, src1FT, size[_X], size[_Y], OPH_FORWARD, (bool)OPH_ESTIMATE);
+	fft2(src1, src1FT, size[_X], size[_Y], OPH_FORWARD, (bool)OPH_ESTIMATE);
 
-	fftwShift(src2, src2FT, size[_X], size[_Y], OPH_FORWARD, (bool)OPH_ESTIMATE);
+	fft2(src2, src2FT, size[_X], size[_Y], OPH_FORWARD, (bool)OPH_ESTIMATE);
 
 
 	for (int i = 0; i < size[_X] * size[_Y]; i++)
 		dstFT[i] = src1FT[i] * src2FT[i] * double_nXY * double_nXY;
 
-	fftwShift(dstFT, dst, size[_X], size[_Y], OPH_BACKWARD, (bool)OPH_ESTIMATE);
+	fft2(dstFT, dst, size[_X], size[_Y], OPH_BACKWARD, (bool)OPH_ESTIMATE);
 
 	delete[] src1FT, src2FT, dstFT;
 }
 
 void ophTri::prepareMeshData()
 {
+	LOG("%s : ", __FUNCTION__);
+	auto begin = CUR_TIME;
 	int N = meshData->n_faces;
 	int N3 = N * 3;
 
@@ -1170,6 +1185,7 @@ void ophTri::prepareMeshData()
 	Real *y_point = new Real[N3];
 	Real *z_point = new Real[N3];
 
+	// x y z로 각각 분리
 	int i;
 #ifdef _OPENMP
 #pragma omp parallel for private(i)
@@ -1213,4 +1229,5 @@ void ophTri::prepareMeshData()
 	}
 
 	delete[] x_point, y_point, z_point;
+	LOG("%lf (s)\n", ELAPSED_TIME(begin, CUR_TIME));
 }

@@ -135,10 +135,12 @@ namespace oph
 #define MIN_REAL MIN_DOUBLE;
 #define MAX_REAL MAX_DOUBLE;
 
-
 //Mode Flag
-#define MODE_CPU 1
-#define MODE_GPU 0
+#define MODE_CPU		0
+#define MODE_GPU		1
+#define MODE_DOUBLE		0 // default
+#define MODE_FLOAT		2
+#define MODE_FASTMATH	4
 
 #define WIDTHBYTES(bits) (((bits)+31)/32*4)
 

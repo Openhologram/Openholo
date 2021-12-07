@@ -69,7 +69,7 @@ ophDepthMap::ophDepthMap()
 	depth_index_gpu = nullptr;
 
 	depth_img = nullptr;
-	rgb_img = nullptr;
+	m_vecRGB.clear();
 
 	// CPU Variables
 	img_src = nullptr;
@@ -214,6 +214,17 @@ bool ophDepthMap::readConfig(const char * fname)
 */
 bool ophDepthMap::readImageDepth(const char* source_folder, const char* img_prefix, const char* depth_img_prefix)
 {
+	const int pnX = context_.pixel_number[_X];
+	const int pnY = context_.pixel_number[_Y];
+	const int N = pnX * pnY;
+
+	for (int i = 0; i < m_vecRGB.size(); i++)
+	{
+		delete[] m_vecRGB[i];
+	} 
+	m_vecRGB.clear();
+
+	// RGB Image
 	std::string sdir = source_folder;
 	sdir = sdir.append("\\").append(img_prefix).append("*.bmp");
 
@@ -232,20 +243,52 @@ bool ophDepthMap::readImageDepth(const char* source_folder, const char* img_pref
 	int w, h, bytesperpixel;
 	bool ret = getImgSize(w, h, bytesperpixel, imgfullname.c_str());
 
-	oph::uchar* imgload = new uchar[w*h*bytesperpixel];
-	ret = loadAsImgUpSideDown(imgfullname.c_str(), imgload);
+	// RGB Image
+	oph::uchar* buf = new uchar[w * h * bytesperpixel]; // 1-Dimension left top
+	ret = loadAsImgUpSideDown(imgfullname.c_str(), buf);
 	if (!ret) {
 		LOG("Failed::Image Load: %s\n", imgfullname.c_str());
 		return false;
 	}
 	LOG("Succeed::Image Load: %s\n", imgfullname.c_str());
 
-	oph::uchar* img = new uchar[w*h];
-	convertToFormatGray8(imgload, img, w, h, bytesperpixel);
+	int ch = context_.waveNum;
+	uchar* img = new uchar[w * h];
 
-	delete[] imgload;
+	for (int i = 0; i < ch; i++)
+	{
+		if (ch == 1) // rgb img to grayscale
+			convertToFormatGray8(buf, img, w, h, bytesperpixel);
+		else if (ch == bytesperpixel) // rgb img to rgb
+		{
+			separateColor(i, w, h, buf, img);
+		}
+		else // grayscale img to rgb
+		{
+			memcpy(img, buf, sizeof(char) * w * h);
+		}
 
 
+		//resized image
+		uchar *rgb_img = new uchar[N];
+		memset(rgb_img, 0, sizeof(char) * N);
+
+		if (w != pnX || h != pnY)
+			imgScaleBilinear(img, rgb_img, w, h, pnX, pnY, ch);
+		else
+			memcpy(rgb_img, img, sizeof(char) * N);
+
+		m_vecRGB.push_back(rgb_img);
+	}
+	delete[] buf;
+
+	// 2019-10-14 mwnam
+	m_vecRGBImg[_X] = pnX;
+	m_vecRGBImg[_Y] = pnY;
+
+
+
+	// Depth Image
 	//=================================================================================
 	std::string sddir = std::string(source_folder).append("\\").append(depth_img_prefix).append("*.bmp");
 	handle = _findfirst64(sddir.c_str(), &fd);
@@ -260,8 +303,9 @@ bool ophDepthMap::readImageDepth(const char* source_folder, const char* img_pref
 	int dw, dh, dbytesperpixel;
 	ret = getImgSize(dw, dh, dbytesperpixel, dimgfullname.c_str());
 	
-	uchar* dimgload = new uchar[dw*dh*dbytesperpixel];
-	ret = loadAsImgUpSideDown(dimgfullname.c_str(), dimgload);
+	// Depth Image
+	uchar* dbuf = new uchar[dw * dh * dbytesperpixel];
+	ret = loadAsImgUpSideDown(dimgfullname.c_str(), dbuf);
 	if (!ret) {
 		LOG("Failed::Depth Image Load: %s\n", dimgfullname.c_str());
 		return false;
@@ -272,39 +316,20 @@ bool ophDepthMap::readImageDepth(const char* source_folder, const char* img_pref
 	m_vecDepthImg[_X] = dw;
 	m_vecDepthImg[_Y] = dh;
 
-	uchar* dimg = new uchar[dw*dh];
-	convertToFormatGray8(dimgload, dimg, dw, dh, dbytesperpixel);
+	uchar* dimg = new uchar[dw * dh];
+	convertToFormatGray8(dbuf, dimg, dw, dh, dbytesperpixel);
 
-	delete[] dimgload;
+	delete[] dbuf;
 
-	//resize image
-	int pnX = context_.pixel_number[_X];
-	int pnY = context_.pixel_number[_Y];
-
-	if (rgb_img) delete[] rgb_img;
-
-	rgb_img = new uchar[pnX*pnY];
-	memset(rgb_img, 0, sizeof(char)*pnX*pnY);
-
-	if (w != pnX || h != pnY)
-		imgScaleBilinear(img, rgb_img, w, h, pnX, pnY);
-	else
-		memcpy(rgb_img, img, sizeof(char)*pnX*pnY);
-
-	// 2019-10-14 mwnam
-	m_vecRGBImg[_X] = pnX;
-	m_vecRGBImg[_Y] = pnY;
-
-	//ret = creatBitmapFile(newimg, pnX, pnY, 8, "stest");
 	if (depth_img) delete[] depth_img;
 
-	depth_img = new uchar[pnX*pnY];
-	memset(depth_img, 0, sizeof(char)*pnX*pnY);
+	depth_img = new uchar[N];
+	memset(depth_img, 0, sizeof(char) * N);
 
 	if (dw != pnX || dh != pnY)
 		imgScaleBilinear(dimg, depth_img, dw, dh, pnX, pnY);
 	else
-		memcpy(depth_img, dimg, sizeof(char)*pnX*pnY);
+		memcpy(depth_img, dimg, sizeof(char) * N);
 
 	// 2019-10-14 mwnam
 	m_vecDepthImg[_X] = pnX;
@@ -333,19 +358,26 @@ Real ophDepthMap::generateHologram(void)
 		"GPU");
 	LOG("3) Transform Viewing Window : %s\n", is_ViewingWindow ? "ON" : "OFF");
 
-	if (is_CPU) {
-		prepareInputdataCPU(rgb_img, depth_img);
-		getDepthValues();
-		if (is_ViewingWindow)
-			transVW();
-		calcHoloCPU();
+	int nChannel = context_.waveNum;
+	if (is_CPU) {		
+		for (int ch = 0; ch < nChannel; ch++)
+		{
+			prepareInputdataCPU(m_vecRGB[ch], depth_img);
+			getDepthValues();
+			if (is_ViewingWindow)
+				transVW();
+			calcHoloCPU(ch);
+		}
 	}
 	else {
-		prepareInputdataGPU(rgb_img, depth_img);
-		getDepthValues();
-		if (is_ViewingWindow)
-			transVW();
-		calcHoloGPU();
+		for (int ch = 0; ch < nChannel; ch++)
+		{
+			prepareInputdataGPU(m_vecRGB[ch], depth_img);
+			getDepthValues();
+			if (is_ViewingWindow)
+				transVW();
+			calcHoloGPU(ch);
+		}
 	}
 	
 	auto end_time = CUR_TIME;
@@ -362,14 +394,17 @@ void ophDepthMap::encoding(unsigned int ENCODE_FLAG)
 	const uint pnX = context_.pixel_number[_X];
 	const uint pnY = context_.pixel_number[_Y];
 	const uint nChannel = context_.waveNum;
-	Complex<Real>* dst = new Complex<Real>[pnX * pnY];
-
+	Complex<Real>** dst = new Complex<Real>*[nChannel];
 	for (uint ch = 0; ch < nChannel; ch++) {
-		fft2(context_.pixel_number, complex_H[ch], OPH_BACKWARD);
-		fftwShift(complex_H[ch], dst, pnX, pnY, OPH_BACKWARD);
-		//ophGen::encoding(ENCODE_FLAG, nullptr, true);
-		ophGen::encoding(ENCODE_FLAG, dst, nullptr);
+		dst[ch] = new Complex<Real>[pnX * pnY];
+		//fft2(context_.pixel_number, nullptr, OPH_BACKWARD);
+		fft2(complex_H[ch], dst[ch], pnX, pnY, OPH_BACKWARD, true);
+		ophGen::encoding(ENCODE_FLAG, dst[ch], m_lpEncoded[ch]);
 	}
+
+	for (uint ch = 0; ch < nChannel; ch++)
+		delete[] dst[ch];
+	delete[] dst;
 }
 
 void ophDepthMap::encoding(unsigned int ENCODE_FLAG, unsigned int SSB_PASSBAND)
@@ -404,7 +439,7 @@ void ophDepthMap::encoding(unsigned int ENCODE_FLAG, unsigned int SSB_PASSBAND)
 		{
 			Complex<Real>* dst = new Complex<Real>[pnX * pnY];
 			fft2(context_.pixel_number, complex_H[ch], OPH_BACKWARD);
-			fftwShift(complex_H[ch], dst, pnX, pnY, OPH_BACKWARD);
+			fft2(complex_H[ch], dst, pnX, pnY, OPH_BACKWARD);
 			ophGen::encoding(ENCODE_FLAG, SSB_PASSBAND, dst);
 			delete[] dst;
 		}
@@ -488,22 +523,22 @@ void ophDepthMap::initCPU()
 {
 	const uint pnX = context_.pixel_number[_X];
 	const uint pnY = context_.pixel_number[_Y];
-	const uint pnXY = pnX * pnY;
+	const uint N = pnX * pnY;
 
 	if (img_src)	delete[] img_src;
-	img_src = new Real[pnXY];
+	img_src = new Real[N];
 
 	if (dmap_src) delete[] dmap_src;
-	dmap_src = new Real[pnXY];
+	dmap_src = new Real[N];
 
 	if (alpha_map) delete[] alpha_map;
-	alpha_map = new int[pnXY];
+	alpha_map = new int[N];
 
 	if (depth_index) delete[] depth_index;
-	depth_index = new short[pnXY];
+	depth_index = new short[N];
 
 	if (dmap) delete[] dmap;
-	dmap = new Real[pnXY];
+	dmap = new Real[N];
 
 	fftw_cleanup();
 }
@@ -520,10 +555,6 @@ bool ophDepthMap::prepareInputdataCPU(uchar* imgptr, uchar* dimgptr)
 {
 	auto begin = CUR_TIME;
 	const uint N = context_.pixel_number[_X] * context_.pixel_number[_Y];
-
-	const int pnX = context_.pixel_number[_X];
-	const int pnY = context_.pixel_number[_Y];
-	const uint pnXY = pnX * pnY;
 
 	memset(img_src, 0, sizeof(Real) * N);
 	memset(dmap_src, 0, sizeof(Real) * N);
@@ -564,7 +595,6 @@ void ophDepthMap::changeDepthQuanCPU()
 
 	const uint N = context_.pixel_number[_X] * context_.pixel_number[_Y];
 
-	Real temp_depth, d1, d2;
 	uint num_depth = dm_config_.num_of_depth;
 	Real near_depth = dm_config_.near_depthmap;
 	Real far_depth = dm_config_.far_depthmap;
@@ -600,7 +630,7 @@ void ophDepthMap::changeDepthQuanCPU()
 * @param frame : the frame number of the image.
 * @see Calc_Holo_by_Depth, Propagation_AngularSpectrum_CPU
 */
-void ophDepthMap::calcHoloCPU()
+void ophDepthMap::calcHoloCPU(int ch)
 {
 	auto begin = CUR_TIME;
 
@@ -617,7 +647,7 @@ void ophDepthMap::calcHoloCPU()
 
 	int frame = 0;
 
-	for (int ch = 0; ch < nChannel; ch++) {
+	//for (int ch = 0; ch < nChannel; ch++) {
 		Real lambda = context_.wave_length[ch];
 		Real k = context_.k = (2 * M_PI / lambda);
 
@@ -652,13 +682,13 @@ void ophDepthMap::calcHoloCPU()
 				input[j] *= rand_phase_val * carrier_phase_delay;
 			}
 
-			fftwShift(input, input, pnX, pnY, OPH_FORWARD, false);
+			fft2(input, input, pnX, pnY, OPH_FORWARD, false);
 			propagationAngularSpectrum(ch, input, -temp_depth, k, lambda);
 			
 			delete[] input;
 			m_nProgress = (int)((Real)(ch * depth_sz + i) * 100 / (depth_sz * nChannel));
 		}
-	}
+	//}
 	fftFree();
 	LOG("\n%s : %lf(s)\n\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
 
@@ -671,10 +701,13 @@ void ophDepthMap::ophFree(void)
 		delete[] depth_img;
 		depth_img = nullptr;
 	}
-	if (rgb_img) {
-		delete[] rgb_img;
-		rgb_img = nullptr;
+
+
+	for (vector<uchar *>::iterator it = m_vecRGB.begin(); it != m_vecRGB.end(); it++)
+	{
+		delete[](*it);
 	}
+	m_vecRGB.clear();
 }
 
 void ophDepthMap::setResolution(ivec2 resolution)
@@ -689,5 +722,13 @@ void ophDepthMap::setResolution(ivec2 resolution)
 
 void ophDepthMap::normalize()
 {
+#if 1
 	ophGen::normalize();
+#else
+	const int pnX = context_.pixel_number[_X];
+	const int pnY = context_.pixel_number[_Y];
+
+	for (uint ch = 0; ch < context_.waveNum; ch++)
+		oph::normalize((Real*)m_lpEncoded[ch], m_lpNormalized[ch], pnX, pnY);
+#endif
 }

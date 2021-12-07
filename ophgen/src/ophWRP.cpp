@@ -70,11 +70,12 @@ void ophWRP::setViewingWindow(bool is_ViewingWindow)
 
 void ophWRP::autoScaling()
 {
+	LOG("%s : ", __FUNCTION__);
 	auto begin = CUR_TIME;
 
 	const uint pnX = context_.pixel_number[_X];
 	const uint pnY = context_.pixel_number[_Y];
-	const Real ppX = context_.pixel_pitch[_X];//wrp pitch
+	const Real ppX = context_.pixel_pitch[_X];
 	const Real ppY = context_.pixel_pitch[_Y];
 
 	Real size = pnY * ppY * 0.8 / 2.0;
@@ -85,72 +86,49 @@ void ophWRP::autoScaling()
 		scaledVertex = nullptr;
 	}
 	scaledVertex = new Real[n_points * 3];
-	memset(scaledVertex, 0.0, sizeof(Real) * n_points * 3);
+	memcpy(scaledVertex, pc.vertex, sizeof(Real) * n_points * 3);
 
-	if (is_ViewingWindow) {
-		transVW(scaledVertex, pc.vertex, n_points * 3);
-	}
 
 	Real* x = new Real[n_points];
 	Real* y = new Real[n_points];
 	Real* z = new Real[n_points];
 
 	int i;
-	int num_threads = 1;
 #ifdef _OPENMP
-#pragma omp parallel
-	{
-		num_threads = omp_get_num_threads(); // get number of Multi Threading
-#pragma omp for private(i)
+#pragma omp parallel for private(i)
 #endif
-		for (i = 0; i < n_points; i++) {
-			uint idx = 3 * i;
-			x[i] = is_ViewingWindow ? scaledVertex[idx + _X] : pc.vertex[idx + _X];
-			y[i] = is_ViewingWindow ? scaledVertex[idx + _Y] : pc.vertex[idx + _Y];
-			z[i] = is_ViewingWindow ? scaledVertex[idx + _Z] : pc.vertex[idx + _Z];
-		}
-#ifdef _OPENMP
+	for (i = 0; i < n_points; i++) {
+		uint idx = 3 * i;
+		x[i] = scaledVertex[idx + _X];
+		y[i] = scaledVertex[idx + _Y];
+		z[i] = scaledVertex[idx + _Z];
 	}
-#endif
+
 	Real xmax = maxOfArr(x, n_points);
 	Real ymax = maxOfArr(y, n_points);
 	Real zmax = maxOfArr(z, n_points);
 
+	Real maxXY = (xmax > ymax) ? xmax : ymax;
+
 	int j;
 #ifdef _OPENMP
-#pragma omp parallel
-	{
-		num_threads = omp_get_num_threads(); // get number of Multi Threading
-#pragma omp for private(j)
+#pragma omp parallel for private(j) firstprivate(maxXY, zmax, size)
 #endif
-		for (j = 0; j < n_points; ++j) { //Create Fringe Pattern
-			uint idx = 3 * j;
-			Real maxXY = (xmax > ymax) ? xmax : ymax;
-			Real *pSrc = is_ViewingWindow ? scaledVertex : pc.vertex;
-
-			Real tmpX = pSrc[idx + _X] / maxXY * size;
-			Real tmpY = pSrc[idx + _Y] / maxXY * size;
-			Real tmpZ = pSrc[idx + _Z] / zmax * size;
-
-			scaledVertex[idx + _X] = tmpX;
-			scaledVertex[idx + _Y] = tmpY;
-			scaledVertex[idx + _Z] = tmpZ;
-			z[j] = tmpZ;// pc.vertex[idx + _Z];
-		}
-#ifdef _OPENMP
+	for (j = 0; j < n_points; ++j) { //Create Fringe Pattern
+		uint idx = 3 * j;
+		scaledVertex[idx + _X] = scaledVertex[idx + _X] / maxXY * size;
+		scaledVertex[idx + _Y] = scaledVertex[idx + _Y] / maxXY * size;
+		scaledVertex[idx + _Z] = scaledVertex[idx + _Z] / zmax * size;
+		z[j] = scaledVertex[idx + _Z];
 	}
-#endif
+
 	zmax_ = maxOfArr(z, n_points);
 
 	delete[] x;
 	delete[] y;
 	delete[] z;
 
-	auto end = CUR_TIME;
-	LOG("\n%s : %lf(s) <%d threads>\n\n", 
-		__FUNCTION__, 
-		((chrono::duration<Real>)(end - begin)).count(),
-		num_threads);
+	LOG("%lf (s)\n", ELAPSED_TIME(begin, CUR_TIME));
 }
 
 int ophWRP::loadPointCloud(const char* pc_file)
@@ -326,17 +304,18 @@ void ophWRP::setMode(bool isCPU)
 
 double ophWRP::calculateWRPCPU(void)
 {
+	LOG("%s\n", __FUNCTION__);
 	auto begin = CUR_TIME;
 
 	const uint pnX = context_.pixel_number[_X]; //slm_pixelNumberX
 	const uint pnY = context_.pixel_number[_Y]; //slm_pixelNumberY
 	const Real ppX = context_.pixel_pitch[_X]; //wrp pitch
 	const Real ppY = context_.pixel_pitch[_Y];
-	const uint pnXY = pnX * pnY;
+	const uint N = pnX * pnY;
 	const uint nChannel = context_.waveNum;
 	const Real distance = wrp_config_.propagation_distance;
-	int pnX_h = pnX >> 1;
-	int pnY_h = pnY >> 1;
+	int hpnX = pnX >> 1;
+	int hpnY = pnY >> 1;
 
 	OphPointCloudData pc = obj_;
 	Real wrp_d = wrp_config_.wrp_location;
@@ -347,99 +326,96 @@ double ophWRP::calculateWRPCPU(void)
 		delete[] p_wrp_;
 		p_wrp_ = nullptr;
 	}
-	p_wrp_ = new Complex<Real>[pnXY];
-	memset(p_wrp_, 0.0, sizeof(Complex<Real>) * pnXY);
-
-	int num_threads = 1;
-	bool bIsGrayScale = (nChannel == 1) ? true : false;
-
+	p_wrp_ = new Complex<Real>[N];
+	memset(p_wrp_, 0.0, sizeof(Complex<Real>) * N);
+	
 	int sum = 0;
 	m_nProgress = 0;
 	Real ppXX = ppX * ppX * 2;
+	Real pi2 = 2 * M_PI;
+	Real dz = wrp_d - zmax_;
+	Real dzz = dz * dz;
 
-	for (uint ch = 0; ch < nChannel; ch++) {
+	bool bRandomPhase = GetRandomPhase();
 
+	for (uint ch = 0; ch < nChannel; ch++)
+	{
 		Real lambda = context_.wave_length[ch];  //wave_length
-		Real k = context_.k = 2 * M_PI / lambda;
-		uint nAdd = bIsGrayScale ? 0 : ch;
+		Real k = context_.k = pi2 / lambda;
+		int iColor = ch;
 		int i;
+		int sum = 0;
 #ifdef _OPENMP
-#pragma omp parallel
-		{
-			num_threads = omp_get_num_threads();
-#pragma omp parallel for private(i)
+#pragma omp parallel for private(i) firstprivate(iColor, ppXX, pnX, pnY, ppX, ppY, hpnX, hpnY, wrp_d, k, pi2)
 #endif
-			for (i = 0; i < n_points; ++i) {
-				uint idx = 3 * i;
-				uint color_idx = pc.n_colors * i;
+		for (i = 0; i < n_points; ++i)
+		{
+			uint idx = 3 * i;
+			uint color_idx = pc.n_colors * i;
 
-				Real x = scaledVertex[idx + _X];
-				Real y = scaledVertex[idx + _Y];
-				Real z = scaledVertex[idx + _Z];
-				Real amplitude = pc.color[color_idx + nAdd];
+			Real x = scaledVertex[idx + _X];
+			Real y = scaledVertex[idx + _Y];
+			Real z = scaledVertex[idx + _Z];
+			Real amplitude = pc.color[color_idx + iColor];
 
-				float dz = wrp_d - z;
-				float tw = (int)fabs(lambda * dz / ppX / ppX / 2 + 0.5) * 2 - 1;
-				//	float tw = fabs(dz)*wave_len / ppX / ppX / 2;
+			//Real dz = wrp_d - z;
+			//Real dzz = dz * dz;
+			bool sign = (dz > 0.0) ? true : false;
+			//Real tw = fabs(lambda * dz / ppXX + 0.5) * 2 - 1;
+			Real tw = fabs(lambda * dz / ppXX) * 2;
 
-				int w = (int)tw;
+			int w = (int)tw;
 
-				int tx = (int)(x / ppX) + pnX_h;
-				int ty = (int)(y / ppY) + pnY_h;
+			int tx = (int)(x / ppX) + hpnX;
+			int ty = (int)(y / ppY) + hpnY;
 
-				//cout << "num = " << k << ", tx = " << tx << ", ty = " << ty << ", w = " << w << endl;
+			for (int wy = -w; wy < w; wy++)
+			{
+				Real dy = wy * ppY;
+				Real dyy = dy * dy;
+				int tmpY = wy + ty;
+				int baseY = tmpY * pnX;
 
-				for (int wy = -w; wy < w; wy++) {
-					for (int wx = -w; wx < w; wx++) {//WRP coordinate
+				for (int wx = -w; wx < w; wx++) //WRP coordinate
+				{
+					int tmpX = wx + tx;
+					if (tmpX >= 0 && tmpX < pnX && tmpY >= 0 && tmpY < pnY) {
+						uint adr = tmpX + baseY;
 
-						double dx = wx * ppX;
-						double dy = wy * ppY;
-						double dz = wrp_d - z;
-
-						double sign = (dz > 0.0) ? (1.0) : (-1.0);
-						double r = sign * sqrt(dx*dx + dy * dy + dz * dz);
-
+						Real dx = wx * ppX;
+						Real r = sign ? sqrt(dx * dx + dyy + dzz) : -sqrt(dx * dx + dyy + dzz);
+						Real kr = k * r;
+						Real randVal = bRandomPhase ? rand(0.0, 1.0) : 1.0;
+						Real randpi2 = pi2 * randVal;
 						Complex<Real> tmp;
-						tmp[_RE] = (amplitude * cosf(k * r) * cosf(k * lambda * rand(0, 1))) / r;
-						tmp[_IM] = (-amplitude * sinf(k * r) * sinf(k * lambda * rand(0, 1))) / r;
-						if (tx + wx >= 0 && tx + wx < pnX && ty + wy >= 0 && ty + wy < pnY) {
-							int tmpX = wx + tx;
-							int tmpY = wy + ty;
+						tmp[_RE] = (amplitude * cos(kr) * cos(randpi2)) / r;
+						tmp[_IM] = (-amplitude * sin(kr) * sin(randpi2)) / r;
 
-							if (tmpX >= 0 && tmpX < pnX && tmpY >= 0 && tmpY < pnY) {
-								uint adr = tmpX + tmpY * pnX;
-								if (adr == 0)
-									std::cout << ".0";
+						if (adr == 0)
+							std::cout << ".0";
 #ifdef _OPENMP
 #pragma omp atomic
-								p_wrp_[adr][_RE] += tmp[_RE];
+						p_wrp_[adr][_RE] += tmp[_RE];
 #pragma omp atomic
-								p_wrp_[adr][_IM] += tmp[_IM];
+						p_wrp_[adr][_IM] += tmp[_IM];
 #else
-								p_wrp_[adr] += tmp;
-#endif								
-							}
-						}
+						p_wrp_[adr] += tmp;
+#endif						
 					}
 				}
 			}
-#ifdef _OPENMP
 		}
-#endif
-		//Fresnel_FFT(p_wrp_, complex_H[ch], lambda, 1.0, distance);
+		LOG("\t");
+
 		fresnelPropagation(p_wrp_, complex_H[ch], distance, ch);
-		memset(p_wrp_, 0.0, sizeof(Complex<Real>) * pnXY);
+		memset(p_wrp_, 0.0, sizeof(Complex<Real>) * N);
 	}
 	delete[] p_wrp_;
 	delete[] scaledVertex;
 	p_wrp_ = nullptr;
 	scaledVertex = nullptr;
 
-	auto end = CUR_TIME;
-	LOG("\n%s : %lf(s) <%d threads>\n\n",
-		__FUNCTION__,
-		((chrono::duration<Real>)(end - begin)).count(),
-		num_threads);
+	LOG("Total : %lf (s)\n", ELAPSED_TIME(begin, CUR_TIME));
 
 	return 0.;
 }
@@ -448,27 +424,23 @@ void ophWRP::generateHologram(void)
 {
 	resetBuffer();
 
-	auto start_time = CUR_TIME;
-	LOG("1) Algorithm Method : WRP\n");
-	LOG("2) Generate Hologram with %s\n", is_CPU ?
-#ifdef _OPENMP
-		"Multi Core CPU" :
-#else
-		"Single Core CPU" :
-#endif
-		"GPU");
-	LOG("3) Transform Viewing Window : %s\n", is_ViewingWindow ? "ON" : "OFF");
-
 	auto begin = CUR_TIME;
-
+	LOG("1) Algorithm Method : WRP\n");
+	LOG("2) Generate Hologram with %s\n", m_mode & MODE_GPU ?
+		"GPU" :
+#ifdef _OPENMP
+		"Multi Core CPU"
+#else
+		"Single Core CPU"
+#endif
+	);
+	LOG("3) Random Phase Use : %s\n", GetRandomPhase() ? "Y" : "N");
+	
 	autoScaling();
-	is_CPU ? calculateWRPCPU() : calculateWRPGPU();
+	m_mode & MODE_GPU ? calculateWRPGPU() : calculateWRPCPU();
 
 	fftFree();
-	auto end = CUR_TIME;
-	m_elapsedTime = ((std::chrono::duration<Real>)(end - begin)).count();
-
-	LOG("Total Elapsed Time: %lf (s)\n", m_elapsedTime);
+	LOG("Total Elapsed Time: %lf (s)\n", ELAPSED_TIME(begin, CUR_TIME));
 }
 
 Complex<Real>** ophWRP::calculateMWRP(void)

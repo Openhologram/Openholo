@@ -3,21 +3,7 @@
 #define __ImgControl_h
 
 #include <atlbase.h>
-enum FLIP
-{
-	VERTICAL,
-	HORIZONTAL,
-	BOTH
-};
 
-enum TYPE
-{
-	BMP,
-	JPG,
-	PNG,
-	TIFF,
-	GIF
-};
 
 #ifdef OPH_EXPORT
 #define OPH_DLL __declspec(dllexport)
@@ -26,6 +12,23 @@ enum TYPE
 #endif
 namespace oph
 {
+	enum FLIP
+	{
+		NONE,
+		VERTICAL,
+		HORIZONTAL,
+		BOTH
+	};
+
+	enum TYPE
+	{
+		BMP,
+		JPG,
+		PNG,
+		TIFF,
+		GIF
+	};
+
 	class OPH_DLL ImgControl
 	{
 	private:

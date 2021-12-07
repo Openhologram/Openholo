@@ -223,17 +223,17 @@ typedef struct KernelConst_NotEncodedFrsn : public KernelConst {
 
 
 extern "C"
-{
+{	
 	void cudaGenCghPointCloud_NotEncodedRS(
 		const int &nBlocks, const int &nThreads, const int &n_pts_per_stream,
-		Real* cuda_pc_data, Real* cuda_amp_data,
-		Real* cuda_dst_real, Real* cuda_dst_imag,
-		const GpuConstNERS* cuda_config, const uint &iChannel);
+		double* cuda_pc_data, double* cuda_amp_data,
+		double* cuda_dst_double, double* cuda_dst_imag,
+		const GpuConstNERS* cuda_config, const uint &iChannel, const uint &mode);
 
 	void cudaGenCghPointCloud_NotEncodedFrsn(
 		const int &nBlocks, const int &nThreads, const int &n_pts_per_stream,
-		Real* cuda_pc_data, Real* cuda_amp_data,
-		Real* cuda_dst_real, Real* cuda_dst_imag,
+		double* cuda_pc_data, double* cuda_amp_data,
+		double* cuda_dst_double, double* cuda_dst_imag,
 		const GpuConstNEFR* cuda_config, const uint &iChannel);
 }
 

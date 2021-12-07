@@ -43,60 +43,26 @@
 #include "ophWRP.h"
 #include "ophWRP_GPU.h"
 #include "sys.h"
+#include "CUDA.h"
 
-double ophWRP::calculateWRPGPU(void)
+void ophWRP::calculateWRPGPU()
 {
+	LOG("%s\n", __FUNCTION__);
+	LOG("\tMemory Allocation : ");
 	auto begin = CUR_TIME;
+	auto step = CUR_TIME;
 
-	if (p_wrp_) delete[] p_wrp_;
-	p_wrp_ = new oph::Complex<Real>[context_.pixel_number[_X] * context_.pixel_number[_Y]];
-	memset(p_wrp_, 0.0, sizeof(oph::Complex<Real>) * context_.pixel_number[_X] * context_.pixel_number[_Y]);
-
-	prepareInputdataGPU();
-
-	auto end = CUR_TIME;
-	LOG("\n%s : %lf(s)\n\n", __FUNCTION__, ((std::chrono::duration<Real>)(end - begin)).count());
-
-	return 0;
-
-}
-
-void ophWRP::prepareInputdataGPU()
-{
-	// GPU information
-	int devID;
-	HANDLE_ERROR(cudaGetDevice(&devID));
-	cudaDeviceProp devProp;
-	HANDLE_ERROR(cudaGetDeviceProperties(&devProp, devID));
-
-#ifdef __DEBUG_LOG_GPU_SPEC_
-	cout << "GPU Spec : " << devProp.name << endl;
-	cout << "	- Global Memory : " << devProp.totalGlobalMem << endl;
-	cout << "	- Const Memory : " << devProp.totalConstMem << endl;
-	cout << "	- Shared Memory / SM : " << devProp.sharedMemPerMultiprocessor << endl;
-	cout << "	- Shared Memory / Block : " << devProp.sharedMemPerBlock << endl;
-	cout << "	- SM Counter : " << devProp.multiProcessorCount << endl;
-	cout << "	- Maximum Threads / SM : " << devProp.maxThreadsPerMultiProcessor << endl;
-	cout << "	- Maximum Threads / Block : " << devProp.maxThreadsPerBlock << endl;
-	cout << "	- Maximum Threads of each Dimension of a Block, X : " << devProp.maxThreadsDim[0] << ", Y : " << devProp.maxThreadsDim[1] << ", Z : " << devProp.maxThreadsDim[2] << endl;
-	cout << "	- Maximum Blocks of each Dimension of a Grid, X : " << devProp.maxGridSize[0] << ", Y : " << devProp.maxGridSize[1] << ", Z : " << devProp.maxGridSize[2] << endl;
-	cout << "	- Device supports allocating Managed Memory on this system : " << devProp.managedMemory << endl;
-	cout << endl;
-#endif
+	CUDA *cuda = CUDA::getInstance();
 
 	bool bSupportDouble = false;
 
 	const ulonglong n_points = obj_.n_points;
 
-	const int blockSize = 512; //n_threads
+	
+	int blockSize = cuda->getMaxThreads(); //n_threads
 
-
-	const ulonglong gridSize = (n_points + blockSize - 1) / blockSize; //n_blocks
-
-
-	cout << ">>> All " << blockSize * gridSize << " threads in CUDA" << endl;
-	cout << ">>> " << blockSize << " threads/block, " << gridSize << " blocks/grid" << endl;
-
+	ulonglong gridSize = (n_points + blockSize - 1) / blockSize; //n_blocks
+	   
 	//threads number
 
 	//Host Memory Location
@@ -111,54 +77,53 @@ void ophWRP::prepareInputdataGPU()
 	const Real distance = wrp_config_.propagation_distance;
 	const uint nChannel = context_.waveNum;
 
-	Real* pc_index = new Real[obj_.n_points * 3];
-	memset(pc_index, 0.0, sizeof(Real) * obj_.n_points * 3);
-
-	float wz = wrp_config_.wrp_location - zmax_;
-	
 	//Device(GPU) Memory Location
 	Real* device_pc_data;
 	HANDLE_ERROR(cudaMalloc((void**)&device_pc_data, n_points * 3 * sizeof(Real)));
 	Real* device_amp_data;
 	HANDLE_ERROR(cudaMalloc((void**)&device_amp_data, n_points * n_colors * sizeof(Real)));
-	Real* device_pc_xindex;
-	HANDLE_ERROR(cudaMalloc((void**)&device_pc_xindex, n_points * 3 * sizeof(Real)));
-
 	WRPGpuConst* device_config = nullptr;
 	HANDLE_ERROR(cudaMalloc((void**)&device_config, sizeof(WRPGpuConst)));
 
 	//cuda obj dst
 	const ulonglong bufferSize = pnXY * sizeof(Real);
 
-	Real *host_obj_dst = new Real[pnXY];
-	memset(host_obj_dst, 0., bufferSize);
+	ulonglong gridSize2 = (pnXY + blockSize - 1) / blockSize; //n_blocks
+	ulonglong gridSize3 = (pnXY * 4 + blockSize - 1) / blockSize;
+	cuDoubleComplex *device_dst;
+	//Real* device_dst;
+	HANDLE_ERROR(cudaMalloc((void**)&device_dst, pnXY * sizeof(cuDoubleComplex)));
 
-	Real *host_amp_dst = new Real[pnXY];
-	memset(host_amp_dst, 0., bufferSize);
+	cuDoubleComplex *src;
+	cufftDoubleComplex *fftsrc;
+	cufftDoubleComplex *fftdst;
+	HANDLE_ERROR(cudaMalloc((void**)&src, pnXY * 4 * sizeof(cuDoubleComplex)));
+	HANDLE_ERROR(cudaMalloc((void**)&fftsrc, pnXY * 4 * sizeof(cufftDoubleComplex)));
+	HANDLE_ERROR(cudaMalloc((void**)&fftdst, pnXY * 4 * sizeof(cufftDoubleComplex)));	
+	HANDLE_ERROR(cudaMemcpy(device_pc_data, host_pc_data, n_points * 3 * sizeof(Real), cudaMemcpyHostToDevice));
+	HANDLE_ERROR(cudaMemcpy(device_amp_data, host_amp_data, n_points * n_colors * sizeof(Real), cudaMemcpyHostToDevice));
+	bool bRandomPhase = GetRandomPhase();
 
-	Real *device_obj_dst;
-	HANDLE_ERROR(cudaMalloc((void**)&device_obj_dst, bufferSize));
-
-	Real *device_amp_dst;
-	HANDLE_ERROR(cudaMalloc((void**)&device_amp_dst, bufferSize));
+	LOG("%lf (s)\n", ELAPSED_TIME(step, CUR_TIME));
 
 
-	const ulonglong gridSize2 = (pnXY + blockSize - 1) / blockSize; //n_blocks
+	//Real wz = wrp_config_.wrp_location - zmax_;
+	for (uint ch = 0; ch < nChannel; ch++)
+	{
+#if 0
+		LOG("\tCUDA Gen WRP <<<%d, %d>>> : ", gridSize2, blockSize);
+#else
+		LOG("\tCUDA Gen WRP <<<%d, %d>>> : ", gridSize, blockSize);
+#endif
+		HANDLE_ERROR(cudaMemset(src, 0, pnXY * 4 * sizeof(cuDoubleComplex)));
+		HANDLE_ERROR(cudaMemset(fftsrc, 0, pnXY * 4 * sizeof(cufftDoubleComplex)));
+		HANDLE_ERROR(cudaMemset(fftdst, 0, pnXY * 4 * sizeof(cufftDoubleComplex)));
 
-	Real* device_dst;
-	HANDLE_ERROR(cudaMalloc((void**)&device_dst, bufferSize * 2));
-
-	Real* host_dst = new Real[pnXY * 2];
-
-	bool bIsGrayScale = (nChannel == 1) ? true : false;
-	for (uint ch = 0; ch < nChannel; ch++) {
+		step = CUR_TIME;
 
 		Real lambda = context_.wave_length[ch];
 		Real k = context_.k = (2 * M_PI / lambda);
-		uint nAdd = bIsGrayScale ? 0 : ch;
-		float wm = round(fabs(wz * tan(lambda / (2 * ppX)) / ppX));
-
-		HANDLE_ERROR(cudaMemset(device_pc_xindex, 0., n_points * 3 * sizeof(Real)));
+		int nAdd = ch;
 
 		WRPGpuConst* host_config = new WRPGpuConst(
 			obj_.n_points, n_colors, 1,
@@ -166,54 +131,56 @@ void ophWRP::prepareInputdataGPU()
 			context_.pixel_pitch,
 			wrp_config_.wrp_location,
 			wrp_config_.propagation_distance, zmax_,
-			k, lambda
+			k, lambda, bRandomPhase, nAdd
 		);
-
 		HANDLE_ERROR(cudaMemcpy(device_config, host_config, sizeof(WRPGpuConst), cudaMemcpyHostToDevice));
-			   
-		HANDLE_ERROR(cudaMemcpy(device_pc_data, host_pc_data, n_points * 3 * sizeof(Real), cudaMemcpyHostToDevice));
-		HANDLE_ERROR(cudaMemcpy(device_amp_data, host_amp_data, n_points * n_colors * sizeof(Real), cudaMemcpyHostToDevice));
-		cudaGenindexx(gridSize, blockSize, n_points, device_pc_data, device_pc_xindex, (WRPGpuConst*)device_config);
-
-		HANDLE_ERROR(cudaMemcpy(pc_index, device_pc_xindex, sizeof(Real) * 3 * n_points, cudaMemcpyDeviceToHost));
-		HANDLE_ERROR(cudaMemset(device_obj_dst, 0., bufferSize));
-		HANDLE_ERROR(cudaMemset(device_amp_dst, 0., bufferSize));
-
-		cudaGetObjDst(gridSize, blockSize, n_points, device_pc_xindex, device_obj_dst, (WRPGpuConst*)device_config);
-		cudaGetAmpDst(gridSize, blockSize, n_points, device_pc_xindex, device_amp_data, device_amp_dst, (WRPGpuConst*)device_config, nAdd);
-
-		HANDLE_ERROR(cudaMemcpy(host_obj_dst, device_obj_dst, bufferSize, cudaMemcpyDeviceToHost));
-		HANDLE_ERROR(cudaMemcpy(host_amp_dst, device_amp_dst, bufferSize, cudaMemcpyDeviceToHost));
-
-		HANDLE_ERROR(cudaMemset(device_dst, 0., bufferSize * 2));
-		memset(host_dst, 0., bufferSize * 2);
+		HANDLE_ERROR(cudaMemset(device_dst, 0., pnXY * sizeof(cuDoubleComplex)));
 
 		// cuda WRP
-		cudaGenWRP(gridSize2, blockSize, n_points, device_obj_dst, device_amp_dst, device_dst, device_dst + pnXY, (WRPGpuConst*)device_config);
-
-		HANDLE_ERROR(cudaMemcpy(host_dst, device_dst, bufferSize * 2, cudaMemcpyDeviceToHost));
-
-		for (ulonglong n = 0; n < pnXY; ++n) {
-			if (host_dst[n] != 0)
-			{
-				p_wrp_[n][_RE] = host_dst[n];
-				p_wrp_[n][_IM] = host_dst[n + pnXY];
+#if 0
+		cudaGenWRP(gridSize2, blockSize, n_points, device_pc_data, device_amp_data, device_dst, (WRPGpuConst*)device_config);
+#else
+		cudaGenWRP(gridSize, blockSize, n_points, device_pc_data, device_amp_data, device_dst, (WRPGpuConst*)device_config);
+#endif
+		LOG("%lf (s)\n", ELAPSED_TIME(step, CUR_TIME));
+		
+		// 20200824_mwnam_
+		cudaError error = cudaGetLastError();
+		if (error != cudaSuccess) {
+			LOG("cudaGetLastError(): %s\n", cudaGetErrorName(error));
+			if (error == cudaErrorLaunchOutOfResources) {
+				ch--;
+				blockSize /= 2;
+				gridSize = (n_points + blockSize - 1) / blockSize;
+				gridSize2 = (pnXY + blockSize - 1) / blockSize;
+				gridSize3 = (pnXY * 4 + blockSize - 1) / blockSize;
+				cuda->setCurThreads(blockSize);
+				delete host_config;
+				continue;
 			}
 		}
+		
+		LOG("\tCUDA FresnelPropagation <<<%d, %d>>> : ", gridSize2, blockSize);
+		step = CUR_TIME;
+		cudaFresnelPropagationWRP(gridSize2, gridSize3, blockSize, pnX, pnY, device_dst, src, fftsrc, fftdst, (WRPGpuConst*)device_config);
+		HANDLE_ERROR(cudaMemcpy(complex_H[ch], device_dst, sizeof(cuDoubleComplex) * pnXY, cudaMemcpyDeviceToHost));
 
-		fresnelPropagation(p_wrp_, complex_H[ch], distance, ch);
-
+		LOG("%lf (s)\n", ELAPSED_TIME(step, CUR_TIME));
+		// 20200824_mwnam_
+		error = cudaGetLastError();
+		if (error != cudaSuccess) {
+			LOG("cudaGetLastError(): %s\n", cudaGetErrorName(error));
+		}
 		delete host_config;
 	}
-	
-	HANDLE_ERROR(cudaFree(device_pc_data));
-	   	 
-	//*(complex_H) = p_wrp_;
 
 	//free memory
+	HANDLE_ERROR(cudaFree(src));
+	HANDLE_ERROR(cudaFree(fftsrc));
+	HANDLE_ERROR(cudaFree(fftdst));
+	HANDLE_ERROR(cudaFree(device_dst));
+	HANDLE_ERROR(cudaFree(device_pc_data));
 	HANDLE_ERROR(cudaFree(device_amp_data));
-	HANDLE_ERROR(cudaFree(device_pc_xindex));
 	HANDLE_ERROR(cudaFree(device_config));
-
+	LOG("Total : %lf (s)\n", ELAPSED_TIME(begin, CUR_TIME));
 }
-

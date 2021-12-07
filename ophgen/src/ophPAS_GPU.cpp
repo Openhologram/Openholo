@@ -170,11 +170,14 @@ bool ophPAS_GPU::readConfig(const char* fname) {
 	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&context_.pixel_pitch[_Y]))
 		return false;
 	next = xml_node->FirstChildElement("IMG_Rotation");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryBoolText(&context_.bRotation))
-		context_.bRotation = false;
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryBoolText(&imgCfg.bRotation))
+		imgCfg.bRotation = false;
 	next = xml_node->FirstChildElement("IMG_Merge");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryBoolText(&context_.bMergeImg))
-		context_.bMergeImg = true;
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryBoolText(&imgCfg.bMergeImage))
+		imgCfg.bMergeImage = false;
+	next = xml_node->FirstChildElement("IMG_Flip");
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryIntText(&imgCfg.nFlip))
+		imgCfg.nFlip = 0;
 	next = xml_node->FirstChildElement("DoublePrecision");
 	if (!next || tinyxml2::XML_SUCCESS != next->QueryBoolText(&context_.bUseDP))
 		context_.bUseDP = true;
@@ -1086,15 +1089,15 @@ void ophPAS_GPU::encodeHologram(const vec2 band_limit, const vec2 spectrum_shift
 	Complex<Real>* h = new Complex<Real>[pnXY];
 
 	for (uint ch = 0; ch < nChannel; ch++) {
-		fftwShift(complex_H[ch], h, pnX, pnY, OPH_FORWARD);
+		fft2(complex_H[ch], h, pnX, pnY, OPH_FORWARD);
 		fft2(ivec2(pnX, pnY), h, OPH_FORWARD);
 		fftExecute(h);
-		fftwShift(h, h, pnX, pnY, OPH_BACKWARD);
+		fft2(h, h, pnX, pnY, OPH_BACKWARD);
 
-		fftwShift(h, h, pnX, pnY, OPH_FORWARD);
+		fft2(h, h, pnX, pnY, OPH_FORWARD);
 		fft2(ivec2(pnX, pnY), h, OPH_BACKWARD);
 		fftExecute(h);
-		fftwShift(h, h, pnX, pnY, OPH_BACKWARD);
+		fft2(h, h, pnX, pnY, OPH_BACKWARD);
 
 		for (int i = 0; i < pnXY; i++) {
 			Complex<Real> shift_phase(1.0, 0.0);

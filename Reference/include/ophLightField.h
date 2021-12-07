@@ -109,9 +109,10 @@ protected:
 	virtual ~ophLF(void) {}
 
 private:
-
-	uchar** LF;										/// Light Field array / 4-D array
-	Complex<Real>* RSplane_complex_field;			/// Complex field in Ray Sampling plane
+	std::vector<int> m_vecImgSize;
+	std::vector<uchar *> m_vecImages;						// Light Field array / 4-D array
+	std::vector<Complex<Real>*> m_vecRSplane;
+	//Complex<Real>** RSplane_complex_field;			/// Complex field in Ray Sampling plane
 
 	// ==== GPU Variables ===============================================
 	bool		is_CPU;
@@ -134,8 +135,8 @@ public:
 	inline ivec2 getResolImage() { return resolution_image; }
 	inline Real getDistRS2Holo() { return distanceRS2Holo; }
 	inline Real getFieldLens() { return fieldLens; }
-	inline uchar** getLF() { return LF; }
-	inline oph::Complex<Real>* getRSPlane() { return RSplane_complex_field; }
+	inline vector<uchar*> getLF() { return m_vecImages; }
+	inline vector<Complex<Real>*> getRSPlane() { return m_vecRSplane; }
 public:
 	/**
 	* @brief	Light Field based CGH configuration file load
@@ -207,9 +208,10 @@ protected:
 	void convertLF2ComplexField();
 
 	// ==== GPU Methods ===============================================
-	void prepareInputdataGPU();
 	void convertLF2ComplexField_GPU();
 	void fresnelPropagation_GPU();
+	
+	void ophFree();
 
 private:
 	

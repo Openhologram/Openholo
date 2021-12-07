@@ -53,6 +53,7 @@
 
 ophRec::ophRec(void)
 	: Openholo()
+	, m_oldSimStep(0)
 {
 }
 
@@ -66,6 +67,7 @@ void circshift(Complex<Real>* in, Complex<Real>* out, int shift_x, int shift_y, 
 void ScaleBilnear(double* src, double* dst, int w, int h, int neww, int newh, double multiplyval = 1.0);
 void reArrangeChannel(std::vector<double*>& src, double* dst, int pnx, int pny, int chnum);
 void rotateCCW180(double* src, double* dst, int pnx, int pny, double mulival = 1.0);
+
 bool ophRec::readConfig(const char* fname)
 {
 	LOG("Reading....%s...", fname);
@@ -106,7 +108,7 @@ bool ophRec::readConfig(const char* fname)
 	context_.waveNum = nWave;
 	if (context_.wave_length) delete[] context_.wave_length;
 	context_.wave_length = new Real[nWave];
-	
+
 	char szNodeName[32] = { 0, };
 	for (int i = 1; i <= nWave; i++) {
 		wsprintfA(szNodeName, "SLM_WaveLength_%d", i);
@@ -126,6 +128,15 @@ bool ophRec::readConfig(const char* fname)
 	next = xml_node->FirstChildElement("SLM_PixelPitchY");
 	if (!next || XML_SUCCESS != next->QueryDoubleText(&context_.pixel_pitch[_Y]))
 		return false;
+	next = xml_node->FirstChildElement("IMG_Rotation");
+	if (!next || XML_SUCCESS != next->QueryBoolText(&imgCfg.bRotation))
+		imgCfg.bRotation = false;
+	next = xml_node->FirstChildElement("IMG_Merge");
+	if (!next || XML_SUCCESS != next->QueryBoolText(&imgCfg.bMergeImage))
+		imgCfg.bMergeImage = false;
+	next = xml_node->FirstChildElement("IMG_Flip");
+	if (!next || XML_SUCCESS != next->QueryIntText(&imgCfg.nFlip))
+		imgCfg.nFlip = 0;
 	next = xml_node->FirstChildElement("EyeLength");
 	if (!next || XML_SUCCESS != next->QueryDoubleText(&rec_config.EyeLength))
 		return false;
@@ -203,6 +214,9 @@ bool ophRec::readImage(const char* path)
 	bool ret = getImgSize(w, h, bytesperpixel, path);
 	uchar* imgload = new uchar[w * h * bytesperpixel];
 
+	int nLine = ((w * bytesperpixel) + 3) & ~3;
+	int nSize = nLine * h;
+
 	ret = loadAsImgUpSideDown(path, imgload);
 	if (!ret) {
 		LOG("Failed::Image Load: %s\n", path);
@@ -210,23 +224,26 @@ bool ophRec::readImage(const char* path)
 	}
 	LOG("Succeed::Image Load: %s\n", path);
 
-	uchar *tmp = new uchar[N * bytesperpixel];
-	memset(tmp, 0, sizeof(char) * N);
+	uchar *tmp = new uchar[nSize];
+	memset(tmp, 0, sizeof(char) * nSize);
 
 	if (w != pnX || h != pnY)
-		imgScaleBilinear(imgload, tmp, w, h, pnX, pnY);
+	{
+		for (int ch = 0; ch < bytesperpixel; ch++)
+			imgScaleBilinear(imgload, tmp, w, h, pnX, pnY, ch);
+	}
 	else
-		memcpy(tmp, imgload, sizeof(char) * N);
+		memcpy(tmp, imgload, sizeof(char) * nSize);
 
 	delete[] imgload;
 
 	for (int ch = 0; ch < bytesperpixel; ch++)
 	{
-		//memset(complex_H[ch], 0.0, sizeof(Complex<Real>) * N);
-
+		int idx = bytesperpixel - 1 - ch;
 		for (int i = 0; i < N; i++)
 		{
-			complex_H[ch][i][_RE] = Real(tmp[i]);
+			int src = i * bytesperpixel;
+			complex_H[ch][i][_RE] = Real(tmp[src + idx]);
 			complex_H[ch][i][_IM] = 0.0;
 		}
 	}
@@ -244,26 +261,35 @@ bool ophRec::readImagePNA(const char *phase, const char *amplitude)
 	bool ret = getImgSize(w, h, bytesperpixel, phase);
 	uchar* imgload = new uchar[w * h * bytesperpixel];
 
+	int nLine = ((w * bytesperpixel) + 3) & ~3;
+	int nSize = nLine * h;
+
 	ret = loadAsImgUpSideDown(phase, imgload);
 	if (!ret) {
 		LOG("Failed::Image Load: %s\n", phase);
 		return false;
 	}
 	LOG("Succeed::Image Load: %s\n", phase);
-	
-	uchar *phaseTmp = new uchar[N * bytesperpixel];
-	memset(phaseTmp, 0, sizeof(char) * N);
+
+	uchar *phaseTmp = new uchar[nSize];
+	memset(phaseTmp, 0, sizeof(char) * nSize);
 
 	if (w != pnX || h != pnY)
-		imgScaleBilinear(imgload, phaseTmp, w, h, pnX, pnY);
+	{
+		for (int ch = 0; ch < bytesperpixel; ch++)
+			imgScaleBilinear(imgload, phaseTmp, w, h, pnX, pnY, ch);
+	}
 	else
-		memcpy(phaseTmp, imgload, sizeof(char) * N);
+		memcpy(phaseTmp, imgload, sizeof(char) * nSize);
 
 	delete[] imgload;
 
 
 	ret = getImgSize(w, h, bytesperpixel, amplitude);
 	imgload = new uchar[w * h * bytesperpixel];
+
+	nLine = ((w * bytesperpixel) + 3) & ~3;
+	nSize = nLine * h;
 
 	ret = loadAsImgUpSideDown(amplitude, imgload);
 	if (!ret) {
@@ -272,31 +298,38 @@ bool ophRec::readImagePNA(const char *phase, const char *amplitude)
 	}
 	LOG("Succeed::Image Load: %s\n", amplitude);
 
-	uchar *ampTmp = new uchar[N * bytesperpixel];
-	memset(ampTmp, 0, sizeof(char) * N);
+	uchar *ampTmp = new uchar[nSize];
+	memset(ampTmp, 0, sizeof(char) * nSize);
 
 	if (w != pnX || h != pnY)
-		imgScaleBilinear(imgload, ampTmp, w, h, pnX, pnY);
+	{
+		for (int ch = 0; ch < bytesperpixel; ch++)
+			imgScaleBilinear(imgload, ampTmp, w, h, pnX, pnY, ch);
+	}
 	else
-		memcpy(ampTmp, imgload, sizeof(char) * N);
+		memcpy(ampTmp, imgload, sizeof(char) * nSize);
 
 	delete[] imgload;
-	   
+
 	Real PI2 = M_PI * 2;
+
 	for (int ch = 0; ch < bytesperpixel; ch++)
 	{
-		//memset(complex_H[ch], 0.0, sizeof(Complex<Real>) * N);
-
+		int idx = bytesperpixel - 1 - ch;
 		for (int i = 0; i < N; i++)
 		{
-			Real p = Real(phaseTmp[i]) * PI2 / 255.0; // 0 ~ 2pi
-			Real a = Real(ampTmp[i]) / 255.0; // 0 ~ 1
+			int src = i * bytesperpixel;
+			Real p = Real(phaseTmp[src + idx]);
+			Real a = Real(ampTmp[src + idx]);
+			p = p / 255.0 * PI2 - M_PI; // -pi ~ pi
+			a = a / 255.0; // 0 ~ 1
 			Complex<Real> tmp(0, p);
 			tmp.exp();
-
 			complex_H[ch][i] = a * tmp;
+
 		}
 	}
+
 	delete[] phaseTmp;
 	delete[] ampTmp;
 	return true;
@@ -312,6 +345,9 @@ bool ophRec::readImageRNI(const char *real, const char *imag)
 	bool ret = getImgSize(w, h, bytesperpixel, real);
 	uchar* imgload = new uchar[w * h * bytesperpixel];
 
+	int nLine = ((w * bytesperpixel) + 3) & ~3;
+	int nSize = nLine * h;
+
 	ret = loadAsImgUpSideDown(real, imgload);
 	if (!ret) {
 		LOG("Failed::Image Load: %s\n", real);
@@ -319,19 +355,24 @@ bool ophRec::readImageRNI(const char *real, const char *imag)
 	}
 	LOG("Succeed::Image Load: %s\n", real);
 
-	uchar *realTmp = new uchar[N * bytesperpixel];
-	memset(realTmp, 0, sizeof(char) * N);
+	uchar *realTmp = new uchar[nSize];
+	memset(realTmp, 0, sizeof(char) * nSize);
 
 	if (w != pnX || h != pnY)
-		imgScaleBilinear(imgload, realTmp, w, h, pnX, pnY);
+	{
+		for (int ch = 0; ch < bytesperpixel; ch++)
+			imgScaleBilinear(imgload, realTmp, w, h, pnX, pnY, ch);
+	}
 	else
-		memcpy(realTmp, imgload, sizeof(char) * N);
+		memcpy(realTmp, imgload, sizeof(char) * nSize);
 
 	delete[] imgload;
 
 
 	ret = getImgSize(w, h, bytesperpixel, imag);
 	imgload = new uchar[w * h * bytesperpixel];
+	nLine = ((w * bytesperpixel) + 3) & ~3;
+	nSize = nLine * h;
 
 	ret = loadAsImgUpSideDown(imag, imgload);
 	if (!ret) {
@@ -340,24 +381,27 @@ bool ophRec::readImageRNI(const char *real, const char *imag)
 	}
 	LOG("Succeed::Image Load: %s\n", imag);
 
-	uchar *imagTmp = new uchar[N * bytesperpixel];
-	memset(imagTmp, 0, sizeof(char) * N);
+	uchar *imagTmp = new uchar[nSize];
+	memset(imagTmp, 0, sizeof(char) * nSize);
 
 	if (w != pnX || h != pnY)
-		imgScaleBilinear(imgload, imagTmp, w, h, pnX, pnY);
+	{
+		for (int ch = 0; ch < bytesperpixel; ch++)
+			imgScaleBilinear(imgload, imagTmp, w, h, pnX, pnY, ch);
+	}
 	else
-		memcpy(imagTmp, imgload, sizeof(char) * N);
+		memcpy(imagTmp, imgload, sizeof(char) * nSize);
 
 	delete[] imgload;
 
 	for (int ch = 0; ch < bytesperpixel; ch++)
 	{
-		//memset(complex_H[ch], 0.0, sizeof(Complex<Real>) * N);
-
+		int idx = bytesperpixel - 1 - ch;
 		for (int i = 0; i < N; i++)
 		{
-			complex_H[ch][i][_RE] = (Real)realTmp[i];
-			complex_H[ch][i][_IM] = (Real)imagTmp[i];
+			int src = i * bytesperpixel;
+			complex_H[ch][i][_RE] = (Real)realTmp[src + idx] / 255.0;
+			complex_H[ch][i][_IM] = (Real)imagTmp[src + idx] / 255.0;
 		}
 	}
 	delete[] realTmp;
@@ -368,7 +412,7 @@ bool ophRec::readImageRNI(const char *real, const char *imag)
 void ophRec::GetPupilFieldFromHologram()
 {
 	LOG("Propagation to observer plane\n");
-	
+
 	const int channel = context_.waveNum;
 	const int pnX = context_.pixel_number[_X];
 	const int pnY = context_.pixel_number[_Y];
@@ -470,7 +514,7 @@ void ophRec::GetPupilFieldFromVWHologram()
 		//delete[] fringe_[ctr];
 		//free(fringe_[ctr]);
 
-		fftwShift(field_set_[ctr], field_set_[ctr], pnX, pnY, FFTW_FORWARD, false);
+		fft2(field_set_[ctr], field_set_[ctr], pnX, pnY, FFTW_FORWARD, false);
 
 
 
@@ -508,6 +552,143 @@ void ophRec::GetPupilFieldFromVWHologram()
 	fftw_destroy_plan(fft_plan_fwd);
 }
 
+void ophRec::ASM_Propagation()
+{
+	const int pnX = context_.pixel_number[_X];
+	const int pnY = context_.pixel_number[_Y];
+	const int N = pnX * pnY;
+	const int nWave = context_.waveNum;
+
+	const Real ppX = context_.pixel_pitch[_X];
+	const Real ppY = context_.pixel_pitch[_Y];
+
+	const Real simFrom = rec_config.SimulationFrom;
+	const Real simTo = rec_config.SimulationTo;
+	const int simStep = rec_config.SimulationStep;
+	const Real simGap = (simStep > 1) ? (simTo - simFrom) / (simStep - 1) : 0;
+
+	const Real tx = 1 / ppX;
+	const Real ty = 1 / ppY;
+	const Real dx = tx / pnX;
+	const Real dy = ty / pnY;
+
+	const Real htx = tx / 2;
+	const Real hty = ty / 2;
+	const Real hdx = dx / 2;
+	const Real hdy = dy / 2;
+	const Real baseX = -htx + hdx;
+	const Real baseY = -hty + hdy;
+
+	Complex<Real>* tmp = new Complex<Real>[N];
+	Complex<Real>* src = nullptr;
+	Complex<Real>* dst = new Complex<Real>[N];
+	Complex<Real>** kernels = new Complex<Real>*[nWave];// [N];
+	for (int i = 0; i < nWave; i++)
+	{
+		kernels[i] = new Complex<Real>[N];
+	}
+
+	LOG("%s : Get Spatial Kernel\n", __FUNCTION__);
+	auto begin = CUR_TIME;
+	for (int ch = 0; ch < nWave; ch++)
+	{
+		const Real lambda = context_.wave_length[ch];
+		const Real k = 2 * M_PI / lambda;
+		src = complex_H[ch];
+		
+		// Get Spatial Kernel
+		int i;
+#ifdef _OPENMP
+#pragma omp parallel for private(i) firstprivate(pnX, lambda, dx, dy, baseX, baseY)
+#endif
+		for (i = 0; i < N; i++)
+		{
+			int x = i % pnX;
+			int y = i / pnX;
+
+			Real curX = baseX + (x * dx);
+			Real curY = baseY + (y * dy);
+			Real xx = curX * lambda;
+			Real yy = curY * lambda;
+			Real powxx = xx * xx;
+			Real powyy = yy * yy;
+
+			kernels[ch][i][_RE] = 0;
+			kernels[ch][i][_IM] = sqrt(1 - powxx - powyy);
+		}
+	}
+	LOG(" => %lf(s)\n", ELAPSED_TIME(begin, CUR_TIME));
+	LOG("%s : Simultation\n", __FUNCTION__);
+	begin = CUR_TIME;	
+
+	for (int step = 0; step < simStep; step++)
+	{
+		Real min = MAX_DOUBLE, max = MIN_DOUBLE;
+		for (int ch = 0; ch < nWave; ch++)
+		{
+			const Real lambda = context_.wave_length[ch];
+			const Real k = 2 * M_PI / lambda;
+			src = complex_H[ch];
+			fft2(src, tmp, pnX, pnY, FFTW_FORWARD, false);
+			Real z = simFrom + (step * simGap);
+			Real kz = k * z;
+
+			Real* encode = new Real[N];
+			uchar* normal = new uchar[N];
+
+			//m_vecEncoded[step] = new Real[N];
+			//m_vecNormalized[step] = new uchar[N];
+
+			for (int i = 0; i < N; i++)
+			{
+				Complex<Real> kernel = kernels[ch][i];
+				kernel[_IM] *= kz;
+				kernel.exp();
+				tmp[i] *= kernel;
+			}
+
+			fft2(tmp, dst, pnX, pnY, FFTW_BACKWARD, true);
+
+			for (int i = 0; i < N; i++)
+			{
+				encode[i] = dst[i].mag();
+
+				if (min > encode[i])
+					min = encode[i];
+				if (max < encode[i])
+					max = encode[i];
+			}
+
+			m_vecEncoded.push_back(encode);
+			m_vecNormalized.push_back(normal);
+		}
+
+		LOG("step: %d => max: %e / min: %e\n", step, max, min);
+		if (nWave == 3)
+		{
+			for (int ch = 0; ch < nWave; ch++)
+			{
+				int idx = step * nWave + ch;
+				normalize(m_vecEncoded[idx], m_vecNormalized[idx], pnX, pnY, max, min);
+			}
+		}
+		else
+			normalize(m_vecEncoded[step], m_vecNormalized[step], pnX, pnY);
+	}
+
+	m_oldSimStep = simStep;
+	fftFree();
+	LOG(" => %lf(s)\n", ELAPSED_TIME(begin, CUR_TIME));
+
+	for (int i = 0; i < nWave; i++)
+		delete[] kernels[i];
+	delete[] kernels;
+	delete[] tmp;
+	delete[] dst;
+
+
+}
+
 void ophRec::Propagation_Fresnel_FFT(int chnum)
 {
 	LOG("Color Number: %d\n", chnum + 1);
@@ -539,14 +720,14 @@ void ophRec::Propagation_Fresnel_FFT(int chnum)
 	Real pp_res_y = ss_res_y / Real(pnY);
 
 	Complex<Real>* tmp = complex_H[chnum];
-	field_set_[chnum] =  new Complex<Real>[N];
+	field_set_[chnum] = new Complex<Real>[N];
 	memset(field_set_[chnum], 0.0, sizeof(Complex<Real>) * N);
 
 	//Real xx_src, yy_src, xx_res, yy_res;
 	//int x, y;
 
-	Real absppX = fabs(lambdapropz / (4 * ppX));
-	Real absppY = fabs(lambdapropz / (4 * ppY));
+	Real absppX = fabs(lambdapropz / (ppX4));
+	Real absppY = fabs(lambdapropz / (ppY4));
 
 	int i;
 #pragma omp parallel for private(i)	
@@ -575,7 +756,7 @@ void ophRec::Propagation_Fresnel_FFT(int chnum)
 	//free(fringe_[chnum]);
 
 	//fftw_complex *in = nullptr, *out = nullptr;
-	fftwShift(field_set_[chnum], field_set_[chnum], pnX, pnY, FFTW_FORWARD, false);
+	fft2(field_set_[chnum], field_set_[chnum], pnX, pnY, FFTW_FORWARD, false);
 
 #pragma omp parallel for private(i)	
 	for (i = 0; i < N; i++)
@@ -636,11 +817,6 @@ void ophRec::Perform_Simulation()
 	Real ratioAtRetina = rec_config.RatioAtRetina;
 
 	memcpy(&bSimPos[0], rec_config.SimulationPos, sizeof(bSimPos));
-	//char temp[100];
-	//sprintf(temp, "%.2f", SATURATION_RATIO_AT_RETINA);
-	//SAT_VAL_PREFIX.clear();
-	//SAT_VAL_PREFIX.append(temp);
-	//SAT_VAL_PREFIX.replace(SAT_VAL_PREFIX.find('.'), 1, "_");
 
 	vec3 var_step;
 	std::vector<vec3> var_vals;
@@ -762,12 +938,12 @@ void ophRec::Perform_Simulation()
 
 			Real f_eye = eyeLen * (eyeCenter[_Z] - eyeFocusDistance) / (eyeLen + (eyeCenter[_Z] - eyeFocusDistance));
 			Real effective_f = f_eye * eyeLen / (f_eye - eyeLen);
-			
+
 			Complex<Real>* hh_e_ = new Complex<Real>[N];
 			memset(hh_e_, 0.0, sizeof(Complex<Real>) * N);
 
 			int loopp;
-//#pragma omp parallel for private(loopp)	
+			//#pragma omp parallel for private(loopp)	
 			for (loopp = 0; loopp < N; loopp++)
 			{
 				int x = loopp % pn_p_x;
@@ -779,7 +955,6 @@ void ophRec::Perform_Simulation()
 				Real sval = (XE*XE) + (YE*YE);
 				sval *= M_PI / lambda / effective_f;
 				Complex<Real> eye_propagation_kernel(0, sval);
-				//exponent_complex(&eye_propagation_kernel);
 				eye_propagation_kernel.exp();
 
 				Real eye_lens_anti_aliasing_mask = fabs(XE) < fabs(lambda*effective_f / (4 * pp_e_x)) ? 1.0 : 0.0;
@@ -788,21 +963,11 @@ void ophRec::Perform_Simulation()
 				Real eye_pupil_mask = sqrt(XE*XE + YE * YE) < (eyePupil / 2.0) ? 1.0 : 0.0;
 
 				hh_e_[x + y * pn_p_x] = hh_p[x + y * pn_p_x] * eye_propagation_kernel * eye_lens_anti_aliasing_mask * eye_pupil_mask;
-				//hh_e_[x + y * pn_p_x] = hh_e_shift[x + y * pn_p_x] * eye_propagation_kernel * eye_lens_anti_aliasing_mask * eye_pupil_mask;
-
 			}
 
-
-
 			delete[] hh_p;
-			//free(hh_p);
 
-			//fftw_complex *in = nullptr, *out = nullptr;
-			//fftw_plan fft_plan_fwd_ = fftw_plan_dft_2d(pn_p_y, pn_p_x, in, out, FFTW_FORWARD, FFTW_ESTIMATE);
-
-			fftwShift(hh_e_, hh_e_, pn_p_x, pn_p_y, FFTW_FORWARD, false);
-
-			//fftw_destroy_plan(fft_plan_fwd_);
+			fft2(hh_e_, hh_e_, pn_p_x, pn_p_y, FFTW_FORWARD, false);
 
 			Real pp_ret_x, pp_ret_y;
 			int pn_ret_x, pn_ret_y;
@@ -818,7 +983,7 @@ void ophRec::Perform_Simulation()
 			field_ret_set_[ctr] = new Real[pn_p_x * pn_p_y];
 			memset(field_ret_set_[ctr], 0.0, sizeof(Real)*pn_p_x*pn_p_y);
 
-//#pragma omp parallel for private(loopp)	
+			//#pragma omp parallel for private(loopp)	
 			for (loopp = 0; loopp < pn_p_x*pn_p_y; loopp++)
 			{
 				int x = loopp % pn_p_x;
@@ -830,11 +995,9 @@ void ophRec::Perform_Simulation()
 				Real sval = (XR*XR) + (YR*YR);
 				sval *= k / (2 * eyeLen);
 				Complex<Real> val1(0, sval);
-				//exponent_complex(&val1);
 				val1.exp();
 
 				Complex<Real> val2(0, k * eyeLen);
-				//exponent_complex(&val2);
 				val2.exp();
 				Complex<Real> val3(0, lambda * eyeLen);
 
@@ -864,8 +1027,6 @@ void ophRec::Perform_Simulation()
 				recon_set[vtr * nChannel + ctr] = new Real[N];
 				img_set[vtr * nChannel + ctr] = new uchar[N];
 
-				//Real* pf_image = new Real[N];
-				//uchar* img = new uchar[N];
 				memset(recon_set[vtr * nChannel + ctr], 0.0, sizeof(Real) * N);
 				memset(img_set[vtr * nChannel + ctr], 0, sizeof(uchar) * N);
 
@@ -877,12 +1038,6 @@ void ophRec::Perform_Simulation()
 				normalize(recon_set[vtr * nChannel + ctr], img_set[vtr * nChannel + ctr], (int)resize_scale_x, (int)resize_scale_y);
 				img_size[vtr * nChannel + ctr][_X] = (int)resize_scale_x;
 				img_size[vtr * nChannel + ctr][_Y] = (int)resize_scale_y;
-				
-				//saveAsImg(fname.c_str(), 8, img_set[vtr * nChannel + ctr], (int)resize_scale_x, (int)resize_scale_y);
-				//writeImage(fname, pf_image, resize_scale_x, resize_scale_y, 8);
-
-				//delete[]pf_image;
-				//delete[] img;
 			}
 
 		}	// end of ctr
@@ -901,7 +1056,7 @@ void ophRec::Perform_Simulation()
 		res_set_norm_255_.resize(nChannel);
 
 		int loopi;
-//#pragma omp parallel for private(loopi)	
+		//#pragma omp parallel for private(loopi)	
 		for (loopi = 0; loopi < nChannel; loopi++)
 		{
 			Real* hh_ret_ = new Real[pn_ret_set_[loopi][0] * pn_ret_set_[loopi][1]];
@@ -922,10 +1077,6 @@ void ophRec::Perform_Simulation()
 
 			res_set_[loopi] = new Real[pnx_max * pny_max];
 			memset(res_set_[loopi], 0.0, sizeof(Real)*pnx_max*pny_max);
-
-			//ScaleBilnear(hh_ret_, res_set_[i], pn_ret_set_[i][0], pn_ret_set_[i][1], pnx_max, pny_max);
-			//writeImage("test3.bmp", res_set_[i], pnx_max, pny_max, 8);
-	
 			ScaleBilnear(hh_ret_, res_set_[loopi], pn_ret_set_[loopi][0], pn_ret_set_[loopi][1], pnx_max, pny_max, lambda*lambda);
 
 		}
@@ -946,7 +1097,7 @@ void ophRec::Perform_Simulation()
 			res_set_[0][j] = (res_set_[0][j] - minvalue) / (maxvalue - minvalue) * 255;
 		}
 
-//#pragma omp parallel for private(loopi)	
+		//#pragma omp parallel for private(loopi)	
 		for (loopi = 0; loopi < nChannel; loopi++)
 		{
 			for (int j = 0; j < pnx_max*pny_max; j++)
@@ -962,20 +1113,18 @@ void ophRec::Perform_Simulation()
 		Real ret_size_x = pnx_max * resultSizeScale;
 		Real ret_size_y = pny_max * resultSizeScale;
 
-//#pragma omp parallel for private(loopi)			
+		//#pragma omp parallel for private(loopi)			
 		for (loopi = 0; loopi < nChannel; loopi++)
 		{
 			Real* res_set_norm = new Real[ret_size_x * ret_size_y];
 			memset(res_set_norm, 0.0, sizeof(Real)*ret_size_x * ret_size_y);
 
 			ScaleBilnear(res_set_[loopi], res_set_norm, pnx_max, pny_max, ret_size_x, ret_size_y);
-			//writeImage("test.bmp", res_set_norm, ret_size_x, ret_size_y, 8);
 
 			res_set_norm_255_[loopi] = new Real[ret_size_x * ret_size_y];
 			memset(res_set_norm_255_[loopi], 0.0, sizeof(Real)*ret_size_x * ret_size_y);
 
 			rotateCCW180(res_set_norm, res_set_norm_255_[loopi], ret_size_x, ret_size_y, 255.0);
-			//writeImage("test2.bmp", res_set_norm_255_[loopi], ret_size_x, ret_size_y, 8);
 
 			delete[] res_set_norm;
 		}
@@ -985,9 +1134,7 @@ void ophRec::Perform_Simulation()
 
 		int N = ret_size_x * ret_size_y;
 
-		//Real* finalimg = new Real[N * nChannel];
 		focus_recon_set[vtr] = new Real[N * nChannel];
-		//uchar* img = new uchar[N * nChannel];
 		focus_img_set[vtr] = new uchar[N * nChannel];
 		memset(focus_recon_set[vtr], 0.0, sizeof(Real) * N * nChannel);
 		memset(focus_img_set[vtr], 0, sizeof(uchar) * N * nChannel);
@@ -998,20 +1145,79 @@ void ophRec::Perform_Simulation()
 			reArrangeChannel(res_set_norm_255_, focus_recon_set[vtr], ret_size_x, ret_size_y, nChannel);
 
 		std::string fname = std::string("./").append("").append("/").append("").append("_SAT_").append("").append("_").append(varname2).append("_").append(std::to_string(vtr + 1)).append(".bmp");
-		
+
 		normalize(focus_recon_set[vtr], focus_img_set[vtr], ret_size_x, ret_size_y);
-		
+
 		focus_img_size[vtr][_X] = (int)ret_size_x;
 		focus_img_size[vtr][_Y] = (int)ret_size_y;
-		//saveAsImg(fname.c_str(), 8 * nChannel, focus_img_set[vtr], ret_size_x, ret_size_y);
-		
-		//writeImage(fname, finalimg, ret_size_x, ret_size_y, 8 * nChannel);
+
+		m_vecEncoded.push_back(focus_recon_set[vtr]);
+		m_vecNormalized.push_back(focus_img_set[vtr]);
+
 
 		for (int i = 0; i < nChannel; i++)
 			delete[] res_set_norm_255_[i];
-		//delete[] img;
-		//delete[] finalimg;
 	} // end of vtr
+}
+
+bool ophRec::save(const char * fname, uint8_t bitsperpixel, uchar* src, uint px, uint py)
+{
+	if (fname == nullptr) return false;
+
+	bool bAlloc = false;
+	const uint nChannel = context_.waveNum;
+
+	ivec2 p(px, py);
+	if (px == 0 && py == 0)
+		p = ivec2(context_.pixel_number[_X], context_.pixel_number[_Y]);
+
+	char path[_MAX_PATH] = { 0, };
+	char drive[_MAX_DRIVE] = { 0, };
+	char dir[_MAX_DIR] = { 0, };
+	char file[_MAX_FNAME] = { 0, };
+	char ext[_MAX_EXT] = { 0, };
+	_splitpath_s(fname, drive, dir, file, ext);
+
+	sprintf_s(path, "%s", fname);
+
+	if (!strlen(ext)) {
+		sprintf_s(path, "%s.bmp", path);
+		sprintf_s(ext, ".bmp");
+	}
+	if (!strlen(drive)) { // Relative path to Absolute path
+		char curDir[MAX_PATH] = { 0, };
+		GetCurrentDirectory(MAX_PATH, curDir);
+		sprintf_s(path, "%s\\%s", curDir, fname);
+		for (int i = 0; i < strlen(path); i++) {
+			char ch = path[i];
+			if (ch == '/')
+				path[i] = '\\';
+		}
+	}
+
+
+	if (nChannel == 1) {
+		saveAsImg(path, bitsperpixel, src, p[_X], p[_Y]);
+	}
+	else if (nChannel == 3) {
+		if (imgCfg.bMergeImage) {
+			uint nSize = (((p[_X] * bitsperpixel / 8) + 3) & ~3) * p[_Y];
+			uchar *source = new uchar[nSize];
+			bAlloc = true;
+			for (int i = 0; i < nChannel; i++) {
+				mergeColor(i, p[_X], p[_Y], src, source);
+			}
+			saveAsImg(path, bitsperpixel, source, p[_X], p[_Y]);
+			if (bAlloc) delete[] source;
+		}
+		else {
+			sprintf_s(path, "%s%s%s%s", drive, dir, file, ext);
+			saveAsImg(path, bitsperpixel, src, p[_X], p[_Y]);
+		}
+	}
+	else return false;
+
+	return true;
 }
 
 void ophRec::SaveImage(const char *path, const char *ext)
@@ -1023,34 +1229,83 @@ void ophRec::SaveImage(const char *path, const char *ext)
 	Real simFrom = rec_config.SimulationFrom;
 	Real step;
 
+	int pnX;
+	int pnY;
+
+	if (m_idx == 0)
+	{
+		pnX = context_.pixel_number[_X];
+		pnY = context_.pixel_number[_Y];
+	}
+	else
+	{
+		pnX = focus_img_size[0][_X];
+		pnY = focus_img_size[0][_Y];
+	}
 	if (nSimStep > 1)
 	{
 		step = (simTo - simFrom) / (nSimStep - 1);
 	}
 
 	char tmpPath[MAX_PATH] = { 0, };
+	bool bMultiStep = nSimStep > 1 ? true : false;
+	uint nSize = (((pnX * nChannel) + 3) & ~3) * pnY;
+	uchar *tmp = new uchar[nSize];
 
 	for (int i = 0; i < nSimStep; i++)
 	{
+		sprintf(tmpPath, "%s\\FOCUS_%.4f.%s", path, bMultiStep ? simFrom + step * i : (simFrom + simTo) / 2, ext);
+#if 1
+		if (nChannel == 3)
+		{
+			if (imgCfg.bMergeImage)
+			{
+				for (int ch = 0; ch < nChannel; ch++)
+				{
+					mergeColor(ch, pnX, pnY, m_vecNormalized[i * nChannel + ch], tmp);
+				}
+				saveAsImg(tmpPath, 8 * nChannel, tmp, pnX, pnY); // save RGB
+			}
+			else
+			{
+				for (int ch = 0; ch < nChannel; ch++)
+				{
+					memset(tmp, 0, sizeof(uchar) * nSize);
+					sprintf(tmpPath, "%s\\FOCUS_%.4f (%d).%s", path, bMultiStep ? simFrom + step * i : (simFrom + simTo) / 2, ch, ext);
+					mergeColor(ch, pnX, pnY, m_vecNormalized[i * nChannel + ch], tmp);
+					saveAsImg(tmpPath, 8 * nChannel, tmp, pnX, pnY); // save RGB
+				}
+			}
+		}
+		else
+		{
+			memcpy(tmp, m_vecNormalized[i], sizeof(uchar) * nSize);
+			saveAsImg(tmpPath, 8 * nChannel, tmp, pnX, pnY); // save Grayscale
+		}
+
+#else
 		if (bCreatePupilImg)
 		{
 			for (int j = 0; j < nChannel; j++)
-			{			
+			{
 				if (nSimStep > 1)
-					sprintf(tmpPath, "%s\\PUPIL_%.2f.%s", path, simFrom + step * i, ext);
+					sprintf(tmpPath, "%s\\PUPIL_%.4f.%s", path, simFrom + step * i, ext);
 				else
-					sprintf(tmpPath, "%s\\PUPIL_%.2f.%s", path, (simFrom + simTo) / 2, ext);
+					sprintf(tmpPath, "%s\\PUPIL_%.4f.%s", path, (simFrom + simTo) / 2, ext);
 
 				int idx = i * nChannel + j;
 				saveAsImg(tmpPath, 8, img_set[idx], img_size[idx][_X], img_size[idx][_Y]);
 			}
 		}
 		if (nSimStep > 1)
-			sprintf(tmpPath, "%s\\FOCUS_%.2f.%s", path, simFrom + step * i, ext);
+			sprintf(tmpPath, "%s\\FOCUS_%.4f.%s", path, simFrom + step * i, ext);
 		else
-			sprintf(tmpPath, "%s\\FOCUS_%.2f.%s", path, (simFrom + simTo) / 2, ext);
+			sprintf(tmpPath, "%s\\FOCUS_%.4f.%s", path, (simFrom + simTo) / 2, ext);
+
 		saveAsImg(tmpPath, 8 * nChannel, focus_img_set[i], focus_img_size[i][_X], focus_img_size[i][_Y]);
+#endif
 	}
+	delete[] tmp;
 }
 
 void ophRec::GetPupilFieldImage(Complex<Real>* src, Real* dst, int pnx, int pny, Real ppx, Real ppy, Real scaleX, Real scaleY)
@@ -1167,8 +1422,45 @@ void ophRec::getVarname(int vtr, vec3& var_vals, std::string& varname2)
 	}
 }
 
+void ophRec::Clear()
+{
+	for (vector<Real*>::iterator it = m_vecEncoded.begin(); it != m_vecEncoded.end(); it++)
+	{
+		delete[](*it);
+	}
+
+	for (vector<uchar*>::iterator it = m_vecNormalized.begin(); it != m_vecNormalized.end(); it++)
+	{
+		delete[](*it);
+	}
+	m_vecEncoded.clear();
+	m_vecNormalized.clear();
+}
+
 bool ophRec::ReconstructImage()
 {
+#if 1
+	Clear();
+	auto begin = CUR_TIME;
+
+	LOG("1) Algorithm Method : Angular Spectrum\n");
+	LOG("2) Reconstruct Image with %s\n", m_mode & MODE_GPU ?
+		"GPU" :
+#ifdef _OPENMP
+		"Multi Core CPU"
+#else
+		"Single Core CPU"
+#endif
+	);
+
+	m_mode & MODE_GPU ? ASM_Propagation_GPU() : ASM_Propagation();
+	
+#else
+	else if (idx == 1)
+	{
+		GetPupilFieldFromHologram();
+		Perform_Simulation();
+	}
 	if (!rec_config.ViewingWindow)
 	{
 		GetPupilFieldFromHologram();
@@ -1178,19 +1470,19 @@ bool ophRec::ReconstructImage()
 		GetPupilFieldFromVWHologram();
 	}
 	Perform_Simulation();
-
+#endif
+	LOG("Total Elapsed Time: %lf (s)\n", ELAPSED_TIME(begin, CUR_TIME));
 	return true;
 }
 
 void ophRec::Initialize()
 {
 	const int nChannel = context_.waveNum;
-	const int pnX = context_.pixel_number[_X];
-	const int pnY = context_.pixel_number[_Y];
-	const int N = pnX * pnY;
+	const int N = context_.pixel_number[_X] * context_.pixel_number[_Y];
+
 	// Memory Location for Result Image
 	if (complex_H != nullptr) {
-		for (uint i = 0; i < nChannel; i++) {
+		for (uint i = 0; i < m_nOldChannel; i++) {
 			if (complex_H[i] != nullptr) {
 				delete[] complex_H[i];
 				complex_H[i] = nullptr;
@@ -1204,12 +1496,24 @@ void ophRec::Initialize()
 		complex_H[i] = new Complex<Real>[N];
 		memset(complex_H[i], 0, sizeof(Complex<Real>) * N);
 	}
+	m_nOldChannel = nChannel;
 }
 
 void ophRec::ophFree(void)
 {
 	Openholo::ophFree();
 
+	for (vector<Real*>::iterator it = m_vecEncoded.begin(); it != m_vecEncoded.end(); it++)
+	{
+		delete (*it);
+	}
+	m_vecEncoded.clear();
+
+	for (vector<uchar*>::iterator it = m_vecNormalized.begin(); it != m_vecNormalized.end(); it++)
+	{
+		delete (*it);
+	}
+	m_vecNormalized.clear();
 }
 
 void circshift(Real* in, Real* out, int shift_x, int shift_y, int nx, int ny)
@@ -1353,7 +1657,7 @@ void ophRec::normalize(T* src, uchar* dst, int x, int y)
 	T maxVal = src[0];
 	T minVal = src[0];
 	int size = x * y;
-	
+
 	for (int i = 0; i < size; i++)
 	{
 		if (src[i] < minVal)
@@ -1371,6 +1675,21 @@ void ophRec::normalize(T* src, uchar* dst, int x, int y)
 		for (int j = 0; j < x; j++)
 		{
 			dst[base + j] = (uchar)((src[base + j] - minVal) / gap * 255.0);
+		}
+	}
+}
+
+template<typename T>
+void ophRec::normalize(T* src, uchar* dst, int x, int y, T max, T min)
+{
+	T gap = max - min;
+
+	for (int i = 0; i < y; i++)
+	{
+		int base = i * x;
+		for (int j = 0; j < x; j++)
+		{
+			dst[base + j] = (uchar)((src[base + j] - min) / gap * 255.0);
 		}
 	}
 }

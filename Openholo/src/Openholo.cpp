@@ -102,6 +102,41 @@ bool Openholo::checkExtension(const char * fname, const char * ext)
 		return false;
 }
 
+
+bool Openholo::mergeColor(int idx, int width, int height, uchar *src, uchar *dst)
+{
+	if (idx < 0 || idx > 2) return false;
+
+	int N = width * height;
+	int a = 2 - idx;
+	int i;
+#ifdef _OPENMP
+#pragma omp parallel for private(i) firstprivate(a)
+#endif
+	for (i = 0; i < N; i++) {
+		dst[i * 3 + a] = src[i];
+	}
+
+	return true;
+}
+
+bool Openholo::separateColor(int idx, int width, int height, uchar *src, uchar *dst)
+{
+	if (idx < 0 || idx > 2) return false;
+
+	int N = width * height;
+	int a = 2 - idx;
+	int i;
+#ifdef _OPENMP
+#pragma omp parallel for private(i) firstprivate(a)
+	for (i = 0; i < N; i++) {
+#endif
+		dst[i] = src[i * 3 + a];
+	}
+
+	return true;
+}
+
 bool Openholo::saveAsImg(const char * fname, uint8_t bitsperpixel, uchar* src, int width, int height)
 {
 	LOG("Saving...%s...\n", fname);
@@ -171,36 +206,35 @@ bool Openholo::saveAsImg(const char * fname, uint8_t bitsperpixel, uchar* src, i
 		iCur += sizeof(rgbquad) * _iColor;
 	}
 
+	ImgControl *pControl = ImgControl::getInstance();
+	uchar *pTmp = new uchar[_pixelbytesize];
+	memcpy(pTmp, src, _pixelbytesize);
 
+	if (imgCfg.nFlip)
+	{
+		pControl->Flip((oph::FLIP)imgCfg.nFlip, pTmp, pTmp, _width + padding, _height, bitsperpixel / 8);
+	}
 
-	if (context_.bRotation) {
-		ImgControl *pControl = ImgControl::getInstance();
-		uchar *pTmp = new uchar[_pixelbytesize];
+	if (imgCfg.bRotation) {
+		pControl->Rotate(180.0, pTmp, pTmp, _width + padding, _height, _width + padding, _height, bitsperpixel / 8);
+	}
 
-		pControl->Rotate(180.0, src, pTmp, _width + padding, _height, _width + padding, _height, bitsperpixel / 8);
+	if (padding != 0)
+	{
+		for (int i = 0; i < _height; i++)
+		{
+			memcpy(&pBitmap[iCur], &pTmp[_width * i], _width);
+			iCur += _width;
+			memset(&pBitmap[iCur], 0x00, padding);
+			iCur += padding;
+		}
+	}
+	else
+	{
 		memcpy(&pBitmap[iCur], pTmp, _pixelbytesize);
-		delete[] pTmp;
 		iCur += _pixelbytesize;
 	}
-	else {
-		if (padding != 0)
-		{
-			for (int i = 0; i < _height; i++)
-			{
-				memcpy(&pBitmap[iCur], &src[_width * i], _width);
-				iCur += _width;
-				memset(&pBitmap[iCur], 0x00, padding);
-				iCur += padding;
-			}
-		}
-		else
-		{
-			memcpy(&pBitmap[iCur], src, _pixelbytesize);
-			iCur += _pixelbytesize;
-		}
-	}
-
-
+	delete[] pTmp;
 
 	if (!bConvert) {
 		if (iCur != _filesize)
@@ -217,7 +251,6 @@ bool Openholo::saveAsImg(const char * fname, uint8_t bitsperpixel, uchar* src, i
 		}
 	}
 	else {
-		ImgControl *pControl = ImgControl::getInstance();
 		pControl->Save(fname, pBitmap, _filesize);
 	}
 
@@ -237,13 +270,13 @@ uchar * Openholo::loadAsImg(const char * fname)
 {
 	FILE *infile;
 	fopen_s(&infile, fname, "rb");
-	if (infile == nullptr) { LOG("No such file"); return 0; }
+	if (infile == nullptr) { LOG("No such file"); return nullptr; }
 
 	// BMP Header Information
 	fileheader hf;
 	bitmapinfoheader hInfo;
 	fread(&hf, sizeof(fileheader), 1, infile);
-	if (hf.signature[0] != 'B' || hf.signature[1] != 'M') { LOG("Not BMP File");  return 0; }
+	if (hf.signature[0] != 'B' || hf.signature[1] != 'M') { LOG("Not BMP File");  return nullptr; }
 
 	fread(&hInfo, sizeof(bitmapinfoheader), 1, infile);
 	fseek(infile, hf.fileoffset_to_pixelarray, SEEK_SET);
@@ -687,12 +720,11 @@ void Openholo::fftFree(void)
 	}
 	if (plan_bwd) {
 		fftw_destroy_plan(plan_bwd);
-		plan_fwd = nullptr;
+		plan_bwd = nullptr;
 	}
 	fftw_free(fft_in);
 	fftw_free(fft_out);
 
-	plan_bwd = nullptr;
 	fft_in = nullptr;
 	fft_out = nullptr;
 
@@ -701,18 +733,12 @@ void Openholo::fftFree(void)
 	pnz = 1;
 }
 
-void Openholo::fftwShift(Complex<Real>* src, Complex<Real>* dst, int nx, int ny, int type, bool bNormalized)
+void Openholo::fft2(Complex<Real>* src, Complex<Real>* dst, int nx, int ny, int type, bool bNormalized)
 {
 	const int N = nx * ny;
-
-	Complex<Real>* tmp = new Complex<Real>[N];
-	memset(tmp, 0., sizeof(Complex<Real>) * N);
-	fftShift(nx, ny, src, tmp);
-
 	fftw_complex *in = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * N);
 	fftw_complex *out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * N);
-	
-	memcpy(in, tmp, sizeof(Complex<Real>) * N);
+	fftShift(nx, ny, src, in);
 
 	fftw_plan plan = nullptr;
 	if (!plan_fwd && !plan_bwd) {
@@ -728,22 +754,67 @@ void Openholo::fftwShift(Complex<Real>* src, Complex<Real>* dst, int nx, int ny,
 
 	int normalF = 1;
 	if (bNormalized) normalF = N;
-	memset(tmp, 0, sizeof(Complex<Real>) * N);
 
 	int k;
 #pragma omp parallel for private(k) firstprivate(normalF)
 	for (k = 0; k < N; k++) {
-		tmp[k][_RE] = out[k][_RE] / normalF;
-		tmp[k][_IM] = out[k][_IM] / normalF;
+		out[k][_RE] /= normalF;
+		out[k][_IM] /= normalF;
 	}
-	fftw_free(in);
-	fftw_free(out);
 	if (plan)
 		fftw_destroy_plan(plan);
 
-	memset(dst, 0, sizeof(Complex<Real>) * N);
-	fftShift(nx, ny, tmp, dst);
-	delete[] tmp;
+	fftShift(nx, ny, out, dst);
+	fftw_free(in);
+	fftw_free(out);
+}
+
+void Openholo::fftShift(int nx, int ny, fftw_complex* input, Complex<Real>* output)
+{
+	int hnx = nx / 2;
+	int hny = ny / 2;
+
+	int i;
+#ifdef _OPENMP
+#pragma omp parallel for private(i) firstprivate(hnx, hny)
+#endif
+	for (i = 0; i < nx; i++)
+	{
+		for (int j = 0; j < ny; j++)
+		{
+			int ti = i - hnx; if (ti < 0) ti += nx;
+			int tj = j - hny; if (tj < 0) tj += ny;
+
+			output[ti + tj * nx][_RE] = input[i + j * nx][_RE];
+			output[ti + tj * nx][_IM] = input[i + j * nx][_IM];
+
+			//output[ti + tj * nx] = input[i + j * nx];
+		}
+	}
+}
+
+void Openholo::fftShift(int nx, int ny, Complex<Real>* input, fftw_complex* output)
+{
+	int hnx = nx / 2;
+	int hny = ny / 2;
+
+	int i;
+#ifdef _OPENMP
+#pragma omp parallel for private(i) firstprivate(hnx, hny)
+#endif
+	for (i = 0; i < nx; i++)
+	{
+		for (int j = 0; j < ny; j++)
+		{
+			int ti = i - hnx; if (ti < 0) ti += nx;
+			int tj = j - hny; if (tj < 0) tj += ny;
+
+			output[ti + tj * nx][_RE] = input[i + j * nx][_RE];
+			output[ti + tj * nx][_IM] = input[i + j * nx][_IM];
+
+			//output[ti + tj * nx] = input[i + j * nx];
+		}
+	}
 }
 
 void Openholo::fftShift(int nx, int ny, Complex<Real>* input, Complex<Real>* output)
@@ -779,6 +850,21 @@ void Openholo::setWaveNum(int nNum)
 	context_.wave_length = new Real[nNum];
 }
 
+void Openholo::SetMaxThreadNum(int num)
+{
+#ifdef _OPENMP
+	omp_set_num_threads(num);
+#endif
+}
+
+int Openholo::GetMaxThreadNum()
+{
+#ifdef _OPENMP
+	return omp_get_num_threads();
+#else
+	return 1;
+#endif
+}
 
 void Openholo::ophFree(void)
 {

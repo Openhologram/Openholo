@@ -111,29 +111,30 @@ __global__ void fftShiftf(int N, int nx, int ny, cuFloatComplex* input, cuFloatC
 __device__  void exponent_complex(cuDoubleComplex* val)
 {
 	double exp_val = exp(val->x);
-	double cos_v;
-	double sin_v;
-	sincos(val->y, &sin_v, &cos_v);
+	double re = val->x;
+	double im = val->y;
 
-	val->x = exp_val * cos_v;
-	val->y = exp_val * sin_v;
+	val->x = exp_val * cos(im);
+	val->y = exp_val * sin(im);
 }
 
 extern "C"
+
 void cudaFFT(CUstream_st* stream, int nx, int ny, cufftDoubleComplex* in_field, cufftDoubleComplex* output_field, int direction, bool bNormalized)
 {
 	unsigned int nblocks = (nx*ny + kBlockThreads - 1) / kBlockThreads;
 	int N = nx * ny;
-	fftShift << <nblocks, kBlockThreads, 0, stream >> >(N, nx, ny, in_field, output_field, false);
+	fftShift << <nblocks, kBlockThreads, 0, stream >> > (N, nx, ny, in_field, output_field, false);
 
 	cufftHandle plan;
+	cufftResult result;
 	// fft
-	if (cufftPlan2d(&plan, ny, nx, CUFFT_Z2Z) != CUFFT_SUCCESS)
+	result = cufftPlan2d(&plan, ny, nx, CUFFT_Z2Z);
+	if (result != CUFFT_SUCCESS)
 	{
-		//LOG("FAIL in creating cufft plan");
+		LOG("cufftPlan2d : Failed (%d)\n", result);
 		return;
 	};
-	cufftResult result;
 
 	if (direction == -1)
 		result = cufftExecZ2Z(plan, output_field, in_field, CUFFT_FORWARD);
@@ -142,16 +143,16 @@ void cudaFFT(CUstream_st* stream, int nx, int ny, cufftDoubleComplex* in_field, 
 
 	if (result != CUFFT_SUCCESS)
 	{
-		//LOG("------------------FAIL: execute cufft, code=%s", result);
+		LOG("cufftExecZ2Z : Failed (%d)\n", result);
 		return;
 	}
 
 	if (cudaDeviceSynchronize() != cudaSuccess) {
-		//LOG("Cuda error: Failed to synchronize\n");
+		LOG("cudaDeviceSynchronize() : Failed\n");
 		return;
 	}
 
-	fftShift << < nblocks, kBlockThreads, 0, stream >> >(N, nx, ny, in_field, output_field, bNormalized);
+	fftShift << < nblocks, kBlockThreads, 0, stream >> > (N, nx, ny, in_field, output_field, bNormalized);
 
 	cufftDestroy(plan);
 }

@@ -185,7 +185,7 @@ public:
 
 
 	double calculateWRPCPU(void);
-	double calculateWRPGPU(void);
+	void calculateWRPGPU(void);
 
 //	virtual void fresnelPropagation(Complex<Real>* in, Complex<Real>* out, Real distance);
 
@@ -215,8 +215,7 @@ public:
 	uint* getProgress() { return &m_nProgress; }
 	
 protected:
-	// ==== GPU Methods ===============================================
-	void prepareInputdataGPU();
+
 
 private:
 

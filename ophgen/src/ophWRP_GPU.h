@@ -97,6 +97,14 @@ typedef struct KernelConst {
 	double lambda;    /// wave length = lambda;
 
 	Real zmax;
+	bool bRandomPhase;	// use random phase
+	int iAmplitude;
+
+	double pi2;
+	double tx;
+	double ty;
+	double det_tx;
+	double det_ty;
 
 	KernelConst(
 		const int &n_points,		/// number of point cloud
@@ -108,7 +116,9 @@ typedef struct KernelConst {
 		const Real propagation_distance, /// propagation distance
 		const Real depth_max,
 		const Real &k,				/// Wave Number = (2 * PI) / lambda
-		const Real &lambda        /// wave length
+		const Real &lambda,        /// wave length
+		const bool &random_phase,
+		const int &index_amplitude
 	)
 	{
 		this->lambda = lambda;
@@ -133,6 +143,21 @@ typedef struct KernelConst {
 		// Wave Number
 		this->k = k;
 
+		this->lambda = lambda;
+
+		// Random Phase
+		this->bRandomPhase = random_phase;
+
+		// Amplitude index
+		this->iAmplitude = index_amplitude;
+
+		this->pi2 = M_PI * 2;
+
+		this->tx = lambda / (2 * pp_X);
+		this->ty = lambda / (2 * pp_Y);
+		this->det_tx = tx / sqrt(1 - tx * tx);
+		this->det_ty = ty / sqrt(1 - ty * ty);
+
 	}
 } WRPGpuConst;
 
@@ -141,27 +166,13 @@ typedef struct KernelConst {
 
 extern "C"
 {
+	void cudaFresnelPropagationWRP(
+		const int &nBlocks, const int &nBlocks2, const int &nThreads, const int &nx, const int &ny,
+		cuDoubleComplex *src, cuDoubleComplex *dst, cufftDoubleComplex *fftsrc, cufftDoubleComplex *fftdst,
+		const WRPGpuConst* cuda_config);
+
 	void cudaGenWRP(
 		const int &nBlocks, const int &nThreads, const int &n_pts_per_stream,
 		Real* cuda_pc_data, Real* cuda_amp_data,
-		Real* cuda_dst_re, Real* cuda_dst_im,
-		const WRPGpuConst* cuda_config);
-
-	void cudaGenindexx(
-		const int &nBlocks, const int &nThreads, const int &n_pts_per_stream,
-		Real* cuda_pc_data, Real* cuda_pc_indexx,
-		const WRPGpuConst* cuda_config);
-
-	void cudaGetObjDst(
-		const int &nBlocks, const int &nThreads, const int &n_pts_per_stream,
-		Real* cuda_pc_index, Real* cuda_pc_obj_dst,
-		const WRPGpuConst* cuda_config);
-
-	void cudaGetAmpDst(
-		const int &nBlocks, const int &nThreads, const int &n_pts_per_stream,
-		Real* cuda_pc_index, Real* cuda_pc_amp, Real* cuda_amp_dst,
-		const WRPGpuConst* cuda_config, const uint &iAdd);
-
-
-
+		cuDoubleComplex* cuda_dst, const WRPGpuConst* cuda_config);
 }

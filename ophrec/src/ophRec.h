@@ -96,7 +96,10 @@ protected:
 	*/
 	virtual ~ophRec(void);
 
+
 private:
+	vector<Real *>			m_vecEncoded;
+	vector<uchar *>			m_vecNormalized;
 
 	std::vector<Complex<Real>*>	field_set_;
 	std::vector<double*>	field_ret_set_;
@@ -117,21 +120,31 @@ private:
 	std::vector<uchar*>		focus_img_set;
 	std::vector<ivec2>		focus_img_size;
 
+	int						m_oldSimStep;
+
 
 	OphRecConfig			rec_config;
+	int						m_nOldChannel;
+	int						m_idx;
+	unsigned int			m_mode;
+
 protected:
 	/**
 	* @brief Pure virtual function for override in child classes
 	*/
 	virtual void ophFree(void);
+	void Clear();
 	void GetPupilFieldFromHologram();
 	void GetPupilFieldFromVWHologram();
 	void Propagation_Fresnel_FFT(int chnum);
+	void ASM_Propagation();
+	void ASM_Propagation_GPU();
 	void GetPupilFieldImage(Complex<Real>* src, double* dst, int pnx, int pny, double ppx, double ppy, double scaleX, double scaleY);
 	void getVarname(int vtr, vec3& var_vals, std::string& varname2);
 public:
 	void SaveImage(const char* path, const char* ext = "bmp");
 	void setConfig(OphRecConfig config) { rec_config = config; }
+	void SetMode(unsigned int mode) { m_mode = mode; }
 	OphRecConfig& getConfig() { return rec_config; }
 	bool ReconstructImage();
 	bool readConfig(const char* fname);
@@ -140,9 +153,11 @@ public:
 	bool readImageRNI(const char* real, const char* imaginary);
 	void Perform_Simulation();
 	void Initialize();
-
+	bool save(const char * fname, uint8_t bitsperpixel, uchar* src, uint px, uint py);
 	template<typename T>
 	void normalize(T* src, uchar* dst, int x, int y);
+	template<typename T>
+	void normalize(T* src, uchar* dst, int x, int y, T max, T min);
 
 };
 

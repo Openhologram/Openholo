@@ -13,6 +13,7 @@ private:
 	static std::mutex mutex;
 	cudaDeviceProp devProp;
 
+	int m_nThread;
 public:
 	static CUDA* getInstance() {
 		std::lock_guard<std::mutex> lock(mutex);
@@ -30,6 +31,8 @@ public:
 		}
 	}
 
+	void setCurThreads(int thread) { m_nThread = thread; }
+	int getCurThreads() { return m_nThread; }
 	int getMaxThreads() { return devProp.maxThreadsPerBlock; }
 	int getWarpSize() { return devProp.warpSize; }
 

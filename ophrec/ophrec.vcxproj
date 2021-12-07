@@ -21,14 +21,19 @@
   <ItemGroup>
     <ClCompile Include="src\ophCascadedPropagation.cpp" />
     <ClCompile Include="src\ophRec.cpp" />
+    <ClCompile Include="src\ophRec_GPU.cpp" />
     <ClCompile Include="src\ophWaveAberration.cpp" />
     <ClCompile Include="src\tinyxml2.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\ophCascadedPropagation.h" />
     <ClInclude Include="src\ophRec.h" />
+    <ClInclude Include="src\ophRec_GPU.h" />
     <ClInclude Include="src\ophWaveAberration.h" />
     <ClInclude Include="src\tinyxml2.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="src\ophRecKernel.cu" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{D0F04385-3806-46B2-93C2-26ECED076074}</ProjectGuid>
@@ -190,7 +195,7 @@ xcopy /y "$(ProjectDir)src\*.h" "$(USERPROFILE)\source\repos\OpenholoRefApp\Refe
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>libfftw3-3.lib;cudart.lib;cufft.lib;cuda.lib;openholo_d.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>npps.lib;libfftw3-3.lib;cudart.lib;cufft.lib;cuda.lib;openholo_d.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(ProjectDir)lib;$(SolutionDir)Reference\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <Profile>true</Profile>
     </Link>
@@ -233,7 +238,7 @@ xcopy /y "$(ProjectDir)src\*.h" "$(USERPROFILE)\source\repos\OpenholoRefApp\Refe
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>libfftw3-3.lib;cufft.lib;cuda.lib;cudart.lib;openholo.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>npps.lib;libfftw3-3.lib;cufft.lib;cuda.lib;cudart.lib;openholo.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(ProjectDir)lib;$(SolutionDir)Reference\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>/FORCE:multiple %(AdditionalOptions)</AdditionalOptions>
       <Profile>true</Profile>

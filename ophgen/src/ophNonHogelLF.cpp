@@ -423,7 +423,7 @@ void ophNonHogelLF::fourierTransformOverUVLF()
 		}
 		
 		fft2(num_image, LFatXY, OPH_FORWARD, OPH_ESTIMATE); // num_image ==> ivec2(nU,nV)
-		fftwShift(LFatXY, FToverUVatXY, nU, nV, OPH_FORWARD);
+		fft2(LFatXY, FToverUVatXY, nU, nV, OPH_FORWARD);
 		fftFree();
 		for (int idxnUV = 0; idxnUV < nUV; idxnUV++) {
 			FToverUV_LF[idxnUV][idxnXY] = FToverUVatXY[idxnUV];

@@ -406,7 +406,7 @@ bool ophCascadedPropagation::propagateSlmToPupil()
 	oph::Complex<Real>* buf = new oph::Complex<Real>[nx * ny];
 	for (oph::uint color = 0; color < numColors; color++)
 	{
-		fftwShift(getSlmWavefield(color), buf, nx, ny, OPH_FORWARD, false);
+		fft2(getSlmWavefield(color), buf, nx, ny, OPH_FORWARD, false);
 
 		Real k = 2 * M_PI / getWavelengths()[color];
 		Real vw = getWavelengths()[color] * getFieldLensFocalLength() / getPixelPitchX();
@@ -475,7 +475,7 @@ bool ophCascadedPropagation::propagatePupilToRetina()
 			}
 		}
 
-		fftwShift(buf, getRetinaWavefield(color), nx, ny, OPH_FORWARD, false);
+		fft2(buf, getRetinaWavefield(color), nx, ny, OPH_FORWARD, false);
 	}
 
 	auto end_time = CUR_TIME;

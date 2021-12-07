@@ -67,18 +67,12 @@ Real ophIFTA::generateHologram()
 	for (int depth = nDepth; depth > 0; depth--) {
 		int i;
 #ifdef _OPENMP
-#pragma omp parallel
-		{
-#pragma omp for private(i)
+#pragma omp parallel for private(i)
 #endif
-			for (i = 0; i < pnXY; i++) {
-				depth_quant[i] += (imgDepth[i] > (depth*m / nDepth)) ? 1 : 0;
-			}
-#ifdef _OPENMP
+		for (i = 0; i < pnXY; i++) {
+			depth_quant[i] += (imgDepth[i] > (depth*m / nDepth)) ? 1 : 0;
 		}
-#endif
 	}
-
 	if (imgOutput) {
 		delete[] imgOutput;
 		imgOutput = nullptr;
@@ -93,17 +87,12 @@ Real ophIFTA::generateHologram()
 
 			int i, j;
 #ifdef _OPENMP
-#pragma omp parallel
-			{
-#pragma omp for private(i)
+#pragma omp parallel for private(i)
 #endif
-				for (i = 0; i < pnXY; i++) {
-					Real val = (depth_quant[i] == depth) ? 1.0 : 0.0;
-					img[i] = val * (Real)img[i];
-				}
-#ifdef _OPENMP
+			for (i = 0; i < pnXY; i++) {
+				Real val = (depth_quant[i] == depth) ? 1.0 : 0.0;
+				img[i] = val * (Real)img[i];
 			}
-#endif
 			Real lambda = context_.wave_length[ch];
 			Real k = 2 * M_PI / lambda;
 			Real hssX = lambda * z / ppX;
@@ -146,18 +135,13 @@ Real ophIFTA::generateHologram()
 
 				// 이미지를 중앙으로 조정
 #ifdef _OPENMP
-#pragma omp parallel
-				{
-#pragma omp for private(y)
+#pragma omp parallel for private(y)
 #endif
-					for (y = 0; y < scaleY; y++) {
-						for (int x = 0; x < scaleX; x++) {
-							img_tmp[(y + h1)*ww + x + w1] = imgScaled[y*scaleX + x];
-						}
+				for (y = 0; y < scaleY; y++) {
+					for (int x = 0; x < scaleX; x++) {
+						img_tmp[(y + h1)*ww + x + w1] = imgScaled[y*scaleX + x];
 					}
-#ifdef _OPENMP
 				}
-#endif
 				img = new uchar[pnXY];
 				imgScaleBilinear(img_tmp, img, ww, hh, pnX, pnY);
 			}
@@ -167,48 +151,42 @@ Real ophIFTA::generateHologram()
 			Complex<Real> *kernel = new Complex<Real>[pnXY];
 			Complex<Real> *kernel2 = new Complex<Real>[pnXY];
 #ifdef _OPENMP
-#pragma omp parallel
-			{
-				num_thread = omp_get_num_threads();
-#pragma omp for private(y)
+#pragma omp parallel for private(y)
 #endif
-				for (y = 0; y < pnY; y++) {
-					int offset = y * pnX;
+			for (y = 0; y < pnY; y++) {
+				int offset = y * pnX;
 
-					Real ty = hStartY + (y * hppY);
-					Real yy = startY + (y * ppY);
+				Real ty = hStartY + (y * hppY);
+				Real yy = startY + (y * ppY);
 
-					for (int x = 0; x < pnX; x++) {
-						target[offset + x] = (Real)img[offset + x];
-						Real ran;
+				for (int x = 0; x < pnX; x++) {
+					target[offset + x] = (Real)img[offset + x];
+					Real ran;
 #ifdef ANOTHER_RAND
-						ran = rand(0.0, 1.0);
+					ran = rand(0.0, 1.0);
 #else
-						ran = ((Real)rand() / RAND_MAX) * 1.0;
+					ran = ((Real)rand() / RAND_MAX) * 1.0;
 #endif
-						Complex<Real> tmp, c4;
-						if (ran < 1.0) {
-							tmp(0.0, ran * 2 * M_PI);
-							c4 = tmp.exp();
-						}
-						else
-							c4(1.0, 0.0);
-
-						Real tx = hStartX + (x * hppX);
-						Real txy = tx * tx + ty * ty;
-						Real xx = startX + (x * ppX);
-						Real xy = xx * xx + yy * yy;
-
-						Complex<Real> t = (c2 * txy).exp();
-						kernel[offset + x] = c1 * t;
-						kernel2[offset + x] = (c3 * xy).exp();
-						result1[offset + x] = target[offset + x] * c4;
-						result1[offset + x] *= kernel[offset + x];
+					Complex<Real> tmp, c4;
+					if (ran < 1.0) {
+						tmp(0.0, ran * 2 * M_PI);
+						c4 = tmp.exp();
 					}
+					else
+						c4(1.0, 0.0);
+
+					Real tx = hStartX + (x * hppX);
+					Real txy = tx * tx + ty * ty;
+					Real xx = startX + (x * ppX);
+					Real xy = xx * xx + yy * yy;
+
+					Complex<Real> t = (c2 * txy).exp();
+					kernel[offset + x] = c1 * t;
+					kernel2[offset + x] = (c3 * xy).exp();
+					result1[offset + x] = target[offset + x] * c4;
+					result1[offset + x] *= kernel[offset + x];
 				}
-#ifdef _OPENMP
 			}
-#endif
 			Complex<Real> *tmp = new Complex<Real>[pnXY];
 			Complex<Real> *tmp2 = new Complex<Real>[pnXY];
 			memset(tmp, 0, sizeof(Complex<Real>) * pnXY);
@@ -217,41 +195,28 @@ Real ophIFTA::generateHologram()
 			fft2(ivec2(pnX, pnY), tmp, OPH_FORWARD, OPH_ESTIMATE);
 			fftExecute(tmp, true);
 			memset(result1, 0, sizeof(Complex<Real>) * pnXY);
-			
+
 			if (nIteration == 0) {
 #ifdef _OPENMP
-#pragma omp parallel
-				{
-#pragma omp for private(j)
+#pragma omp parallel for private(j)
 #endif
-					for (j = 0; j < pnXY; j++) {
-						result2[j] = tmp[j] / kernel2[j];
-						complex_H[ch][j] += result2[j];
-					}
-#ifdef _OPENMP
+				for (j = 0; j < pnXY; j++) {
+					result2[j] = tmp[j] / kernel2[j];
+					complex_H[ch][j] += result2[j];
 				}
-#endif
 			}
 			else {
 #ifdef _OPENMP
-#pragma omp parallel
-				{
-#pragma omp for private(y)
+#pragma omp parallel for private(y)
 #endif
-					for (y = 0; y < pnX*pnY; y++) {
-						result2[y] = tmp[y] / kernel2[y];
-					}
-#ifdef _OPENMP
+				for (y = 0; y < pnX*pnY; y++) {
+					result2[y] = tmp[y] / kernel2[y];
 				}
-#endif
 
 				memset(tmp, 0, sizeof(Complex<Real>) * pnXY);
 
 				for (int i = 0; i < nIteration; i++) {
 					int j;
-#ifdef _OPENMP
-#pragma omp for private(j)
-#endif
 					for (j = 0; j < pnXY; j++) {
 						result2[j] = tmp[j] / kernel2[j];
 						tmp[j][_RE] = 0.0;
@@ -265,10 +230,6 @@ Real ophIFTA::generateHologram()
 					fftExecute(tmp);
 					fftShift(pnX, pnY, tmp, result1);
 
-
-#ifdef _OPENMP
-#pragma omp for private(j)
-#endif
 					for (j = 0; j < pnXY; j++) {
 						result1[j] /= kernel[j];
 						Complex<Real> aa(0.0, result1[j].angle());
@@ -280,24 +241,17 @@ Real ophIFTA::generateHologram()
 					fft2(ivec2(pnX, pnY), tmp, OPH_FORWARD, OPH_ESTIMATE);
 					fftExecute(tmp2, true);
 
-#ifdef _OPENMP
-#pragma omp for private(j)
-#endif
 					for (j = 0; j < pnXY; j++) {
 						result2[j] = tmp2[j] / kernel2[j];
 					}
 					LOG("Iteration (%d / %d)\n", i + 1, nIteration);
 				}
 				memset(img, 0, pnX * pnY);
-
-#ifdef _OPENMP
-#pragma omp for private(j)
-#endif
 				for (j = 0; j < pnXY; j++) {
 					complex_H[ch][j] += result2[j];
 				}
 			}
-			m_nProgress = (int)((Real)(depth*nWave+ch) * 100 / ((Real)nDepth * nWave));
+			m_nProgress = (int)((Real)(depth*nWave + ch) * 100 / ((Real)nDepth * nWave));
 
 			delete[] kernel;
 			delete[] kernel2;
@@ -347,7 +301,7 @@ void ophIFTA::encoding(unsigned int ENCODE_FLAG, unsigned int SSB_PASSBAND)
 
 	for (uint ch = 0; ch < nChannel; ch++) {
 		fft2(context_.pixel_number, complex_H[ch], OPH_BACKWARD);
-		fftwShift(complex_H[ch], dst, pnX, pnY, OPH_BACKWARD);
+		fft2(complex_H[ch], dst, pnX, pnY, OPH_BACKWARD);
 
 		if (ENCODE_FLAG == ophGen::ENCODE_SSB) {
 			ivec2 location;

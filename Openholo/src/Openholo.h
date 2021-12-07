@@ -68,10 +68,14 @@ struct OPH_DLL OphConfig
 	vec2			ss;							//< pn * pp
 	uint			waveNum;					// wave num
 	Real*			wave_length;				//< wave length
-	bool			bRotation;
-	bool			bMergeImg;					
 };
 
+struct OPH_DLL ImageConfig
+{
+	bool		bRotation;
+	bool		bMergeImage;
+	int			nFlip;
+};
 
 
 
@@ -168,6 +172,13 @@ public:
 	OphConfig& getContext(void) { return context_; }
 
 	/**
+	* @brief Function for getting the image config
+	* @return Type: <B>ImageConfig</B>\n
+	*				The return value is <B>Image config pointer</B>.\n
+	*/
+	ImageConfig& getImageConfig() { return imgCfg; }
+
+	/**
 	* @brief Function for setting the output resolution
 	* @param[in] n resolution vector value.
 	*/
@@ -187,9 +198,19 @@ public:
 	* @param[in] idx index of channel.
 	*/
 	inline void setWaveLength(Real w, const uint idx = 0) { context_.wave_length[idx] = w; }
-	inline void setMergeImage(bool bMerge) { context_.bMergeImg = bMerge; }
 
 	void setWaveNum(int nNum);
+
+	void setImageMerge(bool bMerge) { imgCfg.bMergeImage = bMerge; }
+	void setImageRotate(bool rotate) { imgCfg.bRotation = rotate; }
+	void setImageFlip(int flip) { imgCfg.nFlip = flip; }
+	bool getImageRotate() { return imgCfg.bRotation; }
+
+	void SetMaxThreadNum(int num);
+	int GetMaxThreadNum();
+
+	bool mergeColor(int idx, int width, int height, uchar *src, uchar *dst);
+	bool separateColor(int idx, int width, int height, uchar *src, uchar *dst);
 
 protected:
 	/**
@@ -276,7 +297,7 @@ protected:
 	* @param[in] type If type == 1, forward FFT, if type == -1, backward FFT.
 	* @param[in] bNormalized If bNomarlized == true, normalize the result after FFT.
 	*/
-	void fftwShift(Complex<Real>* src, Complex<Real>* dst, int nx, int ny, int type, bool bNormalized = false);
+	void fft2(Complex<Real>* src, Complex<Real>* dst, int nx, int ny, int type, bool bNormalized = false);
 
 	/**
 	* @brief Swap the top-left quadrant of data with the bottom-right , and the top-right quadrant with the bottom-left.
@@ -286,6 +307,8 @@ protected:
 	* @param[out] output output data variable.
 	*/
 	void fftShift(int nx, int ny, Complex<Real>* input, Complex<Real>* output);
+	void fftShift(int nx, int ny, Complex<Real>* input, fftw_complex* output);
+	void fftShift(int nx, int ny, fftw_complex* input, Complex<Real>* output);
 
 protected:
 	/**
@@ -302,8 +325,14 @@ private:
 	int pnx, pny, pnz;
 	int fft_sign;
 
+	/**
+	* @brief variable for precision
+	*/
+	int m_precision;
+
 protected:
 	OphConfig context_;
+	ImageConfig imgCfg;
 	Complex<Real>** complex_H;
 
 protected:

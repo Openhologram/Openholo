@@ -44,13 +44,10 @@
 //
 //M*/
 
-//#ifndef __ophWRP_GPU_h
-//#define __ophWRP_GPU_h
+//#ifndef __ophRec_GPU_h
+//#define __ophRec_GPU_h
 
-#include "ophWRP.h"
-
-#define __DEBUG_LOG_GPU_SPEC_
-
+#include "ophRec.h"
 #include <cuda_runtime.h>
 #include <cufft.h>
 
@@ -78,67 +75,63 @@ static void HandleError(cudaError_t err,
                                     __FILE__, __LINE__ ); \
                             exit( EXIT_FAILURE );}} 
 
-// for PointCloud only GPU
 typedef struct KernelConst {
-	int n_points;	/// number of point cloud
-	int n_colors;	/// number of colors per point cloud
+	int channel;	/// number of colors per point cloud
 	int n_streams;	/// number of streams
 
-	Real wrp_d;	/// wrp location
-	Real propa_d;  /// propagation distance
+	Real distance;
 
-	int pn_X;		/// Number of pixel of SLM in x direction
-	int pn_Y;		/// Number of pixel of SLM in y direction
+	int pnX;		/// Number of pixel of SLM in x direction
+	int pnY;		/// Number of pixel of SLM in y direction
 
-	double pp_X; /// Pixel pitch of SLM in x direction
-	double pp_Y; /// Pixel pitch of SLM in y direction
+	double ppX; /// Pixel pitch of SLM in x direction
+	double ppY; /// Pixel pitch of SLM in y direction
 
 	double k;		  /// Wave Number = (2 * PI) / lambda;
 	double lambda;    /// wave length = lambda;
 
-	Real zmax;
 	bool bRandomPhase;	// use random phase
-	int iAmplitude;
-
 	double pi2;
+
 	double tx;
 	double ty;
-	double det_tx;
-	double det_ty;
+	double dx;
+	double dy;
+	double htx;
+	double hty;
+	double hdx;
+	double hdy;
+
+	double baseX;
+	double baseY;
 
 	KernelConst(
-		const int &n_points,		/// number of point cloud
-		const int &n_colors,		/// number of colors per point cloud
+		const int &channel,		/// number of colors per point cloud
 		const int &n_streams,
-		const ivec2 &pixel_number,	/// Number of pixel of SLM in x, y direction
-		const vec2 &pixel_pitch,	/// Pixel pitch of SLM in x, y direction
-		const Real wrp_dis,    /// WRP location
-		const Real propagation_distance, /// propagation distance
-		const Real depth_max,
+		const int &pnX,	/// Number of pixel of SLM in x, y direction
+		const int &pnY,	/// Number of pixel of SLM in x, y direction
+		const Real &ppX,	/// Pixel pitch of SLM in x, y direction
+		const Real &ppY,	/// Pixel pitch of SLM in x, y direction
+		const Real &propagation_distance, /// propagation distance
 		const Real &k,				/// Wave Number = (2 * PI) / lambda
 		const Real &lambda,        /// wave length
-		const bool &random_phase,
-		const int &index_amplitude
+		const bool &random_phase
 	)
 	{
+		this->channel = channel;
+		this->n_streams = n_streams;
 		this->lambda = lambda;
 
-		this->n_points = n_points;
-		this->n_colors = n_colors;
-		this->n_streams = n_streams;
-
 		// Output Image Size
-		this->pn_X = pixel_number[_X];
-		this->pn_Y = pixel_number[_Y];
+		this->pnX = pnX;
+		this->pnY = pnY;
 
 		// Pixel pitch at eyepiece lens plane (by simple magnification) ==> SLM pitch
-		this->pp_X = pixel_pitch[_X];
-		this->pp_Y = pixel_pitch[_Y];
+		this->ppX = ppX;
+		this->ppY = ppY;
 
 		// WRP 
-		this->wrp_d = wrp_dis;
-		this->propa_d = propagation_distance;
-		this->zmax = depth_max;
+		this->distance = propagation_distance;
 
 		// Wave Number
 		this->k = k;
@@ -147,32 +140,28 @@ typedef struct KernelConst {
 
 		// Random Phase
 		this->bRandomPhase = random_phase;
-
-		// Amplitude index
-		this->iAmplitude = index_amplitude;
-
+		
 		this->pi2 = M_PI * 2;
 
-		this->tx = lambda / (2 * pp_X);
-		this->ty = lambda / (2 * pp_Y);
-		this->det_tx = tx / sqrt(1 - tx * tx);
-		this->det_ty = ty / sqrt(1 - ty * ty);
+		tx = 1 / ppX;
+		ty = 1 / ppY;
+		dx = tx / pnX;
+		dy = ty / pnY;
+
+		htx = tx / 2;
+		hty = ty / 2;
+		hdx = dx / 2;
+		hdy = dy / 2;
+		baseX = -htx + hdx;
+		baseY = -hty + hdy;
 
 	}
-} WRPGpuConst;
-
-//cufftDoubleComplex *p_wrp_gpu_;
+} RecGpuConst;
 
 
 extern "C"
 {
-	void cudaFresnelPropagationWRP(
-		const int &nBlocks, const int &nBlocks2, const int &nThreads, const int &nx, const int &ny,
-		cuDoubleComplex *src, cuDoubleComplex *dst, cufftDoubleComplex *fftsrc, cufftDoubleComplex *fftdst,
-		const WRPGpuConst* cuda_config);
-
-	void cudaGenWRP(
-		const int &nBlocks, const int &nThreads, const int &n_pts_per_stream,
-		Real* cuda_pc_data, Real* cuda_amp_data,
-		cuDoubleComplex* cuda_dst, const WRPGpuConst* cuda_config);
+	void cudaASMPropagation(
+		const int &nBlocks, const int &nThreads, const int &nx, const int &ny,
+		cuDoubleComplex *src, cuDoubleComplex *dst, Real *encode, const RecGpuConst* cuda_config);
 }

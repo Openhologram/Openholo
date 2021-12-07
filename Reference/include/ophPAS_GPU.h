@@ -84,6 +84,7 @@ public:
 	void RunFFTW(int segnumx, int segnumy, int segsize, int hsegsize, float **inRe, float **inIm, fftw_complex *in, fftw_complex *out, fftw_plan *plan, double *pHologram, OphPointCloudConfig& conf);
 
 	void encodeHologram(const vec2 band_limit, const vec2 spectrum_shift);
+
 	void encoding(unsigned int ENCODE_FLAG);
 	
 

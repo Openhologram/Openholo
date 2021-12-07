@@ -142,7 +142,7 @@ public:
 	* @param[in] propagation_dist the distance from the object to the hologram plane.
 	* @param[in] k const value.
 	* @param[in] lambda wave length.
-	* @see calcHoloCPU, fftwShift
+	* @see calcHoloCPU, fft2
 	*/
 	void propagationAngularSpectrum(int ch, Complex<Real>* input_u, Real propagation_dist, Real k, Real lambda);
 
@@ -160,6 +160,7 @@ public:
 	* @brief Normalization function to save as image file after hologram creation
 	*/
 	void normalize(void);
+	void normalize(int ch);
 
 	/**
 	* @brief Function for saving image files
@@ -188,9 +189,6 @@ public:
 	*				If the function fails, the return value is <B>false</B>.
 	*/
 	virtual bool loadAsOhc(const char *fname);
-
-	bool mergeColor(int idx, int width, int height, uchar *src, uchar *dst);
-	bool separateColor(int idx, int width, int height, uchar *src, uchar *dst);
 
 protected:
 	/**
@@ -230,7 +228,10 @@ public:
 	* @overload
 	*/
 	//void encoding(unsigned int ENCODE_FLAG, Complex<Real>* holo = nullptr);
-	void encoding(unsigned int ENCODE_FLAG, Complex<Real>* holo = nullptr, Real* encoded = nullptr);
+	void encoding(unsigned int ENCODE_FLAG);
+	void encoding(unsigned int ENCODE_FLAG, Complex<Real>* holo, Real* encoded);
+	//template<typename T>
+	//void encoding(unsigned int ENCODE_FLAG, Complex<T>* holo = nullptr, T* encoded = nullptr);
 
 	void encoding();
 	/*
@@ -303,7 +304,6 @@ protected:
 	Complex<Real>*			src1FT;
 	Complex<Real>*			src2FT;
 	Complex<Real>*			dstFT;
-
 public:
 	void transVW(int nSize, Real *dst, Real *src);
 	int getStream() { return m_nStream; }
@@ -336,14 +336,20 @@ protected:
 	* @param[out] encoded Destination data.
 	* @param[in] size size of encode.
 	*/
-	void RealPart(Complex<Real>* holo, Real* encoded, const int size);
-	void ImaginearyPart(Complex<Real>* holo, Real* encoded, const int size);
-
-	void Phase(Complex<Real>* holo, Real* encoded, const int size);
-	void Amplitude(Complex<Real>* holo, Real* encoded, const int size);
-	void TwoPhase(Complex<Real>* holo, Real* encoded, const int size);
-	void Burckhardt(Complex<Real>* holo, Real* encoded, const int size);
-	void SimpleNI(Complex<Real>* holo, Real* encoded, const int size);
+	template <typename T>
+	void RealPart(Complex<T>* holo, T* encoded, const int size);
+	template <typename T>
+	void ImaginearyPart(Complex<T>* holo, T* encoded, const int size);
+	template <typename T>
+	void Phase(Complex<T>* holo, T* encoded, const int size);
+	template <typename T>
+	void Amplitude(Complex<T>* holo, T* encoded, const int size);
+	template <typename T>
+	void TwoPhase(Complex<T>* holo, T* encoded, const int size);
+	template <typename T>
+	void Burckhardt(Complex<T>* holo, T* encoded, const int size);
+	template <typename T>
+	void SimpleNI(Complex<T>* holo, T* encoded, const int size);
 
 	/**
 	* @brief	Encoding method.
@@ -382,12 +388,14 @@ protected:
 	Real* binary;
 	Real* maskSSB;
 	Real* maskHP;
+	unsigned int m_mode;
+	bool m_bRandomPhase;
 
 	bool binaryErrorDiffusion(Complex<Real>* holo, Real* encoded, const ivec2 holosize, const int type, Real threshold);
 	bool getWeightED(const ivec2 holosize, const int type, ivec2* pNw);
 	bool shiftW(ivec2 holosize);
 	void binarization(Complex<Real>* src, Real* dst, const int size, int ENCODE_FLAG, Real threshold);
-
+	void CorrectionChromaticAberration(uchar* src, uchar* dst, int width, int height, int ch);
 
 	//public:
 	//bool carrierWaveMultiplexingEncoding(char* dirName, uint ENCODE_METHOD, Real cenFxIdx, Real cenFyIdx, Real stepFx, Real stepFy, int nFx, int nFy);
@@ -432,7 +440,7 @@ protected:
 	* @param[in] cropy2 the end y-coordinate to crop
 	* @param[in] sig_location Signal location@n
 	*			sig_location[0]: upper or lower half, sig_location[1]:left or right half.
-	* @see fftwShift
+	* @see fft2
 	*/
 	void encodeSideBand_CPU(int cropx1, int cropx2, int cropy1, int cropy2, ivec2 sig_location);
 
@@ -473,11 +481,15 @@ protected:
 public:
 
 	void AngularSpectrum(Complex<Real> *src, Complex<Real> *dst, Real lambda, Real distance);
-	void RS_Propagation(vec3 src, Complex<Real> *dst, Real lambda, Real distance, Real amplitude);
-	void RS_Propagation(uchar *src, Complex<Real> *dst, Real lambda, Real distance);
+	void RS_Diffraction(vec3 src, Complex<Real> *dst, Real lambda, Real distance, Real amplitude);
+	void RS_Diffraction(uchar *src, Complex<Real> *dst, Real lambda, Real distance);
 	void Fresnel_Convolution(vec3 src, Complex<Real> *dst, Real lambda, Real distance, Real amplitude);
 	void Fresnel_FFT(Complex<Real> *src, Complex<Real> *dst, Real lambda, Real waveRatio, Real distance);
 	bool readImage(const char* fname, bool bRGB);
+	void SetMode(unsigned int mode) { m_mode = mode; }
+	unsigned int GetMode() { return m_mode; }
+	void SetRandomPhase(bool bRandomPhase) { m_bRandomPhase = bRandomPhase; }
+	bool GetRandomPhase() { return m_bRandomPhase; }
 
 	uchar* imgRGB;
 	uchar* imgDepth;

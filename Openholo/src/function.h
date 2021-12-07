@@ -215,7 +215,8 @@ namespace oph
 		for (oph::uint ydx = 0; ydx < ny; ydx++) {
 			for (oph::uint xdx = 0; xdx < nx; xdx++) {
 				T *src_pos = src + xdx + ydx * nx;
-				oph::uchar *res_pos = dst + xdx + (ny - ydx - 1)*nx;
+				//oph::uchar *res_pos = dst + xdx + (ny - ydx - 1)*nx;
+				oph::uchar *res_pos = dst + xdx + ydx * nx;
 				*(res_pos) = oph::force_cast<oph::uchar>(((*(src_pos)-minVal) / (maxVal - minVal)) * 255 + 0.5);
 			}
 		}

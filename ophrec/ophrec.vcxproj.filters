@@ -37,6 +37,9 @@
     <ClCompile Include="src\ophCascadedPropagation.cpp">
       <Filter>_1_Display\_2_Cascaded Propagation</Filter>
     </ClCompile>
+    <ClCompile Include="src\ophRec_GPU.cpp">
+      <Filter>__ophRec</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\ophRec.h">
@@ -49,5 +52,13 @@
     <ClInclude Include="src\ophCascadedPropagation.h">
       <Filter>_1_Display\_2_Cascaded Propagation</Filter>
     </ClInclude>
+    <ClInclude Include="src\ophRec_GPU.h">
+      <Filter>__ophRec</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="src\ophRecKernel.cu">
+      <Filter>__ophRec</Filter>
+    </CudaCompile>
   </ItemGroup>
 </Project>

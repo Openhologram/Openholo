@@ -58,7 +58,7 @@ static void HandleError(cudaError_t err,
 	if (err != cudaSuccess) {
 		printf("%s in %s at line %d\n", cudaGetErrorString(err),
 			file, line);
-		exit(EXIT_FAILURE);
+		return;
 	}
 }
 #define HANDLE_ERROR( err ) (HandleError( err, __FILE__, __LINE__ ))
@@ -69,27 +69,79 @@ static void HandleError(cudaError_t err,
                                     __FILE__, __LINE__ ); \
                             exit( EXIT_FAILURE );}} 
 
+typedef struct KernelConst {
+	int pnX;
+	int pnY;
+	Real ppX;
+	Real ppY;
+	Real lambda;
+	Real pi2;
+	Real k;
+	Real distance;
+	bool randomPhase;
+	int nX;
+	int nY;
+	int rX;
+	int rY;
+	int nChannel;
+	int iAmp;
 
-cufftDoubleComplex *RSplane_complex_field_gpu;
-
-uchar1**		LF_gpu;
-uchar**			LFData_gpu;
-cudaStream_t	streamLF;
-
-
+	KernelConst(
+		const int &channel,
+		const int &iAmp,
+		const int &pnX,
+		const int &pnY,
+		const Real &ppX,
+		const Real &ppY,
+		const int &nX,
+		const int &nY,
+		const int &rX,
+		const int &rY,
+		const Real &distance,
+		const Real &k,
+		const Real &lambda,
+		const bool &random_phase
+	)
+	{
+		this->nChannel = channel;
+		this->iAmp = iAmp;
+		this->pnX = pnX;
+		this->pnY = pnY;
+		this->ppX = ppX;
+		this->ppY = ppY;
+		this->nX = nX;
+		this->nY = nY;
+		this->rX = rX;
+		this->rY = rY;
+		this->lambda = lambda;
+		this->pi2 = M_PI * 2;
+		this->k = pi2 / lambda;
+		this->distance = distance;
+		this->randomPhase = random_phase;
+	}
+} LFGpuConst;
+#if 0
+#define IMG_R "img_resolution"
+#define IMG_N "img_number"
+#define CHANNEL_I "channel_info"
+#endif
 extern "C"
 {
-	void cudaConvertLF2ComplexField_Kernel(CUstream_st* stream, int nx, int ny, int rx, int ry, uchar1** LF, cufftDoubleComplex* output);
+#if 0
+	__constant__ int channel_info[2];
+	__constant__ int img_resolution[3];
+	__constant__ int img_number[3];
+#endif
+	void cudaConvertLF2ComplexField_Kernel(CUstream_st* stream, const int &nBlocks, const int &nThreads, const LFGpuConst *config, uchar1** LF, cufftDoubleComplex* output);
+	void cudaFFT_LF(cufftHandle *plan, CUstream_st* stream, const int &nBlocks, const int &nThreads, const int &nx, const int &ny, cufftDoubleComplex* in_field, cufftDoubleComplex* output_field, const int &direction);
+	//void cudaFFT_LF(CUstream_st* stream, const int &nBlocks, const int &nThreads, const int &nx, const int &ny, const LFGpuConst *config, cufftDoubleComplex* in_field, cufftDoubleComplex* output_field, int direction);
 
-	void cudaFFT_LF(cufftHandle* plan, CUstream_st* stream, int nx, int ny, cufftDoubleComplex* in_field, cufftDoubleComplex* output_field, int direction);
+	void procMultiplyPhase(CUstream_st* stream, const int &nBlocks, const int &nThreads, const LFGpuConst *config, cufftDoubleComplex* in, cufftDoubleComplex* output);
 
-	void procMultiplyPhase(CUstream_st* stream, int nx, int ny, int rx, int ry, cufftDoubleComplex* input, cufftDoubleComplex* output, double PI);
-
-	void procMoveToin2x(CUstream_st* streamLF, int Nx, int Ny, cufftDoubleComplex* in, cufftDoubleComplex* out);
-
-	void procMultiplyProp(CUstream_st* stream, int Nx, int Ny, cufftDoubleComplex* inout, double PI, double dist, double wavelength, double ppx, double ppy);
-
-	void procCopyToOut(CUstream_st* stream, int Nx, int Ny, cufftDoubleComplex* in, cufftDoubleComplex* out);
+	void cudaFresnelPropagationLF(
+		const int &nBlocks, const int &nBlocks2, const int &nThreads, const int &nx, const int &ny,
+		cufftDoubleComplex *src, cufftDoubleComplex *tmp, cufftDoubleComplex *tmp2, cufftDoubleComplex *dst,
+		const LFGpuConst* cuda_config);
 }
 
 

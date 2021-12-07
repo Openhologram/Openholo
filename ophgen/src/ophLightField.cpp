@@ -48,16 +48,12 @@
 #include "sys.h"
 #include "tinyxml2.h"
 
-#define for_i(itr, oper) for(int i=0; i<itr; i++){ oper }
-
 ophLF::ophLF(void)
 	: num_image(ivec2(0, 0))
 	, resolution_image(ivec2(0, 0))
 	, distanceRS2Holo(0.0)
 	, is_CPU(true)
 	, is_ViewingWindow(false)
-	, LF(nullptr)
-	, RSplane_complex_field(nullptr)
 	, bSinglePrecision(false)
 {
 	LOG("*** LIGHT FIELD : BUILD DATE: %s %s ***\n\n", __DATE__, __TIME__);
@@ -134,6 +130,7 @@ int ophLF::loadLF(const char* directory, const char* exten)
 {
 	LF_directory = directory;
 	ext = exten;
+	int nWave = context_.waveNum;
 
 	initializeLF();
 
@@ -144,25 +141,38 @@ int ophLF::loadLF(const char* directory, const char* exten)
 	if (ff != -1)
 	{
 		int num = 0;
-		uchar* rgbOut;
 		ivec2 sizeOut;
 		int bytesperpixel;
 
-		while (1)
+		while (true)
 		{
-			string imgfullname = std::string(LF_directory).append("\\").append(data.name);
+			string imgfullname = std::string(LF_directory).append("/").append(data.name);
 
 			getImgSize(sizeOut[_X], sizeOut[_Y], bytesperpixel, imgfullname.c_str());
 
-			rgbOut = loadAsImg(imgfullname.c_str());
+			int size = (((sizeOut[_X] * bytesperpixel) + 3) & ~3) * sizeOut[_Y];
 
-			if (rgbOut == 0) {
-				cout << "LF load was failed." << endl;
-				return -1;
+			if (nWave == 1)
+			{
+				size = ((sizeOut[_X] + 3) & ~3) * sizeOut[_Y];
+				uchar *img = loadAsImg(imgfullname.c_str());
+				m_vecImages[num] = new uchar[size];
+				convertToFormatGray8(img, m_vecImages[num], sizeOut[_X], sizeOut[_Y], bytesperpixel);
+				m_vecImgSize[num] = size;
+				if (img == nullptr) {
+					cout << "LF load was failed." << endl;
+					return -1;
+				}
 			}
-
-			convertToFormatGray8(rgbOut, *(LF + num), sizeOut[_X], sizeOut[_Y], bytesperpixel);
-			delete[] rgbOut; // solved memory leak.
+			else
+			{
+				m_vecImages[num] = loadAsImg(imgfullname.c_str());
+				m_vecImgSize[num] = size;
+				if (m_vecImages[num] == nullptr) {
+					cout << "LF load was failed." << endl;
+					return -1;
+				}
+			}
 			num++;
 
 			int out = _findnext(ff, &data);
@@ -186,6 +196,7 @@ int ophLF::loadLF(const char* directory, const char* exten)
 
 int ophLF::loadLF()
 {
+	int nWave = context_.waveNum;
 	initializeLF();
 
 	_finddata_t data;
@@ -195,25 +206,38 @@ int ophLF::loadLF()
 	if (ff != -1)
 	{
 		int num = 0;
-		uchar* rgbOut;
 		ivec2 sizeOut;
 		int bytesperpixel;
 
-		while (1)
+		while (true)
 		{
 			string imgfullname = std::string(LF_directory).append("/").append(data.name);
 
 			getImgSize(sizeOut[_X], sizeOut[_Y], bytesperpixel, imgfullname.c_str());
-			rgbOut = loadAsImg(imgfullname.c_str());
 
-			if (rgbOut == 0) {
-				cout << "LF load was failed." << endl;
-				cin.get();
-				return -1;
+			int size = (((sizeOut[_X] * bytesperpixel) + 3) & ~3) * sizeOut[_Y];
+
+			if (nWave == 1)
+			{
+				size = ((sizeOut[_X] + 3) & ~3) * sizeOut[_Y];
+				uchar *img = loadAsImg(imgfullname.c_str());
+				m_vecImages[num] = new uchar[size];
+				convertToFormatGray8(img, m_vecImages[num], sizeOut[_X], sizeOut[_Y], bytesperpixel);
+				m_vecImgSize[num] = size;
+				if (img == nullptr) {
+					cout << "LF load was failed." << endl;
+					return -1;
+				}
 			}
-
-			convertToFormatGray8(rgbOut, *(LF + num), sizeOut[_X], sizeOut[_Y], bytesperpixel);
-
+			else
+			{
+				m_vecImages[num] = loadAsImg(imgfullname.c_str());
+				m_vecImgSize[num] = size;
+				if (m_vecImages[num] == nullptr) {
+					cout << "LF load was failed." << endl;
+					return -1;
+				}
+			}
 			num++;
 
 			int out = _findnext(ff, &data);
@@ -242,32 +266,73 @@ void ophLF::generateHologram()
 	resetBuffer();
 
 	LOG("1) Algorithm Method : Light Field\n");
-	LOG("2) Generate Hologram with %s\n", is_CPU ?
+	LOG("2) Generate Hologram with %s\n", m_mode & MODE_GPU ?
+		"GPU" :
 #ifdef _OPENMP
-		"Multi Core CPU" :
+		"Multi Core CPU"
 #else
-		"Single Core CPU" :
+		"Single Core CPU"
 #endif
-		"GPU");
-	LOG("3) Transform Viewing Window : %s\n", is_ViewingWindow ? "ON" : "OFF");
+	);
+	LOG("3) Random Phase Use : %s\n", GetRandomPhase() ? "Y" : "N");
+	//LOG("3) Transform Viewing Window : %s\n", is_ViewingWindow ? "ON" : "OFF");
 
 	auto begin = CUR_TIME;
 	if (is_CPU)
 	{
+#if 0
+		auto begin = CUR_TIME;
+		const int pnX = resolution_image[_X];
+		const int pnY = resolution_image[_Y];
+		const int N = ((pnX + 3) & ~3) * pnY;
+
+		uchar *tmp = new uchar[N];
+		for (int n = 0; n < nImages; n++)
+		{
+			memset(tmp, 0, sizeof(uchar) * N);
+			for (uint ch = 0; ch < context_.waveNum; ch++)
+			{
+				separateColor(ch, pnX, pnY, m_vecImages[n], tmp);
+				CorrectionChromaticAberration(tmp, tmp, pnX, pnY, ch);
+				mergeColor(ch, pnX, pnY, tmp, m_vecImages[n]);
+			}
+		}
+		delete[] tmp;
+		LOG("\n%s : %lf(s)\n\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
+#endif
 		convertLF2ComplexField();
-		for (uint ch = 0; ch < context_.waveNum; ch++)
-			fresnelPropagation(RSplane_complex_field, complex_H[ch], distanceRS2Holo, ch);
+
+		for (int ch = 0; ch < context_.waveNum; ch++)
+		{
+			fresnelPropagation(m_vecRSplane[ch], complex_H[ch], distanceRS2Holo, ch);
+#if 1
+			if (ch == 1)
+			{
+				FILE *fp;
+				char buf[MAX_PATH] = { 0, };
+				sprintf(buf, "D:\\complex_H(cpu).dat");
+				fopen_s(&fp, buf, "wb");
+				if (fp)
+				{
+					for (int i = 0; i < 1920*1080; i++)
+					{
+						fwrite(&complex_H[1][i][_RE], sizeof(Real), 1, fp);
+						fwrite(&complex_H[1][i][_IM], sizeof(Real), 1, fp);
+					}
+					fclose(fp);
+				}
+			}
+#endif
+		}
 	}
 	else
 	{
-		prepareInputdataGPU();
 		convertLF2ComplexField_GPU();
-		fresnelPropagation_GPU();
+		//fresnelPropagation_GPU();
 	}
 	fftFree();
 	auto end = CUR_TIME;
-	m_elapsedTime = ((std::chrono::duration<Real>)(end - begin)).count();
-	LOG("Total Elapsed Time: %lf (sec)\n", m_elapsedTime);
+	LOG("Total Elapsed Time: %lf (sec)\n", ELAPSED_TIME(begin, end));
 }
 
 //int ophLF::saveAsOhc(const char * fname)
@@ -282,26 +347,19 @@ void ophLF::generateHologram()
 
 void ophLF::initializeLF()
 {
-	if (LF) {
-		for (int i = 0; i < nImages; i++) {
-			if (LF[i]) {
-				delete[] LF[i];
-				LF[i] = nullptr;
-			}
-		}
-		delete[] LF;
-		LF = nullptr;
-	}
+	for (vector<uchar *>::iterator it = m_vecImages.begin(); it != m_vecImages.end(); it++) delete[](*it);
+	m_vecImages.clear();
+	m_vecImgSize.clear();
 
-	LF = new uchar*[num_image[_X] * num_image[_Y]];
-	for (int i = 0; i < num_image[_X] * num_image[_Y]; i++) {
-		LF[i] = new uchar[resolution_image[_X] * resolution_image[_Y]];
-		memset(LF[i], 0, resolution_image[_X] * resolution_image[_Y]);
-	}
-	nImages = num_image[_X] * num_image[_Y];
-	cout << "The Number of the Images : " << num_image[_X] * num_image[_Y] << endl;
+	const int nX = num_image[_X];
+	const int nY = num_image[_Y];
+	const int N = nX * nY;
+
+	m_vecImages.resize(N);
+	m_vecImgSize.resize(N);
+	nImages = N;
+	cout << "The Number of the Images : " << N << endl;
 }
-
 
 void ophLF::convertLF2ComplexField()
 {
@@ -309,65 +367,62 @@ void ophLF::convertLF2ComplexField()
 
 	const uint nX = num_image[_X];
 	const uint nY = num_image[_Y];
-	const uint nXY = nX * nY;
+	const uint N = nX * nY; // Image count
+
 	const uint rX = resolution_image[_X];
 	const uint rY = resolution_image[_Y];
-	const uint rXY = rX * rY;
+	const uint R = rX * rY; // LF Image resolution
+	const uint nWave = context_.waveNum;
+	const bool bRandomPhase = GetRandomPhase();
 
-	if (RSplane_complex_field) {
-		delete[] RSplane_complex_field;
-		RSplane_complex_field = nullptr;
+	// initialize
+	for (vector<Complex<Real>*>::iterator it = m_vecRSplane.begin(); it != m_vecRSplane.end(); it++) delete[](*it);
+	m_vecRSplane.clear();
+	m_vecRSplane.resize(nWave);
+
+	for (int i = 0; i < nWave; i++)
+	{
+		m_vecRSplane[i] = new Complex<Real>[N * R];
+		//memset(m_vecRSplane[i], 0.0, sizeof(Complex<Real>) * N * R);
 	}
-	RSplane_complex_field = new Complex<Real>[nXY * rXY];
-	memset(RSplane_complex_field, 0.0, sizeof(Complex<Real>) * nXY * rXY);
 
-	//Complex<Real>* complexLF = new Complex<Real>[rXY];
-	Complex<Real>* complexLF = new Complex<Real>[nXY];
+	Complex<Real> *tmp = new Complex<Real>[N];
+	Real pi2 = M_PI * 2;
+	for (int ch = 0; ch < nWave; ch++)
+	{
+		int iColor = nWave - ch - 1;
+		for (int r = 0; r < R; r++) // pixel num
+		{
+			int w = r % rX;
+			int h = r / rX;
+			int iWidth = r * nWave;
 
-	Complex<Real>* FFTLF = new Complex<Real>[nXY];
-
-	Real randVal;
-	Complex<Real> phase(0.0, 0.0);
-
-	int idxrX;
-	int idxImg = 0;
-
-	for (idxrX = 0; idxrX < rX; idxrX++) { // 192
-		for (int idxrY = 0; idxrY < rY; idxrY++) { // 108
-			memset(complexLF, 0.0, sizeof(Complex<Real>) * nXY);
-			memset(FFTLF, 0.0, sizeof(Complex<Real>) * nXY);
-
-			for (int idxnY = 0; idxnY < nY; idxnY++) { // 10
-				for (int idxnX = 0; idxnX < nX; idxnX++) { // 10
-														   // LF[img idx][pixel idx]
-					complexLF[idxnX + nX * idxnY] = (Real)(LF[idxnX + nX * idxnY][idxrX + rX * idxrY]);
-				}
+			for (int n = 0; n < N; n++) // image num
+			{
+				tmp[n][_RE] = (Real)(m_vecImages[n][iWidth + iColor]);
+				tmp[n][_IM] = 0.0;
 			}
 
-			fft2(num_image, complexLF, OPH_FORWARD, OPH_ESTIMATE);
-			fftwShift(complexLF, FFTLF, nX, nY, OPH_FORWARD);
-			//fftExecute(FFTLF);
+			fft2(tmp, tmp, nX, nY, OPH_FORWARD);
 
-			for (int idxnX = 0; idxnX < nX; idxnX++) { // 10
-				for (int idxnY = 0; idxnY < nY; idxnY++) { // 10
-					randVal = rand((Real)0, (Real)1, idxrX * idxrY);
-					phase(0, 2 * M_PI * randVal); // random phase
+			int base1 = N * rX * h;
+			int base2 = w * nX;
+			for (int n = 0; n < N; n++)
+			{
+				int j = n % nX;
+				int i = n / nX;
 
-												  //*(RSplane_complex_field + nXY * rX*idxrY + nX * rX*idxnY + nX * idxrX + idxnX) = *(FFTLF + (idxnX + nX * idxnY))*exp(phase);
-												  // 100 * 192 * 107 + 10 * 192 * 107 + 10 * 191 + 9
-					RSplane_complex_field[nXY * rX*idxrY + nX * rX*idxnY + nX * idxrX + idxnX] =
-						FFTLF[idxnX + nX * idxnY] * exp(phase);
-					//
-					// (20/5) (x:5/y:8) => 165
-				}
+				Real randVal = bRandomPhase ? rand(0.0, 1.0) : 1.0;
+				Complex<Real> phase(0, pi2 * randVal);
+				m_vecRSplane[ch][base1 + base2 + ((n - j) * rX) + j] = tmp[n] * phase.exp();
 			}
-			idxImg++;
-		}
+		}	
 	}
-	delete[] complexLF, FFTLF;
+
+
+	delete[] tmp;
 	fftFree();
-	auto end = CUR_TIME;
-	LOG("\n%s : %lf(s)\n\n", __FUNCTION__, ((std::chrono::duration<Real>)(end - begin)).count());
+	LOG("\n%s : %lf(s)\n\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
 }
 
 void ophLF::writeIntensity_gray8_bmp(const char* fileName, int nx, int ny, Complex<Real>* complexvalue, int k)
@@ -418,4 +473,16 @@ void ophLF::writeIntensity_gray8_bmp(const char* fileName, int nx, int ny, Compl
 
 	free(intensity);
 	free(cgh);
+}
+
+void ophLF::ophFree()
+{
+	ophGen::ophFree();
+	
+	for (vector<uchar *>::iterator it = m_vecImages.begin(); it != m_vecImages.end(); it++) delete[](*it);
+	for (vector<Complex<Real> *>::iterator it = m_vecRSplane.begin(); it != m_vecRSplane.end(); it++) delete[](*it);
+	m_vecImages.clear();
+	m_vecImgSize.clear();
+	m_vecRSplane.clear();
+
 }
