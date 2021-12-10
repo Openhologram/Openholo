@@ -626,17 +626,6 @@ public:
 
 public:
 	/**
-	* @brief Set the value of a variable is_CPU(true or false)
-	* @details <pre>
-	if is_CPU == true
-	CPU implementation
-	else
-	GPU implementation </pre>
-	* @param[in] is_CPU the value for specifying whether the hologram generation method is implemented on the CPU or GPU
-	*/
-	void setMode(bool is_CPU);
-
-	/**
 	* @brief Function for setting precision
 	* @param[in] precision level.
 	*/
@@ -644,9 +633,9 @@ public:
 	bool getPrecision() { return bSinglePrecision; }
 
 	/**
-	* @brief get the value of a variable is_CPU(true or false)
+	* @brief get the value of a variable generation mode (true or false)
 	* @details <pre>
-	if is_CPU == true
+	if isCPU() == true
 	CPU implementation
 	else
 	GPU implementation </pre>
@@ -654,7 +643,7 @@ public:
 	*				If the function succeeds, the return value is <B>true</B>.\n
 	*				If the function fails, the return value is <B>false</B>.
 	*/
-	bool isCPU() { return is_CPU; }
+	bool isCPU() { return m_mode & MODE_GPU ? false : true; }
 
 	/**
 	* @brief override
@@ -744,7 +733,7 @@ private:
 	Real genCghPointCloudGPU(uint diff_flag);
 
 	virtual void ophFree(void);
-	bool is_CPU;
+
 	bool is_ViewingWindow;
 	bool bSinglePrecision;
 	int n_points;

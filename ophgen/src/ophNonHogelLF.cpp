@@ -9,7 +9,6 @@ ophNonHogelLF::ophNonHogelLF(void)
 	: num_image(ivec2(0, 0))
 	, resolution_image(ivec2(0, 0))
 	, distanceRS2Holo(0.0)
-	, is_CPU(true)
 	, is_ViewingWindow(false)
 	, LF(nullptr)
 	, FToverUV_LF(nullptr)
@@ -18,11 +17,6 @@ ophNonHogelLF::ophNonHogelLF(void)
 	, bSinglePrecision(false)
 {
 	LOG("*** LIGHT FIELD : BUILD DATE: %s %s ***\n\n", __DATE__, __TIME__);
-}
-
-void ophNonHogelLF::setMode(bool isCPU)
-{
-	is_CPU = isCPU;
 }
 
 void ophNonHogelLF::setViewingWindow(bool is_ViewingWindow)
@@ -206,17 +200,22 @@ void ophNonHogelLF::generateHologram()
 	resetBuffer();
 
 	LOG("1) Algorithm Method : Non-hogel based hologram generation from Light Field\n");
-	LOG("2) Generate Hologram with %s\n", is_CPU ?
+	LOG("2) Generate Hologram with %s\n", m_mode & MODE_GPU ?
+		"GPU" :
 #ifdef _OPENMP
-		"Multi Core CPU" :
+		"Multi Core CPU"
 #else
-		"Single Core CPU" :
+		"Single Core CPU"
 #endif
-		"GPU");
+	);
 	LOG("3) Transform Viewing Window : %s\n", is_ViewingWindow ? "ON" : "OFF");
 
 	auto begin = CUR_TIME;
-	if (is_CPU)
+	if (m_mode & MODE_GPU)
+	{
+		LOG("Not implement GPU version");
+	}
+	else
 	{
 		setBuffer();
 		makeRandomWField();
@@ -225,16 +224,8 @@ void ophNonHogelLF::generateHologram()
 		for (uint ch = 0; ch < context_.waveNum; ch++)
 			fresnelPropagation(Hologram, complex_H[ch], distance, ch); //distanceRS2Holo
 	}
-	else
-	{
-		//prepareInputdataGPU();
-		//convertLF2ComplexField_GPU();
-		//fresnelPropagation_GPU();
-	}
 
-	auto end = CUR_TIME;
-	m_elapsedTime = ((std::chrono::duration<Real>)(end - begin)).count();
-	LOG("Total Elapsed Time: %lf (sec)\n", m_elapsedTime);
+	LOG("Total Elapsed Time: %lf (s)\n", ELAPSED_TIME(begin, CUR_TIME));
 }
 
 void ophNonHogelLF::generateHologram(double thetaX, double thetaY)
@@ -242,17 +233,22 @@ void ophNonHogelLF::generateHologram(double thetaX, double thetaY)
 	resetBuffer();
 
 	LOG("1) Algorithm Method : Non-hogel based hologram generation from Light Field\n");
-	LOG("2) Generate Hologram with %s\n", is_CPU ?
+	LOG("2) Generate Hologram with %s\n", m_mode & MODE_GPU ?
+		"GPU" :
 #ifdef _OPENMP
-		"Multi Core CPU" :
+		"Multi Core CPU"
 #else
-		"Single Core CPU" :
+		"Single Core CPU"
 #endif
-		"GPU");
+	);
 	LOG("3) Transform Viewing Window : %s\n", is_ViewingWindow ? "ON" : "OFF");
 
 	auto begin = CUR_TIME;
-	if (is_CPU)
+	if (m_mode & MODE_GPU)
+	{
+		LOG("Not implement GPU version");
+	}
+	else
 	{
 		setBuffer();
 		makePlaneWaveWField(thetaX, thetaY);
@@ -261,16 +257,8 @@ void ophNonHogelLF::generateHologram(double thetaX, double thetaY)
 		for (uint ch = 0; ch < context_.waveNum; ch++)
 			fresnelPropagation(Hologram, complex_H[ch], distance, ch); //distanceRS2Holo
 	}
-	else
-	{
-		//prepareInputdataGPU();
-		//convertLF2ComplexField_GPU();
-		//fresnelPropagation_GPU();
-	}
 
-	auto end = CUR_TIME;
-	m_elapsedTime = ((std::chrono::duration<Real>)(end - begin)).count();
-	LOG("Total Elapsed Time: %lf (sec)\n", m_elapsedTime);
+	LOG("Total Elapsed Time: %lf (s)\n", ELAPSED_TIME(begin, CUR_TIME));
 }
 
 //int ophLF::saveAsOhc(const char * fname)

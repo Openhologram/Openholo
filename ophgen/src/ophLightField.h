@@ -114,8 +114,6 @@ private:
 	std::vector<Complex<Real>*> m_vecRSplane;
 	//Complex<Real>** RSplane_complex_field;			/// Complex field in Ray Sampling plane
 
-	// ==== GPU Variables ===============================================
-	bool		is_CPU;
 
 private:
 	
@@ -166,21 +164,7 @@ public:
 	* @return	(*complex_H)
 	*/
 	void generateHologram();
-
-	//virtual int saveAsOhc(const char* fname);
-
-	//virtual int saveAsOhc(const char* fname);
-	/**
-	* @brief Set the value of a variable is_CPU(true or false)
-	* @details <pre>
-	if is_CPU == true
-	CPU implementation
-	else
-	GPU implementation </pre>
-	* @param[in] is_CPU the value for specifying whether the hologram generation method is implemented on the CPU or GPU
-	*/
-	void setMode(bool is_CPU);
-
+	
 	/**
 	* @brief Function for setting precision
 	* @param[in] precision level.

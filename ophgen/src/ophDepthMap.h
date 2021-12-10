@@ -116,16 +116,6 @@ protected:
 	virtual ~ophDepthMap();
 
 public:
-	/**
-	* @brief Set the value of a variable is_CPU(true or false)
-	* @details <pre>
-	if is_CPU == true
-	CPU implementation
-	else
-	GPU implementation </pre>
-	* @param[in] is_CPU the value for specifying whether the hologram generation method is implemented on the CPU or GPU
-	*/
-	void setMode(bool is_CPU);
 
 	/**
 	* @brief Function for setting precision
@@ -209,7 +199,6 @@ protected:
 	void ophFree(void);
 
 private:
-	bool					is_CPU;								///< if true, it is implemented on the CPU, otherwise on the GPU.
 	bool					is_ViewingWindow;
 	bool					bSinglePrecision;
 	unsigned char*			depth_img;

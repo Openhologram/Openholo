@@ -166,17 +166,6 @@ public:
 	virtual bool readConfig(const char* fname);
 
 	/**
-	* @brief Set the value of a variable is_CPU(true or false)
-	* @details <pre>
-	if is_CPU == true
-	CPU implementation
-	else
-	GPU implementation </pre>
-	* @param[in] is_CPU the value for specifying whether the hologram generation method is implemented on the CPU or GPU
-	*/
-	void setMode(bool is_CPU);
-
-	/**
 	* @brief Function for setting precision
 	* @param[in] precision level.
 	*/
@@ -243,7 +232,6 @@ protected:
 
 private:
 	bool is_ViewingWindow;
-	bool is_CPU;
 	bool bSinglePrecision;
 	Real zmax_;
 	uint m_nProgress;

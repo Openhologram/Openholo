@@ -61,8 +61,6 @@ ophDepthMap::ophDepthMap()
 	, m_nProgress(0)
 	, bSinglePrecision(false)
 {
-	is_CPU = true;
-
 	// GPU Variables
 	img_src_gpu = nullptr;
 	dimg_src_gpu = nullptr;
@@ -88,20 +86,6 @@ ophDepthMap::ophDepthMap()
 */
 ophDepthMap::~ophDepthMap()
 {
-}
-
-/**
-* @brief Set the value of a variable isCPU_(true or false)
-* @details <pre>
-    if isCPU_ == true
-	   CPU implementation
-	else
-	   GPU implementation </pre>
-* @param isCPU : the value for specifying whether the hologram generation method is implemented on the CPU or GPU
-*/
-void ophDepthMap::setMode(bool isCPU) 
-{ 
-	is_CPU = isCPU;
 }
 
 void ophDepthMap::setViewingWindow(bool is_ViewingWindow)
@@ -346,20 +330,32 @@ Real ophDepthMap::generateHologram(void)
 	resetBuffer();
 
 	m_vecEncodeSize = context_.pixel_number;
-	auto start_time = CUR_TIME;
+	auto begin = CUR_TIME;
 
 	LOG("1) Algorithm Method : Depth Map\n");
-	LOG("2) Generate Hologram with %s\n", is_CPU ?
+	LOG("2) Generate Hologram with %s\n", m_mode & MODE_GPU ?
+		"GPU" :
 #ifdef _OPENMP
-		"Multi Core CPU" :
+		"Multi Core CPU"
 #else
-		"Single Core CPU" :
+		"Single Core CPU"
 #endif
-		"GPU");
-	LOG("3) Transform Viewing Window : %s\n", is_ViewingWindow ? "ON" : "OFF");
+		);
 
 	int nChannel = context_.waveNum;
-	if (is_CPU) {		
+	if (m_mode & MODE_GPU)
+	{
+		for (int ch = 0; ch < nChannel; ch++)
+		{
+			prepareInputdataGPU(m_vecRGB[ch], depth_img);
+			getDepthValues();
+			//if (is_ViewingWindow)
+			//	transVW();
+			calcHoloGPU(ch);
+		}
+	}
+	else
+	{
 		for (int ch = 0; ch < nChannel; ch++)
 		{
 			prepareInputdataCPU(m_vecRGB[ch], depth_img);
@@ -369,24 +365,10 @@ Real ophDepthMap::generateHologram(void)
 			calcHoloCPU(ch);
 		}
 	}
-	else {
-		for (int ch = 0; ch < nChannel; ch++)
-		{
-			prepareInputdataGPU(m_vecRGB[ch], depth_img);
-			getDepthValues();
-			if (is_ViewingWindow)
-				transVW();
-			calcHoloGPU(ch);
-		}
-	}
 	
-	auto end_time = CUR_TIME;
-
-	m_elapsedTime = ((std::chrono::duration<Real>)(end_time - start_time)).count();
-
-	LOG("Total Elapsed Time: %lf (s)\n", m_elapsedTime);
+	LOG("Total Elapsed Time: %lf (s)\n", ELAPSED_TIME(begin, CUR_TIME));
 	m_nProgress = 0;
-	return m_elapsedTime;
+	return 0;
 }
 
 void ophDepthMap::encoding(unsigned int ENCODE_FLAG)
@@ -413,6 +395,8 @@ void ophDepthMap::encoding(unsigned int ENCODE_FLAG, unsigned int SSB_PASSBAND)
 	const uint pnX = context_.pixel_number[_X];
 	const uint pnY = context_.pixel_number[_Y];
 	const uint nChannel = context_.waveNum;
+
+	bool is_CPU = (m_mode & MODE_GPU) ? false : true;
 
 	for (uint ch = 0; ch < nChannel; ch++) {
 
@@ -489,6 +473,8 @@ void ophDepthMap::getDepthValues()
 
 	}
 	
+	bool is_CPU = m_mode & MODE_GPU ? false : true;
+
 	if (dm_config_.FLAG_CHANGE_DEPTH_QUANTIZATION == 1)
 	{
 		if (is_CPU)

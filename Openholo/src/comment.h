@@ -69,7 +69,7 @@ Generation Hologram - Point Cloud Example
 	Hologram->readConfig("config/TestSpecPointCloud.xml");							// Read Config Parameters for Point Cloud CGH
 	Hologram->loadPointCloud("source/PointCloud/TestPointCloud_Plane.ply");			// Load Point Cloud Data(*.PLY)
 
-	Hologram->setMode(MODE_GPU);													// Select CPU or GPU Processing
+	Hologram->SetMode(MODE_GPU);													// Select CPU or GPU Processing
 
 	Hologram->generateHologram(PC_DIFF_RS);											// Select R-S diffraction or Fresnel diffraction
 	Hologram->saveAsOhc("result/PointCloud/Result_PointCloudSample_Plane.ohc");		// Save to ohc(Openholo complex field file format)
@@ -97,7 +97,7 @@ Generation Hologram - Depth Map Example.
 	Hologram->readConfig("config/TestSpecDepthMap.xml");							// Read Config Parameters for Depth Map CGH
 	Hologram->readImageDepth("source/DepthMap", "RGB_D", "D_D");					// Load Depth and RGB image
 
-	Hologram->setMode(MODE_GPU);													// Select CPU or GPU Processing
+	Hologram->SetMode(MODE_GPU);													// Select CPU or GPU Processing
 
 	Hologram->generateHologram();													// CGH by depth map
 	Hologram->saveAsOhc("result/DepthMap/Result_DepthmapSample.ohc");				// Save to ohc(Openholo complex field file format)

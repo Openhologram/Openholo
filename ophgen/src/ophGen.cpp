@@ -1773,8 +1773,6 @@ void ophGen::fresnelPropagation(Complex<Real>* in, Complex<Real>* out, Real dist
 	
 	fft2(temp, temp, pnX2, pnY2, OPH_FORWARD, false);
 	
-	bool bRandomPhase = GetRandomPhase();
-	Real pi2 = M_PI * 2;
 	int j;
 #ifdef _OPENMP
 #pragma omp parallel for private(j) firstprivate(ssX, ssY, z, v)

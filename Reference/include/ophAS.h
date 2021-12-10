@@ -35,7 +35,7 @@ private:
 	OphPointCloudConfig pc_config;
 	OphPointCloudData pc_data;
 	int n_points;
-	bool is_CPU;
+
 public:
 	ophAS();
 	virtual ~ophAS();

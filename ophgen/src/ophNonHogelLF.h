@@ -35,9 +35,6 @@ private:
 	Complex<Real>* WField;							/// Complex field determining the carrier wave
 	Complex<Real>* Hologram;						/// Generated complex field
 
-													// ==== GPU Variables ===============================================
-	bool		is_CPU;
-
 private:
 
 	// Light Field save parameters
@@ -89,20 +86,6 @@ public:
 	void preprocessLF();
 	void generateHologram();
 	void generateHologram(double thetaX, double thetaY);
-
-	//virtual int saveAsOhc(const char* fname);
-
-	//virtual int saveAsOhc(const char* fname);
-	/**
-	* @brief Set the value of a variable is_CPU(true or false)
-	* @details <pre>
-	if is_CPU == true
-	CPU implementation
-	else
-	GPU implementation </pre>
-	* @param[in] is_CPU the value for specifying whether the hologram generation method is implemented on the CPU or GPU
-	*/
-	void setMode(bool is_CPU);
 
 	/**
 	* @brief Function for setting precision

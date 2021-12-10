@@ -134,9 +134,6 @@ private:
 	Complex<Real>* angularSpectrum;			/// Angular spectrum of the hologram
 	OphMeshData* meshData;					/// OphMeshData type data structure pointer
 
-											// ==== GPU Variables ===============================================
-	bool	is_CPU;
-
 private:
 
 	//Real fieldLength;
@@ -174,16 +171,6 @@ public:
 	const vec3& getObjShift(void) { return context_.shift; }
 	const vec3&	getIllumination(void) { return illumination; }
 	//const Real& getFieldLens(void) { return fieldLength; }
-	/**
-	* @brief Set the value of a variable is_CPU(true or false)
-	* @details <pre>
-	if is_CPU == true
-	CPU implementation
-	else
-	GPU implementation </pre>
-	* @param[in] is_CPU the value for specifying whether the hologram generation method is implemented on the CPU or GPU
-	*/
-	void setMode(bool is_CPU);
 
 	/**
 	* @brief Function for setting precision

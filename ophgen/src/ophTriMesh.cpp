@@ -59,7 +59,6 @@
 
 ophTri::ophTri(void)
 	: ophGen()
-	, is_CPU(true)
 	, is_ViewingWindow(false)
 	, scaledMeshData(nullptr)
 	, angularSpectrum(nullptr)
@@ -73,11 +72,6 @@ ophTri::ophTri(void)
 	, nv(nullptr)
 {
 	LOG("*** TRI MESH : BUILD DATE: %s %s ***\n\n", __DATE__, __TIME__);
-}
-
-void ophTri::setMode(bool isCPU)
-{
-	is_CPU = isCPU;
 }
 
 void ophTri::setViewingWindow(bool is_ViewingWindow)
@@ -498,14 +492,24 @@ bool ophTri::generateHologram(uint SHADING_FLAG)
 
 	auto begin = CUR_TIME;
 
-	(is_CPU) ? initializeAS() : initialize_GPU();
-	prepareMeshData();
-	objSort(false);
-	(is_CPU) ? generateAS(SHADING_FLAG) : generateAS_GPU(SHADING_FLAG);
-	
+	if (m_mode & MODE_GPU)
+	{
+		initialize_GPU();
+		prepareMeshData();
+		objSort(false);
+		generateAS_GPU(SHADING_FLAG);
+	}
+	else
+	{
+		initializeAS();
+		prepareMeshData();
+		objSort(false);
+		generateAS(SHADING_FLAG);
+	}
+
 	/*
 
-	if (is_CPU) {
+	if (!(m_mode & MODE_GPU)) {
 		fft2(context_.pixel_number, angularSpectrum, OPH_BACKWARD, OPH_ESTIMATE);
 		fft2(angularSpectrum, *(complex_H), context_.pixel_number[_X], context_.pixel_number[_Y], OPH_BACKWARD);
 		//fft2(context_.pixel_number, *(complex_H), OPH_FORWARD, OPH_ESTIMATE);

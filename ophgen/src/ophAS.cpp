@@ -87,11 +87,6 @@ int ophAS::loadPointCloud(const char * fname)
 	return n_points;
 }
 
-void ophAS::setmode(bool is_cpu)
-{
-	this->is_CPU = is_cpu;
-}
-
 void ophAS::ASCalculation(double w, double h, double wavelength, double knumber, double
 	xi_interval, double eta_interval, double depth, coder::
 	array<creal_T, 2U> &fringe, coder::array<creal_T, 2U>
@@ -100,6 +95,7 @@ void ophAS::ASCalculation(double w, double h, double wavelength, double knumber,
 	fringe.set_size(w, h);
 	RayleighSommerfield(w, h, wavelength, knumber, xi_interval, eta_interval, depth, fringe);
 	depth = -500e-3;
+	bool is_CPU = m_mode & MODE_GPU ? false : true;
 	if (is_CPU)
 	{
 		AngularSpectrum(w, h, wavelength, knumber, xi_interval, eta_interval, depth, fringe, b_AngularC);

@@ -199,7 +199,7 @@ bool ophSimulator::GenerateHologram()
 {
 	if (m_pPointCloud == nullptr) return false;
 
-	m_pPointCloud->setMode(MODE_CPU);
+	m_pPointCloud->SetMode(MODE_CPU);
 	m_pPointCloud->initialize();
 	if (m_bHasPoint)
 	{

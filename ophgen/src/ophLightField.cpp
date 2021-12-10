@@ -52,16 +52,10 @@ ophLF::ophLF(void)
 	: num_image(ivec2(0, 0))
 	, resolution_image(ivec2(0, 0))
 	, distanceRS2Holo(0.0)
-	, is_CPU(true)
 	, is_ViewingWindow(false)
 	, bSinglePrecision(false)
 {
 	LOG("*** LIGHT FIELD : BUILD DATE: %s %s ***\n\n", __DATE__, __TIME__);
-}
-
-void ophLF::setMode(bool isCPU)
-{
-	is_CPU = isCPU;
 }
 
 void ophLF::setViewingWindow(bool is_ViewingWindow)
@@ -278,72 +272,23 @@ void ophLF::generateHologram()
 	//LOG("3) Transform Viewing Window : %s\n", is_ViewingWindow ? "ON" : "OFF");
 
 	auto begin = CUR_TIME;
-	if (is_CPU)
-	{
-#if 0
-		auto begin = CUR_TIME;
-		const int pnX = resolution_image[_X];
-		const int pnY = resolution_image[_Y];
-		const int N = ((pnX + 3) & ~3) * pnY;
 
-		uchar *tmp = new uchar[N];
-		for (int n = 0; n < nImages; n++)
-		{
-			memset(tmp, 0, sizeof(uchar) * N);
-			for (uint ch = 0; ch < context_.waveNum; ch++)
-			{
-				separateColor(ch, pnX, pnY, m_vecImages[n], tmp);
-				CorrectionChromaticAberration(tmp, tmp, pnX, pnY, ch);
-				mergeColor(ch, pnX, pnY, tmp, m_vecImages[n]);
-			}
-		}
-		delete[] tmp;
-		LOG("\n%s : %lf(s)\n\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
-#endif
+	if (m_mode & MODE_GPU)
+	{
+		convertLF2ComplexField_GPU();
+	}
+	else
+	{
 		convertLF2ComplexField();
 
 		for (int ch = 0; ch < context_.waveNum; ch++)
 		{
 			fresnelPropagation(m_vecRSplane[ch], complex_H[ch], distanceRS2Holo, ch);
-#if 1
-			if (ch == 1)
-			{
-				FILE *fp;
-				char buf[MAX_PATH] = { 0, };
-				sprintf(buf, "D:\\complex_H(cpu).dat");
-				fopen_s(&fp, buf, "wb");
-				if (fp)
-				{
-					for (int i = 0; i < 1920*1080; i++)
-					{
-						fwrite(&complex_H[1][i][_RE], sizeof(Real), 1, fp);
-						fwrite(&complex_H[1][i][_IM], sizeof(Real), 1, fp);
-					}
-					fclose(fp);
-				}
-			}
-#endif
 		}
 	}
-	else
-	{
-		convertLF2ComplexField_GPU();
-		//fresnelPropagation_GPU();
-	}
 	fftFree();
-	auto end = CUR_TIME;
-	LOG("Total Elapsed Time: %lf (sec)\n", ELAPSED_TIME(begin, end));
+	LOG("Total Elapsed Time: %lf (s)\n", ELAPSED_TIME(begin, CUR_TIME));
 }
-
-//int ophLF::saveAsOhc(const char * fname)
-//{
-//	setPixelNumberOHC(getEncodeSize());
-//
-//	Openholo::saveAsOhc(fname);
-//
-//	return 0;
-//}
-
 
 void ophLF::initializeLF()
 {

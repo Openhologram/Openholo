@@ -54,7 +54,6 @@ ophWRP::ophWRP(void)
 {
 	n_points = -1;
 	p_wrp_ = nullptr;
-	is_CPU = true;
 	is_ViewingWindow = false;
 	LOG("*** WRP : BUILD DATE: %s %s ***\n\n", __DATE__, __TIME__);
 }
@@ -295,11 +294,6 @@ oph::Complex<Real>* ophWRP::calSubWRP(double wrp_d, Complex<Real>* wrp, OphPoint
 	}
 
 	return wrp;
-}
-
-void ophWRP::setMode(bool isCPU)
-{
-	is_CPU = isCPU;
 }
 
 double ophWRP::calculateWRPCPU(void)

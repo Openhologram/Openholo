@@ -87,11 +87,6 @@ __global__ void cudaKernel_CalcData(cufftDoubleComplex *src, const LFGpuConst* c
 
 	if (tid < s_pnXY * 4)
 	{
-		curandState state;
-		if (s_bRandomPhase)
-		{
-			curand_init(s_pnXY * 4, 0, 0, &state);
-		}
 		int pnX2 = s_pnX * 2;
 
 		int w = tid % pnX2;

@@ -51,7 +51,6 @@
 
 ophPointCloud::ophPointCloud(void)
 	: ophGen()
-	, is_CPU(true)
 	, is_ViewingWindow(false)
 	, m_nProgress(0)
 	, n_points(-1)
@@ -62,7 +61,6 @@ ophPointCloud::ophPointCloud(void)
 
 ophPointCloud::ophPointCloud(const char* pc_file, const char* cfg_file)
 	: ophGen()
-	, is_CPU(true)
 	, is_ViewingWindow(false)
 	, m_nProgress(0)
 {
@@ -75,11 +73,6 @@ ophPointCloud::ophPointCloud(const char* pc_file, const char* cfg_file)
 
 ophPointCloud::~ophPointCloud(void)
 {
-}
-
-void ophPointCloud::setMode(bool is_CPU)
-{
-	this->is_CPU = is_CPU;
 }
 
 void ophPointCloud::setViewingWindow(bool is_ViewingWindow)
