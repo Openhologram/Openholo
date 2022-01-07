@@ -768,7 +768,7 @@ void ophGen::AngularSpectrum(Complex<Real> *src, Complex<Real> *dst, Real lambda
 }
 
 
-void ophGen::propagationAngularSpectrum(int ch, Complex<Real>* input_u, Real propagation_dist, Real k, Real lambda)
+void ophGen::AngularSpectrumMethod(Complex<Real>* input, Complex<Real>* output, Real distance, Real k, Real lambda)
 {
 	const int pnX = context_.pixel_number[_X];
 	const int pnY = context_.pixel_number[_Y];
@@ -777,44 +777,40 @@ void ophGen::propagationAngularSpectrum(int ch, Complex<Real>* input_u, Real pro
 	const Real ssX = context_.ss[_X] = pnX * ppX;
 	const Real ssY = context_.ss[_Y] = pnY * ppY;
 	const int N = pnX * pnY;
+
+	const Real startX = -1 / (ppX * 2);
+	const Real startY = 1 / (ppY * 2);
+	const Real stepX = 1 / ssX;
+	const Real stepY = 1 / ssY;
+	const Real kk = k * k;
+
 	int i;
-	
 #ifdef _OPENMP
-//#pragma omp parallel for private(i)
+#pragma omp parallel for private(i) firstprivate(startX, startY, stepX, stepY, lambda, k, kk, distance)
 #endif
-	for (i = 0; i < N; i++) {
+	for (i = 0; i < N; i++)
+	{
 		Real x = i % pnX;
 		Real y = i / pnX;
 
-		Real fxx = (-1.0 / (2.0*ppX)) + (1.0 / ssX) * x;
-		Real fyy = (1.0 / (2.0*ppY)) - (1.0 / ssY) - (1.0 / ssY) * y;
+		Real fxx = startX + stepX * x;
+		Real fyy = startY - stepY * (y + 1);
 
 		Real fxxx = lambda * fxx;
 		Real fyyy = lambda * fyy;
 
 		Real sval = sqrt(1 - (fxxx * fxxx) - (fyyy * fyyy));
-		sval *= k * propagation_dist;
+		sval *= k * distance;
 		Complex<Real> kernel(0, sval);
 		kernel.exp();
 
-		int prop_mask = ((fxx * fxx + fyy * fyy) < (k * k)) ? 1 : 0;
+		bool mask = ((fxx * fxx + fyy * fyy) < (kk)) ? true : false;
 
-		Complex<Real> u_frequency;
-		if (prop_mask == 1) {
-			u_frequency = kernel * input_u[i];
-#if false
-			complex_H[ch][i] += u_frequency;
-#else
-#ifdef _OPENMP
-#pragma omp atomic
-#endif
-			complex_H[ch][i][_RE] += u_frequency[_RE];
-#ifdef _OPENMP
-#pragma omp atomic
-#endif
-			complex_H[ch][i][_IM] += u_frequency[_IM];
-#endif
-		}
+		if (mask)
+		{
+			Complex<Real> frequency = kernel * input[i];
+			output[i] += frequency;
+		}	
 	}
 }
 
@@ -2117,7 +2113,7 @@ void ophGen::getShiftPhaseValue(oph::Complex<Real>& shift_phase_val, int idx, op
 	}
 }
 
-void ophGen::getRandPhaseValue(Complex<Real>& rand_phase_val, bool rand_phase)
+void ophGen::GetRandomPhaseValue(Complex<Real>& rand_phase_val, bool rand_phase)
 {
 	if (rand_phase)
 	{

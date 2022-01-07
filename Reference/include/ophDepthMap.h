@@ -180,8 +180,8 @@ private:
 	void initCPU();
 	void initGPU();
 
-	bool prepareInputdataCPU(uchar* img, uchar* dimg);
-	bool prepareInputdataGPU(uchar* img, uchar* dimg);
+	bool prepareInputdataCPU();
+	bool prepareInputdataGPU();
 
 	void getDepthValues();
 	void changeDepthQuanCPU();
@@ -189,8 +189,8 @@ private:
 
 	void transVW();
 
-	void calcHoloCPU(int ch = 0);
-	void calcHoloGPU(int ch = 0);
+	void calcHoloCPU();
+	void calcHoloGPU();
 	void propagationAngularSpectrumGPU(uint channel, cufftDoubleComplex* input_u, Real propagation_dist);
 
 protected:
@@ -208,11 +208,11 @@ private:
 	unsigned char*			img_src_gpu;						///< GPU variable - image source data, values are from 0 to 255.
 	unsigned char*			dimg_src_gpu;						///< GPU variable - depth map data, values are from 0 to 255.
 	Real*					depth_index_gpu;					///< GPU variable - quantized depth map data.
-
-	Real*					img_src;							///< CPU variable - image source data, values are from 0 to 1.
+	
+	vector<Real *>			m_vecImgSrc;
+	vector<int *>			m_vecAlphaMap;
 	Real*					dmap_src;							///< CPU variable - depth map data, values are from 0 to 1.
 	short*					depth_index;						///< CPU variable - quantized depth map data.
-	int*					alpha_map;							///< CPU variable - calculated alpha map data, values are 0 or 1.
 	vector<short>			depth_fill;
 	Real*					dmap;								///< CPU variable - physical distances of depth map.
 

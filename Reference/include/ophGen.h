@@ -137,14 +137,14 @@ public:
 
 	/**
 	* @brief Angular spectrum propagation method.
-	* @param[in] ch index of channel.
-	* @param[in] input_u Each depth plane data.
-	* @param[in] propagation_dist the distance from the object to the hologram plane.
+	* @param[in] input Each depth plane data.
+	* @param[out] output complex data.
+	* @param[in] distance the distance from the object to the hologram plane.
 	* @param[in] k const value.
 	* @param[in] lambda wave length.
 	* @see calcHoloCPU, fft2
 	*/
-	void propagationAngularSpectrum(int ch, Complex<Real>* input_u, Real propagation_dist, Real k, Real lambda);
+	void AngularSpectrumMethod(Complex<Real>* input, Complex<Real>* output, Real distance, Real k, Real lambda);
 
 	/**
 	@brief Convolution between Complex arrays which have same size
@@ -467,13 +467,13 @@ protected:
 	void getShiftPhaseValue(Complex<Real>& shift_phase_val, int idx, ivec2 sig_location);
 
 	/**
-	* @brief Assign random phase value if RANDOM_PHASE == 1
-	* @details If RANDOM_PHASE == 1, calculate a random phase value using random generator@n
+	* @brief Assign random phase value if random_phase == 1
+	* @details If random_phase == 1, calculate a random phase value using random generator@n
 	*  otherwise, random phase value is 1.
 	* @param[out] rand_phase_val Input & Ouput value.
 	* @param[in] rand_phase random or not.
 	*/
-	void getRandPhaseValue(Complex<Real>& rand_phase_val, bool rand_phase);
+	void GetRandomPhaseValue(Complex<Real>& rand_phase_val, bool rand_phase);
 
 	void ScaleChange(Real *src, Real *dst, int nSize, Real scaleX, Real scaleY, Real scaleZ);
 	void GetMaxMin(Real *src, int len, Real& max, Real& min);
@@ -559,10 +559,10 @@ struct GEN_DLL OphPointCloudData {
 * @param Real FAR_OF_DEPTH_MAP at config file
 * @param oph::uint the number of depth level.
 * <pre>
-* if FLAG_CHANGE_DEPTH_QUANTIZATION == 0
-* num_of_depth = DEFAULT_DEPTH_QUANTIZATION
+* if change_depth_quantization == 0
+* num_of_depth = default_depth_quantization
 * else
-* num_of_depth = NUMBER_OF_DEPTH_QUANTIZATION
+* num_of_depth = num_of_depth_quantization
 * </pre>
 * @param std::vector<int> Used when only few specific depth levels are rendered, usually for test purpose
 * @param bool if true, change the depth quantization from the default value.
@@ -578,21 +578,21 @@ struct GEN_DLL OphDepthMapConfig {
 	/// far value of depth in object
 	Real				far_depthmap;
 	/// The number of depth level.@n
-	/// if FLAG_CHANGE_DEPTH_QUANTIZATION == 0@n
-	/// num_of_depth = DEFAULT_DEPTH_QUANTIZATION@n
+	/// if change_depth_quantization == 0@n
+	/// num_of_depth = default_depth_quantization@n
 	/// else@n
-	/// num_of_depth = NUMBER_OF_DEPTH_QUANTIZATION
+	/// num_of_depth = num_of_depth_quantization
 	uint				num_of_depth;
 	/// Used when only few specific depth levels are rendered, usually for test purpose
 	vector<int>			render_depth;
 	/// if true, change the depth quantization from the default value.
-	bool				FLAG_CHANGE_DEPTH_QUANTIZATION;
+	bool				change_depth_quantization;
 	/// default value of the depth quantization - 256
-	uint				DEFAULT_DEPTH_QUANTIZATION;
+	uint				default_depth_quantization;
 	/// depth level of input depthmap.
-	uint				NUMBER_OF_DEPTH_QUANTIZATION;
+	uint				num_of_depth_quantization;
 	/// If true, random phase is imposed on each depth layer.
-	bool				RANDOM_PHASE;
+	bool				random_phase;
 
 	OphDepthMapConfig() :fieldLength(0), near_depthmap(0), far_depthmap(0), num_of_depth(0) {}
 };
@@ -640,7 +640,7 @@ struct GEN_DLL OphIFTAConfig {
 	Real				near_depthmap;
 	/// far value of depth in object
 	Real				far_depthmap;
-	/// num_of_depth = NUMBER_OF_DEPTH_QUANTIZATION
+	/// num_of_depth = num_of_depth_quantization
 	int					num_of_depth;
 
 	int					num_of_iteration;

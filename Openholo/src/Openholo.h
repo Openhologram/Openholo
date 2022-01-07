@@ -288,6 +288,7 @@ protected:
 	*/
 	void fftExecute(Complex<Real>* out, bool bReverse = false);
 	void fftFree(void);
+	void fftInit2D(ivec2 size, int sign, unsigned int flag);
 	/**
 	* @brief Convert data from the spatial domain to the frequency domain using 2D FFT on CPU.
 	* @param[in] src Input data variable.

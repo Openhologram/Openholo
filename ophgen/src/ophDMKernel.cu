@@ -50,7 +50,7 @@
 
 __global__ void depth_sources_kernel(cufftDoubleComplex* u_o_gpu, unsigned char* img_src_gpu, unsigned char* dimg_src_gpu, double* depth_index_gpu,
 	int dtr, double rand_phase_val_a, double rand_phase_val_b, double carrier_phase_delay_a, double carrier_phase_delay_b, int pnx, int pny,
-	int FLAG_CHANGE_DEPTH_QUANTIZATION, unsigned int DEFAULT_DEPTH_QUANTIZATION)
+	int change_depth_quantization, unsigned int default_depth_quantization)
 {
 	int tid = threadIdx.x + blockIdx.x*blockDim.x;
 
@@ -58,10 +58,10 @@ __global__ void depth_sources_kernel(cufftDoubleComplex* u_o_gpu, unsigned char*
 
 		double img = ((double)img_src_gpu[tid]) / 255.0;
 		double depth_idx;
-		if (FLAG_CHANGE_DEPTH_QUANTIZATION == 1)
+		if (change_depth_quantization == 1)
 			depth_idx = depth_index_gpu[tid];
 		else
-			depth_idx = (double)DEFAULT_DEPTH_QUANTIZATION - (double)dimg_src_gpu[tid];
+			depth_idx = (double)default_depth_quantization - (double)dimg_src_gpu[tid];
 
 		double alpha_map = ((double)img_src_gpu[tid] > 0.0 ? 1.0 : 0.0);
 

@@ -65,7 +65,6 @@ __global__ void cudaKernel_CalcData(cufftDoubleComplex *src, const LFGpuConst* c
 	__shared__ double s_lambda;
 	__shared__ double s_distance;
 	__shared__ double s_pi2;
-	__shared__ bool s_bRandomPhase;
 
 	if (threadIdx.x == 0)
 	{
@@ -81,7 +80,6 @@ __global__ void cudaKernel_CalcData(cufftDoubleComplex *src, const LFGpuConst* c
 		s_pi2 = config->pi2;
 		s_z = s_distance * s_pi2;
 		s_v = 1 / (s_lambda * s_lambda);
-		s_bRandomPhase = config->randomPhase;
 	}
 	__syncthreads();
 
@@ -269,6 +267,7 @@ __global__ void cudaKernel_MultiplyPhase(const LFGpuConst *config, cufftDoubleCo
 	__shared__ int s_nX;
 	__shared__ int s_nY;
 	__shared__ bool s_bRandomPhase;
+	__shared__ int s_iAmp;
 
 	if (threadIdx.x == 0)
 	{
@@ -280,6 +279,7 @@ __global__ void cudaKernel_MultiplyPhase(const LFGpuConst *config, cufftDoubleCo
 		s_N = s_nX * s_nY;
 		s_R = s_rX * s_rY;
 		s_bRandomPhase = config->randomPhase;
+		s_iAmp = config->iAmp;
 	}
 
 
@@ -292,7 +292,7 @@ __global__ void cudaKernel_MultiplyPhase(const LFGpuConst *config, cufftDoubleCo
 		curandState state;
 		if (s_bRandomPhase)
 		{
-			curand_init(s_N * s_R, tid, 0, &state);
+			curand_init(s_N * s_R * (s_iAmp + 1), 0, 0, &state);
 		}
 
 		int src = (r * s_rX + c) * s_N;

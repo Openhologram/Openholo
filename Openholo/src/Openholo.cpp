@@ -712,6 +712,23 @@ void Openholo::fftExecute(Complex<Real>* out, bool bReverse)
 	fftFree();
 }
 
+void Openholo::fftInit2D(ivec2 size, int sign, unsigned int flag)
+{
+	int pnX = size[_X];
+	int pnY = size[_Y];
+	int N = pnX * pnY;
+
+	if (fft_in == nullptr)
+		fft_in = (fftw_complex *)fftw_malloc(sizeof(fftw_complex) * N);
+	if (fft_out == nullptr)
+		fft_out = (fftw_complex *)fftw_malloc(sizeof(fftw_complex) * N);
+
+	if(plan_fwd == nullptr)
+		plan_fwd = fftw_plan_dft_2d(pnY, pnX, fft_in, fft_out, sign, flag);
+	if(plan_bwd == nullptr)
+		plan_bwd = fftw_plan_dft_2d(pnY, pnX, fft_in, fft_out, sign, flag);	
+}
+
 void Openholo::fftFree(void)
 {
 	if (plan_fwd) {
@@ -736,8 +753,20 @@ void Openholo::fftFree(void)
 void Openholo::fft2(Complex<Real>* src, Complex<Real>* dst, int nx, int ny, int type, bool bNormalized)
 {
 	const int N = nx * ny;
-	fftw_complex *in = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * N);
-	fftw_complex *out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * N);
+	fftw_complex *in, *out;
+	bool bIn = fft_in == nullptr ? true : false;
+	bool bOut = fft_out == nullptr ? true : false;
+
+	if (bIn)
+		in = (fftw_complex *)fftw_malloc(sizeof(fftw_complex) * N);
+	else
+		in = fft_in;
+
+	if (bOut)
+		out = (fftw_complex *)fftw_malloc(sizeof(fftw_complex) * N);
+	else
+		out = fft_out;
+
 	fftShift(nx, ny, src, in);
 
 	fftw_plan plan = nullptr;
@@ -752,21 +781,24 @@ void Openholo::fft2(Complex<Real>* src, Complex<Real>* dst, int nx, int ny, int 
 			fftw_execute_dft(plan_bwd, in, out);
 	}
 
-	int normalF = 1;
-	if (bNormalized) normalF = N;
-
-	int k;
-#pragma omp parallel for private(k) firstprivate(normalF)
-	for (k = 0; k < N; k++) {
-		out[k][_RE] /= normalF;
-		out[k][_IM] /= normalF;
+	if (bNormalized)
+	{
+		int k;
+#pragma omp parallel for private(k)
+		for (k = 0; k < N; k++) {
+			out[k][_RE] /= N;
+			out[k][_IM] /= N;
+		}
 	}
 	if (plan)
 		fftw_destroy_plan(plan);
 
 	fftShift(nx, ny, out, dst);
-	fftw_free(in);
-	fftw_free(out);
+
+	if (bIn)
+		fftw_free(in);
+	if (bOut)
+		fftw_free(out);
 }
 
 void Openholo::fftShift(int nx, int ny, fftw_complex* input, Complex<Real>* output)

@@ -147,7 +147,7 @@ extern "C"
 	//	Real ssx, Real ssy, Real ppx, Real ppy, Real PI);
 
 	/**
-	* @brief Quantize depth map on the GPU, only when the number of depth quantization is not the default value (i.e. FLAG_CHANGE_DEPTH_QUANTIZATION == 1 ).
+	* @brief Quantize depth map on the GPU, only when the number of depth quantization is not the default value (i.e. change_depth_quantization == 1 ).
 	* @details Calculate the value of 'depth_index_gpu'.
 	* @param stream : CUDA Stream
 	* @param pnx : the number of column of the input data

@@ -70,9 +70,7 @@ ophDepthMap::ophDepthMap()
 	m_vecRGB.clear();
 
 	// CPU Variables
-	img_src = nullptr;
 	dmap_src = nullptr;
-	alpha_map = nullptr;
 	depth_index = nullptr;
 	dmap = 0;
 	dstep = 0;
@@ -123,22 +121,22 @@ bool ophDepthMap::readConfig(const char * fname)
 
 	xml_node = xml_doc.FirstChild();
 	auto next = xml_node->FirstChildElement("FlagChangeDepthQuantization");
-	if (!next || XML_SUCCESS != next->QueryBoolText(&dm_config_.FLAG_CHANGE_DEPTH_QUANTIZATION))
+	if (!next || XML_SUCCESS != next->QueryBoolText(&dm_config_.change_depth_quantization))
 		return false;
 	next = xml_node->FirstChildElement("DefaultDepthQuantization");
-	if (!next || XML_SUCCESS != next->QueryUnsignedText(&dm_config_.DEFAULT_DEPTH_QUANTIZATION))
+	if (!next || XML_SUCCESS != next->QueryUnsignedText(&dm_config_.default_depth_quantization))
 		return false;
 	next = xml_node->FirstChildElement("NumberOfDepthQuantization");
-	if (!next || XML_SUCCESS != next->QueryUnsignedText(&dm_config_.NUMBER_OF_DEPTH_QUANTIZATION))
+	if (!next || XML_SUCCESS != next->QueryUnsignedText(&dm_config_.num_of_depth_quantization))
 		return false;
-	if (dm_config_.FLAG_CHANGE_DEPTH_QUANTIZATION == 0)
-		dm_config_.num_of_depth = dm_config_.DEFAULT_DEPTH_QUANTIZATION;
+	if (dm_config_.change_depth_quantization == 0)
+		dm_config_.num_of_depth = dm_config_.default_depth_quantization;
 	else
-		dm_config_.num_of_depth = dm_config_.NUMBER_OF_DEPTH_QUANTIZATION;
+		dm_config_.num_of_depth = dm_config_.num_of_depth_quantization;
 
 	string render_depth;
 	next = xml_node->FirstChildElement("RenderDepth");
-	if (!next || XML_SUCCESS != next->QueryBoolText(&dm_config_.FLAG_CHANGE_DEPTH_QUANTIZATION))
+	if (!next || XML_SUCCESS != next->QueryBoolText(&dm_config_.change_depth_quantization))
 		return false;
 	else render_depth = (xml_node->FirstChildElement("RenderDepth"))->GetText();
 
@@ -168,7 +166,7 @@ bool ophDepthMap::readConfig(const char * fname)
 	}
 
 	next = xml_node->FirstChildElement("RandomPhase");
-	if (!next || XML_SUCCESS != next->QueryBoolText(&dm_config_.RANDOM_PHASE))
+	if (!next || XML_SUCCESS != next->QueryBoolText(&dm_config_.random_phase))
 		return false;
 	next = xml_node->FirstChildElement("FieldLength");
 	if (!next || XML_SUCCESS != next->QueryDoubleText(&dm_config_.fieldLength))
@@ -331,7 +329,6 @@ Real ophDepthMap::generateHologram(void)
 
 	m_vecEncodeSize = context_.pixel_number;
 	auto begin = CUR_TIME;
-
 	LOG("1) Algorithm Method : Depth Map\n");
 	LOG("2) Generate Hologram with %s\n", m_mode & MODE_GPU ?
 		"GPU" :
@@ -345,25 +342,19 @@ Real ophDepthMap::generateHologram(void)
 	int nChannel = context_.waveNum;
 	if (m_mode & MODE_GPU)
 	{
-		for (int ch = 0; ch < nChannel; ch++)
-		{
-			prepareInputdataGPU(m_vecRGB[ch], depth_img);
+			prepareInputdataGPU();
 			getDepthValues();
 			//if (is_ViewingWindow)
 			//	transVW();
-			calcHoloGPU(ch);
-		}
+			calcHoloGPU();
 	}
 	else
 	{
-		for (int ch = 0; ch < nChannel; ch++)
-		{
-			prepareInputdataCPU(m_vecRGB[ch], depth_img);
-			getDepthValues();
-			if (is_ViewingWindow)
-				transVW();
-			calcHoloCPU(ch);
-		}
+		prepareInputdataCPU();
+		getDepthValues();
+		if (is_ViewingWindow)
+			transVW();
+		calcHoloCPU();
 	}
 	
 	LOG("Total Elapsed Time: %lf (s)\n", ELAPSED_TIME(begin, CUR_TIME));
@@ -451,11 +442,13 @@ void ophDepthMap::initialize()
 /**
 * @brief Calculate the physical distances of depth map layers
 * @details Initialize 'dstep_' & 'dlevel_' variables.
-*  If FLAG_CHANGE_DEPTH_QUANTIZATION == 1, recalculate  'depth_index_' variable.
+*  If change_depth_quantization == 1, recalculate  'depth_index_' variable.
 * @see changeDepthQuanCPU, changeDepthQuanGPU
 */
 void ophDepthMap::getDepthValues()
 {
+	LOG("%s : ", __FUNCTION__);
+	auto begin = CUR_TIME;
 	if (dm_config_.num_of_depth > 1)
 	{
 		dstep = (dm_config_.far_depthmap - dm_config_.near_depthmap) / (dm_config_.num_of_depth - 1);
@@ -475,13 +468,14 @@ void ophDepthMap::getDepthValues()
 	
 	bool is_CPU = m_mode & MODE_GPU ? false : true;
 
-	if (dm_config_.FLAG_CHANGE_DEPTH_QUANTIZATION == 1)
+	if (dm_config_.change_depth_quantization == 1)
 	{
 		if (is_CPU)
 			changeDepthQuanCPU();
 		else
 			changeDepthQuanGPU();
 	}
+	LOG("%lf (s)\n", ELAPSED_TIME(begin, CUR_TIME));
 }
 
 /**
@@ -510,15 +504,30 @@ void ophDepthMap::initCPU()
 	const uint pnX = context_.pixel_number[_X];
 	const uint pnY = context_.pixel_number[_Y];
 	const uint N = pnX * pnY;
+	const int nChannel = context_.waveNum;
 
-	if (img_src)	delete[] img_src;
-	img_src = new Real[N];
+	for (vector<Real *>::iterator it = m_vecImgSrc.begin(); it != m_vecImgSrc.end(); it++)
+	{
+		delete[](*it);
+	}
+	m_vecImgSrc.clear();
+	for (vector<int *>::iterator it = m_vecAlphaMap.begin(); it != m_vecAlphaMap.end(); it++)
+	{
+		delete[](*it);
+	}
+	m_vecAlphaMap.clear();
+
+	for (int ch = 0; ch < nChannel; ch++)
+	{
+		Real *img_src = new Real[N];
+		int *alpha_map = new int[N];
+
+		m_vecImgSrc.push_back(img_src);
+		m_vecAlphaMap.push_back(alpha_map);
+	}
 
 	if (dmap_src) delete[] dmap_src;
 	dmap_src = new Real[N];
-
-	if (alpha_map) delete[] alpha_map;
-	alpha_map = new int[N];
 
 	if (depth_index) delete[] depth_index;
 	depth_index = new short[N];
@@ -531,54 +540,55 @@ void ophDepthMap::initCPU()
 
 /**
 * @brief Preprocess input image & depth map data for the CPU implementation.
-* @details Prepare variables, img_src_, dmap_src_, alpha_map_, depth_index_.
-* @param imgptr : input image data pointer
-* @param dimgptr : input depth map data pointer
+* @details Prepare variables, m_vecImgSrc, dmap_src_, m_vecAlphaMap, depth_index_.
 * @return true if input data are sucessfully prepared, flase otherwise.
 * @see ReadImageDepth
 */
-bool ophDepthMap::prepareInputdataCPU(uchar* imgptr, uchar* dimgptr)
+bool ophDepthMap::prepareInputdataCPU()
 {
+	LOG("%s : ", __FUNCTION__);
 	auto begin = CUR_TIME;
 	const uint N = context_.pixel_number[_X] * context_.pixel_number[_Y];
+	const int nChannel = context_.waveNum;
 
-	memset(img_src, 0, sizeof(Real) * N);
-	memset(dmap_src, 0, sizeof(Real) * N);
-	memset(alpha_map, 0, sizeof(int) * N);
 	memset(depth_index, 0, sizeof(short) * N);
-	memset(dmap, 0, sizeof(Real) * N);
 
 	Real gapDepth = dm_config_.far_depthmap - dm_config_.near_depthmap;
 	Real nearDepth = dm_config_.near_depthmap;
+	int k;
 	
-	int k = 0;
+	for (int ch = 0; ch < nChannel; ch++)
+	{
 #ifdef _OPENMP
 #pragma omp parallel for private(k) firstprivate(gapDepth, nearDepth)
 #endif
-	for (k = 0; k < N; k++) {
-		img_src[k] = Real(imgptr[k]) / 255.0; // RGB IMG
-		dmap_src[k] = Real(dimgptr[k]) / 255.0; // DEPTH IMG
-		alpha_map[k] = (imgptr[k] > 0 ? 1 : 0); // RGB IMG
-		dmap[k] = (1 - dmap_src[k]) * gapDepth + nearDepth;
+		for (k = 0; k < N; k++)
+		{
+			m_vecImgSrc[ch][k] = Real(m_vecRGB[ch][k]) / 255.0; // RGB IMG
+			m_vecAlphaMap[ch][k] = (m_vecRGB[ch][k] > 0 ? 1 : 0); // RGB IMG
 
-		if (dm_config_.FLAG_CHANGE_DEPTH_QUANTIZATION == 0) {
-			depth_index[k] = dm_config_.DEFAULT_DEPTH_QUANTIZATION - short(dimgptr[k]);
+			if (ch == 0)
+			{
+				dmap_src[k] = Real(depth_img[k]) / 255.0; // DEPTH IMG
+				dmap[k] = (1 - dmap_src[k]) * gapDepth + nearDepth;
+				if (dm_config_.change_depth_quantization == 0) {
+					depth_index[k] = dm_config_.default_depth_quantization - short(depth_img[k]);
+				}
+			}
 		}
 	}
 
-	LOG("\n%s : %lf(s)\n\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
+	LOG("%lf (s)\n", ELAPSED_TIME(begin, CUR_TIME));
 	return true;
 }
 
 /**
-* @brief Quantize depth map on the CPU, when the number of depth quantization is not the default value (i.e. FLAG_CHANGE_DEPTH_QUANTIZATION == 1 ).
+* @brief Quantize depth map on the CPU, when the number of depth quantization is not the default value (i.e. change_depth_quantization == 1 ).
 * @details Calculate the value of 'depth_index_'.
 * @see GetDepthValues
 */
 void ophDepthMap::changeDepthQuanCPU()
 {
-	auto begin = CUR_TIME;
-
 	const uint N = context_.pixel_number[_X] * context_.pixel_number[_Y];
 
 	uint num_depth = dm_config_.num_of_depth;
@@ -601,7 +611,6 @@ void ophDepthMap::changeDepthQuanCPU()
 		depth_index[i] = idx + 1;
 		depth_fill[idx + 1] = 1;
 	}
-	LOG("\n%s : %lf(s)\n\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
 }
 
 /**
@@ -616,68 +625,63 @@ void ophDepthMap::changeDepthQuanCPU()
 * @param frame : the frame number of the image.
 * @see Calc_Holo_by_Depth, Propagation_AngularSpectrum_CPU
 */
-void ophDepthMap::calcHoloCPU(int ch)
+void ophDepthMap::calcHoloCPU()
 {
+	LOG("%s : ", __FUNCTION__);
 	auto begin = CUR_TIME;
 
-	const uint pnX = context_.pixel_number[_X];
-	const uint pnY = context_.pixel_number[_Y];
-	const uint N = pnX * pnY;
+	const int pnX = context_.pixel_number[_X];
+	const int pnY = context_.pixel_number[_Y];
+	const int N = pnX * pnY;
 	const int nChannel = context_.waveNum;
 
 	size_t depth_sz = dm_config_.render_depth.size();
 
-	OphDepthMapConfig cfg = dm_config_;
-	Complex<Real> *in = nullptr, *out = nullptr;
-	fft2(ivec2(pnX, pnY), in, OPH_FORWARD, OPH_ESTIMATE);
+	const bool bRandomPhase = GetRandomPhase();
+	Complex<Real> *input = new Complex<Real>[N];
 
-	int frame = 0;
+	fftInit2D(context_.pixel_number, OPH_FORWARD, OPH_ESTIMATE);
 
-	//for (int ch = 0; ch < nChannel; ch++) {
+	for (int ch = 0; ch < nChannel; ch++)
+	{
 		Real lambda = context_.wave_length[ch];
 		Real k = context_.k = (2 * M_PI / lambda);
+		Real *img_src = m_vecImgSrc[ch];
+		int *alpha_map = m_vecAlphaMap[ch];
 
-		int i;
-#ifdef _OPENMP
-//#pragma omp parallel for private(i) firstprivate(k, lambda, N, cfg, ch, depth_sz)
-#endif
-		for (i = 0; i < depth_sz; i++) {
+		for (int i = 0; i < depth_sz; i++)
+		{
 			int dtr = dm_config_.render_depth[i];
-			if (!depth_fill[dtr]) continue;
-
-			Real temp_depth = (is_ViewingWindow) ? dlevel_transform[dtr - 1] : dlevel[dtr - 1];
-
-			Complex<Real> *input = new Complex<Real>[N];
-			memset(input, 0.0, sizeof(Complex<Real>) * N);
-
-			for (int j = 0; j < N; j++)
+			if (depth_fill[dtr])
 			{
-				input[j][_RE] = img_src[j] * alpha_map[j] * (depth_index[j] == dtr ? 1.0 : 0.0);
+				memset(input, 0, sizeof(Complex<Real>) * N);
+				Real temp_depth = (is_ViewingWindow) ? dlevel_transform[dtr - 1] : dlevel[dtr - 1];
+
+				Complex<Real> rand_phase_val;
+				GetRandomPhaseValue(rand_phase_val, bRandomPhase);
+
+				Complex<Real> carrier_phase_delay(0, k * -temp_depth);
+				carrier_phase_delay.exp();
+
+				int j;
+#ifdef _OPENMP
+#pragma omp parallel for private(j) firstprivate(dtr, rand_phase_val, carrier_phase_delay)
+#endif
+				for (j = 0; j < N; j++)
+				{
+					input[j][_RE] = img_src[j] * alpha_map[j] * (depth_index[j] == dtr ? 1.0 : 0.0);
+					input[j] *= rand_phase_val * carrier_phase_delay;
+				}
+
+				fft2(input, input, pnX, pnY, OPH_FORWARD, false);
+				AngularSpectrumMethod(input, complex_H[ch], temp_depth, k, lambda);
 			}
-
-			LOG("Frame#: %d, Depth: %d of %d, z = %f mm\n", frame, dtr, dm_config_.num_of_depth, -temp_depth * 1000);
-
-			Complex<Real> rand_phase_val;
-			getRandPhaseValue(rand_phase_val, dm_config_.RANDOM_PHASE);
-
-			Complex<Real> carrier_phase_delay(0, k * temp_depth);
-			carrier_phase_delay.exp();
-
-			for (int j = 0; j < N; j++)
-			{
-				input[j] *= rand_phase_val * carrier_phase_delay;
-			}
-
-			fft2(input, input, pnX, pnY, OPH_FORWARD, false);
-			propagationAngularSpectrum(ch, input, -temp_depth, k, lambda);
-			
-			delete[] input;
 			m_nProgress = (int)((Real)(ch * depth_sz + i) * 100 / (depth_sz * nChannel));
 		}
-	//}
+	}
+	delete[] input;
 	fftFree();
-	LOG("\n%s : %lf(s)\n\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
-
+	LOG("%lf (s)\n", ELAPSED_TIME(begin, CUR_TIME));
 }
 
 void ophDepthMap::ophFree(void)
