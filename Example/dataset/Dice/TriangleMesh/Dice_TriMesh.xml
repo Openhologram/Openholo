@@ -1,0 +1,40 @@
+<TriMesh>
+  <!-- About points -->
+  <FieldLength>1000e-3</FieldLength> <!-- Double Type -->
+  
+  <ScaleX>0.005</ScaleX>
+  <ScaleY>0.005</ScaleY>
+  <ScaleZ>0.005</ScaleZ>
+  <ShiftX>0.0</ShiftX>
+  <ShiftY>0.0</ShiftY>
+  <ShiftZ>0.1</ShiftZ>
+  <LampDirectionX>0</LampDirectionX>
+  <LampDirectionY>0.3</LampDirectionY>
+  <LampDirectionZ>1</LampDirectionZ>
+  
+  <!-- H/W -->
+  <IMG_Rotation>0</IMG_Rotation> <!-- Default 0 -->
+  <IMG_Merge>0</IMG_Merge> <!-- Valid only if WaveNum is greater than 1 -->
+  
+  <DoublePrecision>1</DoublePrecision> <!-- Default 1 -->
+  
+  <SLM_PixelNumX>1920</SLM_PixelNumX>
+  <SLM_PixelNumY>1080</SLM_PixelNumY>
+  <SLM_PixelPitchX>4.3e-6</SLM_PixelPitchX> 
+  <SLM_PixelPitchY>4.3e-6</SLM_PixelPitchY>
+  
+  <SLM_WaveNum>1</SLM_WaveNum>    
+  <SLM_WaveLength_1>532e-9</SLM_WaveLength_1> <!-- Double Type -->
+  
+  <Random_Phase>0</Random_Phase>
+  <Occlusion>0</Occlusion>
+  <Texture>0</Texture>
+
+ <!-- Texture_Mapping -->
+ <TextureSizeX>0</TextureSizeX>
+ <TextureSizeY>0</TextureSizeY>
+ 
+  <!-- GPU -->
+  <NumOfStream>0</NumOfStream>
+
+</TriMesh>
