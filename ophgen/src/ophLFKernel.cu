@@ -188,15 +188,14 @@ __global__ void cudaKernel_convertLF2ComplexField(/*const LFGpuConst *config, */
 __global__ void cudaKernel_convertLF2ComplexField(const LFGpuConst *config, uchar1** LF, cufftDoubleComplex* output)
 {
 	int tid = threadIdx.x + blockIdx.x * blockDim.x;
-#if 1
-		int rX = config->rX;
-		int rY = config->rY;
-		int nX = config->nX;
-		int nY = config->nY;
-		int N = nX * nY;
-		int R = rX * rY;
-		int nChannel = config->nChannel;
-		int iAmplitude = config->iAmp;
+	int rX = config->rX;
+	int rY = config->rY;
+	int nX = config->nX;
+	int nY = config->nY;
+	int N = nX * nY;
+	int R = rX * rY;
+	int nChannel = config->nChannel;
+	int iAmplitude = config->iAmp;
 
 	if (tid < R)
 	{
@@ -212,47 +211,6 @@ __global__ void cudaKernel_convertLF2ComplexField(const LFGpuConst *config, ucha
 			output[dst + k] = make_cuDoubleComplex((double)LF[k][src].x, 0);
 		}
 	}
-
-
-#else
-	__shared__ int s_R;
-	__shared__ int s_N;
-	__shared__ int s_rX;
-	__shared__ int s_rY;
-	__shared__ int s_nX;
-	__shared__ int s_nY;
-	__shared__ int s_nChannel;
-	__shared__ int s_iAmplitude;
-
-
-	if (threadIdx.x == 0)
-	{
-		s_rX = config->rX;
-		s_rY = config->rY;
-		s_nX = config->nX;
-		s_nY = config->nY;
-		s_N = s_nX * s_nY;
-		s_R = s_rX * s_rY;
-		s_nChannel = config->nChannel;
-		s_iAmplitude = config->iAmp;
-	}
-	__syncthreads();
-
-	if (tid < s_R)
-	{
-		int c = tid % s_rX;
-		int r = tid / s_rX;
-		int iWidth = c * s_nChannel + s_iAmplitude;
-		int cWidth = (s_rX * s_nChannel + 3) & ~3;
-
-		int src = r * cWidth + iWidth;
-		int dst = (r * s_rX + c) * s_N;
-		for (int k = 0; k < s_N; k++)
-		{
-			output[dst + k] = make_cuDoubleComplex((double)LF[k][src].x, 0);
-		}
-	}
-#endif
 }
 
 __global__ void cudaKernel_MultiplyPhase(const LFGpuConst *config, cufftDoubleComplex* in, cufftDoubleComplex* output)

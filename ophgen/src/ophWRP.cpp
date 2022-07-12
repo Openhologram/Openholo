@@ -50,7 +50,6 @@
 ophWRP::ophWRP(void)
 	: ophGen()
 	, scaledVertex(nullptr)
-	, bSinglePrecision(false)
 {
 	n_points = -1;
 	p_wrp_ = nullptr;

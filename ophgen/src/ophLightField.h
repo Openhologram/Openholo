@@ -164,13 +164,6 @@ public:
 	* @return	(*complex_H)
 	*/
 	void generateHologram();
-	
-	/**
-	* @brief Function for setting precision
-	* @param[in] precision level.
-	*/
-	void setPrecision(bool bPrecision) { bSinglePrecision = bPrecision; }
-	bool getPrecision() { return bSinglePrecision; }
 
 	// for Testing 
 	void writeIntensity_gray8_bmp(const char* fileName, int nx, int ny, Complex<Real>* complexvalue, int k = -1);
@@ -193,7 +186,6 @@ protected:
 
 	// ==== GPU Methods ===============================================
 	void convertLF2ComplexField_GPU();
-	void fresnelPropagation_GPU();
 	
 	void ophFree();
 
@@ -204,7 +196,6 @@ private:
 	Real distanceRS2Holo;					/// Distance from Ray Sampling plane to Hologram plane
 	Real fieldLens;
 	bool is_ViewingWindow;
-	bool bSinglePrecision;
 	int nImages;
 };
 

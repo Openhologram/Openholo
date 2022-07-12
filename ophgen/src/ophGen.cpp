@@ -117,6 +117,7 @@ ophGen::ophGen(void)
 	, m_dFieldLength(0.0)
 	, m_nStream(1)
 	, m_mode(0)
+	, m_precision(PRECISION::DOUBLE)
 {
 	//OpenCL::getInstance();
 	//CUDA::getInstance();
@@ -148,10 +149,27 @@ void ophGen::initialize(void)
 		delete[] complex_H;
 		complex_H = nullptr;
 	}
+	if (complexf_H != nullptr) {
+		for (uint i = 0; i < m_nOldChannel; i++) {
+			if (complexf_H[i] != nullptr) {
+				delete[] complexf_H[i];
+				complexf_H[i] = nullptr;
+			}
+		}
+		delete[] complexf_H;
+		complexf_H = nullptr;
+	}
+
+
 	complex_H = new Complex<Real>*[nChannel];
 	for (uint i = 0; i < nChannel; i++) {
 		complex_H[i] = new Complex<Real>[pnXY];
 		memset(complex_H[i], 0, sizeof(Complex<Real>) * pnXY);
+	}
+	complexf_H = new Complex<float>*[nChannel];
+	for (uint i = 0; i < nChannel; i++) {
+		complexf_H[i] = new Complex<float>[pnXY];
+		memset(complexf_H[i], 0, sizeof(Complex<float>) * pnXY);
 	}
 
 	if (m_lpEncoded != nullptr) {
@@ -434,40 +452,94 @@ void ophGen::RS_Diffraction(uchar *src, Complex<Real> *dst, Real lambda, Real di
 
 		}
 	}
-	//delete[] input;
-
-#if 0
-	Real ran = rand(0.0, 1.0);
-
-	Complex<Real> phase;
-	if (ran < 1.0) {
-		phase(0.0, ran * 2 * M_PI);
-		phase = phase.exp();
-	}
-	else
-		phase(1.0, 0.0);
-
-	Complex<Real> carrier_phase_delay(0, k * distance);
-	Complex<Real> *input = new Complex<Real>[pnXY];
-	memset(input, 0, sizeof(Complex<Real>) * pnXY);
-
-	Complex<Real> *in = nullptr, *out = nullptr;
-	fft2(ivec2(pnX, pnY), in, OPH_FORWARD, OPH_ESTIMATE);
-
-	fft2(input, input, pnX, pnY, OPH_FORWARD, false);
-
-
-
-#pragma omp for private(i)
-	for (i = 0; i < pnXY; i++) {
-		input[i][_RE] = tmp[i]; // amplitude
-		input[i] = input[i] * phase * carrier_phase_delay;
-	}
-	delete[] tmp;
-#endif
-
 }
 
+void ophGen::RS_Diffraction(vec3 src, Complex<Real> *dst, float lambda, float distance, float amplitude)
+{
+	OphConfig *pConfig = &context_;
+	const int pnX = pConfig->pixel_number[_X];
+	const int pnY = pConfig->pixel_number[_Y];
+	const int pnXY = pnX * pnY;
+	const float ppX = pConfig->pixel_pitch[_X];
+	const float ppY = pConfig->pixel_pitch[_Y];
+	const float ssX = pConfig->ss[_X] = pnX * ppX;
+	const float ssY = pConfig->ss[_Y] = pnY * ppY;
+
+	const float tx = lambda / (2 * ppX);
+	const float ty = lambda / (2 * ppY);
+	const float sqrtX = sqrt(1 - (tx * tx));
+	const float sqrtY = sqrt(1 - (ty * ty));
+	const float x = -ssX / 2;
+	const float y = -ssY / 2;
+	const float k = (2 * M_PI) / lambda;
+	float z = src[_Z] + distance;
+	float zz = z * z;
+	float ampZ = amplitude * z;
+
+	float _xbound[2] = {
+		src[_X] + abs(tx / sqrtX * z),
+		src[_X] - abs(tx / sqrtX * z)
+	};
+
+	float _ybound[2] = {
+		src[_Y] + abs(ty / sqrtY * z),
+		src[_Y] - abs(ty / sqrtY * z)
+	};
+
+	float Xbound[2] = {
+		floorf((_xbound[_X] - x) / ppX) + 1,
+		floorf((_xbound[_Y] - x) / ppX) + 1
+	};
+
+	float Ybound[2] = {
+		pnY - floorf((_ybound[_Y] - y) / ppY),
+		pnY - floorf((_ybound[_X] - y) / ppY)
+	};
+
+	if (Xbound[_X] > pnX)	Xbound[_X] = pnX;
+	if (Xbound[_Y] < 0)		Xbound[_Y] = 0;
+	if (Ybound[_X] > pnY) Ybound[_X] = pnY;
+	if (Ybound[_Y] < 0)		Ybound[_Y] = 0;
+
+
+	for (int yytr = Ybound[_Y]; yytr < Ybound[_X]; ++yytr)
+	{
+		int offset = yytr * pnX;
+		float yyy = y + ((pnY - yytr) * ppY);
+
+		float range_x[2] = {
+			src[_X] + abs(tx / sqrtX * sqrt((yyy - src[_Y]) * (yyy - src[_Y]) + zz)),
+			src[_X] - abs(tx / sqrtX * sqrt((yyy - src[_Y]) * (yyy - src[_Y]) + zz))
+		};
+
+		for (int xxtr = Xbound[_Y]; xxtr < Xbound[_X]; ++xxtr)
+		{
+			float xxx = x + ((xxtr - 1) * ppX);
+			float r = sqrt((xxx - src[_X]) * (xxx - src[_X]) + (yyy - src[_Y]) * (yyy - src[_Y]) + zz);
+			float range_y[2] = {
+				src[_Y] + abs(ty / sqrtY * sqrt((xxx - src[_X]) * (xxx - src[_X]) + zz)),
+				src[_Y] - abs(ty / sqrtY * sqrt((xxx - src[_X]) * (xxx - src[_X]) + zz))
+			};
+
+			if (((xxx < range_x[_X]) && (xxx > range_x[_Y])) && ((yyy < range_y[_X]) && (yyy > range_y[_Y]))) {
+				float kr = k * r;
+				float operand = lambda * r * r;
+				float res_real = (ampZ * sin(kr)) / operand;
+				float res_imag = (-ampZ * cos(kr)) / operand;
+#ifdef _OPENMP 
+#pragma omp atomic
+				dst[offset + xxtr][_RE] += res_real;
+#pragma omp atomic
+				dst[offset + xxtr][_IM] += res_imag;
+#else
+
+				dst[offset + xxtr][_RE] += res_real;
+				dst[offset + xxtr][_IM] += res_imag;
+#endif
+			}
+		}
+	}
+}
 
 void ophGen::RS_Diffraction(vec3 src, Complex<Real> *dst, Real lambda, Real distance, Real amplitude)
 {
@@ -556,7 +628,7 @@ void ophGen::RS_Diffraction(vec3 src, Complex<Real> *dst, Real lambda, Real dist
 	}
 }
 
-void ophGen::Fresnel_Convolution(vec3 src, Complex<Real> *dst, Real lambda, Real distance, Real amplitude)
+void ophGen::Fresnel_Diffraction(vec3 src, Complex<Real> *dst, Real lambda, Real distance, Real amplitude)
 {
 	OphConfig *pConfig = &context_;
 	const int pnX = pConfig->pixel_number[_X];
@@ -644,26 +716,21 @@ void ophGen::Fresnel_FFT(Complex<Real> *src, Complex<Real> *dst, Real lambda, Re
 	memsetArr<Complex<Real>>(in2x, zero, 0, pnXY * 4 - 1);
 
 	uint idxIn = 0;
-	int idxnY = pnY / 2;
+	int idxnY = pnY >> 1;
 
 #ifdef _OPENMP
-#pragma omp parallel
-	{
 #pragma omp parallel for private(idxnY) reduction(+:idxIn)
 #endif
-		for (idxnY = pnY / 2; idxnY < pnY + (pnY / 2); idxnY++) {
-			for (int idxnX = pnX / 2; idxnX < pnX + (pnX / 2); idxnX++) {
-				in2x[idxnY * pnX * 2 + idxnX] = src[idxIn++];
-			}
+	for (idxnY = pnY / 2; idxnY < pnY + (pnY / 2); idxnY++) {
+		for (int idxnX = pnX / 2; idxnX < pnX + (pnX / 2); idxnX++) {
+			in2x[idxnY * pnX * 2 + idxnX] = src[idxIn++];
 		}
-#ifdef _OPENMP
 	}
-#endif
 
 	Complex<Real>* temp1 = new Complex<Real>[pnXY * 4];
 
-	fft2({ pnX * 2, pnY * 2 }, in2x, OPH_FORWARD, OPH_ESTIMATE);
-	fft2(in2x, temp1, pnX * 2, pnY * 2, OPH_FORWARD, false);
+	fft2({ pnX * 2, pnY * 2 }, in2x, OPH_FORWARD, OPH_ESTIMATE); // fft spatial domain 
+	fft2(in2x, temp1, pnX * 2, pnY * 2, OPH_FORWARD, false); // 
 
 	Real* fx = new Real[pnXY * 4];
 	Real* fy = new Real[pnXY * 4];
@@ -683,9 +750,9 @@ void ophGen::Fresnel_FFT(Complex<Real> *src, Complex<Real> *dst, Real lambda, Re
 	Real sqrtPart;
 
 	Complex<Real>* temp2 = new Complex<Real>[pnXY * 4];
-
+	Real lambda_square = lambda * lambda;
 	for (int i = 0; i < pnXY * 4; i++) {
-		sqrtPart = sqrt(1 / (lambda * lambda) - fx[i] * fx[i] - fy[i] * fy[i]);
+		sqrtPart = sqrt(1 / lambda_square - fx[i] * fx[i] - fy[i] * fy[i]);
 		prop[i][_IM] = 2 * M_PI * distance;
 		prop[i][_IM] *= sqrtPart;
 		temp2[i] = temp1[i] * exp(prop[i]);
@@ -696,9 +763,6 @@ void ophGen::Fresnel_FFT(Complex<Real> *src, Complex<Real> *dst, Real lambda, Re
 	fft2(temp2, temp3, pnX * 2, pnY * 2, OPH_BACKWARD, false);
 
 	uint idxOut = 0;
-	// 540 ~ 1620
-	// 960 ~ 2880
-	// 540 * 1920 * 2 + 960
 	for (int idxnY = pnY / 2; idxnY < pnY + (pnY / 2); idxnY++) {
 		for (int idxnX = pnX / 2; idxnX < pnX + (pnX / 2); idxnX++) {
 			dst[idxOut++] = temp3[idxnY * pnX * 2 + idxnX];
@@ -722,7 +786,7 @@ void ophGen::Fresnel_FFT(Complex<Real> *src, Complex<Real> *dst, Real lambda, Re
 
 
 
-void ophGen::AngularSpectrum(Complex<Real> *src, Complex<Real> *dst, Real lambda, Real distance)
+void ophGen::AngularSpectrumMethod(Complex<Real> *src, Complex<Real> *dst, Real lambda, Real distance)
 {
 	OphConfig *pConfig = &context_;
 	const int pnX = pConfig->pixel_number[_X];
@@ -738,8 +802,10 @@ void ophGen::AngularSpectrum(Complex<Real> *src, Complex<Real> *dst, Real lambda
 
 	int i;
 	Real k = pConfig->k = (2 * M_PI / lambda);
+	Real kk = k * k;
+
 #ifdef _OPENMP
-#pragma omp parallel for private(i)
+#pragma omp parallel for private(i) firstprivate(lambda, distance, kk, k)
 #endif
 	for (i = 0; i < pnXY; i++) {
 		Real x = i % pnX;
@@ -756,10 +822,10 @@ void ophGen::AngularSpectrum(Complex<Real> *src, Complex<Real> *dst, Real lambda
 		Complex<Real> kernel(0, sval);
 		kernel.exp();
 
-		int prop_mask = ((fxx * fxx + fyy * fyy) < (k * k)) ? 1 : 0;
+		bool prop_mask = ((fxx * fxx + fyy * fyy) < kk) ? true : false;
 
 		Complex<Real> u_frequency;
-		if (prop_mask == 1) {
+		if (prop_mask) {
 			u_frequency = kernel * src[i];
 			dst[i][_RE] += u_frequency[_RE];
 			dst[i][_IM] += u_frequency[_IM];
@@ -857,7 +923,6 @@ void ophGen::normalize(void)
 	const int nWave = context_.waveNum;
 	const int N = pnX * pnY;
 	
-#if 1
 	Real min = MAX_DOUBLE, max = MIN_DOUBLE, gap = 0;
 	for (int ch = 0; ch < nWave; ch++)
 	{
@@ -884,11 +949,6 @@ void ophGen::normalize(void)
 			}
 		}
 	}
-#else
-
-	for (uint ch = 0; ch < context_.waveNum; ch++)
-		oph::normalize((Real*)m_lpEncoded[ch], m_lpNormalized[ch], pnX, pnY);
-#endif
 }
 
 bool ophGen::save(const char * fname, uint8_t bitsperpixel, uchar* src, uint px, uint py)

@@ -120,21 +120,11 @@ typedef struct KernelConst {
 		this->randomPhase = random_phase;
 	}
 } LFGpuConst;
-#if 0
-#define IMG_R "img_resolution"
-#define IMG_N "img_number"
-#define CHANNEL_I "channel_info"
-#endif
+
 extern "C"
 {
-#if 0
-	__constant__ int channel_info[2];
-	__constant__ int img_resolution[3];
-	__constant__ int img_number[3];
-#endif
 	void cudaConvertLF2ComplexField_Kernel(CUstream_st* stream, const int &nBlocks, const int &nThreads, const LFGpuConst *config, uchar1** LF, cufftDoubleComplex* output);
 	void cudaFFT_LF(cufftHandle *plan, CUstream_st* stream, const int &nBlocks, const int &nThreads, const int &nx, const int &ny, cufftDoubleComplex* in_field, cufftDoubleComplex* output_field, const int &direction);
-	//void cudaFFT_LF(CUstream_st* stream, const int &nBlocks, const int &nThreads, const int &nx, const int &ny, const LFGpuConst *config, cufftDoubleComplex* in_field, cufftDoubleComplex* output_field, int direction);
 
 	void procMultiplyPhase(CUstream_st* stream, const int &nBlocks, const int &nThreads, const LFGpuConst *config, cufftDoubleComplex* in, cufftDoubleComplex* output);
 

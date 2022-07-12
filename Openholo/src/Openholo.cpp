@@ -65,6 +65,7 @@ Openholo::Openholo(void)
 	, OHC_encoder(nullptr)
 	, OHC_decoder(nullptr)
 	, complex_H(nullptr)
+	, complexf_H(nullptr)
 {
 	context_ = { 0 };
 	fftw_init_threads();
@@ -95,7 +96,7 @@ bool Openholo::checkExtension(const char * fname, const char * ext)
 
 	if (find > len)
 		return false;
-	
+
 	if (!filename.substr(find).compare(fext))
 		return true;
 	else
@@ -143,7 +144,7 @@ bool Openholo::saveAsImg(const char * fname, uint8_t bitsperpixel, uchar* src, i
 	bool bOK = true;
 	auto start = CUR_TIME;
 	int _width = width, _height = height;
-	
+
 	int padding = 0;
 	int _byteperline = ((_width * bitsperpixel / 8) + 3) & ~3;
 	int _pixelbytesize = _height * _byteperline;
@@ -166,7 +167,7 @@ bool Openholo::saveAsImg(const char * fname, uint8_t bitsperpixel, uchar* src, i
 			table[i].rgbBlue = i;
 			table[i].rgbGreen = i;
 			table[i].rgbRed = i;
-		}		
+		}
 	}
 
 	_filesize += _headersize;
@@ -195,12 +196,12 @@ bool Openholo::saveAsImg(const char * fname, uint8_t bitsperpixel, uchar* src, i
 	bitmap.bitmapinfoheader.ypixelpermeter = 0;// Y_PIXEL_PER_METER;
 	bitmap.bitmapinfoheader.xpixelpermeter = 0;// X_PIXEL_PER_METER;
 	bitmap.bitmapinfoheader.numcolorspallette = _iColor;
-	
+
 	memcpy(&pBitmap[iCur], &bitmap.fileheader, sizeof(fileheader));
 	iCur += sizeof(fileheader);
 	memcpy(&pBitmap[iCur], &bitmap.bitmapinfoheader, sizeof(bitmapinfoheader));
 	iCur += sizeof(bitmapinfoheader);
-	
+
 	if (hasColorTable) {
 		memcpy(&pBitmap[iCur], table, sizeof(rgbquad) * _iColor);
 		iCur += sizeof(rgbquad) * _iColor;
@@ -254,7 +255,7 @@ bool Openholo::saveAsImg(const char * fname, uint8_t bitsperpixel, uchar* src, i
 		pControl->Save(fname, pBitmap, _filesize);
 	}
 
-	if(hasColorTable && table) delete[] table;
+	if (hasColorTable && table) delete[] table;
 	delete[] pBitmap;
 	auto end = CUR_TIME;
 
@@ -301,7 +302,7 @@ bool Openholo::saveAsOhc(const char * fname)
 	std::string fullname = fname;
 	if (!checkExtension(fname, ".ohc")) fullname.append(".ohc");
 	OHC_encoder->setFileName(fullname.c_str());
-	
+
 	// Clear vector
 	OHC_encoder->releaseFldData();
 
@@ -333,7 +334,7 @@ bool Openholo::loadAsOhc(const char * fname)
 	context_.wave_length = new Real[wavelengthArray.size()];
 	for (int i = 0; i < wavelengthArray.size(); i++)
 		context_.wave_length[i] = wavelengthArray[i];
-	
+
 	OHC_decoder->getComplexFieldData(&complex_H);
 
 	context_.k = (2 * M_PI) / context_.wave_length[0];
@@ -374,7 +375,7 @@ bool Openholo::loadAsImgUpSideDown(const char * fname, uchar* dst)
 	//int rowsz = bytesperpixel * hInfo.width;
 
 	int rowsz = ((hInfo.width * bytesperpixel) + 3) & ~3;
-	
+
 	for (oph::uint k = 0; k < hInfo.height*rowsz; k++) {
 		int r = k / rowsz;
 		int c = k % rowsz;
@@ -416,145 +417,83 @@ bool Openholo::getImgSize(int & w, int & h, int & bytesperpixel, const char * fn
 	return true;
 }
 
-void Openholo::ImageRotation(double rotate, uchar* src, uchar* dst, int w, int h, int channels)
-{
-	auto begin = CUR_TIME;
-	int channel = channels;
-	int nBytePerLine = ((w * channel) + 3) & ~3;
-
-	int origX, origY;
-	double radian = rotate * M_PI / 180.0;
-	double cc = cos(radian);
-	double ss = sin(-radian);
-	double centerX = (double)w / 2.0;
-	double centerY = (double)h / 2.0;
-
-	uchar pixel;
-	uchar R, G, B;
-
-	int num_threads = 1;
-	for (int y = 0; y < h; y++) {
-		for (int x = 0; x < w; x++) {
-			origX = (int)(centerX + ((double)y - centerY)*ss + ((double)x - centerX)*cc);
-			origY = (int)(centerY + ((double)y - centerY)*cc - ((double)x - centerX)*ss);
-
-			pixel = 0;
-			R = G = B = 0;
-			if ((origY >= 0 && origY < h) && (origX >= 0 && origX < w)) {
-				int offsetX = origX * channel;
-				int offsetY = origY * nBytePerLine;
-				B = src[offsetY + offsetX + 0];
-				G = src[offsetY + offsetX + 1];
-				R = src[offsetY + offsetX + 2];
-
-			}
-			if (channel == 1) {
-				dst[y * nBytePerLine + x] = pixel;
-			}
-			else if (channel == 3) {
-				int tmpX = x * 3;
-				int tmpY = y * nBytePerLine;
-				dst[tmpY + tmpX + 0] = B;
-				dst[tmpY + tmpX + 1] = G;
-				dst[tmpY + tmpX + 2] = R;
-			}
-		}
-	}
-	auto end = CUR_TIME;
-	LOG("Image Rotated (%d threads): (%d/%d) (%lf degree) : %lf(s)\n",
-		num_threads,
-		w, h, rotate,
-		((chrono::duration<Real>)(end - begin)).count());
-}
-
 void Openholo::imgScaleBilinear(uchar* src, uchar* dst, int w, int h, int neww, int newh, int channels)
 {
 	auto begin = CUR_TIME;
 	int channel = channels;
 	int nBytePerLine = ((w * channel) + 3) & ~3;
 	int nNewBytePerLine = ((neww * channel) + 3) & ~3;
-	int num_threads = 1;
-#ifdef _OPENMP
 	int y;
-#pragma omp parallel
-	{
-		num_threads = omp_get_num_threads();
-#pragma omp for private(y)
-		for (y = 0; y < newh; y++)
-#else
-		for (int y = 0; y < newh; y++)
+#ifdef _OPENMP
+#pragma omp parallel for private(y)
 #endif
+	for (y = 0; y < newh; y++)
+	{
+		int nbppY = y * nNewBytePerLine;
+		for (int x = 0; x < neww; x++)
 		{
-			int nbppY = y * nNewBytePerLine;
-			for (int x = 0; x < neww; x++)
-			{
-				float gx = (x / (float)neww) * (w - 1);
-				float gy = (y / (float)newh) * (h - 1);
+			float gx = (x / (float)neww) * (w - 1);
+			float gy = (y / (float)newh) * (h - 1);
 
-				int gxi = (int)gx;
-				int gyi = (int)gy;
+			int gxi = (int)gx;
+			int gyi = (int)gy;
 
-				if (channel == 1) {
-					uint32_t a00, a01, a10, a11;					
+			if (channel == 1) {
+				uint32_t a00, a01, a10, a11;
 
-					a00 = src[gxi + 0 + gyi * nBytePerLine];
-					a01 = src[gxi + 1 + gyi * nBytePerLine];
-					a10 = src[gxi + 0 + (gyi + 1) * nBytePerLine];
-					a11 = src[gxi + 1 + (gyi + 1) * nBytePerLine];
+				a00 = src[gxi + 0 + gyi * nBytePerLine];
+				a01 = src[gxi + 1 + gyi * nBytePerLine];
+				a10 = src[gxi + 0 + (gyi + 1) * nBytePerLine];
+				a11 = src[gxi + 1 + (gyi + 1) * nBytePerLine];
 
-					float dx = gx - gxi;
-					float dy = gy - gyi;
+				float dx = gx - gxi;
+				float dy = gy - gyi;
 
-					float w1 = (1 - dx) * (1 - dy);
-					float w2 = dx * (1 - dy);
-					float w3 = (1 - dx) * dy;
-					float w4 = dx * dy;
+				float w1 = (1 - dx) * (1 - dy);
+				float w2 = dx * (1 - dy);
+				float w3 = (1 - dx) * dy;
+				float w4 = dx * dy;
 
-					dst[x + y * neww] = int(a00 * w1 + a01 * w2 + a10 * w3 + a11 * w4);
-				}
-				else if (channel == 3) {
-					uint32_t b00[3], b01[3], b10[3], b11[3];
-					int srcX = gxi * channel;
-					int dstX = x * channel;
+				dst[x + y * neww] = int(a00 * w1 + a01 * w2 + a10 * w3 + a11 * w4);
+			}
+			else if (channel == 3) {
+				uint32_t b00[3], b01[3], b10[3], b11[3];
+				int srcX = gxi * channel;
+				int dstX = x * channel;
 
-					b00[0] = src[srcX + 0 + gyi * nBytePerLine];
-					b00[1] = src[srcX + 1 + gyi * nBytePerLine];
-					b00[2] = src[srcX + 2 + gyi * nBytePerLine];
-					
-					b01[0] = src[srcX + 3 + gyi * nBytePerLine];
-					b01[1] = src[srcX + 4 + gyi * nBytePerLine];
-					b01[2] = src[srcX + 5 + gyi * nBytePerLine];
+				b00[0] = src[srcX + 0 + gyi * nBytePerLine];
+				b00[1] = src[srcX + 1 + gyi * nBytePerLine];
+				b00[2] = src[srcX + 2 + gyi * nBytePerLine];
 
-					b10[0] = src[srcX + 0 + (gyi + 1) * nBytePerLine];
-					b10[1] = src[srcX + 1 + (gyi + 1) * nBytePerLine];
-					b10[2] = src[srcX + 2 + (gyi + 1) * nBytePerLine];
+				b01[0] = src[srcX + 3 + gyi * nBytePerLine];
+				b01[1] = src[srcX + 4 + gyi * nBytePerLine];
+				b01[2] = src[srcX + 5 + gyi * nBytePerLine];
 
-					b11[0] = src[srcX + 3 + (gyi + 1) * nBytePerLine];
-					b11[1] = src[srcX + 4 + (gyi + 1) * nBytePerLine];
-					b11[2] = src[srcX + 5 + (gyi + 1) * nBytePerLine];
-					
-					float dx = gx - gxi;
-					float dy = gy - gyi;
+				b10[0] = src[srcX + 0 + (gyi + 1) * nBytePerLine];
+				b10[1] = src[srcX + 1 + (gyi + 1) * nBytePerLine];
+				b10[2] = src[srcX + 2 + (gyi + 1) * nBytePerLine];
 
-					float w1 = (1 - dx) * (1 - dy);
-					float w2 = dx * (1 - dy);
-					float w3 = (1 - dx) * dy;
-					float w4 = dx * dy;
+				b11[0] = src[srcX + 3 + (gyi + 1) * nBytePerLine];
+				b11[1] = src[srcX + 4 + (gyi + 1) * nBytePerLine];
+				b11[2] = src[srcX + 5 + (gyi + 1) * nBytePerLine];
 
-					dst[dstX + 0 + nbppY] = int(b00[0] * w1 + b01[0] * w2 + b10[0] * w3 + b11[0] * w4);
-					dst[dstX + 1 + nbppY] = int(b00[1] * w1 + b01[1] * w2 + b10[1] * w3 + b11[1] * w4);
-					dst[dstX + 2 + nbppY] = int(b00[2] * w1 + b01[2] * w2 + b10[2] * w3 + b11[2] * w4);
-				}
+				float dx = gx - gxi;
+				float dy = gy - gyi;
+
+				float w1 = (1 - dx) * (1 - dy);
+				float w2 = dx * (1 - dy);
+				float w3 = (1 - dx) * dy;
+				float w4 = dx * dy;
+
+				dst[dstX + 0 + nbppY] = int(b00[0] * w1 + b01[0] * w2 + b10[0] * w3 + b11[0] * w4);
+				dst[dstX + 1 + nbppY] = int(b00[1] * w1 + b01[1] * w2 + b10[1] * w3 + b11[1] * w4);
+				dst[dstX + 2 + nbppY] = int(b00[2] * w1 + b01[2] * w2 + b10[2] * w3 + b11[2] * w4);
 			}
 		}
-#ifdef _OPENMP
 	}
-#endif
 	auto end = CUR_TIME;
-	LOG("Scaled img size (%d threads): (%d/%d) => (%d/%d) : %lf(s)\n",
-		num_threads,
-		w, h, neww, newh, 
-		((chrono::duration<Real>)(end - begin)).count());
+	LOG("Scaled img size: (%d/%d) => (%d/%d) : %lf(s)\n", w, h, neww, newh,
+	((chrono::duration<Real>)(end - begin)).count());
 }
 
 void Openholo::convertToFormatGray8(unsigned char * src, unsigned char * dst, int w, int h, int bytesperpixel)
@@ -581,7 +520,7 @@ void Openholo::fft1(int n, Complex<Real>* in, int sign, uint flag)
 	if (fft_out == nullptr)
 		fft_out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * n);
 
-	if (!in){
+	if (!in) {
 		in = new Complex<Real>[pnx];
 		bIn = false;
 	}
@@ -723,10 +662,10 @@ void Openholo::fftInit2D(ivec2 size, int sign, unsigned int flag)
 	if (fft_out == nullptr)
 		fft_out = (fftw_complex *)fftw_malloc(sizeof(fftw_complex) * N);
 
-	if(plan_fwd == nullptr)
+	if (plan_fwd == nullptr)
 		plan_fwd = fftw_plan_dft_2d(pnY, pnX, fft_in, fft_out, sign, flag);
-	if(plan_bwd == nullptr)
-		plan_bwd = fftw_plan_dft_2d(pnY, pnX, fft_in, fft_out, sign, flag);	
+	if (plan_bwd == nullptr)
+		plan_bwd = fftw_plan_dft_2d(pnY, pnX, fft_in, fft_out, sign, flag);
 }
 
 void Openholo::fftFree(void)
@@ -878,7 +817,7 @@ void Openholo::setWaveNum(int nNum)
 		delete[] context_.wave_length;
 		context_.wave_length = nullptr;
 	}
-	
+
 	context_.wave_length = new Real[nNum];
 }
 
@@ -886,16 +825,21 @@ void Openholo::SetMaxThreadNum(int num)
 {
 #ifdef _OPENMP
 	omp_set_num_threads(num);
+#else
+	LOG("Not used openMP\n");
 #endif
 }
 
 int Openholo::GetMaxThreadNum()
 {
+	int num_threads = 1;
 #ifdef _OPENMP
-	return omp_get_num_threads();
-#else
-	return 1;
+#pragma omp parallel
+	{
+		num_threads = omp_get_num_threads();
+	}
 #endif
+	return num_threads;
 }
 
 void Openholo::ophFree(void)
@@ -908,10 +852,18 @@ void Openholo::ophFree(void)
 			delete[] complex_H[i];
 			complex_H[i] = nullptr;
 		}
+		if (complexf_H[i]) {
+			delete[] complexf_H[i];
+			complexf_H[i] = nullptr;
+		}
 	}
 	if (complex_H) {
 		delete[] complex_H;
 		complex_H = nullptr;
+	}
+	if (complexf_H) {
+		delete[] complexf_H;
+		complexf_H = nullptr;
 	}
 	if (context_.wave_length) {
 		delete[] context_.wave_length;

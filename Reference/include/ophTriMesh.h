@@ -172,12 +172,6 @@ public:
 	const vec3&	getIllumination(void) { return illumination; }
 	//const Real& getFieldLens(void) { return fieldLength; }
 
-	/**
-	* @brief Function for setting precision
-	* @param[in] precision level.
-	*/
-	void setPrecision(bool bPrecision) { bSinglePrecision = bPrecision; }
-	bool getPrecision() { return bSinglePrecision; }
 public:
 	/**
 	* @brief	Triangular mesh basc CGH configuration file load
@@ -334,7 +328,6 @@ private:
 	Complex<Real> refTemp;
 	Real* tempFreqTermX;
 	Real* tempFreqTermY;
-	bool bSinglePrecision;
 	uint m_nProgress;
 
 };

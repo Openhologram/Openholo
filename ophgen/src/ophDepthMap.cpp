@@ -59,7 +59,6 @@
 ophDepthMap::ophDepthMap()
 	: ophGen()
 	, m_nProgress(0)
-	, bSinglePrecision(false)
 {
 	// GPU Variables
 	img_src_gpu = nullptr;
@@ -712,13 +711,5 @@ void ophDepthMap::setResolution(ivec2 resolution)
 
 void ophDepthMap::normalize()
 {
-#if 1
 	ophGen::normalize();
-#else
-	const int pnX = context_.pixel_number[_X];
-	const int pnY = context_.pixel_number[_Y];
-
-	for (uint ch = 0; ch < context_.waveNum; ch++)
-		oph::normalize((Real*)m_lpEncoded[ch], m_lpNormalized[ch], pnX, pnY);
-#endif
 }

@@ -161,6 +161,7 @@ public:
 	*				If the fails to get complex field, the return value is <B>nullptr</B>.
 	*/
 	inline Complex<Real>** getComplexField(void) { return complex_H; }
+	inline Complex<float>** getComplexfField(void) { return complexf_H; }
 	
 	
 	/**
@@ -245,7 +246,7 @@ protected:
 	* @param[in] newh Height to replace.
 	*/
 	void imgScaleBilinear(uchar* src, uchar* dst, int w, int h, int neww, int newh, int channels = 1);
-	void ImageRotation(double rotate, uchar* src, uchar* dst, int w, int h, int channels);
+
 	/**
 	* @brief Function for convert image format to gray8
 	* @param[in] src Source image data.
@@ -334,8 +335,9 @@ private:
 protected:
 	OphConfig context_;
 	ImageConfig imgCfg;
-	Complex<Real>** complex_H;
 
+	Complex<Real>** complex_H;
+	Complex<float>** complexf_H;
 protected:
 	/**
 	* @brief OHC file format Variables for read and write
@@ -373,10 +375,6 @@ protected:
 
 	inline 	void setPhaseEncodingOHC(const BPhaseCode phase_code, const vec2 phase_code_range)
 		{ OHC_encoder->setPhaseEncoding(phase_code, phase_code_range); }
-
-	//inline void setCompressedFormatType(const CompresType compress_type)
-	//	{ OHC_encoder->setCompressedFormatType(compress_type); }
-
 	/**
 	* @brief Function to add ComplexField when adding wavelength data
 	*/
@@ -388,18 +386,6 @@ protected:
 
 	inline void addComplexFieldDataOHC(const OphComplexField& complex_field)
 		{ OHC_encoder->addComplexFieldData(complex_field); }
-
-	/**
-
-	*/
-	//inline void addLinkFilePath(const std::string& path)
-	//	{ OHC_encoder->addLinkFilePath(path); }
-
-	/**
-
-	*/
-	//inline void getLinkFilePath(std::vector<std::string> &linkFilePath_array)
-	//	{ OHC_decoder->getLinkFilePath(linkFilePath_array); }
 
 	inline void getPixelNumberOHC(ivec2& pixel_number)
 		{ pixel_number = OHC_decoder->getNumOfPixel(); }
@@ -426,12 +412,7 @@ protected:
 		{ OHC_decoder->getComplexFieldData(cmplx, wavelen_idx); }
 
 	inline void getComplexFieldDataOHC(OphComplexField& cmplx, uint wavelen_idx)
-		{ OHC_decoder->getComplexFieldData(cmplx, wavelen_idx); }
-
-	//inline void getCompressedFormatType(const CompresType compress_type)
-	//	{ OHC_encoder->setCompressedFormatType(compress_type); }
-
-	
+		{ OHC_decoder->getComplexFieldData(cmplx, wavelen_idx); }	
 };
 
 #endif // !__Openholo_h

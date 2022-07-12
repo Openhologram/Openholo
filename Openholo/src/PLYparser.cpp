@@ -374,7 +374,7 @@ bool PLYparser::loadPLY(const std::string& fileName, ulonglong &n_points, int &c
 							}
 						}
 					}
-#if 1
+
 					if (idxE == idxE_vertex) {
 						(*vertexArray)[3 * e + 0] = (Real)x;
 						(*vertexArray)[3 * e + 1] = (Real)y;
@@ -385,9 +385,7 @@ bool PLYparser::loadPLY(const std::string& fileName, ulonglong &n_points, int &c
 						(*colorArray)[3 * e + 1] = (Real)(green / 255.f);
 						(*colorArray)[3 * e + 2] = (Real)(blue / 255.f);
 					}
-					if (isPhaseParse) (*phaseArray)[e] = phase;
-#endif
-					
+					if (isPhaseParse) (*phaseArray)[e] = phase;					
 				}
 			}
 			File.close();
@@ -412,19 +410,9 @@ bool PLYparser::loadPLY(const std::string& fileName, ulonglong &n_points, int &c
 				if (check) color_channels = 3;
 				else if (!check) {
 					color_channels = 1;
-#if 0
-					Real* grayArray = new Real[n_points];
-					for (ulonglong i = 0; i < n_points; ++i) {
-						grayArray[i] = (*colorArray)[3 * i];
-					}
-					delete[](*colorArray);
-					*colorArray = grayArray;
-#else
-
 					for (ulonglong i = 0; i < n_points * 3; ++i) {
 						(*colorArray)[i] = 0.5;
 					}
-#endif
 				}
 			}
 

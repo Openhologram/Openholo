@@ -164,15 +164,7 @@ public:
 	*				If the function fails, the return value is <B>false</B>.
 	*/
 	virtual bool readConfig(const char* fname);
-
-	/**
-	* @brief Function for setting precision
-	* @param[in] precision level.
-	*/
-	void setPrecision(bool bPrecision) { bSinglePrecision = bPrecision; }
-	bool getPrecision() { return bSinglePrecision; }
-
-
+	   
 	double calculateWRPCPU(void);
 	void calculateWRPGPU(void);
 
@@ -232,7 +224,6 @@ protected:
 
 private:
 	bool is_ViewingWindow;
-	bool bSinglePrecision;
 	Real zmax_;
 	uint m_nProgress;
 

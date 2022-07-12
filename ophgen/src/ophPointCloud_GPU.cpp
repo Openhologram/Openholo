@@ -48,7 +48,7 @@
 #include "CUDA.h"
 //#include "ophPCKernel.cl"
 #include <sys.h> //for LOG() macro
-#if 0
+#ifdef USING_OPENCL
 #include "OpenCL.h"
 
 

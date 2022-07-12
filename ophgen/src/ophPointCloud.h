@@ -626,13 +626,6 @@ public:
 
 public:
 	/**
-	* @brief Function for setting precision
-	* @param[in] precision level.
-	*/
-	void setPrecision(bool bPrecision) { bSinglePrecision = bPrecision; }
-	bool getPrecision() { return bSinglePrecision; }
-
-	/**
 	* @brief get the value of a variable generation mode (true or false)
 	* @details <pre>
 	if isCPU() == true
@@ -719,7 +712,6 @@ private:
 	void diffractEncodedRS(uint channel, ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Real k, Real amplitude, vec2 theta);
 	void diffractNotEncodedRS(uint channel, ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Real k, Real amplitude, Real lambda);
 
-	void diffractEncodedFrsn(void);
 	void diffractNotEncodedFrsn(uint channel, ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Real k, Real amplitude, Real lambda);
 
 
@@ -735,7 +727,6 @@ private:
 	virtual void ophFree(void);
 
 	bool is_ViewingWindow;
-	bool bSinglePrecision;
 	int n_points;
 	uint m_nProgress;
 	OphPointCloudConfig pc_config_;

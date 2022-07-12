@@ -78,56 +78,6 @@ __global__ void propagation_angularsp_kernel(cufftDoubleComplex* input_d, cufftD
 {
 	int tid = threadIdx.x + blockIdx.x*blockDim.x;
 
-#if 0
-	__shared__ int pnXY;
-	__shared__ int pnX;
-	__shared__ int pnY;
-	__shared__ float ppX;
-	__shared__ float ppY;
-	__shared__ float ssX;
-	__shared__ float ssY;
-	__shared__ float s_lambda;
-	__shared__ float k;
-	__shared__ float prop_dist;
-
-	if (threadIdx.x == 0) {
-		pnXY = pnx * pny;
-		pnX = pnx;
-		pnY = pny;
-		ppX = ppx;
-		ppY = ppy;
-		ssX = ssx;
-		ssY = ssy;
-		s_lambda = lambda;
-		prop_dist = propagation_dist;
-		k = params_k;
-	}
-	__syncthreads();
-
-	if (tid < pnXY) {
-
-		int x = tid % pnX;
-		int y = tid / pnX;
-
-		float fxx = (-1.0 / (2.0*ppX)) + (1.0 / ssX) * x;
-		float fyy = (1.0 / (2.0*ppY)) - (1.0 / ssY) - (1.0 / ssY) * y;
-
-		float sval = sqrt(1 - (s_lambda*fxx)*(s_lambda*fxx) - (s_lambda*fyy)*(s_lambda*fyy));
-		sval *= k * prop_dist;
-
-		cuDoubleComplex kernel = make_cuDoubleComplex(0, sval);
-		exponent_complex(&kernel);
-
-		int prop_mask = ((fxx * fxx + fyy * fyy) < (k *k)) ? 1 : 0;
-
-		cuDoubleComplex u_frequency = make_cuDoubleComplex(0, 0);
-		if (prop_mask == 1)
-			u_frequency = cuCmul(kernel, input_d[tid]);
-
-		u_complex[tid] = cuCadd(u_complex[tid], u_frequency);
-	}
-#else
-
 	if (tid < pnx*pny) {
 
 		int x = tid % pnx;
@@ -150,7 +100,6 @@ __global__ void propagation_angularsp_kernel(cufftDoubleComplex* input_d, cufftD
 
 		u_complex[tid] = cuCadd(u_complex[tid], u_frequency);
 	}
-#endif
 }
 
 
@@ -217,39 +166,7 @@ __global__ void getFringe(int nx, int ny, cufftDoubleComplex* in_filed, cufftDou
 __global__ void change_depth_quan_kernel(double* depth_index_gpu, unsigned char* dimg_src_gpu, int pnx, int pny,
 	int dtr, double d1, double d2, double num_depth, double far_depth, double near_depth)
 {
-#if 0
-	__shared__ int pnXY;
-	__shared__ float farDepth;
-	__shared__ float nearDepth;
-	__shared__ int value;
-	__shared__ float val1;
-	__shared__ float val2;
-	__shared__ float numDepth;
 
-	if (threadIdx.x == 0) {
-		pnXY = pnx * pny;
-		farDepth = (float)far_depth;
-		nearDepth = (float)near_depth;
-		value = dtr;
-		val1 = d1;
-		val2 = d2;
-		numDepth = num_depth;
-	}
-	__syncthreads();
-	int tid = threadIdx.x + blockIdx.x * blockDim.x;
-
-	int tdepth;
-	float dmap_src = __fdividef(float(dimg_src_gpu[tid]), 255.0);
-	float dmap = __fadd_rz(__fmul_rz((1.0 - dmap_src), (farDepth, nearDepth)), nearDepth);
-
-	if (value < numDepth - 1)
-		tdepth = __fmul_rz((dmap >= val1 ? 1 : 0), (dmap < val2 ? 1 : 0));
-	else
-		tdepth = __fmul_rz((dmap >= val1 ? 1 : 0), (dmap <= val2 ? 1 : 0));
-
-	depth_index_gpu[tid] = depth_index_gpu[tid] + (double)(tdepth * (value + 1));
-
-#else
 	int tid = threadIdx.x + blockIdx.x * blockDim.x;
 
 	if (tid < pnx * pny) {
@@ -265,8 +182,6 @@ __global__ void change_depth_quan_kernel(double* depth_index_gpu, unsigned char*
 
 		depth_index_gpu[tid] = depth_index_gpu[tid] + (double)(tdepth * (dtr + 1));
 	}
-
-#endif
 }
 
 extern "C"

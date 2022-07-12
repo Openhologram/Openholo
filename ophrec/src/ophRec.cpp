@@ -1255,7 +1255,7 @@ void ophRec::SaveImage(const char *path, const char *ext)
 	for (int i = 0; i < nSimStep; i++)
 	{
 		sprintf(tmpPath, "%s\\FOCUS_%.4f.%s", path, bMultiStep ? simFrom + step * i : (simFrom + simTo) / 2, ext);
-#if 1
+
 		if (nChannel == 3)
 		{
 			if (imgCfg.bMergeImage)
@@ -1282,28 +1282,6 @@ void ophRec::SaveImage(const char *path, const char *ext)
 			memcpy(tmp, m_vecNormalized[i], sizeof(uchar) * nSize);
 			saveAsImg(tmpPath, 8 * nChannel, tmp, pnX, pnY); // save Grayscale
 		}
-
-#else
-		if (bCreatePupilImg)
-		{
-			for (int j = 0; j < nChannel; j++)
-			{
-				if (nSimStep > 1)
-					sprintf(tmpPath, "%s\\PUPIL_%.4f.%s", path, simFrom + step * i, ext);
-				else
-					sprintf(tmpPath, "%s\\PUPIL_%.4f.%s", path, (simFrom + simTo) / 2, ext);
-
-				int idx = i * nChannel + j;
-				saveAsImg(tmpPath, 8, img_set[idx], img_size[idx][_X], img_size[idx][_Y]);
-			}
-		}
-		if (nSimStep > 1)
-			sprintf(tmpPath, "%s\\FOCUS_%.4f.%s", path, simFrom + step * i, ext);
-		else
-			sprintf(tmpPath, "%s\\FOCUS_%.4f.%s", path, (simFrom + simTo) / 2, ext);
-
-		saveAsImg(tmpPath, 8 * nChannel, focus_img_set[i], focus_img_size[i][_X], focus_img_size[i][_Y]);
-#endif
 	}
 	delete[] tmp;
 }
@@ -1439,7 +1417,7 @@ void ophRec::Clear()
 
 bool ophRec::ReconstructImage()
 {
-#if 1
+
 	Clear();
 	auto begin = CUR_TIME;
 
@@ -1455,22 +1433,6 @@ bool ophRec::ReconstructImage()
 
 	m_mode & MODE_GPU ? ASM_Propagation_GPU() : ASM_Propagation();
 	
-#else
-	else if (idx == 1)
-	{
-		GetPupilFieldFromHologram();
-		Perform_Simulation();
-	}
-	if (!rec_config.ViewingWindow)
-	{
-		GetPupilFieldFromHologram();
-	}
-	else
-	{
-		GetPupilFieldFromVWHologram();
-	}
-	Perform_Simulation();
-#endif
 	LOG("Total Elapsed Time: %lf (s)\n", ELAPSED_TIME(begin, CUR_TIME));
 	return true;
 }

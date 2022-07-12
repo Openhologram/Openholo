@@ -53,7 +53,6 @@ ophLF::ophLF(void)
 	, resolution_image(ivec2(0, 0))
 	, distanceRS2Holo(0.0)
 	, is_ViewingWindow(false)
-	, bSinglePrecision(false)
 {
 	LOG("*** LIGHT FIELD : BUILD DATE: %s %s ***\n\n", __DATE__, __TIME__);
 }

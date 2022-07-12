@@ -116,14 +116,6 @@ protected:
 	virtual ~ophDepthMap();
 
 public:
-
-	/**
-	* @brief Function for setting precision
-	* @param[in] precision level.
-	*/
-	void setPrecision(bool bPrecision) { bSinglePrecision = bPrecision; }
-	bool getPrecision() { return bSinglePrecision; }
-
 	bool readConfig(const char* fname);
 	bool readImageDepth(const char* source_folder, const char* img_prefix, const char* depth_img_prefix);
 	//bool readImageDepth(const char* rgb, const char* depth);
@@ -200,7 +192,6 @@ protected:
 
 private:
 	bool					is_ViewingWindow;
-	bool					bSinglePrecision;
 	unsigned char*			depth_img;
 	vector<uchar*>			m_vecRGB;
 	ivec2					m_vecRGBImg;

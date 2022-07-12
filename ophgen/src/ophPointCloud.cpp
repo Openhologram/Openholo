@@ -54,7 +54,6 @@ ophPointCloud::ophPointCloud(void)
 	, is_ViewingWindow(false)
 	, m_nProgress(0)
 	, n_points(-1)
-	, bSinglePrecision(false)
 {
 	LOG("*** POINT CLOUD : BUILD DATE: %s %s ***\n\n", __DATE__, __TIME__);
 }
@@ -152,8 +151,7 @@ Real ophPointCloud::generateHologram(uint diff_flag)
 #else
 		"Single Core CPU"
 #endif
-		);
-	//LOG("3) Transform Viewing Window : %s\n", is_ViewingWindow ? "ON" : "OFF");
+	);
 	LOG("3) Diffraction Method : %s\n", diff_flag == PC_DIFF_RS ? "R-S" : "Fresnel");
 	LOG("4) Number of Point Cloud : %d\n", n_points);
 	LOG("5) Precision Level : %s\n", m_mode & MODE_FLOAT ? "Single" : "Double");
@@ -167,11 +165,10 @@ Real ophPointCloud::generateHologram(uint diff_flag)
 	else { //Run CPU
 		genCghPointCloudCPU(diff_flag);
 	}
-
+	
 	m_nProgress = 0;
 	auto end = CUR_TIME;
-	m_elapsedTime = ((std::chrono::duration<Real>)(end - begin)).count();
-	LOG("Total Elapsed Time: %lf (s)\n", m_elapsedTime);
+	LOG("Total Elapsed Time: %lf (s)\n", ELAPSED_TIME(begin, end));
 	return m_elapsedTime;
 }
 
@@ -226,22 +223,12 @@ void ophPointCloud::encodeHologram(const vec2 band_limit, const vec2 spectrum_sh
 	Complex<Real>* h = new Complex<Real>[pnXY];
 
 	for (uint ch = 0; ch < nChannel; ch++) {
-#if 1
+
 		fft2(ivec2(pnX, pnY), complex_H[ch], OPH_FORWARD);
 		fft2(complex_H[ch], h, pnX, pnY, OPH_FORWARD);
 		fft2(ivec2(pnX, pnY), h, OPH_BACKWARD);
 		fft2(h, h, pnX, pnY, OPH_BACKWARD);
-#else
-		fft2(complex_H[ch], h, pnX, pnY, OPH_FORWARD);
-		fft2(ivec2(pnX, pnY), h, OPH_FORWARD);
-		fftExecute(h);
-		fft2(h, h, pnX, pnY, OPH_BACKWARD);
 
-		fft2(h, h, pnX, pnY, OPH_FORWARD);
-		fft2(ivec2(pnX, pnY), h, OPH_BACKWARD);
-		fftExecute(h);
-		fft2(h, h, pnX, pnY, OPH_BACKWARD);
-#endif
 		for (int i = 0; i < pnXY; i++) {
 			Complex<Real> shift_phase(1.0, 0.0);
 			int r = i / pnX;
@@ -304,7 +291,6 @@ Real ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 	bool bIsGrayScale = pc_data_.n_colors == 1 ? true : false;
 
 	int i; // private variable for Multi Threading
-	int num_threads = 1;
 	int sum = 0;
 	m_nProgress = 0;
 
@@ -317,8 +303,9 @@ Real ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 		pVertex = pc_data_.vertex;
 	}
 	
+	uint precision = m_mode & MODE_FLOAT ? PRECISION::SINGLE : PRECISION::DOUBLE;
+
 	for (uint ch = 0; ch < nChannel; ++ch) {
-		// Wave Number (2 * PI / lambda(wavelength))
 		Real lambda = context_.wave_length[ch];
 		Real k = context_.k = (2 * M_PI / lambda);
 
@@ -339,34 +326,25 @@ Real ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 			pcx *= pc_config_.scale[_X];
 			pcy *= pc_config_.scale[_Y];
 			pcz *= pc_config_.scale[_Z];
-			//pcx *= ratio;
-			//pcy *= ratio;
-#if 0
-			pcz += pc_config_.distance;
 
 			Real amplitude = pc_data_.color[iColor];
-
+			
 			switch (diff_flag)
 			{
 			case PC_DIFF_RS:
-				diffractNotEncodedRS(ch, pn, pp, ss, vec3(pcx, pcy, pcz), k, amplitude, lambda);
-#else
-			Real amplitude = pc_data_.color[iColor];
-			switch (diff_flag)
-			{
-			case PC_DIFF_RS:
-				RS_Diffraction(vec3(pcx, pcy, pcz), complex_H[ch], lambda, pc_config_.distance, amplitude);
-#endif
+				if (precision == PRECISION::DOUBLE)
+					RS_Diffraction(vec3(pcx, pcy, pcz), complex_H[ch], lambda, pc_config_.distance, amplitude);
+				else
+					RS_Diffraction(vec3(pcx, pcy, pcz), complex_H[ch], (float)lambda, (float)pc_config_.distance, (float)amplitude);
 				break;
 			case PC_DIFF_FRESNEL:
-				diffractNotEncodedFrsn(ch, pn, pp, ss, vec3(pcx, pcy, pcz), k, amplitude, lambda);
+				Fresnel_Diffraction(vec3(pcx, pcy, pcz), complex_H[ch], lambda, pc_config_.distance, amplitude);
 				break;
 			}
 #ifdef _OPENMP
 #pragma omp atomic
 #endif
 			sum++;
-
 			m_nProgress = (int)((Real)sum * 100 / ((Real)n_points * nChannel));
 		}
 	}
@@ -374,11 +352,11 @@ Real ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 		delete[] pVertex;
 	}
 	auto end = CUR_TIME;
-	Real elapsed_time = ((chrono::duration<Real>)(end - begin)).count();
+	Real elapsed_time = ELAPSED_TIME(begin, end);
 	LOG("\n%s : %lf(s) <%d threads>\n\n",
 		__FUNCTION__,
 		elapsed_time,
-		num_threads);
+		GetMaxThreadNum());
 
 	return elapsed_time;
 }
@@ -477,10 +455,6 @@ void ophPointCloud::diffractNotEncodedRS(uint channel, ivec2 pn, vec2 pp, vec2 s
 			}
 		}
 	}
-}
-
-void ophPointCloud::diffractEncodedFrsn(void)
-{
 }
 
 void ophPointCloud::diffractNotEncodedFrsn(uint channel, ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Real k, Real amplitude, Real lambda)

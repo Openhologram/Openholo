@@ -110,11 +110,8 @@ void ophWRP::calculateWRPGPU()
 	//Real wz = wrp_config_.wrp_location - zmax_;
 	for (uint ch = 0; ch < nChannel; ch++)
 	{
-#if 0
-		LOG("\tCUDA Gen WRP <<<%d, %d>>> : ", gridSize2, blockSize);
-#else
 		LOG("\tCUDA Gen WRP <<<%d, %d>>> : ", gridSize, blockSize);
-#endif
+
 		HANDLE_ERROR(cudaMemset(src, 0, pnXY * 4 * sizeof(cuDoubleComplex)));
 		HANDLE_ERROR(cudaMemset(fftsrc, 0, pnXY * 4 * sizeof(cufftDoubleComplex)));
 		HANDLE_ERROR(cudaMemset(fftdst, 0, pnXY * 4 * sizeof(cufftDoubleComplex)));
@@ -137,11 +134,8 @@ void ophWRP::calculateWRPGPU()
 		HANDLE_ERROR(cudaMemset(device_dst, 0., pnXY * sizeof(cuDoubleComplex)));
 
 		// cuda WRP
-#if 0
-		cudaGenWRP(gridSize2, blockSize, n_points, device_pc_data, device_amp_data, device_dst, (WRPGpuConst*)device_config);
-#else
 		cudaGenWRP(gridSize, blockSize, n_points, device_pc_data, device_amp_data, device_dst, (WRPGpuConst*)device_config);
-#endif
+
 		LOG("%lf (s)\n", ELAPSED_TIME(step, CUR_TIME));
 		
 		// 20200824_mwnam_

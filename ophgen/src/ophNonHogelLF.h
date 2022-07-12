@@ -86,14 +86,7 @@ public:
 	void preprocessLF();
 	void generateHologram();
 	void generateHologram(double thetaX, double thetaY);
-
-	/**
-	* @brief Function for setting precision
-	* @param[in] precision level.
-	*/
-	void setPrecision(bool bPrecision) { bSinglePrecision = bPrecision; }
-	bool getPrecision() { return bSinglePrecision; }
-
+	
 	// for Testing 
 	void writeIntensity_gray8_bmp(const char* fileName, int nx, int ny, Complex<Real>* complexvalue, int k = -1);
 	/**
@@ -129,7 +122,6 @@ private:
 	Real distanceRS2Holo;					/// Distance from Ray Sampling plane to Hologram plane
 	Real fieldLens;
 	bool is_ViewingWindow;
-	bool bSinglePrecision;
 	int nImages;
 	int nBufferX;
 	int nBufferY;

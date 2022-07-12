@@ -286,13 +286,3 @@ __pycache__/
 *.btm.cs
 *.odx.cs
 *.xsd.cs
-/ophgen/src/src.zip
-images/LF_1.png
-images/LF_2.png
-images/LF_3.png
-images/LF_4.png
-images/mesh_ex_continuous.jpg
-images/mesh_ex_flat.png
-images/mesh_fig1.png
-images/mesh_fig2.png
-images/mesh_fig3.png

@@ -68,6 +68,10 @@ struct OphWRPConfig;
 class GEN_DLL ophGen : public Openholo
 {
 public:
+	enum PRECISION {
+		SINGLE,
+		DOUBLE,
+	};
 
 	enum ENCODE_FLAG {
 		ENCODE_PHASE,
@@ -211,6 +215,12 @@ protected:
 
 
 public:
+	/**
+	* @brief Function for setting precision
+	* @param[in] precision level.
+	*/
+	void setPrecision(uint precision) { m_precision = precision; }
+	uint getPrecision() { return m_precision; }
 
 	void setEncodeMethod(unsigned int ENCODE_FLAG) { ENCODE_METHOD = ENCODE_FLAG; }
 
@@ -295,6 +305,7 @@ protected:
 private:
 	/// previous number of channel.
 	int						m_nOldChannel;
+	uint					m_precision;
 
 protected:
 	Real					m_dFieldLength;
@@ -479,12 +490,13 @@ protected:
 	void GetMaxMin(Real *src, int len, Real& max, Real& min);
 
 public:
-
-	void AngularSpectrum(Complex<Real> *src, Complex<Real> *dst, Real lambda, Real distance);
+	void AngularSpectrumMethod(Complex<Real> *src, Complex<Real> *dst, Real lambda, Real distance);
 	void RS_Diffraction(vec3 src, Complex<Real> *dst, Real lambda, Real distance, Real amplitude);
+	void RS_Diffraction(vec3 src, Complex<Real> *dst, float lambda, float distance, float amplitude);
 	void RS_Diffraction(uchar *src, Complex<Real> *dst, Real lambda, Real distance);
-	void Fresnel_Convolution(vec3 src, Complex<Real> *dst, Real lambda, Real distance, Real amplitude);
+	void Fresnel_Diffraction(vec3 src, Complex<Real> *dst, Real lambda, Real distance, Real amplitude);
 	void Fresnel_FFT(Complex<Real> *src, Complex<Real> *dst, Real lambda, Real waveRatio, Real distance);
+
 	bool readImage(const char* fname, bool bRGB);
 	void SetMode(unsigned int mode) { m_mode = mode; }
 	unsigned int GetMode() { return m_mode; }

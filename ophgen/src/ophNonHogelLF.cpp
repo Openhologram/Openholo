@@ -14,7 +14,6 @@ ophNonHogelLF::ophNonHogelLF(void)
 	, FToverUV_LF(nullptr)
 	, WField(nullptr)
 	, Hologram(nullptr)
-	, bSinglePrecision(false)
 {
 	LOG("*** LIGHT FIELD : BUILD DATE: %s %s ***\n\n", __DATE__, __TIME__);
 }
