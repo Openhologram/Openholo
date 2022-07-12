@@ -446,6 +446,24 @@ if \f$f(Z)\f$ is maximum value, value of \f$Z\f$ is distance parameter of hologr
 */
 //! @} getSF
 
+
+/**
+* @addtogroup PSDH
+//@{
+* @details
+
+* @section Algorithm
+- Extract complex field from 4 interference patterns with 90 degree phase shifts of the reference wave
+Store the result complex field to the member variable ComplexH
+![](pics/ophsig/psdh/psdh_concept.png)
+- Extract complex field from 3 interference patterns with arbitrary phase shifts of the reference wave
+Store the result complex field to the member variable ComplexH
+* @section Reference
+[ref] L.Z. CAi, Q. Liu, and X.L. Yang, Opt. Lett. 28(19) 1808 (2003)
+
+*/
+//! @} PSDH
+
 /**
 * @ingroup sig
 * @brief
@@ -463,17 +481,7 @@ protected:
 	OphComplexField* ComplexH;
 	fftw_plan bwd_plan, fwd_plan;
 
-	//float _width;
-	//float _height;
-
-	//float _NA;
-	//float _z;
-
 	int _wavelength_num;
-
-	/*float _angleX;
-	float _angleY;
-	float _redRate;*/
 	Real_t _radius;
 	Real_t* _foc;
 
@@ -517,8 +525,8 @@ protected:
 	* @brief			Function for Chromatic aberration compensation filter by using CPU
 	* @detail
 	* @param red		Red wavelength
-	* @param Green		Green wavelength
-	* @param Blue		Blue wavelength
+	* @param green		Green wavelength
+	* @param blue		Blue wavelength
 	* @return			If works well return 0  or error occurs return -1
 	*/
 	bool sigConvertCAC_CPU(double red, double green, double blue);
@@ -526,8 +534,8 @@ protected:
 	* @ingroup convCAC
 	* @brief			Function for Chromatic aberration compensation filter by using GPU
 	* @param red		Red wavelength
-	* @param Green		Green wavelength
-	* @param Blue		Blue wavelength
+	* @param green		Green wavelength
+	* @param blue		Blue wavelength
 	* @return			If works well return 0  or error occurs return -1
 	*/
 	bool sigConvertCAC_GPU(double red, double green, double blue);
@@ -968,17 +976,6 @@ public:
 	void ColorField2Buffer(matrix<Complex<Real>>& src, Complex<Real> **dst, int nx, int ny);
 
 	/**
-	* @addtogroup PSDH
-	//@{
-	* @details
-	Extract complex field from 4 interference patterns with 90 degree phase shifts of the reference wave
-	Store the result complex field to the member variable ComplexH
-	![](pics/ophsig/psdh/psdh_concept.png)
-
-	*/
-	//! @} PSDH
-
-	/**
 	* @ingroup PSDH
 	* @brief Extraction of complex field from 4 phase shifted interference patterns
 	* @details
@@ -988,18 +985,7 @@ public:
 	bool getComplexHFromPSDH(const char* fname0, const char* fname90, const char* fname180, const char* fname270);
 
 	/**
-	* @addtogroup PSDH_3ArbStep
-	//@{
-	* @details
-	Extract complex field from 3 interference patterns with arbitrary phase shifts of the reference wave
-	Store the result complex field to the member variable ComplexH
-	[ref] L.Z. CAi, Q. Liu, and X.L. Yang, Opt. Lett. 28(19) 1808 (2003)
-	
-	*/
-	//! @} PSDH_3ArbStep
-
-	/**
-	* @ingroup PSDH_3ArbStep
+	* @ingroup PSDH
 	* @brief Extraction of complex field from 3 phase shifted interference patterns with arbitrary unknown shifts
 	* @details
 	* @param f0, f1, f2 Input image files for 3 interference patterns
