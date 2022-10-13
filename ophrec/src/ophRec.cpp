@@ -129,14 +129,14 @@ bool ophRec::readConfig(const char* fname)
 	if (!next || XML_SUCCESS != next->QueryDoubleText(&context_.pixel_pitch[_Y]))
 		return false;
 	next = xml_node->FirstChildElement("IMG_Rotation");
-	if (!next || XML_SUCCESS != next->QueryBoolText(&imgCfg.bRotation))
-		imgCfg.bRotation = false;
+	if (!next || XML_SUCCESS != next->QueryBoolText(&imgCfg.rotate))
+		imgCfg.rotate = false;
 	next = xml_node->FirstChildElement("IMG_Merge");
-	if (!next || XML_SUCCESS != next->QueryBoolText(&imgCfg.bMergeImage))
-		imgCfg.bMergeImage = false;
+	if (!next || XML_SUCCESS != next->QueryBoolText(&imgCfg.merge))
+		imgCfg.merge = false;
 	next = xml_node->FirstChildElement("IMG_Flip");
-	if (!next || XML_SUCCESS != next->QueryIntText(&imgCfg.nFlip))
-		imgCfg.nFlip = 0;
+	if (!next || XML_SUCCESS != next->QueryIntText(&imgCfg.flip))
+		imgCfg.flip = 0;
 	next = xml_node->FirstChildElement("EyeLength");
 	if (!next || XML_SUCCESS != next->QueryDoubleText(&rec_config.EyeLength))
 		return false;
@@ -1200,7 +1200,7 @@ bool ophRec::save(const char * fname, uint8_t bitsperpixel, uchar* src, uint px,
 		saveAsImg(path, bitsperpixel, src, p[_X], p[_Y]);
 	}
 	else if (nChannel == 3) {
-		if (imgCfg.bMergeImage) {
+		if (imgCfg.merge) {
 			uint nSize = (((p[_X] * bitsperpixel / 8) + 3) & ~3) * p[_Y];
 			uchar *source = new uchar[nSize];
 			bAlloc = true;
@@ -1258,7 +1258,7 @@ void ophRec::SaveImage(const char *path, const char *ext)
 
 		if (nChannel == 3)
 		{
-			if (imgCfg.bMergeImage)
+			if (imgCfg.merge)
 			{
 				for (int ch = 0; ch < nChannel; ch++)
 				{

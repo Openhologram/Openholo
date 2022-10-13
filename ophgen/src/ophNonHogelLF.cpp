@@ -28,9 +28,8 @@ bool ophNonHogelLF::readConfig(const char* fname)
 	if (!ophGen::readConfig(fname))
 		return false;
 
-	LOG("Reading....%s...", fname);
-
-	auto start = CUR_TIME;
+	bool bRet = true;
+	auto begin = CUR_TIME;
 
 	using namespace tinyxml2;
 	/*XML parsing*/
@@ -39,45 +38,67 @@ bool ophNonHogelLF::readConfig(const char* fname)
 
 	if (!checkExtension(fname, ".xml"))
 	{
-		LOG("file's extension is not 'xml'\n");
+		LOG("<FAILED> Wrong file ext.\n");
 		return false;
 	}
 	if (xml_doc.LoadFile(fname) != XML_SUCCESS)
 	{
-		LOG("Failed to load file \"%s\"\n", fname);
+		LOG("<FAILED> Loading file.\n");
 		return false;
 	}
 
 	xml_node = xml_doc.FirstChild();
 
+	char szNodeName[32] = { 0, };
+	wsprintfA(szNodeName, "FieldLength");
 	// about viewing window
-	auto next = xml_node->FirstChildElement("FieldLength");
+	auto next = xml_node->FirstChildElement(szNodeName);
 	if (!next || XML_SUCCESS != next->QueryDoubleText(&fieldLens))
-		return false;
+	{
+		LOG("<FAILED> Not found node : \'%s\' (Double) \n", szNodeName);
+		bRet = false;
+	}
 
 	// about image
-	next = xml_node->FirstChildElement("Image_NumOfX");
+	wsprintfA(szNodeName, "Image_NumOfX");
+	next = xml_node->FirstChildElement(szNodeName);
 	if (!next || XML_SUCCESS != next->QueryIntText(&num_image[_X]))
-		return false;
-	next = xml_node->FirstChildElement("Image_NumOfY");
+	{
+		LOG("<FAILED> Not found node : \'%s\' (Integer) \n", szNodeName);
+		bRet = false;
+	}
+	wsprintfA(szNodeName, "Image_NumOfY");
+	next = xml_node->FirstChildElement(szNodeName);
 	if (!next || XML_SUCCESS != next->QueryIntText(&num_image[_Y]))
-		return false;
-	next = xml_node->FirstChildElement("Image_Width");
+	{
+		LOG("<FAILED> Not found node : \'%s\' (Integer) \n", szNodeName);
+		bRet = false;
+	}
+	wsprintfA(szNodeName, "Image_Width");
+	next = xml_node->FirstChildElement(szNodeName);
 	if (!next || XML_SUCCESS != next->QueryIntText(&resolution_image[_X]))
-		return false;
-	next = xml_node->FirstChildElement("Image_Height");
+	{
+		LOG("<FAILED> Not found node : \'%s\' (Integer) \n", szNodeName);
+		bRet = false;
+	}
+	wsprintfA(szNodeName, "Image_Height");
+	next = xml_node->FirstChildElement(szNodeName);
 	if (!next || XML_SUCCESS != next->QueryIntText(&resolution_image[_Y]))
-		return false;
-	next = xml_node->FirstChildElement("Distance");
+	{
+		LOG("<FAILED> Not found node : \'%s\' (Integer) \n", szNodeName);
+		bRet = false;
+	}
+	wsprintfA(szNodeName, "Distance");
+	next = xml_node->FirstChildElement(szNodeName);
 	if (!next || XML_SUCCESS != next->QueryDoubleText(&distanceRS2Holo))
-		return false;
+	{
+		LOG("<FAILED> Not found node : \'%s\' (Double) \n", szNodeName);
+		bRet = false;
+	}
 
-	auto end = CUR_TIME;
-	auto during = ((chrono::duration<Real>)(end - start)).count();
-	LOG("%lf (s)..done\n", during);
-
+	LOG("%s => %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
 	initialize();
-	return true;
+	return bRet;
 }
 
 int ophNonHogelLF::loadLF(const char* directory, const char* exten)
@@ -107,7 +128,7 @@ int ophNonHogelLF::loadLF(const char* directory, const char* exten)
 			rgbOut = loadAsImg(imgfullname.c_str());
 
 			if (rgbOut == 0) {
-				cout << "LF load was failed." << endl;
+				LOG("<FAILED> Load image.");
 				return -1;
 			}
 
@@ -120,16 +141,15 @@ int ophNonHogelLF::loadLF(const char* directory, const char* exten)
 				break;
 		}
 		_findclose(ff);
-		cout << "LF load was successed." << endl;
 
 		if (num_image[_X] * num_image[_Y] != num) {
-			cout << "num_image is not matched." << endl;
+			LOG("<FAILED> Not matching image.");
 		}
 		return 1;
 	}
 	else
 	{
-		cout << "LF load was failed." << endl;
+		LOG("<FAILED> Load image.");
 		return -1;
 	}
 }
@@ -157,8 +177,7 @@ int ophNonHogelLF::loadLF()
 			rgbOut = loadAsImg(imgfullname.c_str());
 
 			if (rgbOut == 0) {
-				cout << "LF load was failed." << endl;
-				cin.get();
+				LOG("<FAILED> Loading image.");
 				return -1;
 			}
 
@@ -174,15 +193,13 @@ int ophNonHogelLF::loadLF()
 		cout << "LF load was successed." << endl;
 
 		if (num_image[_X] * num_image[_Y] != num) {
-			cout << "num_image is not matched." << endl;
-			cin.get();
+			LOG("<FAILED> Not matching image.");
 		}
 		return 1;
 	}
 	else
 	{
-		cout << "LF load was failed." << endl;
-		cin.get();
+		LOG("<FAILED> Load image.");
 		return -1;
 	}
 }
@@ -207,7 +224,8 @@ void ophNonHogelLF::generateHologram()
 		"Single Core CPU"
 #endif
 	);
-	LOG("3) Transform Viewing Window : %s\n", is_ViewingWindow ? "ON" : "OFF");
+	LOG("3) Random Phase Use : %s\n", GetRandomPhase() ? "Y" : "N");
+	LOG("4) Number of Images : %d x %d\n", num_image[_X], num_image[_Y]);
 
 	auto begin = CUR_TIME;
 	if (m_mode & MODE_GPU)
@@ -224,7 +242,7 @@ void ophNonHogelLF::generateHologram()
 			fresnelPropagation(Hologram, complex_H[ch], distance, ch); //distanceRS2Holo
 	}
 
-	LOG("Total Elapsed Time: %lf (s)\n", ELAPSED_TIME(begin, CUR_TIME));
+	LOG("Total Elapsed Time: %.5lf (sec)\n", ELAPSED_TIME(begin, CUR_TIME));
 }
 
 void ophNonHogelLF::generateHologram(double thetaX, double thetaY)
@@ -240,7 +258,8 @@ void ophNonHogelLF::generateHologram(double thetaX, double thetaY)
 		"Single Core CPU"
 #endif
 	);
-	LOG("3) Transform Viewing Window : %s\n", is_ViewingWindow ? "ON" : "OFF");
+	LOG("3) Random Phase Use : %s\n", GetRandomPhase() ? "Y" : "N");
+	LOG("4) Number of Images : %d x %d\n", num_image[_X], num_image[_Y]);
 
 	auto begin = CUR_TIME;
 	if (m_mode & MODE_GPU)
@@ -257,7 +276,7 @@ void ophNonHogelLF::generateHologram(double thetaX, double thetaY)
 			fresnelPropagation(Hologram, complex_H[ch], distance, ch); //distanceRS2Holo
 	}
 
-	LOG("Total Elapsed Time: %lf (s)\n", ELAPSED_TIME(begin, CUR_TIME));
+	LOG("Total Elapsed Time: %.5lf (sec)\n", ELAPSED_TIME(begin, CUR_TIME));
 }
 
 //int ophLF::saveAsOhc(const char * fname)
@@ -273,8 +292,8 @@ void ophNonHogelLF::setBuffer()
 {
 	const uint nU = num_image[_X];
 	const uint nV = num_image[_Y];
-	nBufferX = nU / 2 + 1;
-	nBufferY = nV / 2 + 1;
+	nBufferX = (nU >> 1) + 1;
+	nBufferY = (nV >> 1) + 1;
 }
 
 void ophNonHogelLF::initializeLF()
@@ -296,12 +315,12 @@ void ophNonHogelLF::initializeLF()
 		memset(LF[i], 0, resolution_image[_X] * resolution_image[_Y]);
 	}
 	nImages = num_image[_X] * num_image[_Y];
-	cout << "The Number of the Images : " << num_image[_X] * num_image[_Y] << endl;
 }
 
 void ophNonHogelLF::makeRandomWField()
 {
-	LOG("now makeRandomWField\n");
+	auto begin = CUR_TIME;
+
 	const uint nU = num_image[_X];
 	const uint nV = num_image[_Y];
 	const uint nUV = nU * nV;
@@ -328,11 +347,12 @@ void ophNonHogelLF::makeRandomWField()
 		phase(0.0, 2.0 * M_PI * randVal); //randVal
 		WField[idxnXY] = exp(phase);
 	}
+	LOG("%s => %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
 }
 
 void ophNonHogelLF::makePlaneWaveWField(double thetaX, double thetaY)
 {
-	LOG("now makeRandomWField\n");
+	auto begin = CUR_TIME;
 	const uint nU = num_image[_X];
 	const uint nV = num_image[_Y];
 	const uint nUV = nU * nV;
@@ -362,11 +382,12 @@ void ophNonHogelLF::makePlaneWaveWField(double thetaX, double thetaY)
 			WField[idxnX + nXwithBuffer*idxnY] = exp(phase);
 		}
 	}
+	LOG("%s => %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
 }
 
 void ophNonHogelLF::fourierTransformOverUVLF()
 {
-	LOG("now fourierTransformOverUVLF\n");
+	auto begin = CUR_TIME;
 	const uint nX = resolution_image[_X];	// resolution of each orthographic images = spatial resolution of LF
 	const uint nY = resolution_image[_Y];  
 	const uint nXY = nX * nY;
@@ -426,12 +447,12 @@ void ophNonHogelLF::fourierTransformOverUVLF()
 		}
 	}
 	delete[] LFatXY, FToverUVatXY;
+	LOG("%s => %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
 
 }
 
 void ophNonHogelLF::convertLF2ComplexFieldUsingNonHogelMethod()
 {
-	LOG("now convertLF2ComplexFieldUsingNonHogelMethod\n");
 	auto begin = CUR_TIME;
 
 	const uint nX = resolution_image[_X];	// resolution of each orthographic images = spatial resolution of LF
@@ -487,8 +508,7 @@ void ophNonHogelLF::convertLF2ComplexFieldUsingNonHogelMethod()
 		}
 	}
 	delete[] HologramWithBuffer;
-	auto end = CUR_TIME;
-	LOG("\n%s : %lf(s)\n\n", __FUNCTION__, ((std::chrono::duration<Real>)(end - begin)).count());
+	LOG("%s => %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
 }
 
 void ophNonHogelLF::writeIntensity_gray8_bmp(const char* fileName, int nx, int ny, Complex<Real>* complexvalue, int k)

@@ -110,13 +110,51 @@ III. Modified Algorithm
 class GEN_DLL ophDepthMap : public ophGen {
 
 public:
+	enum IMAGE_TYPE {
+		RGB = 0,
+		DEPTH = 1
+	};
+	/**
+	* @brief Constructor
+	* @details Initialize variables.
+	*/
 	explicit ophDepthMap();
 
 protected:
+	/**
+	* @brief Destructor 
+	*/
 	virtual ~ophDepthMap();
 
 public:
+	/**
+	* @brief Read parameters from a config file. (*.xml)
+	* @return true if config infomation are sucessfully read, flase otherwise.
+	*/
 	bool readConfig(const char* fname);
+
+	/**
+	* @brief Read image and depth map.
+	* @details Read input files and load image & depth map data.
+	*  If the input image size is different with the dislay resolution, resize the image size.
+	* @param fname : image path.
+	* @param type : rgb image or depth image
+	* @return true if image data are sucessfully read, flase otherwise.
+	* @see loadAsImg, convertToFormatGray8, imgScaleBilinear
+	*/
+	bool readImage(const char* fname, IMAGE_TYPE type = RGB);
+
+	/**
+	* @brief Read image and depth map.
+	* @details Read input files and load image & depth map data.
+	*  If the input image size is different with the dislay resolution, resize the image size.
+	*  Invert the Image to the y-axis.
+	* @param source_folder : directory path
+	* @param img_prefix : rgb image prefix
+	* @param depth_img_prefix : depth image prefix
+	* @return true if image data are sucessfully read, flase otherwise.
+	* @see convertToFormatGray8, imgScaleBilinear, loadAsImgUpSideDown
+	*/
 	bool readImageDepth(const char* source_folder, const char* img_prefix, const char* depth_img_prefix);
 	//bool readImageDepth(const char* rgb, const char* depth);
 	
@@ -167,23 +205,94 @@ public:
 	inline const OphDepthMapConfig& getConfig() { return dm_config_; }
 	
 private:
-
+	/**
+	* @brief Initialize variables for CPU and GPU implementation.
+	* @see initCPU, initGPU
+	*/
 	void initialize();
+
+	/**
+	* @brief Initialize variables for the CPU implementation.
+	* @details Memory allocation for the CPU variables.
+	* @see initialize
+	*/
 	void initCPU();
+
+	/**
+	* @brief Initialize variables for the GPU implementation.
+	* @details Memory allocation for the GPU variables.
+	* @see initialize
+	*/
 	void initGPU();
 
+	/**
+	* @brief Preprocess input image & depth map data for the CPU implementation.
+	* @details Prepare variables, m_vecImgSrc, dmap_src_, m_vecAlphaMap, depth_index_.
+	* @return true if input data are sucessfully prepared, flase otherwise.
+	*/
 	bool prepareInputdataCPU();
+	
+	/**
+	* @brief Copy input image & depth map data into a GPU.
+	* @return true if input data are sucessfully copied on GPU, flase otherwise.
+	* @see readImageDepth
+	*/
 	bool prepareInputdataGPU();
 
+	/**
+	* @brief Calculate the physical distances of depth map layers
+	* @details Initialize 'dstep_' & 'dlevel_' variables.
+	*  If change_depth_quantization == 1, recalculate  'depth_index_' variable.
+	* @see changeDepthQuanCPU, changeDepthQuanGPU
+	*/
 	void getDepthValues();
+
+	/**
+	* @brief Quantize depth map on the CPU, when the number of depth quantization is not the default value (i.e. change_depth_quantization == 1 ).
+	* @details Calculate the value of 'depth_index_'.
+	*/
 	void changeDepthQuanCPU();
+
+	/**
+	* @brief Quantize depth map on the GPU, when the number of depth quantization is not the default value (i.e. change_depth_quantization == 1 ).
+	* @details Calculate the value of 'depth_index_gpu'.
+	* @see getDepthValues
+	*/
 	void changeDepthQuanGPU();
 
+	/**
+	* @brief Transform target object to reflect the system configuration of holographic display.
+	* @details Calculate 'dlevel_transform_' variable by using 'fieldLength' & 'dlevel_'.
+	*/
 	void transVW();
-
+	
+	/**
+	* @brief Main method for generating a hologram on the CPU.
+	* @details For each depth level,
+	*   1. find each depth plane of the input image.
+	*   2. apply carrier phase delay.
+	*   3. propagate it to the hologram plan.
+	*   4. accumulate the result of each propagation.
+	* .
+	* The final result is accumulated in the variable 'complex_H'.
+	* @see fftInit2D, GetRandomPhase, GetRandomPhaseValue, fft2, AngularSpectrumMethod, fftFree
+	*/
 	void calcHoloCPU();
+	
+	/**
+	* @brief Main method for generating a hologram on the GPU.
+	* @details For each depth level,
+	*   1. find each depth plane of the input image.
+	*   2. apply carrier phase delay.
+	*   3. propagate it to the hologram plan.
+	*   4. accumulate the result of each propagation.
+	* .
+	* It uses CUDA kernels, cudaDepthHoloKernel & cudaPropagation_AngularSpKernel.<br>
+	* The final result is accumulated in the variable 'u_complex_gpu_'.
+	* @param frame : the frame number of the image.
+	* @see calc_Holo_by_Depth
+	*/
 	void calcHoloGPU();
-	void propagationAngularSpectrumGPU(uint channel, cufftDoubleComplex* input_u, Real propagation_dist);
 
 protected:
 	void free_gpu(void);
@@ -203,7 +312,7 @@ private:
 	vector<Real *>			m_vecImgSrc;
 	vector<int *>			m_vecAlphaMap;
 	Real*					dmap_src;							///< CPU variable - depth map data, values are from 0 to 1.
-	short*					depth_index;						///< CPU variable - quantized depth map data.
+	uint*					depth_index;						///< CPU variable - quantized depth map data.
 	vector<short>			depth_fill;
 	Real*					dmap;								///< CPU variable - physical distances of depth map.
 

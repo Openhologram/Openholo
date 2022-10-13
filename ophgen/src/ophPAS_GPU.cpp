@@ -170,14 +170,14 @@ bool ophPAS_GPU::readConfig(const char* fname) {
 	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&context_.pixel_pitch[_Y]))
 		return false;
 	next = xml_node->FirstChildElement("IMG_Rotation");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryBoolText(&imgCfg.bRotation))
-		imgCfg.bRotation = false;
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryBoolText(&imgCfg.rotate))
+		imgCfg.rotate = false;
 	next = xml_node->FirstChildElement("IMG_Merge");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryBoolText(&imgCfg.bMergeImage))
-		imgCfg.bMergeImage = false;
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryBoolText(&imgCfg.merge))
+		imgCfg.merge = false;
 	next = xml_node->FirstChildElement("IMG_Flip");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryIntText(&imgCfg.nFlip))
-		imgCfg.nFlip = 0;
+	if (!next || tinyxml2::XML_SUCCESS != next->QueryIntText(&imgCfg.flip))
+		imgCfg.flip = 0;
 	next = xml_node->FirstChildElement("DoublePrecision");
 	if (!next || tinyxml2::XML_SUCCESS != next->QueryBoolText(&context_.bUseDP))
 		context_.bUseDP = true;

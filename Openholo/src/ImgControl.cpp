@@ -28,7 +28,7 @@ bool ImgControl::Save(const char *path, BYTE *pSrc, UINT len, int quality)
 	if (GdiplusStartup(&token, &gsi, NULL) == Ok) {
 		BYTE *pDest = new BYTE[len];
 		memcpy(pDest, pSrc, len);
-
+		
 		CComPtr<IStream> pStream;
 		pStream.Attach(SHCreateMemStream(pDest, len));
 		Image img(pStream, FALSE);
@@ -106,7 +106,7 @@ int ImgControl::GetEncoderClsid(const WCHAR *format, CLSID *pClsid)
 void ImgControl::Resize(unsigned char* src, unsigned char* dst, int w, int h, int neww, int newh, int ch)
 {
 	if (src == nullptr || dst == nullptr) return;
-	auto begin = CUR_TIME;
+
 	int nBytePerLine = ((w * ch) + 3) & ~3; // src
 	int nNewBytePerLine = ((neww * ch) + 3) & ~3; // dst
 	int y;
@@ -177,18 +177,12 @@ void ImgControl::Resize(unsigned char* src, unsigned char* dst, int w, int h, in
 			}
 		}
 	}
-	auto end = CUR_TIME;
-	LOG("Image Size Scaled : (%d bit) (%dx%d) => (%dx%d) : %lf(s)\n",
-		ch * 8,
-		w, h, neww, newh,
-		ELAPSED_TIME(begin, end));
 }
 
 bool ImgControl::Rotate(double rotate, unsigned char *src, unsigned char *dst, int w, int h, int neww, int newh, int ch)
 {
 	if (src == nullptr || dst == nullptr) return false;
 	if (ch > 4) return false;
-	auto begin = CUR_TIME;
 
 	bool bChangeSize = false;
 	if (neww != w || newh != h) {
@@ -238,18 +232,13 @@ bool ImgControl::Rotate(double rotate, unsigned char *src, unsigned char *dst, i
 	memcpy(dst, temp2, nImgSize);
 	delete[] temp;
 	delete[] temp2;
-	auto end = CUR_TIME;
-	LOG("Image Rotate : (%d bit) (%dx%d) (%lf degree) : %lf(s)\n",
-		ch * 8,
-		w, h, rotate,
-		ELAPSED_TIME(begin, end));
 	return true;
 }
 
 bool ImgControl::Flip(FLIP mode, unsigned char *src, unsigned char *dst, int w, int h, int ch)
 {
 	if (src == nullptr || dst == nullptr) return false;
-	auto begin = CUR_TIME;
+
 	bool bOK = true;
 	int nImgSize = CalcBitmapSize(w, h, ch);
 	unsigned char *temp = new unsigned char[nImgSize];
@@ -299,17 +288,6 @@ bool ImgControl::Flip(FLIP mode, unsigned char *src, unsigned char *dst, int w, 
 
 	memcpy(dst, temp, sizeof(unsigned char) * nImgSize);
 	delete[] temp;
-	auto end = CUR_TIME;
-	LOG("Image Flip: (%d bit) %s (%dx%d) : %lf(s)\n",
-		ch * 8,
-		mode == FLIP::VERTICAL ?
-		"Vertical" :
-		mode == FLIP::HORIZONTAL ?
-		"Horizontal" :
-		mode == FLIP::BOTH ?
-		"Both" : "Unknown",
-		w, h,
-		ELAPSED_TIME(begin, end));
 	return bOK;
 }
 
@@ -318,42 +296,27 @@ bool ImgControl::Crop(unsigned char *src, unsigned char *dst, int w, int h, int 
 	if (!src || !dst) return false;
 	if (x < 0 || y < 0 || x + neww > w || y + newh > h) return false;
 
-	auto begin = CUR_TIME;
 	bool bOK = true;
 	int nBytePerLine = ((neww * ch) + 3) & ~3;
 	int nBytePerLine2 = ((w * ch) + 3) & ~3;
 	int offsetX = x * ch; // fix
 
 	memset(dst, 0, sizeof(unsigned char) * nBytePerLine * newh);
-	int num_threads = 1;
 
-#ifdef _OPENMP
 	int yy;
-#pragma omp parallel
-	{
-		num_threads = omp_get_num_threads();
-#pragma omp for private(yy)
-		for (yy = 0; yy < newh; yy++) {
-#else
-		for (int yy = 0; yy < newh; yy++) {
-#endif
-			int offset = yy * nBytePerLine;
-			int offsetY = (y + yy) * nBytePerLine2;
-			memcpy(&dst[offset], &src[offsetY + offsetX], sizeof(unsigned char) * ch * neww);
-		}
 #ifdef _OPENMP
+#pragma omp parallel for private(yy) firstprivate(nBytePerLine, nBytePerLine2, y, ch, neww)
+	for (yy = 0; yy < newh; yy++) {
+#endif
+		int offset = yy * nBytePerLine;
+		int offsetY = (y + yy) * nBytePerLine2;
+		memcpy(&dst[offset], &src[offsetY + offsetX], sizeof(unsigned char) * ch * neww);
 	}
-#endif	
-	auto end = CUR_TIME;
-	LOG("Image Crop (%d threads): (%d bit) (%dx%d) : %lf(s)\n",
-		num_threads, ch * 8, neww, newh,
-		ELAPSED_TIME(begin, end));
 	return bOK;
 }
 
 bool ImgControl::GetSize(const char* path, unsigned int *size)
 {
-	auto begin = CUR_TIME;
 	bool bOK = true;
 	*size = 0;
 	int num_threads = 1;
@@ -369,11 +332,6 @@ bool ImgControl::GetSize(const char* path, unsigned int *size)
 	fclose(fp);
 
 RETURN:
-	auto end = CUR_TIME;
-	LOG("Get Size (%d threads): (%d bytes)\n",
-		num_threads, *size,
-		ELAPSED_TIME(begin, end));
-
 	return bOK;
 }
 

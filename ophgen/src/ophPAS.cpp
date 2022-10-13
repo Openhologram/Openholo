@@ -32,9 +32,8 @@ bool ophPAS::readConfig(const char* fname)
 	if (!ophGen::readConfig(fname))
 		return false;
 
-	LOG("Reading....%s...", fname);
-
-	auto start = CUR_TIME;
+	bool bRet = true;
+	auto begin = CUR_TIME;
 
 	using namespace tinyxml2;
 	/*XML parsing*/
@@ -43,101 +42,49 @@ bool ophPAS::readConfig(const char* fname)
 
 	if (!checkExtension(fname, ".xml"))
 	{
-		LOG("file's extension is not 'xml'\n");
+		LOG("<FAILED> Wrong file ext.\n");
 		return false;
 	}
 	if (xml_doc.LoadFile(fname) != XML_SUCCESS)
 	{
-		LOG("Failed to load file \"%s\"\n", fname);
+		LOG("<FAILED> Loading file.\n");
 		return false;
 	}
 	xml_node = xml_doc.FirstChild();
 
-	int nWave = 1;
-	auto next = xml_node->FirstChildElement("ScaleX");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&pc_config.scale[_X]))
-		return false;
-	next = xml_node->FirstChildElement("ScaleY");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&pc_config.scale[_Y]))
-		return false;
-	next = xml_node->FirstChildElement("ScaleZ");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&pc_config.scale[_Z]))
-		return false;
-	next = xml_node->FirstChildElement("Distance");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&pc_config.distance))
-		return false;
-
-
-
-
-	next = xml_node->FirstChildElement("SLM_WaveNum"); // OffsetInDepth
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryIntText(&nWave))
-		return false;
-
-	context_.waveNum = nWave;
-	if (context_.wave_length) delete[] context_.wave_length;
-	context_.wave_length = new Real[nWave];
 
 	char szNodeName[32] = { 0, };
-	for (int i = 1; i <= nWave; i++) {
-		wsprintfA(szNodeName, "SLM_WaveLength_%d", i);
-		next = xml_node->FirstChildElement(szNodeName);
-		if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&context_.wave_length[i - 1]))
-			return false;
+	wsprintfA(szNodeName, "ScaleX");
+	// about point
+	auto next = xml_node->FirstChildElement(szNodeName);
+	if (!next || XML_SUCCESS != next->QueryDoubleText(&pc_config.scale[_X]))
+	{
+		LOG("<FAILED> Not found node : \'%s\' (Double) \n", szNodeName);
+		bRet = false;
 	}
-	next = xml_node->FirstChildElement("SLM_PixelNumX");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryIntText(&context_.pixel_number[_X]))
-		return false;
-	next = xml_node->FirstChildElement("SLM_PixelNumY");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryIntText(&context_.pixel_number[_Y]))
-		return false;
-	next = xml_node->FirstChildElement("SLM_PixelPitchX");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&context_.pixel_pitch[_X]))
-		return false;
-	next = xml_node->FirstChildElement("SLM_PixelPitchY");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&context_.pixel_pitch[_Y]))
-		return false;
-	next = xml_node->FirstChildElement("IMG_Rotation");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryBoolText(&imgCfg.bRotation))
-		imgCfg.bRotation = false;
-	next = xml_node->FirstChildElement("IMG_Merge");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryBoolText(&imgCfg.bMergeImage))
-		imgCfg.bMergeImage = false;
-	next = xml_node->FirstChildElement("IMG_Flip");
-	if (!next || XML_SUCCESS != next->QueryIntText(&imgCfg.nFlip))
-		imgCfg.nFlip = 0;
-	next = xml_node->FirstChildElement("DoublePrecision");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryBoolText(&context_.bUseDP))
-		context_.bUseDP = true;
-	next = xml_node->FirstChildElement("ShiftX");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&context_.shift[_X]))
-		context_.shift[_X] = 0.0;
-	next = xml_node->FirstChildElement("ShiftY");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&context_.shift[_Y]))
-		context_.shift[_Y] = 0.0;
-	next = xml_node->FirstChildElement("ShiftZ");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&context_.shift[_Z]))
-		context_.shift[_Z] = 0.0;
-	next = xml_node->FirstChildElement("FieldLength");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&m_dFieldLength))
-		m_dFieldLength = 0.0;
-	next = xml_node->FirstChildElement("NumOfStream");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryIntText(&m_nStream))
-		m_nStream = 1;
-
-	context_.ss[_X] = context_.pixel_number[_X] * context_.pixel_pitch[_X];
-	context_.ss[_Y] = context_.pixel_number[_Y] * context_.pixel_pitch[_Y];
-
-	Openholo::setPixelNumberOHC(context_.pixel_number);
-	Openholo::setPixelPitchOHC(context_.pixel_pitch);
-
-	OHC_encoder->clearWavelength();
-	for (int i = 0; i < nWave; i++)
-		Openholo::setWavelengthOHC(context_.wave_length[i], LenUnit::m);
-	auto end = CUR_TIME;
-	auto during = ((chrono::duration<Real>)(end - start)).count();
-	LOG("%lf (s)..done\n", during);
-
+	wsprintfA(szNodeName, "ScaleY");
+	next = xml_node->FirstChildElement(szNodeName);
+	if (!next || XML_SUCCESS != next->QueryDoubleText(&pc_config.scale[_Y]))
+	{
+		LOG("<FAILED> Not found node : \'%s\' (Double) \n", szNodeName);
+		bRet = false;
+	}
+	wsprintfA(szNodeName, "ScaleZ");
+	next = xml_node->FirstChildElement(szNodeName);
+	if (!next || XML_SUCCESS != next->QueryDoubleText(&pc_config.scale[_Z]))
+	{
+		LOG("<FAILED> Not found node : \'%s\' (Double) \n", szNodeName);
+		bRet = false;
+	}
+	wsprintfA(szNodeName, "Distance");
+	next = xml_node->FirstChildElement(szNodeName);
+	if (!next || XML_SUCCESS != next->QueryDoubleText(&pc_config.distance))
+	{
+		LOG("<FAILED> Not found node : \'%s\' (Double) \n", szNodeName);
+		bRet = false;
+	}
+	
+	LOG("%s => %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
 	initialize();
 	return true;
 }
@@ -147,9 +94,6 @@ int ophPAS::loadPoint(const char* _filename)
 	n_points = ophGen::loadPointCloud(_filename, &pc_data);
 	return n_points;
 }
-
-
-
 
 int ophPAS::save(const char * fname, uint8_t bitsperpixel, uchar* src, uint px, uint py)
 {
@@ -731,7 +675,7 @@ void ophPAS::CalcCompensatedPhase(float cx, float cy, float cz, float amp
 	int		idx_c, idx_s;
 	float	theta;
 
-	float rWaveNum = 9926043.13930423;// _CGHE->rWaveNumber;
+	float rWaveNum = 9926043.13930423f;// _CGHE->rWaveNumber;
 
 	float R;
 	auto start = CUR_TIME;
@@ -804,7 +748,7 @@ void ophPAS::encodeHologram(const vec2 band_limit, const vec2 spectrum_shift)
 		return;
 	}
 
-	LOG("Single Side Band Encoding..");
+
 	const uint nChannel = context_.waveNum;
 	const uint pnX = context_.pixel_number[_X];
 	const uint pnY = context_.pixel_number[_Y];
@@ -876,8 +820,7 @@ void ophPAS::encodeHologram(const vec2 band_limit, const vec2 spectrum_shift)
 	delete[] xx_o;
 	delete[] y_o;
 	delete[] yy_o;
-	
-	LOG("Done.\n");
+
 }
 
 void ophPAS::encoding(unsigned int ENCODE_FLAG)

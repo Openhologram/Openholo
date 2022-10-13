@@ -132,7 +132,7 @@ void cudaFFT(CUstream_st* stream, int nx, int ny, cufftDoubleComplex* in_field, 
 	result = cufftPlan2d(&plan, ny, nx, CUFFT_Z2Z);
 	if (result != CUFFT_SUCCESS)
 	{
-		LOG("cufftPlan2d : Failed (%d)\n", result);
+		LOG("<FAILED> cufftPlan2d (%d)\n", result);
 		return;
 	};
 
@@ -143,12 +143,12 @@ void cudaFFT(CUstream_st* stream, int nx, int ny, cufftDoubleComplex* in_field, 
 
 	if (result != CUFFT_SUCCESS)
 	{
-		LOG("cufftExecZ2Z : Failed (%d)\n", result);
+		LOG("<FAILED> cufftExecZ2Z (%d)\n", result);
 		return;
 	}
 
 	if (cudaDeviceSynchronize() != cudaSuccess) {
-		LOG("cudaDeviceSynchronize() : Failed\n");
+		LOG("<FAILED> cudaDeviceSynchronize\n");
 		return;
 	}
 

@@ -93,7 +93,6 @@ extern "C"
 	* @param in_field : input complex data variable
 	* @param output_field : output complex data variable
 	* @param direction : If direction == -1, forward FFT, if type == 1, inverse FFT.
-	* @param bNomarlized : If bNomarlized == true, normalize the result after FFT.
 	* @see propagation_AngularSpectrum_GPU, encoding_GPU
 	*/
 	void cudaFFT(CUstream_st* stream, int nx, int ny, cufftDoubleComplex* in_filed, cufftDoubleComplex* output_field, int direction);
@@ -120,15 +119,15 @@ extern "C"
 	* @param default_depth_quan : default value of the depth quantization - 256
 	* @see calc_Holo_GPU
 	*/
-	void cudaDepthHoloKernel(CUstream_st* stream, int pnx, int pny, cufftDoubleComplex* u_o_gpu_, unsigned char* img_src_gpu, unsigned char* dimg_src_gpu, Real* depth_index_gpu,
+	void cudaDepthHoloKernel(CUstream_st* stream, int nx, int ny, cufftDoubleComplex* u_o_gpu_, unsigned char* img_src_gpu, unsigned char* dimg_src_gpu, Real* depth_index_gpu,
 		int dtr, Real rand_phase_val_a, Real rand_phase_val_b, Real carrier_phase_delay_a, Real carrier_phase_delay_b, int flag_change_depth_quan, unsigned int default_depth_quan);
 
 	/**
 	* @brief Angular spectrum propagation method for GPU implementation.
 	* @details The propagation results of all depth levels are accumulated in the variable 'u_complex_gpu_'.
 	* @param stream : CUDA Stream
-	* @param pnx : the number of column of the input data
-	* @param pny : the number of row of the input data
+	* @param nx : the number of column of the input data
+	* @param ny : the number of row of the input data
 	* @param input_d : input data
 	* @param u_complex : output data
 	* @param ppx : pixel pitch of x-axis
@@ -140,7 +139,7 @@ extern "C"
 	* @param propagation_dist : the distance from the object to the hologram plane
 	* @see propagation_AngularSpectrum_GPU
 	*/
-	void cudaPropagation_AngularSpKernel(CUstream_st* stream_, int pnx, int pny, cufftDoubleComplex* input_d, cufftDoubleComplex* u_complex,
+	void cudaPropagation_AngularSpKernel(CUstream_st* stream_, int nx, int ny, cufftDoubleComplex* input_d, cufftDoubleComplex* u_complex,
 		Real ppx, Real ppy, Real ssx, Real ssy, Real lambda, Real params_k, Real propagation_dist);
 
 	//void cudaGetFringe(CUstream_st* stream, int pnx, int pny, cufftDoubleComplex* in_field, cufftDoubleComplex* out_field, int sig_locationx, int sig_locationy,

@@ -705,9 +705,8 @@ private:
 	* @param Select diffraction flag\n
 	*		PC_DIFF_RS: Diffraction using R-S integral\n
 	*		PC_DIFF_FRESNEL: Diffraction using Fresnel integral
-	* @return implement time (sec)
 	*/
-	Real genCghPointCloudCPU(uint diff_flag);
+	void genCghPointCloudCPU(uint diff_flag);
 	
 	void diffractEncodedRS(uint channel, ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Real k, Real amplitude, vec2 theta);
 	void diffractNotEncodedRS(uint channel, ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Real k, Real amplitude, Real lambda);
@@ -720,9 +719,8 @@ private:
 	* @param Select diffraction flag\n
 	*		PC_DIFF_RS: Diffraction using R-S integral\n
 	*		PC_DIFF_FRESNEL: Diffraction using Fresnel integral
-	* @return implement time (sec)
 	*/
-	Real genCghPointCloudGPU(uint diff_flag);
+	void genCghPointCloudGPU(uint diff_flag);
 
 	virtual void ophFree(void);
 

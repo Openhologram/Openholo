@@ -67,9 +67,8 @@ bool ophLF::readConfig(const char* fname)
 	if (!ophGen::readConfig(fname))
 		return false;
 
-	LOG("Reading....%s...", fname);
-
-	auto start = CUR_TIME;
+	bool bRet = true;
+	auto begin = CUR_TIME;
 
 	using namespace tinyxml2;
 	/*XML parsing*/
@@ -78,45 +77,67 @@ bool ophLF::readConfig(const char* fname)
 
 	if (!checkExtension(fname, ".xml"))
 	{
-		LOG("file's extension is not 'xml'\n");
+		LOG("<FAILED> Wrong file ext.\n");
 		return false;
 	}
 	if (xml_doc.LoadFile(fname) != XML_SUCCESS)
 	{
-		LOG("Failed to load file \"%s\"\n", fname);
+		LOG("<FAILED> Loading file.\n");
 		return false;
 	}
 
 	xml_node = xml_doc.FirstChild();
 
+	char szNodeName[32] = { 0, };
+	wsprintfA(szNodeName, "FieldLength");
 	// about viewing window
-	auto next = xml_node->FirstChildElement("FieldLength");
+	auto next = xml_node->FirstChildElement(szNodeName);
 	if (!next || XML_SUCCESS != next->QueryDoubleText(&fieldLens))
-		return false;
+	{
+		LOG("<FAILED> Not found node : \'%s\' (Double) \n", szNodeName);
+		bRet = false;
+	}
 
 	// about image
-	next = xml_node->FirstChildElement("Image_NumOfX");
+	wsprintfA(szNodeName, "Image_NumOfX");
+	next = xml_node->FirstChildElement(szNodeName);
 	if (!next || XML_SUCCESS != next->QueryIntText(&num_image[_X]))
-		return false;
-	next = xml_node->FirstChildElement("Image_NumOfY");
+	{
+		LOG("<FAILED> Not found node : \'%s\' (Integer) \n", szNodeName);
+		bRet = false;
+	}
+	wsprintfA(szNodeName, "Image_NumOfY");
+	next = xml_node->FirstChildElement(szNodeName);
 	if (!next || XML_SUCCESS != next->QueryIntText(&num_image[_Y]))
-		return false;
-	next = xml_node->FirstChildElement("Image_Width");
+	{
+		LOG("<FAILED> Not found node : \'%s\' (Integer) \n", szNodeName);
+		bRet = false;
+	}
+	wsprintfA(szNodeName, "Image_Width");
+	next = xml_node->FirstChildElement(szNodeName);
 	if (!next || XML_SUCCESS != next->QueryIntText(&resolution_image[_X]))
-		return false;
-	next = xml_node->FirstChildElement("Image_Height");
+	{
+		LOG("<FAILED> Not found node : \'%s\' (Integer) \n", szNodeName);
+		bRet = false;
+	}
+	wsprintfA(szNodeName, "Image_Height");
+	next = xml_node->FirstChildElement(szNodeName);
 	if (!next || XML_SUCCESS != next->QueryIntText(&resolution_image[_Y]))
-		return false;
-	next = xml_node->FirstChildElement("Distance");
+	{
+		LOG("<FAILED> Not found node : \'%s\' (Integer) \n", szNodeName);
+		bRet = false;
+	}
+	wsprintfA(szNodeName, "Distance");
+	next = xml_node->FirstChildElement(szNodeName);
 	if (!next || XML_SUCCESS != next->QueryDoubleText(&distanceRS2Holo))
-		return false;
+	{
+		LOG("<FAILED> Not found node : \'%s\' (Double) \n", szNodeName);
+		bRet = false;
+	}
 
-	auto end = CUR_TIME;
-	auto during = ((chrono::duration<Real>)(end - start)).count();
-	LOG("%lf (s)..done\n", during);
-
+	LOG("%s => %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
 	initialize();
-	return true;
+	return bRet;
 }
 
 int ophLF::loadLF(const char* directory, const char* exten)
@@ -153,7 +174,7 @@ int ophLF::loadLF(const char* directory, const char* exten)
 				convertToFormatGray8(img, m_vecImages[num], sizeOut[_X], sizeOut[_Y], bytesperpixel);
 				m_vecImgSize[num] = size;
 				if (img == nullptr) {
-					cout << "LF load was failed." << endl;
+					LOG("<FAILED> Load image.");
 					return -1;
 				}
 			}
@@ -162,7 +183,7 @@ int ophLF::loadLF(const char* directory, const char* exten)
 				m_vecImages[num] = loadAsImg(imgfullname.c_str());
 				m_vecImgSize[num] = size;
 				if (m_vecImages[num] == nullptr) {
-					cout << "LF load was failed." << endl;
+					LOG("<FAILED> Load image.");
 					return -1;
 				}
 			}
@@ -173,16 +194,15 @@ int ophLF::loadLF(const char* directory, const char* exten)
 				break;
 		}
 		_findclose(ff);
-		cout << "LF load was successed." << endl;
 
 		if (num_image[_X] * num_image[_Y] != num) {
-			cout << "num_image is not matched." << endl;
+			LOG("<FAILED> Not matching image.");
 		}
 		return 1;
 	}
 	else
 	{
-		cout << "LF load was failed." << endl;
+		LOG("<FAILED> Load image.");
 		return -1;
 	}
 }
@@ -218,7 +238,7 @@ int ophLF::loadLF()
 				convertToFormatGray8(img, m_vecImages[num], sizeOut[_X], sizeOut[_Y], bytesperpixel);
 				m_vecImgSize[num] = size;
 				if (img == nullptr) {
-					cout << "LF load was failed." << endl;
+					LOG("<FAILED> Loading image.");
 					return -1;
 				}
 			}
@@ -227,7 +247,7 @@ int ophLF::loadLF()
 				m_vecImages[num] = loadAsImg(imgfullname.c_str());
 				m_vecImgSize[num] = size;
 				if (m_vecImages[num] == nullptr) {
-					cout << "LF load was failed." << endl;
+					LOG("<FAILED> Loading image.");
 					return -1;
 				}
 			}
@@ -238,18 +258,16 @@ int ophLF::loadLF()
 				break;
 		}
 		_findclose(ff);
-		cout << "LF load was successed." << endl;
+
 
 		if (num_image[_X] * num_image[_Y] != num) {
-			cout << "num_image is not matched." << endl;
-			cin.get();
+			LOG("<FAILED> Not matching image.");
 		}
 		return 1;
 	}
 	else
 	{
-		cout << "LF load was failed." << endl;
-		cin.get();
+		LOG("<FAILED> Load image.");
 		return -1;
 	}
 }
@@ -268,7 +286,7 @@ void ophLF::generateHologram()
 #endif
 	);
 	LOG("3) Random Phase Use : %s\n", GetRandomPhase() ? "Y" : "N");
-	//LOG("3) Transform Viewing Window : %s\n", is_ViewingWindow ? "ON" : "OFF");
+	LOG("4) Number of Images : %d x %d\n", num_image[_X], num_image[_Y]);
 
 	auto begin = CUR_TIME;
 
@@ -286,7 +304,7 @@ void ophLF::generateHologram()
 		}
 	}
 	fftFree();
-	LOG("Total Elapsed Time: %lf (s)\n", ELAPSED_TIME(begin, CUR_TIME));
+	LOG("Total Elapsed Time: %.5lf (sec)\n", ELAPSED_TIME(begin, CUR_TIME));
 }
 
 void ophLF::initializeLF()
@@ -302,7 +320,6 @@ void ophLF::initializeLF()
 	m_vecImages.resize(N);
 	m_vecImgSize.resize(N);
 	nImages = N;
-	cout << "The Number of the Images : " << N << endl;
 }
 
 void ophLF::convertLF2ComplexField()
@@ -366,7 +383,7 @@ void ophLF::convertLF2ComplexField()
 
 	delete[] tmp;
 	fftFree();
-	LOG("\n%s : %lf(s)\n\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
+	LOG("%s => %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
 }
 
 void ophLF::writeIntensity_gray8_bmp(const char* fileName, int nx, int ny, Complex<Real>* complexvalue, int k)

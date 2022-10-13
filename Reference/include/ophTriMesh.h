@@ -130,7 +130,8 @@ private:
 
 private:
 
-	Real* triMeshArray;						/// Original triangular mesh array (N*9)
+	//* triMeshArray;						/// Original triangular mesh array (N*9)
+	Face* triMeshArray;						/// Original triangular mesh array (N*9)
 	Complex<Real>* angularSpectrum;			/// Angular spectrum of the hologram
 	OphMeshData* meshData;					/// OphMeshData type data structure pointer
 
@@ -163,9 +164,13 @@ public:
 	void setTexturePeriod(Real in) { texture.period = in; }
 
 	ulonglong getNumMesh() { return meshData->n_faces; }
-	Real* getMeshData() { return triMeshArray; }
+
+
+	//Real* getMeshData() { return triMeshArray; }
+	Face* getMeshData() { return triMeshArray; }
 	Complex<Real>* getAngularSpectrum() { return angularSpectrum; }
-	Real* getScaledMeshData() { return scaledMeshData; }
+	//Real* getScaledMeshData() { return scaledMeshData; }
+	Face* getScaledMeshData() { return scaledMeshData; }
 
 	const vec3& getObjSize(void) { return objSize; }
 	const vec3& getObjShift(void) { return context_.shift; }
@@ -212,9 +217,9 @@ public:
 	/**
 	* @brief	Hologram generation
 	* @param	SHADING_FLAG : SHADING_FLAT, SHADING_CONTINUOUS
-	* @overload
+	* @return implement time (sec)
 	*/
-	bool generateHologram(uint SHADING_FLAG);
+	Real generateHologram(uint SHADING_FLAG);
 
 	void reconTest(const char* fname);
 
@@ -243,14 +248,25 @@ private:
 	void prepareMeshData();
 	void objSort(bool isAscending);
 	bool checkValidity(vec3 no);
+	bool findGeometricalRelations(Face mesh, vec3 no, geometric& geom);
 	bool findGeometricalRelations(Real* mesh, vec3 no, geometric& geom);
-	void calGlobalFrequency(Real** frequency);
+
+	/**
+	* @brief Calculate frequency
+	* @param[out] frequency : point frequency data
+	* @param[in] lambda : wave length
+	*/
+	void calGlobalFrequency(Real** frequency, Real lambda);
+	void calGlobalFrequency(Point* frequency, Real lambda);
+	bool calFrequencyTerm(Point* frequency, Point* fl, Real* freqTermX, Real* freqTermY, geometric& geom, Real lambda);
 	bool calFrequencyTerm(Real** frequency, Real** fl, Real* freqTermX, Real* freqTermY, geometric& geom);
+	uint refAS_Flat(vec3 na, Point* frequency, Face mesh, Real* freqTermX, Real* freqTermY, geometric& geom, Real lambda);
 	uint refAS_Flat(vec3 na, Real** frequency, Real* mesh, Real* freqTermX, Real* freqTermY, geometric& geom);
 	void refASInner_flat(Real* freqTermX, Real* freqTermY);
 	bool refAS_Continuous(uint n, Real* freqTermX, Real* freqTermY);
 	bool generateAS(uint SHADING_FLAG);
 	bool findNormals(uint SHADING_FLAG);
+	bool refToGlobal(Complex<Real> *dst, Point* frequency, Point* fl, geometric& geom);
 	bool refToGlobal(Real** frequency, Real** fl, geometric& geom);
 	
 	bool loadMeshText(const char* fileName);
@@ -262,9 +278,11 @@ private:
 	// correct the output scale of the  ophGen::conv_fft2 
 	void conv_fft2_scale(Complex<Real>* src1, Complex<Real>* src2, Complex<Real>* dst, ivec2 size);
 private:
-
+#if 0
 	Real* scaledMeshData;					/// Scaled and shifted mesh array / Data structure : N*9
-
+#else
+	Face* scaledMeshData;					/// Scaled and shifted mesh array / Data structure : N*9
+#endif
 private:
 
 	//	Inner global parameters

@@ -69,6 +69,9 @@ ophTri::ophTri(void)
 	, no(nullptr)
 	, na(nullptr)
 	, nv(nullptr)
+	, meshData(nullptr)
+	, tempFreqTermX(nullptr)
+	, tempFreqTermY(nullptr)
 {
 	LOG("*** TRI MESH : BUILD DATE: %s %s ***\n\n", __DATE__, __TIME__);
 }
@@ -78,68 +81,37 @@ void ophTri::setViewingWindow(bool is_ViewingWindow)
 	this->is_ViewingWindow = is_ViewingWindow;
 }
 
-bool ophTri::loadMeshText(const char* fileName)
-{
-
-	cout << "Mesh Text File Load..." << endl;
-
-	ifstream file;
-	file.open(fileName);
-
-	if (!file) {
-		cout << "Open failed - no such file" << endl;
-		cin.get();
-		return false;
-	}
-
-	triMeshArray = new Real[9 * 10000];
-
-	Real data;
-	uint num_data;
-
-	num_data = 0;
-	do {
-		file >> data;
-		triMeshArray[num_data] = data;
-		num_data++;
-	} while (file.get() != EOF);
-
-	meshData->n_faces = num_data / 9;
-	triMeshArray[meshData->n_faces * 9] = EOF;
-
-	return true;
-}
-
 bool ophTri::loadMeshData(const char* fileName, const char* ext)
 {
-	meshData = new OphMeshData;
-	cout << "ext = " << ext << endl;
+	auto begin = CUR_TIME;
 
-	if (!strcmp(ext, "txt")) {
-		cout << "Text File.." << endl;
-		if (loadMeshText(fileName))
-			cout << "Mesh Data Load Finished.." << endl;
-		else
-			cout << "Mesh Data Load Failed.." << endl;
+	if (meshData != nullptr)
+	{
+		delete meshData;
 	}
-	else if (!strcmp(ext, "ply")) {
-		cout << "PLY File.." << endl;
+
+	meshData = new OphMeshData;
+
+	if (!strcmp(ext, "ply")) {
 		PLYparser meshPLY;
 		if (meshPLY.loadPLY(fileName, meshData->n_faces, meshData->color_channels, &meshData->face_idx, &meshData->vertex, &meshData->color))
 			cout << "Mesh Data Load Finished.." << endl;
 		else
 		{
-			cout << "Mesh Data Load Failed.." << endl;
+			LOG("<FAILED> Loading ply file.\n");
 			return false;
 		}
 	}
 	else {
-		cout << "Error: Mesh data must be .txt or .ply" << endl;
+		LOG("<FAILED> Wrong file ext.\n");
 		return false;
 	}
 	meshData->n_faces /= 3;
-	triMeshArray = meshData->vertex;
 
+	//memcpy(triMeshArray, meshData->vertex, sizeof(Face) * meshData->n_faces);
+	triMeshArray = (Face *)meshData->vertex;
+
+	LOG("%s => %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
 	return true;
 }
 
@@ -148,12 +120,8 @@ bool ophTri::readConfig(const char* fname)
 	if (!ophGen::readConfig(fname))
 		return false;
 
-	cout << "wavelength = " << context_.wave_length[0] << endl;
-	cout << "pixNum = " << context_.pixel_number[_X] << ", " << context_.pixel_number[_Y] << endl;
-	cout << "pixPit = " << context_.pixel_pitch[_X] << ", " << context_.pixel_pitch[_Y] << endl;
-	LOG("Reading....%s...", fname);
-
-	auto start = CUR_TIME;
+	bool bRet = true;
+	auto begin = CUR_TIME;
 
 	using namespace tinyxml2;
 	/*XML parsing*/
@@ -162,84 +130,131 @@ bool ophTri::readConfig(const char* fname)
 
 	if (!checkExtension(fname, ".xml"))
 	{
-		LOG("file's extension is not 'xml'\n");
+		LOG("<FAILED> Wrong file ext.\n");
 		return false;
 	}
 	if (xml_doc.LoadFile(fname) != XML_SUCCESS)
 	{
-		LOG("Failed to load file \"%s\"\n", fname);
+		LOG("<FAILED> Loading file.\n");
 		return false;
 	}
 	xml_node = xml_doc.FirstChild();
 
+	char szNodeName[32] = { 0, };
+	wsprintfA(szNodeName, "ScaleX");
 	// about object
-	auto next = xml_node->FirstChildElement("ScaleX");
+	auto next = xml_node->FirstChildElement(szNodeName);
 	if (!next || XML_SUCCESS != next->QueryDoubleText(&objSize[_X]))
-		return false;
-	next = xml_node->FirstChildElement("ScaleY");
+	{
+		LOG("<FAILED> Not found node : \'%s\' (Double) \n", szNodeName);
+		bRet = false;
+	}
+	wsprintfA(szNodeName, "ScaleY");
+	next = xml_node->FirstChildElement(szNodeName);
 	if (!next || XML_SUCCESS != next->QueryDoubleText(&objSize[_Y]))
-		return false;
-	next = xml_node->FirstChildElement("ScaleZ");
+	{
+		LOG("<FAILED> Not found node : \'%s\' (Double) \n", szNodeName);
+		bRet = false;
+	}
+	wsprintfA(szNodeName, "ScaleZ");
+	next = xml_node->FirstChildElement(szNodeName);
 	if (!next || XML_SUCCESS != next->QueryDoubleText(&objSize[_Z]))
-		return false;
+	{
+		LOG("<FAILED> Not found node : \'%s\' (Double) \n", szNodeName);
+		bRet = false;
+	}
 
-	next = xml_node->FirstChildElement("LampDirectionX");
+	wsprintfA(szNodeName, "LampDirectionX");
+	next = xml_node->FirstChildElement(szNodeName);
 	if (!next || XML_SUCCESS != next->QueryDoubleText(&illumination[_X]))
-		return false;
-	next = xml_node->FirstChildElement("LampDirectionY");
+	{
+		LOG("<FAILED> Not found node : \'%s\' (Double) \n", szNodeName);
+		bRet = false;
+	}
+	wsprintfA(szNodeName, "LampDirectionY");
+	next = xml_node->FirstChildElement(szNodeName);
 	if (!next || XML_SUCCESS != next->QueryDoubleText(&illumination[_Y]))
-		return false;
-	next = xml_node->FirstChildElement("LampDirectionZ");
+	{
+		LOG("<FAILED> Not found node : \'%s\' (Double) \n", szNodeName);
+		bRet = false;
+	}
+	wsprintfA(szNodeName, "LampDirectionZ");
+	next = xml_node->FirstChildElement(szNodeName);
 	if (!next || XML_SUCCESS != next->QueryDoubleText(&illumination[_Z]))
-		return false;
+	{
+		LOG("<FAILED> Not found node : \'%s\' (Double) \n", szNodeName);
+		bRet = false;
+	}
 
+	wsprintfA(szNodeName, "Random_Phase");
 	// about extra functions
-	next = xml_node->FirstChildElement("Random_Phase");
-	if (!next || XML_SUCCESS != next->QueryBoolText(&randPhase)) {
-		LOG("\n\nPut Random_Phase in Config file\n");  return false;
+	next = xml_node->FirstChildElement(szNodeName);
+	if (!next || XML_SUCCESS != next->QueryBoolText(&randPhase))
+	{
+		LOG("<FAILED> Not found node : \'%s\' (Boolean) \n", szNodeName);
+		bRet = false;
 	}
 
-	next = xml_node->FirstChildElement("Occlusion");
-	if (!next || XML_SUCCESS != next->QueryBoolText(&occlusion)) {
-		LOG("\n\nPut Occlusion in Config file\n");  return false;
+	wsprintfA(szNodeName, "Occlusion");
+	next = xml_node->FirstChildElement(szNodeName);
+	if (!next || XML_SUCCESS != next->QueryBoolText(&occlusion))
+	{
+		LOG("<FAILED> Not found node : \'%s\' (Boolean) \n", szNodeName);
+		bRet = false;
 	}
-	next = xml_node->FirstChildElement("Texture");
-	if (!next || XML_SUCCESS != next->QueryBoolText(&textureMapping)) {
-		LOG("\n\nPut Texture in Config file\n");  return false;
+	wsprintfA(szNodeName, "Texture");
+	next = xml_node->FirstChildElement(szNodeName);
+	if (!next || XML_SUCCESS != next->QueryBoolText(&textureMapping))
+	{
+		LOG("<FAILED> Not found node : \'%s\' (Boolean) \n", szNodeName);
+		bRet = false;
 	}
-	if (textureMapping == true) {
-		next = xml_node->FirstChildElement("TextureSizeX");
-		if (!next || XML_SUCCESS != next->QueryIntText(&texture.dim[_X])) {
-			LOG("\n\nPut TextureSizeX in Config file\n");  return false;
+	if (textureMapping == true)
+	{
+		wsprintfA(szNodeName, "TextureSizeX");
+		next = xml_node->FirstChildElement(szNodeName);
+		if (!next || XML_SUCCESS != next->QueryIntText(&texture.dim[_X]))
+		{
+			LOG("<FAILED> Not found node : \'%s\' (Integer) \n", szNodeName);
+			bRet = false;
 		}
-		next = xml_node->FirstChildElement("TextureSizeY");
-		if (!next || XML_SUCCESS != next->QueryIntText(&texture.dim[_Y])) {
-			LOG("\n\nPut TextureSizeY in Config file\n");  return false;
+		wsprintfA(szNodeName, "TextureSizeY");
+		next = xml_node->FirstChildElement(szNodeName);
+		if (!next || XML_SUCCESS != next->QueryIntText(&texture.dim[_Y]))
+		{
+			LOG("<FAILED> Not found node : \'%s\' (Integer) \n", szNodeName);
+			bRet = false;
 		}
-		next = xml_node->FirstChildElement("TexturePeriod");
-		if (!next || XML_SUCCESS != next->QueryDoubleText(&texture.period)) {
-			LOG("\n\nPut TextureSizeZ in Config file\n");  return false;
+		wsprintfA(szNodeName, "TexturePeriod");
+		next = xml_node->FirstChildElement(szNodeName);
+		if (!next || XML_SUCCESS != next->QueryDoubleText(&texture.period))
+		{
+			LOG("<FAILED> Not found node : \'%s\' (Double) \n", szNodeName);
+			bRet = false;
 		}
 	}
+	LOG("%s => %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
 
-	auto end = CUR_TIME;
-	auto during = ((chrono::duration<Real>)(end - start)).count();
-	LOG("%lf (s).. Config Load Finished...\n", during);
 	initialize();
-	return true;
+	return bRet;
 }
 
 void ophTri::loadTexturePattern(const char* fileName, const char* ext)
 {
 	int N = context_.pixel_number[_X] * context_.pixel_number[_Y];
 
-	uchar* image;
-	image = loadAsImg(fileName);
+	if (tempFreqTermX != nullptr) delete[] tempFreqTermX;
+	if (tempFreqTermY != nullptr) delete[] tempFreqTermY;
+	if (texture.pattern != nullptr) delete[] texture.pattern;
+	if (textFFT != nullptr) delete[] textFFT;
+
+	// not used.
+	//uchar* image;
+	//image = loadAsImg(fileName);
 
 	int bytesperpixel;
 	int size[2] = { 0,0 };
 	getImgSize(texture.dim[_X], texture.dim[_Y], bytesperpixel, fileName);
-	cout << "texture : " << texture.dim[0] << ", " << texture.dim[1] << endl;
 	
 	texture.freq = 1 / texture.period;
 
@@ -248,6 +263,7 @@ void ophTri::loadTexturePattern(const char* fileName, const char* ext)
 	fft2(texture.dim, texture.pattern, OPH_FORWARD, OPH_ESTIMATE);
 	fftExecute(texture.pattern);
 	fft2(texture.pattern, textFFT, texture.dim[_X], texture.dim[_Y], OPH_FORWARD);
+
 
 	tempFreqTermX = new Real[N];
 	tempFreqTermY = new Real[N];
@@ -258,69 +274,64 @@ void ophTri::initializeAS()
 	const uint pnXY = context_.pixel_number[_X] * context_.pixel_number[_Y];
 	const int N = meshData->n_faces;
 
-	if (scaledMeshData) {
+	if (scaledMeshData != nullptr) {
 		delete[] scaledMeshData;
-		scaledMeshData = nullptr;
 	}
+#if 1
+	scaledMeshData = new Face[N];
+	memset(scaledMeshData, 0, sizeof(Face) * N);
+#else
 	scaledMeshData = new Real[N * 9];
 	memset(scaledMeshData, 0, sizeof(Real) * N * 9);
-
-	if (angularSpectrum) {
+#endif
+	if (angularSpectrum != nullptr) {
 		delete[] angularSpectrum;
-		angularSpectrum = nullptr;
 	}
 	angularSpectrum = new Complex<Real>[pnXY];
 	memset(angularSpectrum, 0, sizeof(Complex<Real>) * pnXY);
 
-	if (rearAS) {
+	if (rearAS != nullptr) {
 		delete[] rearAS;
-		rearAS = nullptr;
 	}
 	rearAS = new Complex<Real>[pnXY];
 	memset(rearAS, 0, sizeof(Complex<Real>) * pnXY);
 
-	if (refAS) {
+	if (refAS != nullptr) {
 		delete[] refAS;
-		refAS = nullptr;
 	}
 	refAS = new Complex<Real>[pnXY];
 	memset(refAS, 0, sizeof(Complex<Real>) * pnXY);
 
-	if (phaseTerm) {
+	if (phaseTerm != nullptr) {
 		delete[] phaseTerm;
-		phaseTerm = nullptr;
 	}
 	phaseTerm = new Complex<Real>[pnXY];
 	memset(phaseTerm, 0, sizeof(Complex<Real>) * pnXY);
 
 
-	if (convol) {
+	if (convol != nullptr) {
 		delete[] convol;
-		convol = nullptr;
 	}
 	convol = new Complex<Real>[pnXY];
 	memset(convol, 0, sizeof(Complex<Real>) * pnXY);
 
 
-	if (no) {
+	if (no != nullptr) {
 		delete[] no;
-		no = nullptr;
 	}
 	no = new vec3[N];
 	memset(no, 0, sizeof(vec3) * N);
 
 
-	if (na) {
+	if (na != nullptr) {
 		delete[] na;
-		na = nullptr;
 	}
 	na = new vec3[N];
 	memset(na, 0, sizeof(vec3) * N);
 
 
-	if (nv) {
+	if (nv != nullptr) {
 		delete[] nv;
-		nv = nullptr;
 	}
 	nv = new vec3[N * 3];
 	memset(nv, 0, sizeof(vec3) * N * 3);
@@ -328,7 +339,6 @@ void ophTri::initializeAS()
 
 void ophTri::objSort(bool isAscending)
 {
-	LOG("%s : ", __FUNCTION__);
 	auto begin = CUR_TIME;
 	int N = meshData->n_faces;
 	Real* centerZ = new Real[N];
@@ -338,14 +348,16 @@ void ophTri::objSort(bool isAscending)
 #pragma omp parallel for private(i)
 #endif
 	for (i = 0; i < N; i++) {
-		int idx = i * 9;
-		centerZ[i] = (scaledMeshData[idx + _Z1] + scaledMeshData[idx + _Z2] + scaledMeshData[idx + _Z3]) / 3;
+		centerZ[i] = (
+			scaledMeshData[i].pts[_FIRST].pos[_Z]
+			+ scaledMeshData[i].pts[_SECOND].pos[_Z]
+			+ scaledMeshData[i].pts[_THIRD].pos[_Z]) / 3;
 	}
-
-	Real tmpArr[9] = { 0, };
+	
 	bool bSwap;
-	int size = sizeof(Real) * 9;
 
+#if 0
+	Real tmpArr[9] = { 0, };
 	if (isAscending) { // ascending order
 		while (true)
 		{
@@ -413,8 +425,59 @@ void ophTri::objSort(bool isAscending)
 				break;
 		}
 	}
+
+#else
+	Face tmp;
+	if (isAscending)
+	{
+		while (true)
+		{
+			for (int i = 0; i < N - 1; i++)
+			{
+				bSwap = false;
+				int j = i + 1;
+				if (centerZ[i] > centerZ[j]) {
+					Real tmpZ = centerZ[i];
+					centerZ[i] = centerZ[j];
+					centerZ[j] = tmpZ;
+
+					tmp = scaledMeshData[i];
+					scaledMeshData[i] = scaledMeshData[j];
+					scaledMeshData[j] = tmp;
+					bSwap = true;
+				}
+			}
+			if (!bSwap)
+				break;
+		}
+	}
+	else
+	{
+		while (true)
+		{
+			for (int i = 0; i < N - 1; i++)
+			{
+				bSwap = false;
+				int j = i + 1;
+				if (centerZ[i] < centerZ[j]) {
+					Real tmpZ = centerZ[i];
+					centerZ[i] = centerZ[j];
+					centerZ[j] = tmpZ;
+
+					tmp = scaledMeshData[i];
+					scaledMeshData[i] = scaledMeshData[j];
+					scaledMeshData[j] = tmp;
+					bSwap = true;
+				}
+			}
+			if (!bSwap)
+				break;
+		}
+	}
+#endif
+
 	delete[] centerZ;
-	LOG("%lf (s)\n", ELAPSED_TIME(begin, CUR_TIME));
+	LOG("<END> %s => %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
 	
 }
 
@@ -472,11 +535,11 @@ void ophTri::triTimeMultiplexing(char* dirName, uint ENCODE_METHOD, Real cenFx, 
 	}
 }
 
-bool ophTri::generateHologram(uint SHADING_FLAG)
+Real ophTri::generateHologram(uint SHADING_FLAG)
 {
 	resetBuffer();
 
-	auto start_time = CUR_TIME;
+	auto begin = CUR_TIME;
 	LOG("1) Algorithm Method : Tri Mesh\n");
 	LOG("2) Generate Hologram with %s\n", m_mode & MODE_GPU ?
 		"GPU" :
@@ -487,9 +550,6 @@ bool ophTri::generateHologram(uint SHADING_FLAG)
 #endif
 	);
 	LOG("3) Random Phase Use : %s\n", GetRandomPhase() ? "Y" : "N");
-	//LOG("3) Transform Viewing Window : %s\n", is_ViewingWindow ? "ON" : "OFF");
-
-	auto begin = CUR_TIME;
 
 	if (m_mode & MODE_GPU)
 	{
@@ -522,85 +582,140 @@ bool ophTri::generateHologram(uint SHADING_FLAG)
 	//fresnelPropagation(*(complex_H), *(complex_H), objShift[_Z]);
 	m_nProgress = 0;
 
-	LOG("Total Elapsed Time: %lf (s)\n", ELAPSED_TIME(begin, CUR_TIME));
+	LOG("Total Elapsed Time: %.5lf (sec)\n", ELAPSED_TIME(begin, CUR_TIME));
 
 	return true;
 }
 
 bool ophTri::generateAS(uint SHADING_FLAG)
 {
-	LOG("%s : ", __FUNCTION__);
-	LOG("\tMemory Allocation : ");
 	auto begin = CUR_TIME;
-	auto step = CUR_TIME;
+
 	const uint pnXY = context_.pixel_number[_X] * context_.pixel_number[_Y];
 	int N = meshData->n_faces;
 
+#if 1
+	Point* freq = new Point[pnXY];
+	Point* fl = new Point[pnXY];
+#else
 	Real** freq = new Real*[3];
 	Real** fl = new Real*[3];
 	for (int i = 0; i < 3; i++) {
 		freq[i] = new Real[pnXY];
 		fl[i] = new Real[pnXY];
 	}
+#endif
 	Real *freqTermX = new Real[pnXY];
 	Real *freqTermY = new Real[pnXY];
-	LOG("%lf (s)\n", ELAPSED_TIME(step, CUR_TIME));
-	LOG("\Calc Global Frequency : ");
-	step = CUR_TIME;
-	calGlobalFrequency(freq);
-	LOG("%lf (s)\n", ELAPSED_TIME(step, CUR_TIME));
-	LOG("\Find Normals : ");
-	step = CUR_TIME;
-	findNormals(SHADING_FLAG);
-	LOG("%lf (s)\n", ELAPSED_TIME(step, CUR_TIME));
+	auto step = CUR_TIME;
 
-	for (int j = 0; j < N; j++) {
-		Real mesh[9] = { 0.0, };
-		geometric geom = { 0, };
-		memcpy(mesh, &scaledMeshData[9 * j], sizeof(Real) * 9);
+	for (int ch = 0; ch < context_.waveNum; ch++)
+	{
+		calGlobalFrequency(freq, context_.wave_length[ch]);		
+		findNormals(SHADING_FLAG);
 
-		if (!checkValidity(no[j])) // don't care
-			continue;
-		if (!findGeometricalRelations(mesh, no[j], geom))
-			continue;
-		if (!calFrequencyTerm(freq, fl, freqTermX, freqTermY, geom))
-			continue;
-
-		switch (SHADING_FLAG)
+		for (int j = 0; j < N; j++)
 		{
-		case SHADING_FLAT:
-			refAS_Flat(no[j], freq, mesh, freqTermX, freqTermY, geom);
-			break;
-		case SHADING_CONTINUOUS:
-			refAS_Continuous(j, freqTermX, freqTermY);
-			break;
-		default:
-			LOG("error: WRONG SHADING_FLAG\n");
-			return false;
+			Face mesh = scaledMeshData[j];
+
+			geometric geom = { 0, };
+			//memcpy((void *)&mesh, &scaledMeshData[9 * j], sizeof(Real) * 9);
+			
+			if (!checkValidity(no[j])) // don't care
+				continue;
+			if (!findGeometricalRelations(mesh, no[j], geom))
+				continue;
+			if (!calFrequencyTerm(freq, fl, freqTermX, freqTermY, geom, context_.wave_length[ch]))
+				continue;
+
+			switch (SHADING_FLAG)
+			{
+			case SHADING_FLAT:
+				refAS_Flat(no[j], freq, mesh, freqTermX, freqTermY, geom, context_.wave_length[ch]);
+				//refAS_Flat(no[j], freq, mesh, freqTermX, freqTermY, geom);
+				break;
+			case SHADING_CONTINUOUS:
+				refAS_Continuous(j, freqTermX, freqTermY);
+				break;
+			default:
+				LOG("<FAILED> WRONG SHADING_FLAG\n");
+				return false;
+			}
+			if (!refToGlobal(complex_H[ch], freq, fl, geom))
+				continue;
+
+			m_nProgress = ((Real)(ch * N + j) / (Real)(N * context_.waveNum)) * 100;
+
+			//m_nProgress = (int)((Real)j * 100 / ((Real)N));
 		}
-		if (!refToGlobal(freq, fl, geom))
-			continue;
-
-		m_nProgress = (int)((Real)j * 100 / ((Real)N));
 	}
-
+#if 1
+	delete[] freq, fl, scaledMeshData, freqTermX, freqTermY, refAS, phaseTerm, convol, no, na, nv;
+	scaledMeshData = nullptr;
+	refAS = nullptr;
+	phaseTerm = nullptr;
+	convol = nullptr;
+#else
 	for (int i = 0; i < 3; i++) {
 		delete[] freq[i];
 		delete[] fl[i];
 	}
+
 	delete[] freq, fl, scaledMeshData, freqTermX, freqTermY, refAS, phaseTerm, convol;
 	scaledMeshData = nullptr;
 	refAS = nullptr;
 	phaseTerm = nullptr;
 	convol = nullptr;
+#endif
 
-	LOG("%lf (s)\n", ELAPSED_TIME(begin, CUR_TIME));
+	LOG("<END> %s => %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
 
 	return true;
 }
 
-void ophTri::calGlobalFrequency(Real** frequency)
+void ophTri::calGlobalFrequency(Point* frequency, Real lambda)
 {
+	auto begin = CUR_TIME;
+	const uint pnX = context_.pixel_number[_X];
+	const uint pnY = context_.pixel_number[_Y];
+	const uint pnXY = pnX * pnY;
+	const Real ppX = context_.pixel_pitch[_X];
+	const Real ppY = context_.pixel_pitch[_Y];
+
+	Real dfx = 1 / (ppX * pnX);
+	Real dfy = 1 / (ppY * pnY);
+
+	int startX = pnX >> 1;
+	int startY = pnY >> 1;
+
+	Real dfl = 1 / lambda;
+	Real sqdfl = dfl * dfl;
+
+	int i = 0;
+#ifdef _OPENMP
+#pragma omp parallel for private(i) firstprivate(pnX, startX, dfy, dfx, sqdfl)
+#endif
+	for (i = startY; i > -startY; i--) {
+		Real y = i * dfy;
+		Real yy = y * y;
+
+		int base = (startY - i) * pnX; // for parallel
+
+		for (int j = -startX; j < startX; j++) {
+			int idx = base + (j + startX); // for parallel
+			Real x = j * dfx;
+			Real xx = x * x;
+			frequency[idx].pos[_X] = x;
+			frequency[idx].pos[_Y] = y;
+			frequency[idx].pos[_Z] = sqrt(sqdfl - xx - yy);
+		}
+	}
+	LOG("<END> %s => %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
+}
+
+void ophTri::calGlobalFrequency(Real** frequency, Real lambda)
+{
+	auto begin = CUR_TIME;
 	const uint pnX = context_.pixel_number[_X];
 	const uint pnY = context_.pixel_number[_Y];
 	const uint pnXY = pnX * pnY;
@@ -611,15 +726,15 @@ void ophTri::calGlobalFrequency(Real** frequency)
 	Real dfx = 1 / (ppX * pnX);
 	Real dfy = 1 / (ppY * pnY);
 
-	int startX = pnX / 2;
-	int startY = pnY / 2;
-	Real lambda = context_.wave_length[0];
+	int startX = pnX >> 1;
+	int startY = pnY >> 1;
+
 	Real dfl = 1 / lambda;
 	Real sqdfl = dfl * dfl;
 
 	int i = 0;
 #ifdef _OPENMP
-#pragma omp parallel for private(i) firstprivate(startX, dfy, dfx, sqdfl)
+#pragma omp parallel for private(i) firstprivate(pnX, startX, dfy, dfx, sqdfl)
 #endif
 	for (i = startY; i > -startY; i--) {
 		Real y = i * dfy;
@@ -638,8 +753,9 @@ void ophTri::calGlobalFrequency(Real** frequency)
 
 bool ophTri::findNormals(uint SHADING_FLAG)
 {
-	int N = meshData->n_faces;
+	auto begin = CUR_TIME;
 
+	int N = meshData->n_faces;
 	int i;
 	Real normNo = 0.0;
 
@@ -647,10 +763,21 @@ bool ophTri::findNormals(uint SHADING_FLAG)
 #pragma omp parallel for private(i) reduction(+:normNo)
 #endif
 	for (i = 0; i < N; i++) {
-		int idx = i * 9;
+		//int idx = i * 9;
 
 		no[i] = vecCross(
 			{
+#if 1
+				scaledMeshData[i].pts[_FIRST].pos[_X] - scaledMeshData[i].pts[_SECOND].pos[_X],
+				scaledMeshData[i].pts[_FIRST].pos[_Y] - scaledMeshData[i].pts[_SECOND].pos[_Y],
+				scaledMeshData[i].pts[_FIRST].pos[_Z] - scaledMeshData[i].pts[_SECOND].pos[_Z]
+			},
+			{
+				scaledMeshData[i].pts[_THIRD].pos[_X] - scaledMeshData[i].pts[_SECOND].pos[_X],
+				scaledMeshData[i].pts[_THIRD].pos[_Y] - scaledMeshData[i].pts[_SECOND].pos[_Y],
+				scaledMeshData[i].pts[_THIRD].pos[_Z] - scaledMeshData[i].pts[_SECOND].pos[_Z]
+
+#else
 				scaledMeshData[idx + _X1] - scaledMeshData[idx + _X2],
 				scaledMeshData[idx + _Y1] - scaledMeshData[idx + _Y2],
 				scaledMeshData[idx + _Z1] - scaledMeshData[idx + _Z2]
@@ -659,6 +786,7 @@ bool ophTri::findNormals(uint SHADING_FLAG)
 				scaledMeshData[idx + _X3] - scaledMeshData[idx + _X2],
 				scaledMeshData[idx + _Y3] - scaledMeshData[idx + _Y2],
 				scaledMeshData[idx + _Z3] - scaledMeshData[idx + _Z2]
+#endif
 			}
 			);
 		Real tmp = norm(no[i]);
@@ -712,6 +840,8 @@ bool ophTri::findNormals(uint SHADING_FLAG)
 		delete[] vertices;
 	}
 
+	LOG("<END> %s => %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
+
 	return true;
 }
 
@@ -723,6 +853,69 @@ bool ophTri::checkValidity(vec3 no)
 		return true;
 
 	return false;
+}
+
+bool ophTri::findGeometricalRelations(Face mesh, vec3 no, geometric& geom)
+{
+	vec3 n = no / norm(no);
+	Face mesh_local;
+	//Real mesh_local[9] = { 0.0 };
+	Real th, ph;
+	if (n[_X] == 0 && n[_Z] == 0)
+		th = 0;
+	else
+		th = atan(n[_X] / n[_Z]);
+
+	Real temp = n[_Y] / sqrt(n[_X] * n[_X] + n[_Z] * n[_Z]);
+	ph = atan(temp);
+
+	Real costh = cos(th);
+	Real cosph = cos(ph);
+	Real sinth = sin(th);
+	Real sinph = sin(ph);
+
+	geom.glRot[0] = costh;			geom.glRot[1] = 0;		geom.glRot[2] = -sinth;
+	geom.glRot[3] = -sinph * sinth;	geom.glRot[4] = cosph;	geom.glRot[5] = -sinph * costh;
+	geom.glRot[6] = cosph * sinth;	geom.glRot[7] = sinph;	geom.glRot[8] = cosph * costh;
+
+	// get distance 1st pt(x, y, z) between (0, 0, 0)
+	for (int i = 0; i < 3; i++)
+	{
+		geom.glShift[i] = -(
+			geom.glRot[i * 3 + 0] * mesh.pts[_FIRST].pos[_X] +
+			geom.glRot[i * 3 + 1] * mesh.pts[_FIRST].pos[_Y] +
+			geom.glRot[i * 3 + 2] * mesh.pts[_FIRST].pos[_Z]);
+	}
+
+
+	for (int i = 0; i < 3; i++)
+	{
+		Real xx = mesh.pts[i].pos[_X];
+		Real yy = mesh.pts[i].pos[_Y];
+		Real zz = mesh.pts[i].pos[_Z];
+
+		mesh_local.pts[i].pos[_X] = (geom.glRot[0] * xx + geom.glRot[1] * yy + geom.glRot[2] * zz) + geom.glShift[_X];
+		mesh_local.pts[i].pos[_Y] = (geom.glRot[3] * xx + geom.glRot[4] * yy + geom.glRot[5] * zz) + geom.glShift[_Y];
+		mesh_local.pts[i].pos[_Z] = (geom.glRot[6] * xx + geom.glRot[7] * yy + geom.glRot[8] * zz) + geom.glShift[_Z];
+	}
+
+	Real div1 = mesh_local.pts[_THIRD].pos[_X] * mesh_local.pts[_SECOND].pos[_Y];
+	Real div2 = mesh_local.pts[_THIRD].pos[_Y] * mesh_local.pts[_SECOND].pos[_X];
+
+	if (div1 == div2)
+		return false;
+
+	Real refTri[9] = { 0,0,0,1,1,0,1,0,0 };
+
+	geom.loRot[0] = (refTri[_X3] * mesh_local.pts[_SECOND].pos[_Y] - refTri[_X2] * mesh_local.pts[_THIRD].pos[_Y]) / (div1 - div2);
+	geom.loRot[1] = (refTri[_X3] * mesh_local.pts[_SECOND].pos[_X] - refTri[_X2] * mesh_local.pts[_THIRD].pos[_X]) / (-div1 + div2);
+	geom.loRot[2] = (refTri[_Y3] * mesh_local.pts[_SECOND].pos[_Y] - refTri[_Y2] * mesh_local.pts[_THIRD].pos[_Y]) / (div1 - div2);
+	geom.loRot[3] = (refTri[_Y3] * mesh_local.pts[_SECOND].pos[_X] - refTri[_Y2] * mesh_local.pts[_THIRD].pos[_X]) / (-div1 + div2);
+
+	if ((geom.loRot[0] * geom.loRot[3] - geom.loRot[1] * geom.loRot[2]) == 0)
+		return false;
+	return true;
+
 }
 
 bool ophTri::findGeometricalRelations(Real* mesh, vec3 no, geometric& geom)
@@ -789,6 +982,47 @@ bool ophTri::findGeometricalRelations(Real* mesh, vec3 no, geometric& geom)
 	return true;
 }
 
+bool ophTri::calFrequencyTerm(Point* frequency, Point* fl, Real *freqTermX, Real *freqTermY, geometric& geom, Real lambda)
+{
+	// p.s. only 1 channel
+	const uint pnXY = context_.pixel_number[_X] * context_.pixel_number[_Y];
+
+	Real w = 1 / lambda;
+	Real ww = w * w;
+
+	Real det = geom.loRot[0] * geom.loRot[3] - geom.loRot[1] * geom.loRot[2];
+	Real divDet = 1 / det;
+
+	Real invLoRot[4];
+	invLoRot[0] = divDet * geom.loRot[3];
+	invLoRot[1] = -divDet * geom.loRot[2];
+	invLoRot[2] = -divDet * geom.loRot[1];
+	invLoRot[3] = divDet * geom.loRot[0];
+
+	Real carrierWaveLoc[3];
+	Real glRot[9];
+	memcpy(glRot, geom.glRot, sizeof(glRot));
+	memcpy(carrierWaveLoc, carrierWave, sizeof(carrierWaveLoc));
+
+	int i;
+#ifdef _OPENMP
+#pragma omp parallel for private(i) firstprivate(w, ww, glRot, carrierWaveLoc, invLoRot)
+#endif
+	for (i = 0; i < pnXY; i++)
+	{
+		fl[i].pos[_X] = glRot[0] * frequency[i].pos[_X] + glRot[1] * frequency[i].pos[_Y] + glRot[2] * frequency[i].pos[_Z];
+		fl[i].pos[_Y] = glRot[3] * frequency[i].pos[_X] + glRot[4] * frequency[i].pos[_Y] + glRot[5] * frequency[i].pos[_Z];
+		fl[i].pos[_Z] = sqrt(ww - fl[i].pos[_X] * fl[i].pos[_X] - fl[i].pos[_Y] * fl[i].pos[_Y]);
+
+		Real flxShifted = fl[i].pos[_X] - w * (glRot[0] * carrierWaveLoc[_X] + glRot[1] * carrierWaveLoc[_Y] + glRot[2] * carrierWaveLoc[_Z]);
+		Real flyShifted = fl[i].pos[_Y] - w * (glRot[3] * carrierWaveLoc[_X] + glRot[4] * carrierWaveLoc[_Y] + glRot[5] * carrierWaveLoc[_Z]);
+
+		freqTermX[i] = invLoRot[0] * flxShifted + invLoRot[1] * flyShifted;
+		freqTermY[i] = invLoRot[2] * flxShifted + invLoRot[3] * flyShifted;
+	}
+	return true;
+}
+
 bool ophTri::calFrequencyTerm(Real** frequency, Real** fl, Real *freqTermX, Real *freqTermY, geometric& geom)
 {
 	// p.s. only 1 channel
@@ -830,6 +1064,110 @@ bool ophTri::calFrequencyTerm(Real** frequency, Real** fl, Real *freqTermX, Real
 		freqTermY[i] = invLoRot[2] * flxShifted + invLoRot[3] * flyShifted;
 	}
 	return true;
+}
+
+uint ophTri::refAS_Flat(vec3 no, Point* frequency, Face mesh, Real* freqTermX, Real* freqTermY, geometric& geom, Real lambda)
+{
+	const uint pnX = context_.pixel_number[_X];
+	const uint pnY = context_.pixel_number[_Y];
+	const Real ppX = context_.pixel_pitch[_X];
+	const Real ppY = context_.pixel_pitch[_Y];
+	const Real ssX = context_.ss[_X] = pnX * ppX;
+	const Real ssY = context_.ss[_Y] = pnY * ppY;
+	const uint pnXY = pnX * pnY;
+
+	vec3 n = no / norm(no);
+
+	Complex<Real> shadingFactor;
+	Real PI2 = M_PI * 2;
+	Real sqPI2 = PI2 * PI2;
+
+	Complex<Real> term1(0, 0);
+	term1[_IM] = -PI2 / lambda * (
+		carrierWave[_X] * (geom.glRot[0] * geom.glShift[_X] + geom.glRot[3] * geom.glShift[_Y] + geom.glRot[6] * geom.glShift[_Z])
+		+ carrierWave[_Y] * (geom.glRot[1] * geom.glShift[_X] + geom.glRot[4] * geom.glShift[_Y] + geom.glRot[7] * geom.glShift[_Z])
+		+ carrierWave[_Z] * (geom.glRot[2] * geom.glShift[_X] + geom.glRot[5] * geom.glShift[_Y] + geom.glRot[8] * geom.glShift[_Z])
+		);
+
+	if (illumination[_X] == 0 && illumination[_Y] == 0 && illumination[_Z] == 0) {
+		shadingFactor = exp(term1);
+	}
+	else {
+		vec3 normIllu = illumination / norm(illumination);
+		shadingFactor = (2 * (n[_X] * normIllu[_X] + n[_Y] * normIllu[_Y] + n[_Z] * normIllu[_Z]) + 0.3) * exp(term1);
+		if (shadingFactor[_RE] * shadingFactor[_RE] + shadingFactor[_IM] * shadingFactor[_IM] < 0)
+			shadingFactor = 0;
+	}
+	Real dfx = 1 / ssX;
+	Real dfy = 1 / ssY;
+
+	if (occlusion) {
+		int i;
+		Complex<Real> term1(0, 0);
+		Real dfxy = dfx * dfy;
+
+#ifdef _OPENMP
+#pragma omp parallel for private(i) firstprivate(PI2, dfxy, mesh, term1)
+#endif
+		for (i = 0; i < pnXY; i++) {
+			term1[_IM] = PI2 * (
+				frequency[i].pos[_X] * mesh.pts[_FIRST].pos[_X] + 
+				frequency[i].pos[_Y] * mesh.pts[_FIRST].pos[_Y] + 
+				frequency[i].pos[_Z] * mesh.pts[_FIRST].pos[_Z]);
+			rearAS[i] = angularSpectrum[i] * exp(term1) * dfxy;
+		}
+
+		refASInner_flat(freqTermX, freqTermY);			// refAS main function including texture mapping 
+
+		if (randPhase == true) {
+			int i;
+#ifdef _OPENMP
+#pragma omp parallel for private(i) firstprivate(PI2, shadingFactor)
+#endif
+			for (i = 0; i < pnXY; i++) {
+				Complex<Real> phase(0, 0);
+				phase[_IM] = PI2 * rand(0.0, 1.0, i);
+				convol[i] = shadingFactor * exp(phase) - rearAS[i];
+			}
+			conv_fft2_scale(refAS, convol, refAS, context_.pixel_number);
+		}
+		else {
+			conv_fft2_scale(rearAS, refAS, convol, context_.pixel_number);
+			int i;
+#ifdef _OPENMP
+#pragma omp parallel for private(i) firstprivate(shadingFactor)
+#endif
+			for (i = 0; i < pnXY; i++) {
+				refAS[i] = refAS[i] * shadingFactor - convol[i];
+			}
+		}
+	}
+	else {
+		refASInner_flat(freqTermX, freqTermY);			// refAS main function including texture mapping
+
+		if (randPhase == true) {
+			Complex<Real> phase(0, 0);
+			int i;
+#ifdef _OPENMP
+#pragma omp parallel for private(i) firstprivate(PI2, shadingFactor)
+#endif
+			for (i = 0; i < pnXY; i++) {
+				Real randVal = rand(0.0, 1.0, i);
+				phase[_IM] = PI2 * randVal;
+				phaseTerm[i] = shadingFactor * exp(phase);
+			}
+			conv_fft2_scale(refAS, phaseTerm, refAS, context_.pixel_number);
+		}
+		else {
+			int i;
+#ifdef _OPENMP
+#pragma omp parallel for private(i) firstprivate(shadingFactor)
+#endif
+			for (i = 0; i < pnXY; i++) {
+				refAS[i] *= shadingFactor;
+			}
+		}
+	}
 }
 
 uint ophTri::refAS_Flat(vec3 no, Real** frequency, Real* mesh, Real* freqTermX, Real* freqTermY, geometric& geom)
@@ -1103,6 +1441,51 @@ bool ophTri::refAS_Continuous(uint n, Real* freqTermX, Real* freqTermY)
 	return true;
 }
 
+bool ophTri::refToGlobal(Complex<Real> *dst, Point* frequency, Point* fl, geometric& geom)
+{
+	const int pnXY = context_.pixel_number[_X] * context_.pixel_number[_Y];
+
+	Real PI2 = M_PI * 2;
+	Real det = geom.loRot[0] * geom.loRot[3] - geom.loRot[1] * geom.loRot[2];
+
+	if (det == 0)
+		return false;
+	if (det < 0)
+		det = -det;
+
+
+	geometric g;
+	memcpy(&g, &geom, sizeof(geometric));
+
+	int i;
+#ifdef _OPENMP
+#pragma omp parallel for private(i) firstprivate(det, g)
+#endif
+	for (i = 0; i < pnXY; i++)
+	{
+		Complex<Real> term1(0, 0);
+		Complex<Real> term2(0, 0);
+
+		if (frequency[i].pos[_Z] == 0)
+			term2 = 0;
+		else
+		{
+			term1[_IM] = PI2 * (fl[i].pos[_X] * g.glShift[_X] + fl[i].pos[_Y] * g.glShift[_Y] + fl[i].pos[_Z] * g.glShift[_Z]);
+			term2 = refAS[i] / det * fl[i].pos[_Z] / frequency[i].pos[_Z] * exp(term1);
+		}
+		if (abs(term2) > MIN_DOUBLE)
+			; // do nothing
+		else
+			term2 = 0;
+
+		dst[i] += term2;
+
+		//complex_H[0][i] += term2;
+	}
+
+	return true;
+}
+
 bool ophTri::refToGlobal(Real** frequency, Real** fl, geometric& geom)
 {
 	const int pnXY = context_.pixel_number[_X] * context_.pixel_number[_Y];
@@ -1179,10 +1562,45 @@ void ophTri::conv_fft2_scale(Complex<Real>* src1, Complex<Real>* src2, Complex<R
 
 void ophTri::prepareMeshData()
 {
-	LOG("%s : ", __FUNCTION__);
 	auto begin = CUR_TIME;
 	int N = meshData->n_faces;
 	int N3 = N * 3;
+
+	int i;
+#if 1
+	Real x_max, x_min, y_max, y_min, z_max, z_min;
+	x_max = y_max = z_max = MIN_DOUBLE;
+	x_min = y_min = z_min = MAX_DOUBLE;
+
+	for (i = 0; i < N3; i++)
+	{
+		int idxFace = i / 3;
+		int idxPoint = i % 3;
+
+		if (x_max < triMeshArray[idxFace].pts[idxPoint].pos[_X]) x_max = triMeshArray[idxFace].pts[idxPoint].pos[_X];
+		if (x_min > triMeshArray[idxFace].pts[idxPoint].pos[_X]) x_min = triMeshArray[idxFace].pts[idxPoint].pos[_X];
+		if (y_max < triMeshArray[idxFace].pts[idxPoint].pos[_Y]) y_max = triMeshArray[idxFace].pts[idxPoint].pos[_Y];
+		if (y_min > triMeshArray[idxFace].pts[idxPoint].pos[_Y]) y_min = triMeshArray[idxFace].pts[idxPoint].pos[_Y];
+		if (z_max < triMeshArray[idxFace].pts[idxPoint].pos[_Z]) z_max = triMeshArray[idxFace].pts[idxPoint].pos[_Z];
+		if (z_min > triMeshArray[idxFace].pts[idxPoint].pos[_Z]) z_min = triMeshArray[idxFace].pts[idxPoint].pos[_Z];
+	}
+
+	Real x_cen = (x_max + x_min) / 2;
+	Real y_cen = (y_max + y_min) / 2;
+	Real z_cen = (z_max + z_min) / 2;
+	vec3 cen(x_cen, y_cen, z_cen);
+
+	Real x_del = x_max - x_min;
+	Real y_del = y_max - y_min;
+	Real z_del = z_max - z_min;
+
+	Real del = maxOfArr({ x_del, y_del, z_del });
+
+	vec3 shift = getContext().shift;
+	vec3 locObjSize = objSize;
+#else
+
+
 
 	Real *x_point = new Real[N3];
 	Real *y_point = new Real[N3];
@@ -1220,7 +1638,21 @@ void ophTri::prepareMeshData()
 
 	vec3 shift = getContext().shift;
 	vec3 locObjSize = objSize;
+#endif
+#if 1
+#ifdef _OPENMP
+#pragma omp parallel for private(i) firstprivate(cen, del, locObjSize, shift)
+#endif
+	for (i = 0; i < N3; i++)
+	{
+		int idxFace = i / 3;
+		int idxPoint = i % 3;
+		scaledMeshData[idxFace].pts[idxPoint].pos[_X] = (triMeshArray[idxFace].pts[idxPoint].pos[_X] - cen[_X]) / del * locObjSize[_X] + shift[_X];
+		scaledMeshData[idxFace].pts[idxPoint].pos[_Y] = (triMeshArray[idxFace].pts[idxPoint].pos[_Y] - cen[_Y]) / del * locObjSize[_Y] + shift[_Y];
+		scaledMeshData[idxFace].pts[idxPoint].pos[_Z] = (triMeshArray[idxFace].pts[idxPoint].pos[_Z] - cen[_Z]) / del * locObjSize[_Z] + shift[_Z];
+	}
 
+#else
 #ifdef _OPENMP
 #pragma omp parallel for private(i) firstprivate(cen, del, locObjSize, shift)
 #endif
@@ -1230,7 +1662,7 @@ void ophTri::prepareMeshData()
 		scaledMeshData[idx + _Y] = (y_point[i] - cen[_Y]) / del * locObjSize[_Y] + shift[_Y];
 		scaledMeshData[idx + _Z] = (z_point[i] - cen[_Z]) / del * locObjSize[_Z] + shift[_Z];
 	}
-
 	delete[] x_point, y_point, z_point;
-	LOG("%lf (s)\n", ELAPSED_TIME(begin, CUR_TIME));
+#endif
+	LOG("<END> %s => %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
 }

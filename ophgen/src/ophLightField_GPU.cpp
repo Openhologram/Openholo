@@ -49,7 +49,6 @@
 
 void ophLF::convertLF2ComplexField_GPU()
 {
-	LOG("%s\n", __FUNCTION__);
 	auto begin = CUR_TIME;
 
 	CUDA *pCUDA = CUDA::getInstance();
@@ -117,13 +116,10 @@ void ophLF::convertLF2ComplexField_GPU()
 	Real pi2 = M_PI * 2;
 	for (int ch = 0; ch < nWave; ch++)
 	{
-		LOG("\tMemory Initialize : ");
-		step = CUR_TIME;
 		HANDLE_ERROR(cudaMemset(device_dst, 0, sizeof(cuDoubleComplex) * N * R));//, streamLF));
 		HANDLE_ERROR(cudaMemset(device_FFT_tmp, 0, sizeof(cuDoubleComplex) * pnXY));//, streamLF));
 		HANDLE_ERROR(cudaMemset(device_FFT_tmp2, 0, sizeof(cuDoubleComplex) * pnXY * 4));//, streamLF));
 		HANDLE_ERROR(cudaMemset(device_FFT_tmp3, 0, sizeof(cuDoubleComplex) * pnXY * 4));//, streamLF));
-		LOG("%lf (s)\n", ELAPSED_TIME(step, CUR_TIME));
 
 		Real lambda = context_.wave_length[ch];
 
@@ -133,10 +129,7 @@ void ophLF::convertLF2ComplexField_GPU()
 
 		HANDLE_ERROR(cudaMemcpy(device_config, host_config, sizeof(LFGpuConst), cudaMemcpyHostToDevice));
 
-		LOG("\tConvertLF2ComplexField <<<%d, %d>>> : ", nBlocks, nThreads);
-		step = CUR_TIME;
 		cudaConvertLF2ComplexField_Kernel(0, nBlocks, nThreads, device_config, device_LF, device_FFT_src);
-		LOG("%lf (s)\n", ELAPSED_TIME(step, CUR_TIME));
 
 		// 20200824_mwnam_
 		cudaError error = cudaGetLastError();
@@ -154,8 +147,6 @@ void ophLF::convertLF2ComplexField_GPU()
 			}
 		}
 
-		LOG("\tCUDA FFT <<<%d, %d>>> : ", nBlocks4, nThreads);
-		step = CUR_TIME;
 
 		cufftHandle plan;
 		cufftResult result;
@@ -163,7 +154,7 @@ void ophLF::convertLF2ComplexField_GPU()
 		result = cufftPlan2d(&plan, nY, nX, CUFFT_Z2Z);
 		if (result != CUFFT_SUCCESS)
 		{
-			LOG("\tcufftPlan2d : Failed (%d\n", result);
+			LOG("<FAILED> cufftPlan2d (%d)\n", result);
 			return;
 		};
 
@@ -176,22 +167,14 @@ void ophLF::convertLF2ComplexField_GPU()
 			cudaFFT_LF(&plan, 0, nBlocks4, nThreads, nX, nY, in, out, -1);
 		}
 		if (cudaDeviceSynchronize() != cudaSuccess)
-			LOG("Sync Failed!\n");
+			LOG("<FAILED> Synchronize\n");
+
 		cufftDestroy(plan);
-		LOG("%lf (s)\n", ELAPSED_TIME(step, CUR_TIME));
-
-		LOG("\tMultiply Phase <<<%d, %d>>> : ", nBlocks, nThreads);
-		step = CUR_TIME;
 		procMultiplyPhase(0, nBlocks, nThreads, device_config, device_FFT_dst, device_FFT_tmp);
-		LOG("%lf (s)\n", ELAPSED_TIME(step, CUR_TIME));
-
-		LOG("\tCUDA Fresnel Propagation <<<%d, %d>>> : ", nBlocks2, nThreads);
-		step = CUR_TIME;
 		cudaFresnelPropagationLF(nBlocks2, nBlocks3, nThreads, pnX, pnY, device_FFT_tmp, device_FFT_tmp2, device_FFT_tmp3, device_dst, device_config);
 
-		// 여기 문제
+		// this problem
 		HANDLE_ERROR(cudaMemcpy(complex_H[ch], device_dst, sizeof(cuDoubleComplex) * pnXY, cudaMemcpyDeviceToHost));
-		LOG("%lf (s)\n", ELAPSED_TIME(step, CUR_TIME));
 
 		delete host_config;
 	}
@@ -209,5 +192,5 @@ void ophLF::convertLF2ComplexField_GPU()
 	cudaFree(device_FFT_tmp2);
 	cudaFree(device_FFT_tmp3);
 	cudaFree(device_dst);
-	LOG("Total: %lf (s)\n", ELAPSED_TIME(begin, CUR_TIME));
+	LOG("%s => %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
 }

@@ -45,22 +45,8 @@
 
 #include	"ophDepthMap.h"
 #include	"ophDepthMap_GPU.h"
-#include	<sys.h> //for LOG() macro
+#include	<sys.h> 
 
-void empty(int a, int b, int& sum)
-{
-	int* arr;
-	int idx = 0;
-	arr = new int[b - a + 1];
-
-	idx == b - a ? sum += arr[idx] : idx++;
-}
-
-/**
-* @brief Initialize variables for the GPU implementation.
-* @details Memory allocation for the GPU variables.
-* @see initialize
-*/
 void ophDepthMap::initGPU()
 {
 	const int nx = context_.pixel_number[0];
@@ -90,33 +76,27 @@ void ophDepthMap::initGPU()
 	HANDLE_ERROR(cudaMalloc((void**)&k_temp_d_, sizeof(cufftDoubleComplex)*N));
 }
 
-/**
-* @brief Copy input image & depth map data into a GPU.
-* @return true if input data are sucessfully copied on GPU, flase otherwise.
-* @see readImageDepth
-*/
 bool ophDepthMap::prepareInputdataGPU()
 {
-	LOG("%s : ", __FUNCTION__);
 	auto begin = CUR_TIME;
-	const uint pnX = context_.pixel_number[_X];
-	const uint pnY = context_.pixel_number[_Y];
-	const uint N = pnX * pnY;
+	const int N = context_.pixel_number[_X] * context_.pixel_number[_Y];
 
+	// 2022-09-23
+	if (depth_img == nullptr) // not used depth
+	{
+		depth_img = new uchar[N];
+		memset(depth_img, 0, N);
+	}
 	HANDLE_ERROR(cudaMemcpyAsync(dimg_src_gpu, depth_img, sizeof(uchar1) * N, cudaMemcpyHostToDevice, stream_));
-	LOG("%lf (s)\n", ELAPSED_TIME(begin, CUR_TIME));
+
+	LOG("%s => %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
 	return true;
 }
 
-/**
-* @brief Quantize depth map on the GPU, when the number of depth quantization is not the default value (i.e. change_depth_quantization == 1 ).
-* @details Calculate the value of 'depth_index_gpu'.
-* @see getDepthValues
-*/
 void ophDepthMap::changeDepthQuanGPU()
 {
-	const uint pnX = context_.pixel_number[_X];
-	const uint pnY = context_.pixel_number[_Y];
+	const int pnX = context_.pixel_number[_X];
+	const int pnY = context_.pixel_number[_Y];
 	const int N = pnX * pnY;
 
 	HANDLE_ERROR(cudaMemsetAsync(depth_index_gpu, 0, sizeof(Real) * N, stream_));
@@ -132,22 +112,8 @@ void ophDepthMap::changeDepthQuanGPU()
 	}
 }
 
-/**
-* @brief Main method for generating a hologram on the GPU.
-* @details For each depth level,
-*   1. find each depth plane of the input image.
-*   2. apply carrier phase delay.
-*   3. propagate it to the hologram plan.
-*   4. accumulate the result of each propagation.
-* .
-* It uses CUDA kernels, cudaDepthHoloKernel & cudaPropagation_AngularSpKernel.<br>
-* The final result is accumulated in the variable 'u_complex_gpu_'.
-* @param frame : the frame number of the image.
-* @see calc_Holo_by_Depth
-*/
 void ophDepthMap::calcHoloGPU()
 {
-	LOG("%s : ", __FUNCTION__);
 	auto begin = CUR_TIME;
 
 	if (!stream_)
@@ -196,14 +162,12 @@ void ophDepthMap::calcHoloGPU()
 			cudaPropagation_AngularSpKernel(stream_, pnX, pnY, k_temp_d_, u_complex_gpu_,
 				ppX, ppY, ssX, ssY, lambda, context_.k, temp_depth);
 
-			//propagationAngularSpectrumGPU(ch, u_o_gpu_, temp_depth);
-
 			m_nProgress = (int)((Real)(ch * depth_sz + p + 1) * 100 / ((Real)depth_sz * nChannel));
 		}
-
+		cudaFFT(stream_, pnX, pnY, u_complex_gpu_, k_temp_d_, 1);
 		cudaMemcpy(complex_H[ch], u_complex_gpu_, sizeof(cufftDoubleComplex) * N, cudaMemcpyDeviceToHost);
 	}
-	LOG("%lf (s)\n", ELAPSED_TIME(begin, CUR_TIME));
+	LOG("%s => %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
 }
 
 void ophDepthMap::free_gpu()

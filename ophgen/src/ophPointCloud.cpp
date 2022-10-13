@@ -91,9 +91,8 @@ bool ophPointCloud::readConfig(const char* fname)
 	if (!ophGen::readConfig(fname))
 		return false;
 
-	LOG("Reading....%s...", fname);
-
-	auto start = CUR_TIME;
+	bool bRet = true;
+	auto begin = CUR_TIME;
 
 	using namespace tinyxml2;
 	/*XML parsing*/
@@ -102,33 +101,48 @@ bool ophPointCloud::readConfig(const char* fname)
 
 	if (!checkExtension(fname, ".xml"))
 	{
-		LOG("file's extension is not 'xml'\n");
+		LOG("<FAILED> Wrong file ext.\n");
 		return false;
 	}
 	if (xml_doc.LoadFile(fname) != XML_SUCCESS)
 	{
-		LOG("Failed to load file \"%s\"\n", fname);
+		LOG("<FAILED> Loading file.\n");
 		return false;
 	}
 
 	xml_node = xml_doc.FirstChild();
-	// about point
-	auto next = xml_node->FirstChildElement("ScaleX");
-	if (!next || XML_SUCCESS != next->QueryDoubleText(&pc_config_.scale[_X]))
-		return false;
-	next = xml_node->FirstChildElement("ScaleY");
-	if (!next || XML_SUCCESS != next->QueryDoubleText(&pc_config_.scale[_Y]))
-		return false;
-	next = xml_node->FirstChildElement("ScaleZ");
-	if (!next || XML_SUCCESS != next->QueryDoubleText(&pc_config_.scale[_Z]))
-		return false;
-	next = xml_node->FirstChildElement("Distance");
-	if (!next || XML_SUCCESS != next->QueryDoubleText(&pc_config_.distance))
-		return false;
 
-	auto end = CUR_TIME;
-	auto during = ((chrono::duration<Real>)(end - start)).count();
-	LOG("%lf (s)..done\n", during);
+	char szNodeName[32] = { 0, };
+	wsprintfA(szNodeName, "ScaleX");
+	// about point
+	auto next = xml_node->FirstChildElement(szNodeName);
+	if (!next || XML_SUCCESS != next->QueryDoubleText(&pc_config_.scale[_X]))
+	{
+		LOG("<FAILED> Not found node : \'%s\' (Double) \n", szNodeName);
+		bRet = false;
+	}
+	wsprintfA(szNodeName, "ScaleY");
+	next = xml_node->FirstChildElement(szNodeName);
+	if (!next || XML_SUCCESS != next->QueryDoubleText(&pc_config_.scale[_Y]))
+	{
+		LOG("<FAILED> Not found node : \'%s\' (Double) \n", szNodeName);
+		bRet = false;
+	}
+	wsprintfA(szNodeName, "ScaleZ");
+	next = xml_node->FirstChildElement(szNodeName);
+	if (!next || XML_SUCCESS != next->QueryDoubleText(&pc_config_.scale[_Z]))
+	{
+		LOG("<FAILED> Not found node : \'%s\' (Double) \n", szNodeName);
+		bRet = false;
+	}
+	wsprintfA(szNodeName, "Distance");
+	next = xml_node->FirstChildElement(szNodeName);
+	if (!next || XML_SUCCESS != next->QueryDoubleText(&pc_config_.distance))
+	{
+		LOG("<FAILED> Not found node : \'%s\' (Double) \n", szNodeName);
+		bRet = false;
+	}
+	LOG("%s => %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
 
 	initialize();
 	return true;
@@ -136,13 +150,13 @@ bool ophPointCloud::readConfig(const char* fname)
 
 Real ophPointCloud::generateHologram(uint diff_flag)
 {
+	auto begin = CUR_TIME;
 	if (diff_flag < PC_DIFF_RS || diff_flag > PC_DIFF_FRESNEL) {
-		LOG("Wrong Diffraction Method.\n");
+		LOG("<FAILED> Wrong parameters.");
 		return 0.0;
 	}
 
 	resetBuffer();
-	auto begin = CUR_TIME;
 	LOG("1) Algorithm Method : Point Cloud\n");
 	LOG("2) Generate Hologram with %s\n", m_mode & MODE_GPU ?
 		"GPU" :
@@ -166,10 +180,11 @@ Real ophPointCloud::generateHologram(uint diff_flag)
 		genCghPointCloudCPU(diff_flag);
 	}
 	
+
+	Real elapsed_time = ELAPSED_TIME(begin, CUR_TIME);
+	LOG("Total Elapsed Time: %lf (s)\n", elapsed_time);
 	m_nProgress = 0;
-	auto end = CUR_TIME;
-	LOG("Total Elapsed Time: %lf (s)\n", ELAPSED_TIME(begin, end));
-	return m_elapsedTime;
+	return elapsed_time;
 }
 
 void ophPointCloud::encodeHologram(const vec2 band_limit, const vec2 spectrum_shift)
@@ -263,7 +278,7 @@ void ophPointCloud::encoding(unsigned int ENCODE_FLAG, unsigned int SSB_PASSBAND
 }
 
 
-Real ophPointCloud::genCghPointCloudCPU(uint diff_flag)
+void ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 {
 	auto begin = CUR_TIME;
 
@@ -303,7 +318,7 @@ Real ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 		pVertex = pc_data_.vertex;
 	}
 	
-	uint precision = m_mode & MODE_FLOAT ? PRECISION::SINGLE : PRECISION::DOUBLE;
+	//uint precision = m_mode & MODE_FLOAT ? PRECISION::SINGLE : PRECISION::DOUBLE;
 
 	for (uint ch = 0; ch < nChannel; ++ch) {
 		Real lambda = context_.wave_length[ch];
@@ -332,10 +347,7 @@ Real ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 			switch (diff_flag)
 			{
 			case PC_DIFF_RS:
-				if (precision == PRECISION::DOUBLE)
-					RS_Diffraction(vec3(pcx, pcy, pcz), complex_H[ch], lambda, pc_config_.distance, amplitude);
-				else
-					RS_Diffraction(vec3(pcx, pcy, pcz), complex_H[ch], (float)lambda, (float)pc_config_.distance, (float)amplitude);
+				RS_Diffraction(vec3(pcx, pcy, pcz), complex_H[ch], lambda, pc_config_.distance, amplitude);
 				break;
 			case PC_DIFF_FRESNEL:
 				Fresnel_Diffraction(vec3(pcx, pcy, pcz), complex_H[ch], lambda, pc_config_.distance, amplitude);
@@ -351,14 +363,7 @@ Real ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 	if (is_ViewingWindow) {
 		delete[] pVertex;
 	}
-	auto end = CUR_TIME;
-	Real elapsed_time = ELAPSED_TIME(begin, end);
-	LOG("\n%s : %lf(s) <%d threads>\n\n",
-		__FUNCTION__,
-		elapsed_time,
-		GetMaxThreadNum());
-
-	return elapsed_time;
+	LOG("%s => %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
 }
 
 void ophPointCloud::diffractEncodedRS(uint channel, ivec2 pn, vec2 pp, vec2 ss, vec3 pc, Real k, Real amplitude, vec2 theta)

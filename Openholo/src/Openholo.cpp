@@ -65,7 +65,6 @@ Openholo::Openholo(void)
 	, OHC_encoder(nullptr)
 	, OHC_decoder(nullptr)
 	, complex_H(nullptr)
-	, complexf_H(nullptr)
 {
 	context_ = { 0 };
 	fftw_init_threads();
@@ -140,21 +139,19 @@ bool Openholo::separateColor(int idx, int width, int height, uchar *src, uchar *
 
 bool Openholo::saveAsImg(const char * fname, uint8_t bitsperpixel, uchar* src, int width, int height)
 {
-	LOG("Saving...%s...\n", fname);
 	bool bOK = true;
-	auto start = CUR_TIME;
-	int _width = width, _height = height;
+	auto begin = CUR_TIME;
 
 	int padding = 0;
-	int _byteperline = ((_width * bitsperpixel / 8) + 3) & ~3;
-	int _pixelbytesize = _height * _byteperline;
+	int _byteperline = ((width * bitsperpixel >> 3) + 3) & ~3;
+	int _pixelbytesize = height * _byteperline;
 	int _filesize = _pixelbytesize;
 	bool hasColorTable = (bitsperpixel <= 8) ? true : false;
 	int _headersize = sizeof(bitmap);
 	int _iColor = (hasColorTable) ? 256 : 0;
 
-	if (_width % 4 != 0) {
-		padding = 4 - _width % 4;
+	if (width % 4 != 0) {
+		padding = 4 - width % 4;
 	}
 
 	rgbquad *table = nullptr;
@@ -187,8 +184,8 @@ bool Openholo::saveAsImg(const char * fname, uint8_t bitsperpixel, uchar* src, i
 	bitmap.fileheader.fileoffset_to_pixelarray = _headersize;
 
 	bitmap.bitmapinfoheader.dibheadersize = sizeof(bitmapinfoheader);
-	bitmap.bitmapinfoheader.width = _width;
-	bitmap.bitmapinfoheader.height = _height;
+	bitmap.bitmapinfoheader.width = width;
+	bitmap.bitmapinfoheader.height = height;
 	bitmap.bitmapinfoheader.planes = OPH_PLANES;
 	bitmap.bitmapinfoheader.bitsperpixel = bitsperpixel;
 	bitmap.bitmapinfoheader.compression = OPH_COMPRESSION; //(=BI_RGB)
@@ -211,21 +208,21 @@ bool Openholo::saveAsImg(const char * fname, uint8_t bitsperpixel, uchar* src, i
 	uchar *pTmp = new uchar[_pixelbytesize];
 	memcpy(pTmp, src, _pixelbytesize);
 
-	if (imgCfg.nFlip)
+	if (imgCfg.flip)
 	{
-		pControl->Flip((oph::FLIP)imgCfg.nFlip, pTmp, pTmp, _width + padding, _height, bitsperpixel / 8);
+		pControl->Flip((oph::FLIP)imgCfg.flip, pTmp, pTmp, width + padding, height, bitsperpixel >> 3);
 	}
 
-	if (imgCfg.bRotation) {
-		pControl->Rotate(180.0, pTmp, pTmp, _width + padding, _height, _width + padding, _height, bitsperpixel / 8);
+	if (imgCfg.rotate) {
+		pControl->Rotate(180.0, pTmp, pTmp, width + padding, height, width + padding, height, bitsperpixel >> 3);
 	}
 
 	if (padding != 0)
 	{
-		for (int i = 0; i < _height; i++)
+		for (int i = 0; i < height; i++)
 		{
-			memcpy(&pBitmap[iCur], &pTmp[_width * i], _width);
-			iCur += _width;
+			memcpy(&pBitmap[iCur], &pTmp[width * i], width);
+			iCur += width;
 			memset(&pBitmap[iCur], 0x00, padding);
 			iCur += padding;
 		}
@@ -257,48 +254,18 @@ bool Openholo::saveAsImg(const char * fname, uint8_t bitsperpixel, uchar* src, i
 
 	if (hasColorTable && table) delete[] table;
 	delete[] pBitmap;
-	auto end = CUR_TIME;
 
-	auto during = ((std::chrono::duration<Real>)(end - start)).count();
-
-	LOG("%.5lfsec...done\n", during);
+	LOG("%s => %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
 
 	return bOK;
 }
 
 
-uchar * Openholo::loadAsImg(const char * fname)
-{
-	FILE *infile;
-	fopen_s(&infile, fname, "rb");
-	if (infile == nullptr) { LOG("No such file"); return nullptr; }
-
-	// BMP Header Information
-	fileheader hf;
-	bitmapinfoheader hInfo;
-	fread(&hf, sizeof(fileheader), 1, infile);
-	if (hf.signature[0] != 'B' || hf.signature[1] != 'M') { LOG("Not BMP File");  return nullptr; }
-
-	fread(&hInfo, sizeof(bitmapinfoheader), 1, infile);
-	fseek(infile, hf.fileoffset_to_pixelarray, SEEK_SET);
-
-	oph::uchar *img_tmp;
-	if (hInfo.imagesize == 0) {
-		int nSize = (((hInfo.width * hInfo.bitsperpixel / 8) + 3) & ~3) * hInfo.height;
-		img_tmp = new uchar[nSize];
-		fread(img_tmp, sizeof(oph::uchar), nSize, infile);
-	}
-	else {
-		img_tmp = new uchar[hInfo.imagesize];
-		fread(img_tmp, sizeof(oph::uchar), hInfo.imagesize, infile);
-	}
-	fclose(infile);
-
-	return img_tmp;
-}
-
 bool Openholo::saveAsOhc(const char * fname)
 {
+	bool bRet = true;
+	auto begin = CUR_TIME;
+
 	std::string fullname = fname;
 	if (!checkExtension(fname, ".ohc")) fullname.append(".ohc");
 	OHC_encoder->setFileName(fullname.c_str());
@@ -313,18 +280,28 @@ bool Openholo::saveAsOhc(const char * fname)
 	for (uint i = 0; i < wavelength_num; i++)
 		OHC_encoder->addComplexFieldData(complex_H[i]);
 
-	if (!OHC_encoder->save()) return false;
-
-	return true;
+	if (!OHC_encoder->save())
+	{
+		bRet = false;
+		LOG("<FAILED> Saving ohc file: %s\n", fname);
+	}
+	LOG("%s => %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
+	return bRet;
 }
 
 bool Openholo::loadAsOhc(const char * fname)
 {
+	auto begin = CUR_TIME;
+
 	std::string fullname = fname;
 	if (!checkExtension(fname, ".ohc")) fullname.append(".ohc");
 	OHC_decoder->setFileName(fullname.c_str());
-	if (!OHC_decoder->load()) return false;
-
+	if (!OHC_decoder->load())
+	{
+		LOG("<FAILED> Load ohc : %s\n", fname);
+		LOG("%.5lf (sec)\n", ELAPSED_TIME(begin, CUR_TIME));
+		return false;
+	}
 	context_.waveNum = OHC_decoder->getNumOfWavlen();
 	context_.pixel_number = OHC_decoder->getNumOfPixel();
 	context_.pixel_pitch = OHC_decoder->getPixelPitch();
@@ -341,28 +318,71 @@ bool Openholo::loadAsOhc(const char * fname)
 	context_.ss[_X] = context_.pixel_number[_X] * context_.pixel_pitch[_X];
 	context_.ss[_Y] = context_.pixel_number[_Y] * context_.pixel_pitch[_Y];
 
+	LOG("%s => %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
 	return true;
+}
+
+
+uchar* Openholo::loadAsImg(const char * fname)
+{
+	FILE *infile;
+	fopen_s(&infile, fname, "rb");
+	if (infile == nullptr)
+	{ 
+		LOG("<FAILED> No such file.\n");
+		return nullptr;
+	}
+
+	// BMP Header Information
+	fileheader hf;
+	bitmapinfoheader hInfo;
+	fread(&hf, sizeof(fileheader), 1, infile);
+	if (hf.signature[0] != 'B' || hf.signature[1] != 'M')
+	{
+		LOG("<FAILED> Not BMP file.\n");
+		fclose(infile);
+		return nullptr;
+	}
+
+	fread(&hInfo, sizeof(bitmapinfoheader), 1, infile);
+	fseek(infile, hf.fileoffset_to_pixelarray, SEEK_SET);
+
+	uint size = hInfo.imagesize != 0 ? hInfo.imagesize : (((hInfo.width * hInfo.bitsperpixel >> 3) + 3) & ~3) * hInfo.height;
+
+	oph::uchar *img_tmp = new uchar[size];
+	fread(img_tmp, sizeof(uchar), size, infile);
+	fclose(infile);
+
+	return img_tmp;
 }
 
 bool Openholo::loadAsImgUpSideDown(const char * fname, uchar* dst)
 {
 	FILE *infile;
 	fopen_s(&infile, fname, "rb");
-	if (infile == nullptr) { LOG("No such file"); return false; }
+	if (infile == nullptr)
+	{
+		LOG("<FAILED> No such file.\n");
+		return false;
+	}
 
 	// BMP Header Information
 	fileheader hf;
 	bitmapinfoheader hInfo;
 	fread(&hf, sizeof(fileheader), 1, infile);
-	if (hf.signature[0] != 'B' || hf.signature[1] != 'M') { LOG("Not BMP File");  return false; }
+	if (hf.signature[0] != 'B' || hf.signature[1] != 'M')
+	{
+		LOG("<FAILED> Not BMP file.\n");
+		return false; 
+	}
 
 	fread(&hInfo, sizeof(bitmapinfoheader), 1, infile);
 	fseek(infile, hf.fileoffset_to_pixelarray, SEEK_SET);
-
+	
 	oph::uchar* img_tmp;
 	if (hInfo.imagesize == 0) {
-		img_tmp = new oph::uchar[hInfo.width*hInfo.height*(hInfo.bitsperpixel / 8)];
-		fread(img_tmp, sizeof(oph::uchar), hInfo.width*hInfo.height*(hInfo.bitsperpixel / 8), infile);
+		img_tmp = new oph::uchar[hInfo.width*hInfo.height*(hInfo.bitsperpixel >> 3)];
+		fread(img_tmp, sizeof(oph::uchar), hInfo.width*hInfo.height*(hInfo.bitsperpixel >> 3), infile);
 	}
 	else {
 		img_tmp = new oph::uchar[hInfo.imagesize];
@@ -371,7 +391,7 @@ bool Openholo::loadAsImgUpSideDown(const char * fname, uchar* dst)
 	fclose(infile);
 
 	// data upside down
-	int bytesperpixel = hInfo.bitsperpixel / 8;
+	int bytesperpixel = hInfo.bitsperpixel >> 3;
 	//int rowsz = bytesperpixel * hInfo.width;
 
 	int rowsz = ((hInfo.width * bytesperpixel) + 3) & ~3;
@@ -388,7 +408,6 @@ bool Openholo::loadAsImgUpSideDown(const char * fname, uchar* dst)
 
 bool Openholo::getImgSize(int & w, int & h, int & bytesperpixel, const char * fname)
 {
-
 	char szExtension[_MAX_EXT] = { 0, };
 	sprintf(szExtension, "%s", PathFindExtension(fname) + 1);
 
@@ -411,7 +430,7 @@ bool Openholo::getImgSize(int & w, int & h, int & bytesperpixel, const char * fn
 
 	w = hInfo.width;
 	h = hInfo.height;
-	bytesperpixel = hInfo.bitsperpixel / 8;
+	bytesperpixel = hInfo.bitsperpixel >> 3;
 	fclose(infile);
 
 	return true;
@@ -419,13 +438,12 @@ bool Openholo::getImgSize(int & w, int & h, int & bytesperpixel, const char * fn
 
 void Openholo::imgScaleBilinear(uchar* src, uchar* dst, int w, int h, int neww, int newh, int channels)
 {
-	auto begin = CUR_TIME;
 	int channel = channels;
 	int nBytePerLine = ((w * channel) + 3) & ~3;
 	int nNewBytePerLine = ((neww * channel) + 3) & ~3;
 	int y;
 #ifdef _OPENMP
-#pragma omp parallel for private(y)
+#pragma omp parallel for private(y) firstprivate(nBytePerLine, nNewBytePerLine, w, h, neww, newh, channel)
 #endif
 	for (y = 0; y < newh; y++)
 	{
@@ -491,16 +509,15 @@ void Openholo::imgScaleBilinear(uchar* src, uchar* dst, int w, int h, int neww, 
 			}
 		}
 	}
-	auto end = CUR_TIME;
-	LOG("Scaled img size: (%d/%d) => (%d/%d) : %lf(s)\n", w, h, neww, newh,
-	((chrono::duration<Real>)(end - begin)).count());
 }
 
 void Openholo::convertToFormatGray8(unsigned char * src, unsigned char * dst, int w, int h, int bytesperpixel)
 {
 	int idx = 0;
 	unsigned int r = 0, g = 0, b = 0;
-	for (int i = 0; i < w*h*bytesperpixel; i++)
+	int N = (((w * bytesperpixel) + 3) & ~3) * h;
+
+	for (int i = 0; i < N; i++)
 	{
 		unsigned int blue = src[i + 0];
 		unsigned int green = src[i + 1];
@@ -693,8 +710,8 @@ void Openholo::fft2(Complex<Real>* src, Complex<Real>* dst, int nx, int ny, int 
 {
 	const int N = nx * ny;
 	fftw_complex *in, *out;
-	bool bIn = fft_in == nullptr ? true : false;
-	bool bOut = fft_out == nullptr ? true : false;
+	const bool bIn = fft_in == nullptr ? true : false;
+	const bool bOut = fft_out == nullptr ? true : false;
 
 	if (bIn)
 		in = (fftw_complex *)fftw_malloc(sizeof(fftw_complex) * N);
@@ -742,19 +759,19 @@ void Openholo::fft2(Complex<Real>* src, Complex<Real>* dst, int nx, int ny, int 
 
 void Openholo::fftShift(int nx, int ny, fftw_complex* input, Complex<Real>* output)
 {
-	int hnx = nx / 2;
-	int hny = ny / 2;
+	int half_nx = nx >> 1;
+	int half_ny = ny >> 1;
 
 	int i;
 #ifdef _OPENMP
-#pragma omp parallel for private(i) firstprivate(hnx, hny)
+#pragma omp parallel for private(i) firstprivate(half_nx, half_ny)
 #endif
 	for (i = 0; i < nx; i++)
 	{
 		for (int j = 0; j < ny; j++)
 		{
-			int ti = i - hnx; if (ti < 0) ti += nx;
-			int tj = j - hny; if (tj < 0) tj += ny;
+			int ti = i - half_nx; if (ti < 0) ti += nx;
+			int tj = j - half_ny; if (tj < 0) tj += ny;
 
 			output[ti + tj * nx][_RE] = input[i + j * nx][_RE];
 			output[ti + tj * nx][_IM] = input[i + j * nx][_IM];
@@ -821,16 +838,19 @@ void Openholo::setWaveNum(int nNum)
 	context_.wave_length = new Real[nNum];
 }
 
-void Openholo::SetMaxThreadNum(int num)
+void Openholo::setMaxThreadNum(int num)
 {
 #ifdef _OPENMP
-	omp_set_num_threads(num);
+	if (num > omp_get_max_threads())
+		omp_set_num_threads(omp_get_max_threads());
+	else
+		omp_set_num_threads(num);
 #else
 	LOG("Not used openMP\n");
 #endif
 }
 
-int Openholo::GetMaxThreadNum()
+int Openholo::getMaxThreadNum()
 {
 	int num_threads = 1;
 #ifdef _OPENMP
@@ -852,18 +872,10 @@ void Openholo::ophFree(void)
 			delete[] complex_H[i];
 			complex_H[i] = nullptr;
 		}
-		if (complexf_H[i]) {
-			delete[] complexf_H[i];
-			complexf_H[i] = nullptr;
-		}
 	}
 	if (complex_H) {
 		delete[] complex_H;
 		complex_H = nullptr;
-	}
-	if (complexf_H) {
-		delete[] complexf_H;
-		complexf_H = nullptr;
 	}
 	if (context_.wave_length) {
 		delete[] context_.wave_length;

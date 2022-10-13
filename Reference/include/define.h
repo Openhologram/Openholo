@@ -76,6 +76,18 @@ namespace oph
 #define OPH_ESTIMATE (1U << 6)
 #define OPH_WISDOM_ONLY (1U << 21)
 
+#ifndef _FIRST
+#define _FIRST 0
+#endif
+
+#ifndef _SECOND
+#define _SECOND 1
+#endif
+
+#ifndef _THIRD
+#define _THIRD 2
+#endif
+
 #ifndef _X
 #define _X 0
 #endif

@@ -143,7 +143,7 @@ public:
 	const Real& getFieldLens() { return wrp_config_.fieldLength; }
 	void setScale(vec3 scale) { wrp_config_.scale = scale; }
 	void setLocation(Real location) { wrp_config_.wrp_location = location; }
-	void setDistance(Real distance) { wrp_config_.propagation_distance; }
+	void setDistance(Real distance) { wrp_config_.propagation_distance = distance; }
 	void autoScaling();
 	int getNumOfPoints() { return n_points; }
 

@@ -255,13 +255,14 @@ bool ophSimulator::GenerateHologram()
 			const Real kx = k * cos(phi) * sin(theta);
 			const Real ky = k * sin(phi) * sin(theta);
 			const Real kz = k * cos(theta);
+			const Real kzd = kz * distance;
 
 			for (int y = 0; y < pnY; y++) {
 				Real curY = startY + (y * ppY);
 				int offset = y * pnX;
 				for (int x = 0; x < pnX; x++) {
 					Real curX = startX + (x * ppX);
-					Complex<Real> tmp(0.0, (kx*curX + ky * curY + kz * distance));
+					Complex<Real> tmp(0.0, (kx*curX + ky * curY + kzd));
 					result[offset + x] += tmp.exp();
 				}
 			}
@@ -272,12 +273,11 @@ bool ophSimulator::GenerateHologram()
 		Normalize(encode, m_pNormalize, pnX, pnY);
 		if (m_bHasPoint) {
 			uchar **pNormal = m_pPointCloud->getNormalizedBuffer();
-
+			int N = pnX * pnY;
+			int i;
 #ifdef _OPENMP
 #pragma omp for private(i)
-			for (i = 0; i < pnX * pnY; i++) {
-#else
-			for (int i = 0; i < pnX * pnY; i++) {
+			for (i = 0; i < N; i++) {
 #endif
 				m_pNormalize[i] = ((int)m_pNormalize[i] + (int)pNormal[0][i]) / 2;
 			}

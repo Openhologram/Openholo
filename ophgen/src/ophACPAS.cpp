@@ -514,7 +514,7 @@ void ophACPAS::ACPAS(long voxelnum, OphPointCloudData *data, OphPointCloudConfig
 	float xiInterval = getContext().pixel_pitch[_X];
 	float etaInterval = getContext().pixel_pitch[_Y];
 	float rLamda = getContext().wave_length[0];
-	float rWaveNum = 9926043.13930423;
+	float rWaveNum = 9926043.13930423f;
 	float thetaX = 0.0;
 	float thetaY = 0.0;
 

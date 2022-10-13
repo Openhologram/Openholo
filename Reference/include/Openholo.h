@@ -72,9 +72,9 @@ struct OPH_DLL OphConfig
 
 struct OPH_DLL ImageConfig
 {
-	bool		bRotation;
-	bool		bMergeImage;
-	int			nFlip;
+	bool		rotate;							// rotat
+	bool		merge;							// merge
+	int			flip;							// flip
 };
 
 
@@ -161,7 +161,6 @@ public:
 	*				If the fails to get complex field, the return value is <B>nullptr</B>.
 	*/
 	inline Complex<Real>** getComplexField(void) { return complex_H; }
-	inline Complex<float>** getComplexfField(void) { return complexf_H; }
 	
 	
 	/**
@@ -200,20 +199,90 @@ public:
 	*/
 	inline void setWaveLength(Real w, const uint idx = 0) { context_.wave_length[idx] = w; }
 
-	void setWaveNum(int nNum);
+	/**
+	* @brief Function for setting the wave number
+	* @param[in] num Number of wave/
+	*/
+	void setWaveNum(int num);
 
-	void setImageMerge(bool bMerge) { imgCfg.bMergeImage = bMerge; }
-	void setImageRotate(bool rotate) { imgCfg.bRotation = rotate; }
-	void setImageFlip(int flip) { imgCfg.nFlip = flip; }
-	bool getImageRotate() { return imgCfg.bRotation; }
+	/**
+	* @brief Function for setting the image merge(true or false)
+	* @details <pre>
+	if merge == true
+	One RGB image
+	else
+	Each grayscale image </pre>
+	* @param[in] merge : the value for specifying whether output image merge.
+	*/
+	void setImageMerge(bool merge) { imgCfg.merge = merge; }
 
-	void SetMaxThreadNum(int num);
-	int GetMaxThreadNum();
+	/**
+	* @brief Function for setting the image rotate(true or false)
+	* @details <pre>
+	if rotate == true
+	180 degree rotate.
+	else
+	not change. </pre>
+	* @param[in] rotate : the value for specifying whether output image rotate.
+	*/
+	void setImageRotate(bool rotate) { imgCfg.rotate = rotate; }
 
+	/**
+	* @brief Function for setting the image flip
+	* @details <pre>
+	if flip == 0
+	not change.
+	else if flip == 1
+	vertical change.
+	else if flipp == 2
+	horizon tal change.
+	else B
+	both.</pre>
+	* @param[in] rotate : the value for specifying whether output image flip.
+	*/
+	void setImageFlip(int flip) { imgCfg.flip = flip; }
+
+	/**
+	* @brief Function for setting the max thread num
+	* @param[in] num : number of max thread.
+	*/
+	void setMaxThreadNum(int num);
+
+	/**
+	* @brief Function for getting the max thread num
+	* @return Type: <B>int</B>\n
+					If the currently max thread.
+	*/
+	int getMaxThreadNum();
+
+	/**
+	* @brief Function for generate RGB image from each grayscale image
+	* @param[in] idx : 0 is red, 1 is green, 2 is blue.
+	* @param[in] width : Number of pixel - width
+	* @param[in] height : Number of pixel - height
+	* @param[in] src : Source of Image file's data - grayscale
+	* @param[out] dst : Destination of Image file's data - RGB
+	* @return Type: <B>bool</B>\n
+	*				If the succeeds to merge image, the return value is <B>true</B>.\n
+	*				If the fails to merge image, the return value is <B>false</B>.
+	*/
 	bool mergeColor(int idx, int width, int height, uchar *src, uchar *dst);
+
+	/**
+	* @brief Function for generate each grayscale image from RGB image
+	* @param[in] idx : 0 is red, 1 is green, 2 is blue.
+	* @param[in] width : Number of pixel - width
+	* @param[in] height : Number of pixel - height
+	* @param[in] src : Source of Image file's data - RGB
+	* @param[out] dst : Destination of Image file's data - grayscale
+	* @return Type: <B>bool</B>\n
+	*				If the succeeds to separate image, the return value is <B>true</B>.\n
+	*				If the fails to separate image, the return value is <B>false</B>.
+	*/
 	bool separateColor(int idx, int width, int height, uchar *src, uchar *dst);
 
 protected:
+
 	/**
 	* @brief Function for loading image files | Output image data upside down
 	* @param[in] Input file name.
@@ -239,7 +308,7 @@ protected:
 	/**
 	* @brief Function for change image size
 	* @param[in] src Source image data.
-	* @param[in] dst Destination image data.
+	* @param[out] dst Destination image data.
 	* @param[in] w Original width.
 	* @param[in] h Original height.
 	* @param[in] neww Width to replace.
@@ -250,7 +319,7 @@ protected:
 	/**
 	* @brief Function for convert image format to gray8
 	* @param[in] src Source image data.
-	* @param[in] dst Destination image data.
+	* @param[out] dst Destination image data.
 	* @param[in] w Image size, width.
 	* @param[in] h Image size, Height.
 	* @param[in] bytesperpixel Bytes per pixel.
@@ -288,8 +357,20 @@ protected:
 	* @param[out] out Dest of data.
 	*/
 	void fftExecute(Complex<Real>* out, bool bReverse = false);
+
+	/**
+	* @brief Resource release method.
+	*/
 	void fftFree(void);
+
+	/**
+	* @brief initialize method for 2D FFT
+	* @param[in] size Number of data (int x, int y)
+	* @param[in] sign Sign of FFTW(FORWARD or BACKWARD)
+	* @param[in] flag Flag of FFTW(MEASURE, DESTROY_INPUT, UNALIGNED, CONSERVE_MEMORY, EXHAUSTIVE, PRESERVE_INPUT, PATIENT, ESTIMATE, WISDOM_ONLY) 
+	*/
 	void fftInit2D(ivec2 size, int sign, unsigned int flag);
+
 	/**
 	* @brief Convert data from the spatial domain to the frequency domain using 2D FFT on CPU.
 	* @param[in] src Input data variable.
@@ -337,7 +418,6 @@ protected:
 	ImageConfig imgCfg;
 
 	Complex<Real>** complex_H;
-	Complex<float>** complexf_H;
 protected:
 	/**
 	* @brief OHC file format Variables for read and write

@@ -77,7 +77,7 @@ public:
 		ENCODE_PHASE,
 		ENCODE_AMPLITUDE,
 		ENCODE_REAL,
-		ENCODE_IMAGINEARY,
+		ENCODE_IMAGINARY,
 		ENCODE_SIMPLENI,
 		ENCODE_BURCKHARDT,
 		ENCODE_TWOPHASE,
@@ -140,15 +140,45 @@ public:
 	bool readConfig(const char* fname);
 
 	/**
-	* @brief Angular spectrum propagation method.
-	* @param[in] input Each depth plane data.
-	* @param[out] output complex data.
-	* @param[in] distance the distance from the object to the hologram plane.
-	* @param[in] k const value.
+	* @brief RS-diffraction method.
+	* @param[in] src point coordinate data.
+	* @param[out] dst complex data.
 	* @param[in] lambda wave length.
+	* @param[in] distance the distance from the object to the hologram plane.
+	* @param[in] amplitude point color data.
+	*/
+	void RS_Diffraction(vec3 src, Complex<Real> *dst, Real lambda, Real distance, Real amplitude);
+
+	/**
+	* @brief Fresnel-diffraction method.
+	* @param[in] src point coordinate data.
+	* @param[out] dst complex data.
+	* @param[in] lambda wave length.
+	* @param[in] distance the distance from the object to the hologram plane.
+	* @param[in] amplitude point color data.
+	*/
+	void Fresnel_Diffraction(vec3 src, Complex<Real> *dst, Real lambda, Real distance, Real amplitude);
+
+	/**
+	* @brief Fresnel-fft method.
+	* @param[in] src plane color data.
+	* @param[out] dst complex data.
+	* @param[in] lambda wave length.
+	* @param[in] distance the distance from the object to the hologram plane.
+	* @see fft2
+	*/
+	void Fresnel_FFT(Complex<Real> *src, Complex<Real> *dst, Real lambda, Real waveRatio, Real distance);
+
+
+	/**
+	* @brief Angular spectrum propagation method.
+	* @param[in] src Each depth plane data.
+	* @param[out] dst complex data.
+	* @param[in] lambda wave length.
+	* @param[in] distance the distance from the object to the hologram plane.
 	* @see calcHoloCPU, fft2
 	*/
-	void AngularSpectrumMethod(Complex<Real>* input, Complex<Real>* output, Real distance, Real k, Real lambda);
+	void AngularSpectrumMethod(Complex<Real>* src, Complex<Real>* dst, Real lambda, Real distance);
 
 	/**
 	@brief Convolution between Complex arrays which have same size
@@ -350,7 +380,7 @@ protected:
 	template <typename T>
 	void RealPart(Complex<T>* holo, T* encoded, const int size);
 	template <typename T>
-	void ImaginearyPart(Complex<T>* holo, T* encoded, const int size);
+	void ImaginaryPart(Complex<T>* holo, T* encoded, const int size);
 	template <typename T>
 	void Phase(Complex<T>* holo, T* encoded, const int size);
 	template <typename T>
@@ -373,13 +403,13 @@ protected:
 
 	/**
 	* @brief	Frequency shift
-	* @param[in] src Source data.
-	* @param[out] dst Destination data.
+	* @param[in] holo Source data.
+	* @param[out] encoded Destination data.
 	* @param[in] holosize
 	* @param[in] shift_x X pixel value to shift
 	* @param[in] shift_y Y pixel value to shift
 	*/
-	void freqShift(Complex<Real>* src, Complex<Real>* dst, const ivec2 holosize, int shift_x, int shift_y);
+	void freqShift(Complex<Real>* holo, Complex<Real>* encoded, const ivec2 holosize, int shift_x, int shift_y);
 
 
 public:
@@ -490,25 +520,25 @@ protected:
 	void GetMaxMin(Real *src, int len, Real& max, Real& min);
 
 public:
-	void AngularSpectrumMethod(Complex<Real> *src, Complex<Real> *dst, Real lambda, Real distance);
-	void RS_Diffraction(vec3 src, Complex<Real> *dst, Real lambda, Real distance, Real amplitude);
-	void RS_Diffraction(vec3 src, Complex<Real> *dst, float lambda, float distance, float amplitude);
-	void RS_Diffraction(uchar *src, Complex<Real> *dst, Real lambda, Real distance);
-	void Fresnel_Diffraction(vec3 src, Complex<Real> *dst, Real lambda, Real distance, Real amplitude);
-	void Fresnel_FFT(Complex<Real> *src, Complex<Real> *dst, Real lambda, Real waveRatio, Real distance);
+	/**
+	* @brief Function for setting the random phase
+	*/
+	void SetRandomPhase(bool bRandomPhase) { m_bRandomPhase = bRandomPhase; }
 
-	bool readImage(const char* fname, bool bRGB);
+	/**
+	* @brief Function for getting the random phase
+	* @return Type: <B>bool</B>\n
+	*				If the succeeds to use random phase, the return value is <B>true</B>.\n
+	*				If the fails to not use random phase, the return value is <B>false</B>.
+	*/
+	bool GetRandomPhase() { return m_bRandomPhase; }
 	void SetMode(unsigned int mode) { m_mode = mode; }
 	unsigned int GetMode() { return m_mode; }
-	void SetRandomPhase(bool bRandomPhase) { m_bRandomPhase = bRandomPhase; }
-	bool GetRandomPhase() { return m_bRandomPhase; }
 
-	uchar* imgRGB;
-	uchar* imgDepth;
-	int m_width;
-	int m_height;
-	int m_bpp;
+
+
 protected:
+
 	/**
 	* @brief Pure virtual function for override in child classes
 	*/
@@ -659,5 +689,20 @@ struct GEN_DLL OphIFTAConfig {
 
 	OphIFTAConfig() :near_depthmap(0), far_depthmap(0), num_of_depth(0), num_of_iteration(0) {}
 };
+
+/**
+* @struct Point
+*/
+struct GEN_DLL Point {
+	Real pos[3];
+};
+
+/**
+* @struct Face
+*/
+struct GEN_DLL Face {
+	Point pts[3];
+};
+
 #endif // !__ophGen_h
 

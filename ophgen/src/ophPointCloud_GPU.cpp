@@ -46,13 +46,11 @@
 #include "ophPointCloud.h"
 #include "ophPointCloud_GPU.h"
 #include "CUDA.h"
-//#include "ophPCKernel.cl"
-#include <sys.h> //for LOG() macro
 #ifdef USING_OPENCL
 #include "OpenCL.h"
 
 
-Real ophPointCloud::genCghPointCloudGPU(uint diff_flag)
+void ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 {
 	int nErr;
 	auto begin = CUR_TIME;
@@ -196,7 +194,7 @@ Real ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 #else
 
 
-Real ophPointCloud::genCghPointCloudGPU(uint diff_flag)
+void ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 {
 	auto begin = CUR_TIME;
 	const ulonglong pnXY = context_.pixel_number[_X] * context_.pixel_number[_Y];
@@ -212,13 +210,12 @@ Real ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 		n_streams = pc_data_.n_points / 300 + 1;
 	else if (getStream() < 0)
 	{
-		LOG("Invalid value : NumOfStream");
-		return 0.0;
+		LOG("<FAILED> Wrong parameters.");
+		return;
 	}
 	else
 		n_streams = getStream();
 
-	LOG(">>> Number Of Stream : %d\n", n_streams);
 
 	//threads number
 	const ulonglong bufferSize = pnXY * sizeof(Real);
@@ -380,9 +377,6 @@ Real ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 
 
 			m_nProgress = (int)((Real)(ch*n_streams + i + 1) * 100 / ((Real)n_streams * nChannel));
-			LOG("GPU(%d/%d) > %.16f / %.16f\n", i+1, n_streams,
-				complex_H[ch][0][_RE], complex_H[ch][0][_IM]);
-
 		} // for
 
 		//free memory
@@ -399,12 +393,6 @@ Real ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 		delete[] host_pc_data;
 	}
 
-	auto end = CUR_TIME;
-	Real elapsed_time = ((chrono::duration<Real>)(end - begin)).count();
-	LOG("\n%s : %lf(s) \n\n",
-		__FUNCTION__,
-		elapsed_time);
-	
-	return elapsed_time;
+	LOG("%s => %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
 }
 #endif

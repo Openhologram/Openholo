@@ -44,7 +44,7 @@
 //M*/
 
 #include "PLYparser.h"
-
+#include "sys.h"
 PLYparser::PLYparser()
 {
 	PropertyTable.insert(std::make_pair(Type::INT8, std::make_pair(1, "char")));
@@ -63,7 +63,8 @@ PLYparser::~PLYparser()
 }
 
 PLYparser::PlyProperty::PlyProperty(std::istream &is)
-	: isList(false) {
+	: isList(false)
+{
 	std::string type;
 	is >> type;
 	if (type == "list") {
@@ -76,27 +77,28 @@ PLYparser::PlyProperty::PlyProperty(std::istream &is)
 	is >> name;
 }
 
-
 PLYparser::PlyProperty::PlyProperty(const Type type, const std::string &_name)
-	: propertyType(type), name(_name) {
+	: propertyType(type), name(_name)
+{
 }
-
 
 PLYparser::PlyProperty::PlyProperty(const Type list_type, const Type prop_type, const std::string &_name, const ulonglong list_count)
-	: listType(list_type), propertyType(prop_type), name(_name), listCount(list_count), isList(true) {
+	: listType(list_type), propertyType(prop_type), name(_name), listCount(list_count), isList(true)
+{
 }
 
-
-PLYparser::PlyElement::PlyElement(std::istream &is) {
+PLYparser::PlyElement::PlyElement(std::istream &is)
+{
 	is >> name >> size;
 }
 
-
 PLYparser::PlyElement::PlyElement(const std::string &_name, const ulonglong count)
-	: name(_name), size(count) {
+	: name(_name), size(count)
+{
 }
 
-PLYparser::Type PLYparser::propertyTypeFromString(const std::string &t) {
+PLYparser::Type PLYparser::propertyTypeFromString(const std::string &t)
+{
 	if (t == "int8" || t == "char")								return Type::INT8;
 	else if (t == "uint8" || t == "uchar")						return Type::UINT8;
 	else if (t == "int16" || t == "short")						return Type::INT16;
@@ -108,8 +110,8 @@ PLYparser::Type PLYparser::propertyTypeFromString(const std::string &t) {
 	else														return Type::INVALID;
 }
 
-
-bool PLYparser::findIdxOfPropertiesAndElement(const std::vector<PlyElement> &elements, const std::string &elementKey, const std::string &propertyKeys, longlong &elementIdx, int &propertyIdx) {
+bool PLYparser::findIdxOfPropertiesAndElement(const std::vector<PlyElement> &elements, const std::string &elementKey, const std::string &propertyKeys, longlong &elementIdx, int &propertyIdx)
+{
 	elementIdx = -1;
 	for (size_t i = 0; i < elements.size(); ++i) {
 		if (elements[i].name == elementKey) {
@@ -135,9 +137,11 @@ bool PLYparser::findIdxOfPropertiesAndElement(const std::vector<PlyElement> &ele
 	else return false;
 }
 
-bool PLYparser::loadPLY(const std::string& fileName, ulonglong &n_points, int &color_channels, Real** vertexArray, Real** colorArray, Real** phaseArray, bool &isPhaseParse) {
+bool PLYparser::loadPLY(const std::string& fileName, ulonglong &n_points, int &color_channels, Real** vertexArray, Real** colorArray, Real** phaseArray, bool &isPhaseParse)
+{
 	std::string inputPath = fileName;
-	if ((fileName.find(".ply") == std::string::npos) && (fileName.find(".PLY") == std::string::npos)) inputPath += ".ply";
+	if ((fileName.find(".ply") == std::string::npos) && (fileName.find(".PLY") == std::string::npos))
+		inputPath.append(".ply");
 	std::ifstream File(inputPath, std::ios::in | std::ios::binary);
 
 	bool isBinary = false;
@@ -156,14 +160,11 @@ bool PLYparser::loadPLY(const std::string& fileName, ulonglong &n_points, int &c
 		lineStr >> token;
 
 		if ((token != "ply") && (token != "PLY")) {
-			std::cerr << "Error : Failed loading ply file..." << std::endl;
+			LOG("<FAILED> Wrong file ext: %s\n", token);
 			File.close();
 			return false;
 		}
 		else {
-#ifdef _DEBUG
-			std::cout << "Parsing *.PLY file for OpenHolo Point Cloud Generation..." << std::endl;
-#endif
 			//parse PLY header
 			while (std::getline(File, line)) {
 				//std::istringstream lineStr(line);
@@ -185,7 +186,8 @@ bool PLYparser::loadPLY(const std::string& fileName, ulonglong &n_points, int &c
 					elements.emplace_back(lineStr);
 				}
 				else if (token == "property") {
-					if (!elements.size()) std::cerr << "No Elements defined, file is malformed" << std::endl;
+					if (!elements.size())
+						LOG("<FAILED> No Elements defined, file is malformed.\n");
 					elements.back().properties.emplace_back(lineStr);
 				}
 				else if (token == "obj_info") objInfo.push_back((9 > 0) ? line.erase(0, 9) : line);
@@ -219,7 +221,8 @@ bool PLYparser::loadPLY(const std::string& fileName, ulonglong &n_points, int &c
 			ok_vertex = findIdxOfPropertiesAndElement(elements, "vertex", "y", idxE_vertex, idxP_y);
 			ok_vertex = findIdxOfPropertiesAndElement(elements, "vertex", "z", idxE_vertex, idxP_z);
 			if (!ok_vertex) {
-				std::cerr << "Error : file is not having vertices data..." << std::endl;
+				LOG("<FAILED> File is not having vertices data.\n");
+				File.close();
 				return false;
 			}
 
@@ -230,9 +233,7 @@ bool PLYparser::loadPLY(const std::string& fileName, ulonglong &n_points, int &c
 			int idxP_blue = -1;
 			int idxP_alpha = -1;
 			bool ok_face = findIdxOfPropertiesAndElement(elements, "face", "vertex_indices", idxE_face, idxP_list);
-
 			bool ok_alpha = findIdxOfPropertiesAndElement(elements, "face", "alpha", idxE_face, idxP_alpha);
-
 			bool ok_color = findIdxOfPropertiesAndElement(elements, "vertex", "red", idxE_vertex, idxP_red);
 			ok_color = findIdxOfPropertiesAndElement(elements, "vertex", "green", idxE_vertex, idxP_green);
 			ok_color = findIdxOfPropertiesAndElement(elements, "vertex", "blue", idxE_vertex, idxP_blue);
@@ -253,10 +254,8 @@ bool PLYparser::loadPLY(const std::string& fileName, ulonglong &n_points, int &c
 
 			int idxP_phase = -1;
 			isPhaseParse = findIdxOfPropertiesAndElement(elements, "vertex", "phase", idxE_vertex, idxP_phase);
-			if (!isPhaseParse) *phaseArray = nullptr;
-
-			
-
+			if (!isPhaseParse)
+				*phaseArray = nullptr;
 
 			n_points = elements[idxE_vertex].size;
 			*vertexArray = new Real[3 * n_points];
@@ -415,32 +414,29 @@ bool PLYparser::loadPLY(const std::string& fileName, ulonglong &n_points, int &c
 					}
 				}
 			}
-
-#ifdef _DEBUG
-			std::cout << "Success loading " << n_points << " Point Clouds, Color Channels : " << color_channels << std::endl;
-#endif
 			return true;
 		}
 	}
 	else {
-		std::cerr << "Error : Failed loading ply file..." << std::endl;
+		LOG("<FAILED> Loading ply file.\n");
 		return false;
 	}
 }
 
-
-bool PLYparser::savePLY(const std::string& fileName, const ulonglong n_points, const int color_channels, Real* vertexArray, Real* colorArray, Real* phaseArray) {
+bool PLYparser::savePLY(const std::string& fileName, const ulonglong n_points, const int color_channels, Real* vertexArray, Real* colorArray, Real* phaseArray)
+{
 	if ((vertexArray == nullptr) || (colorArray == nullptr) || (phaseArray == nullptr)) {
-		std::cerr << "Error : There is not data for saving ply file..." << std::endl;
+		LOG("<FAILED> There is not data for saving ply file.\n");
 		return false;
 	}
 	if ((color_channels != 1) && (color_channels != 3)) {
-		std::cerr << "Error : Number of Color channels for saving ply file is false value..." << std::endl;
+		LOG("<FAILED> Number of color channels for saving ply file is false value.\n");
 		return false;
 	}
 
 	std::string outputPath = fileName;
-	if ((fileName.find(".ply") == std::string::npos) && (fileName.find(".PLY") == std::string::npos)) outputPath += ".ply";
+	if ((fileName.find(".ply") == std::string::npos) && (fileName.find(".PLY") == std::string::npos))
+		outputPath.append(".ply");
 	std::ofstream File(outputPath, std::ios::out | std::ios::trunc);
 
 	if (File.is_open()) {
@@ -480,7 +476,7 @@ bool PLYparser::savePLY(const std::string& fileName, const ulonglong n_points, c
 		return true;
 	}
 	else {
-		std::cerr << "Error : Failed saving ply file..." << std::endl;
+		LOG("<FAILED> Saving ply file.\n");
 		return false;
 	}
 }
@@ -488,7 +484,8 @@ bool PLYparser::savePLY(const std::string& fileName, const ulonglong n_points, c
 bool PLYparser::loadPLY(const char* fileName, ulonglong & n_vertices, int & color_channels, uint ** face_idx, Real ** vertexArray, Real ** colorArray)
 {
 	std::string inputPath = fileName;
-	if ((inputPath.find(".ply") == std::string::npos) && (inputPath.find(".PLY") == std::string::npos)) inputPath += ".ply";
+	if ((inputPath.find(".ply") == std::string::npos) && (inputPath.find(".PLY") == std::string::npos))
+		inputPath.append(".ply");
 	std::ifstream File(inputPath, std::ios::in | std::ios::binary);
 
 	bool isBinary = false;
@@ -506,13 +503,11 @@ bool PLYparser::loadPLY(const char* fileName, ulonglong & n_vertices, int & colo
 		lineStr >> token;
 
 		if ((token != "ply") && (token != "PLY")) {
-			std::cerr << "Error : Failed loading ply file..." << std::endl;
+			LOG("<FAILED> Wrong file ext: %s\n", token);
 			File.close();
 			return false;
 		}
 		else {
-			std::cout << "Parsing *.PLY file for OpenHolo Triangle Mesh Generation..." << std::endl;
-
 			//parse PLY header
 			while (std::getline(File, line)) {
 				lineStr.clear();
@@ -528,13 +523,14 @@ bool PLYparser::loadPLY(const char* fileName, ulonglong & n_vertices, int & colo
 				}
 				else if (token == "element") elements.emplace_back(lineStr);
 				else if (token == "property") {
-					if (!elements.size()) std::cerr << "No Elements defined, file is malformed" << std::endl;
+					if (!elements.size())
+						LOG("<FAILED> No Elements defined, file is malformed.\n");
 					elements.back().properties.emplace_back(lineStr);
 				}
 				else if (token == "obj_info") objInfo.push_back((9 > 0) ? line.erase(0, 9) : line);
 				else if (token == "end_header") break;
 			}
-
+#ifdef _DEBUG
 			//print comment list
 			for (auto cmt : comments) {
 				std::cout << "Comment : " << cmt << std::endl;
@@ -547,7 +543,7 @@ bool PLYparser::loadPLY(const char* fileName, ulonglong & n_vertices, int & colo
 					std::cout << "\tProperty : " << Property.name << " : ( " << PropertyTable[Property.propertyType].second << " )" << std::endl;
 				}
 			}
-
+#endif
 			longlong idxE_color = -1;
 			int idxP_channel = -1;
 			bool ok_channel = findIdxOfPropertiesAndElement(elements, "color", "channel", idxE_color, idxP_channel);
@@ -563,7 +559,8 @@ bool PLYparser::loadPLY(const char* fileName, ulonglong & n_vertices, int & colo
 			ok_vertex = findIdxOfPropertiesAndElement(elements, "vertex", "z", idxE_vertex, idxP_z);
 			
 			if (!ok_vertex) {
-				std::cerr << "Error : file is not having vertices data..." << std::endl;
+				LOG("<FAILED> File is not having vertices data.\n");
+				File.close();
 				return false;
 			}
 
@@ -579,7 +576,8 @@ bool PLYparser::loadPLY(const char* fileName, ulonglong & n_vertices, int & colo
 				ok_color = findIdxOfPropertiesAndElement(elements, "vertex", "diffuse_blue", idxE_vertex, idxP_blue);
 
 				if (!ok_vertex) {
-					std::cerr << "Error : file is not having vertices color data..." << std::endl;
+					LOG("<FAILED> File is not having color data.\n");
+					File.close();
 					return false;
 				}
 			}
@@ -668,13 +666,14 @@ bool PLYparser::loadPLY(const char* fileName, ulonglong & n_vertices, int & colo
 					*colorArray = grayArray;
 				}
 			}
+#ifdef _DEBUG
 			std::cout << "Success loading " << n_vertices / 3 << " Triangle Mesh, Color Channels : " << color_channels << std::endl;
-
+#endif
 			return true;
 		}
 	}
 	else {
-		std::cerr << "Error : Failed loading ply file..." << std::endl;
+		LOG("<FAILED> Loading ply file.\n");
 		return false;
 	}
 }
@@ -682,11 +681,11 @@ bool PLYparser::loadPLY(const char* fileName, ulonglong & n_vertices, int & colo
 bool PLYparser::savePLY(const char* fileName, const ulonglong n_vertices, const int color_channels, uint * face_idx, Real * vertexArray, Real * colorArray)
 {
 	if ((vertexArray == nullptr) || (colorArray == nullptr)) {
-		std::cerr << "Error : There is not data for saving ply file..." << std::endl;
+		LOG("<FAILED> There is not data for saving ply file.\n");
 		return false;
 	}
 	if ((color_channels != 1) && (color_channels != 3)) {
-		std::cerr << "Error : Number of Color channels for saving ply file is false value..." << std::endl;
+		LOG("<FAILED> Number of color channels for saving ply file is false value.\n");
 		return false;
 	}
 
@@ -732,7 +731,7 @@ bool PLYparser::savePLY(const char* fileName, const ulonglong n_vertices, const 
 		return true;
 	}
 	else {
-		std::cerr << "Error : Failed saving ply file..." << std::endl;
+		LOG("<FAILED> Saving ply file.\n");
 		return false;
 	}
 }

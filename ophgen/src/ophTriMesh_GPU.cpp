@@ -55,9 +55,11 @@ void ophTri::initialize_GPU()
 		delete[] scaledMeshData;
 		scaledMeshData = nullptr;
 	}
-	scaledMeshData = new Real[N * 9];
-	memset(scaledMeshData, 0, sizeof(Real) * N * 9);
-
+	
+	//scaledMeshData = new Real[N * 9];
+	//memset(scaledMeshData, 0, sizeof(Real) * N * 9);
+	scaledMeshData = new Face[N];
+	memset(scaledMeshData, 0, sizeof(Face) * N);
 
 	if (no) {
 		delete[] no;
@@ -96,8 +98,8 @@ void ophTri::initialize_GPU()
 void ophTri::generateAS_GPU(uint SHADING_FLAG)
 {
 	if (SHADING_FLAG != SHADING_FLAT && SHADING_FLAG != SHADING_CONTINUOUS) {
-		LOG("error: WRONG SHADING_FLAG\n");
-		exit(0);
+		LOG("<FAILED> WRONG SHADING_FLAG\n");
+		return;
 	}
 
 	const uint pnX = context_.pixel_number[_X];

@@ -370,6 +370,7 @@ bool ophIFTA::readConfig(const char* fname)
 	return true;
 }
 
+
 bool ophIFTA::readImage(const char* fname, bool bRGB)
 {
 	bool ret = getImgSize(width, height, bytesperpixel, fname);

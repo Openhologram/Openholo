@@ -51,9 +51,6 @@
 #include <omp.h>
 #include "tinyxml2.h"
 #include "PLYparser.h"
-//#include "OpenCL.h"
-//#include "CUDA.h"
-
 
 extern "C"
 {
@@ -119,19 +116,17 @@ ophGen::ophGen(void)
 	, m_mode(0)
 	, m_precision(PRECISION::DOUBLE)
 {
-	//OpenCL::getInstance();
-	//CUDA::getInstance();
+
 }
 
 ophGen::~ophGen(void)
 {
-	//OpenCL::releaseInstance();
-	//CUDA::releaseInstance();
+
 }
 
 void ophGen::initialize(void)
 {
-	LOG("[%s]\n", __FUNCTION__);
+	auto begin = CUR_TIME;
 	// Output Image Size
 	const uint pnX = context_.pixel_number[_X];
 	const uint pnY = context_.pixel_number[_Y];
@@ -149,27 +144,11 @@ void ophGen::initialize(void)
 		delete[] complex_H;
 		complex_H = nullptr;
 	}
-	if (complexf_H != nullptr) {
-		for (uint i = 0; i < m_nOldChannel; i++) {
-			if (complexf_H[i] != nullptr) {
-				delete[] complexf_H[i];
-				complexf_H[i] = nullptr;
-			}
-		}
-		delete[] complexf_H;
-		complexf_H = nullptr;
-	}
-
 
 	complex_H = new Complex<Real>*[nChannel];
 	for (uint i = 0; i < nChannel; i++) {
 		complex_H[i] = new Complex<Real>[pnXY];
 		memset(complex_H[i], 0, sizeof(Complex<Real>) * pnXY);
-	}
-	complexf_H = new Complex<float>*[nChannel];
-	for (uint i = 0; i < nChannel; i++) {
-		complexf_H[i] = new Complex<float>[pnXY];
-		memset(complexf_H[i], 0, sizeof(Complex<float>) * pnXY);
 	}
 
 	if (m_lpEncoded != nullptr) {
@@ -207,25 +186,26 @@ void ophGen::initialize(void)
 	m_nOldChannel = nChannel;
 	m_vecEncodeSize[_X] = pnX;
 	m_vecEncodeSize[_Y] = pnY;
+	LOG("%s => %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
 }
 
 int ophGen::loadPointCloud(const char* pc_file, OphPointCloudData *pc_data_)
 {
-	LOG("[%s] %s\n", __FUNCTION__, pc_file);
+	int n_points = 0;
 	auto begin = CUR_TIME;
 
 	PLYparser plyIO;
 	if (!plyIO.loadPLY(pc_file, pc_data_->n_points, pc_data_->n_colors, &pc_data_->vertex, &pc_data_->color, &pc_data_->phase, pc_data_->isPhaseParse))
-		return -1;
-
-	auto end = CUR_TIME;
-	LOG("%.5lfsec...done\n", ELAPSED_TIME(begin, end));
-	return pc_data_->n_points;
+		n_points = -1;
+	else
+		n_points = pc_data_->n_points;
+	LOG("%s => %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
+	return n_points;
 }
 
 bool ophGen::readConfig(const char* fname)
 {
-	LOG("[%s] %s\n", __FUNCTION__, fname);
+	bool bRet = true;
 	using namespace tinyxml2;
 
 	auto begin = CUR_TIME;
@@ -234,54 +214,83 @@ bool ophGen::readConfig(const char* fname)
 
 	if (!checkExtension(fname, ".xml"))
 	{
-		LOG("file's extension is not 'xml'\n");
+		LOG("<FAILED> Wrong file ext.\n");
 		return false;
 	}
 	auto ret = xml_doc.LoadFile(fname);
 	if (ret != XML_SUCCESS)
 	{
-		LOG("Failed to load file \"%s\"\n", fname);
+		LOG("<FAILED> Loading file.\n");
 		return false;
 	}
 	xml_node = xml_doc.FirstChild();
 
 	int nWave = 1;
-	auto next = xml_node->FirstChildElement("SLM_WaveNum"); // OffsetInDepth
-	if (!next || XML_SUCCESS != next->QueryIntText(&nWave))
-		return false;
+	char szNodeName[32] = { 0, };
 
+	wsprintfA(szNodeName, "SLM_WaveNum");
+	auto next = xml_node->FirstChildElement(szNodeName); // OffsetInDepth
+	if (!next || XML_SUCCESS != next->QueryIntText(&nWave))
+	{
+		LOG("<FAILED> Not found node : \'%s\' (Integer) \n", szNodeName);
+		bRet = false;
+	}
 	context_.waveNum = nWave;
 	if (context_.wave_length) delete[] context_.wave_length;
 	context_.wave_length = new Real[nWave];
 
-	char szNodeName[32] = { 0, };
 	for (int i = 1; i <= nWave; i++) {
 		wsprintfA(szNodeName, "SLM_WaveLength_%d", i);
 		next = xml_node->FirstChildElement(szNodeName);
 		if (!next || XML_SUCCESS != next->QueryDoubleText(&context_.wave_length[i - 1]))
-			return false;
+		{
+			LOG("<FAILED> Not found node : \'%s\' (Double) \n", szNodeName);
+			bRet = false;
+		}
 	}
-	next = xml_node->FirstChildElement("SLM_PixelNumX");
+
+	wsprintfA(szNodeName, "SLM_PixelNumX");
+	next = xml_node->FirstChildElement(szNodeName);
 	if (!next || XML_SUCCESS != next->QueryIntText(&context_.pixel_number[_X]))
-		return false;
-	next = xml_node->FirstChildElement("SLM_PixelNumY");
+	{
+		LOG("<FAILED> Not found node : \'%s\' (Integer) \n", szNodeName);
+		bRet = false;
+	}
+
+	wsprintfA(szNodeName, "SLM_PixelNumY");
+	next = xml_node->FirstChildElement(szNodeName);
 	if (!next || XML_SUCCESS != next->QueryIntText(&context_.pixel_number[_Y]))
-		return false;
+	{
+		LOG("<FAILED> Not found node : \'%s\' (Integer) \n", szNodeName);
+		bRet = false;
+	}
+
+	wsprintfA(szNodeName, "SLM_PixelPitchX");
 	next = xml_node->FirstChildElement("SLM_PixelPitchX");
 	if (!next || XML_SUCCESS != next->QueryDoubleText(&context_.pixel_pitch[_X]))
-		return false;
+	{
+		LOG("<FAILED> Not found node : \'%s\' (Double) \n", szNodeName);
+		bRet = false;
+	}
+
+	wsprintfA(szNodeName, "SLM_PixelPitchY");
 	next = xml_node->FirstChildElement("SLM_PixelPitchY");
 	if (!next || XML_SUCCESS != next->QueryDoubleText(&context_.pixel_pitch[_Y]))
-		return false;
+	{
+		LOG("<FAILED> Not found node : \'%s\' (Double) \n", szNodeName);
+		bRet = false;
+	}
+
+	// option
 	next = xml_node->FirstChildElement("IMG_Rotation");
-	if (!next || XML_SUCCESS != next->QueryBoolText(&imgCfg.bRotation))
-		imgCfg.bRotation = false;
+	if (!next || XML_SUCCESS != next->QueryBoolText(&imgCfg.rotate))
+		imgCfg.rotate = false;
 	next = xml_node->FirstChildElement("IMG_Merge");
-	if (!next || XML_SUCCESS != next->QueryBoolText(&imgCfg.bMergeImage))
-		imgCfg.bMergeImage = false;
+	if (!next || XML_SUCCESS != next->QueryBoolText(&imgCfg.merge))
+		imgCfg.merge = false;
 	next = xml_node->FirstChildElement("IMG_Flip");
-	if (!next || XML_SUCCESS != next->QueryIntText(&imgCfg.nFlip))
-		imgCfg.nFlip = 0;
+	if (!next || XML_SUCCESS != next->QueryIntText(&imgCfg.flip))
+		imgCfg.flip = 0;
 	next = xml_node->FirstChildElement("DoublePrecision");
 	if (!next || XML_SUCCESS != next->QueryBoolText(&context_.bUseDP))
 		context_.bUseDP = true;
@@ -314,231 +323,9 @@ bool ophGen::readConfig(const char* fname)
 	for (int i = 0; i < nWave; i++)
 		Openholo::setWavelengthOHC(context_.wave_length[i], LenUnit::m);
 
-	auto end = CUR_TIME;
-	LOG("%.5lfsec...done\n", ELAPSED_TIME(begin, end));
+	LOG("%s => %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
 
-	return true;
-}
-
-void ophGen::RS_Diffraction(uchar *src, Complex<Real> *dst, Real lambda, Real distance)
-{
-	OphConfig *pConfig = &context_;
-	const int pnX = pConfig->pixel_number[_X];
-	const int pnY = pConfig->pixel_number[_Y];
-	const int pnXY = pnX * pnY;
-	const Real ppX = pConfig->pixel_pitch[_X];
-	const Real ppY = pConfig->pixel_pitch[_Y];
-	const Real ssX = pConfig->ss[_X] = pnX * ppX;
-	const Real ssY = pConfig->ss[_Y] = pnY * ppY;
-
-	const Real tx = lambda / (2 * ppX);
-	const Real ty = lambda / (2 * ppY);
-	const Real sqrtX = sqrt(1 - (tx * tx));
-	const Real sqrtY = sqrt(1 - (ty * ty));
-	const Real x = -(m_width * ppX) / 2;
-	const Real y = -(m_height * ppY) / 2;
-	const Real k = (2 * M_PI) / lambda;
-	Real z = distance;
-	Real zz = z * z;
-	//Real ampZ = amplitude * z;
-
-	int size = m_width * m_height;
-	// 0~255 to 0.0~1.0
-	Real *amplitude = new Real[size];
-	int i, j;
-
-	/*
-	Complex<Real> rand_phase_val;
-	getRandPhaseValue(rand_phase_val, true);
-
-	Complex<Real> carrier_phase_delay(0, k * distance);
-	carrier_phase_delay.exp();
-
-	Complex<Real> *input = new Complex<Real>[size];
-	memset(input, 0.0, sizeof(Complex<Real>) * size);
-	Complex<Real> *in = nullptr;
-	fft2(ivec2(m_width, m_height), in, OPH_FORWARD, OPH_ESTIMATE);
-	*/
-	int sum = 0;
-#pragma omp parallel for private(i) reduction(+:sum)
-	for (i = 0; i < size; i++) {
-		amplitude[i] = Real(src[i]) / 255.0; // get amplitude
-		if (amplitude[i] != 0.0) {
-			sum += 1;
-		}
-		//input[i][_RE] = amplitude[i];
-		//input[i] = input[i] * rand_phase_val * carrier_phase_delay;
-	}
-	//Openholo::fft2(input, input, pnX, pnY, OPH_FORWARD, false);
-	LOG("sum: %d\n", sum);
-
-	int idx = 0;
-
-#pragma omp parallel for private(j)
-	for (j = 0; j < m_height; j++) {
-		for (int i = 0; i < m_width; i++) {
-			int idx = j * m_width + i;
-			if (amplitude[idx] != 0.0) {
-
-				Real coordX = x + (ppX * i);
-				Real coordY = y + (ppY * j);
-
-				Real ampZ = amplitude[idx] * z;
-
-				Real _xbound[2] = {
-					coordX + abs(tx / sqrtX * z),
-					coordX - abs(tx / sqrtX * z)
-				};
-
-				Real _ybound[2] = {
-					coordY + abs(ty / sqrtY * z),
-					coordY - abs(ty / sqrtY * z)
-				};
-
-				Real Xbound[2] = {
-					floor((_xbound[_X] - x) / ppX) + 1,
-					floor((_xbound[_Y] - x) / ppX) + 1
-				};
-
-				Real Ybound[2] = {
-					pnY - floor((_ybound[_Y] - y) / ppY),
-					pnY - floor((_ybound[_X] - y) / ppY)
-				};
-
-				if (Xbound[_X] > pnX)	Xbound[_X] = pnX;
-				if (Xbound[_Y] < 0)		Xbound[_Y] = 0;
-				if (Ybound[_X] > pnY) Ybound[_X] = pnY;
-				if (Ybound[_Y] < 0)		Ybound[_Y] = 0;
-
-
-				for (int yytr = Ybound[_Y]; yytr < Ybound[_X]; ++yytr)
-				{
-					int offset = yytr * pnX;
-					Real yyy = y + ((pnY - yytr) * ppY);
-
-					Real range_x[2] = {
-						coordX + abs(tx / sqrtX * sqrt((yyy - coordY) * (yyy - coordY) + zz)),
-						coordX - abs(tx / sqrtX * sqrt((yyy - coordY) * (yyy - coordY) + zz))
-					};
-
-					for (int xxtr = Xbound[_Y]; xxtr < Xbound[_X]; ++xxtr)
-					{
-						Real xxx = x + ((xxtr - 1) * ppX);
-						Real r = sqrt((xxx - coordX) * (xxx - coordX) + (yyy - coordY) * (yyy - coordY) + zz);
-						Real range_y[2] = {
-							coordY + abs(ty / sqrtY * sqrt((xxx - coordX) * (xxx - coordX) + zz)),
-							coordY - abs(ty / sqrtY * sqrt((xxx - coordX) * (xxx - coordX) + zz))
-						};
-
-						if (((xxx < range_x[_X]) && (xxx > range_x[_Y])) && ((yyy < range_y[_X]) && (yyy > range_y[_Y]))) {
-							Real kr = k * r;
-							Real operand = lambda * r * r;
-							Real res_real = (ampZ * sin(kr)) / operand;
-							Real res_imag = (-ampZ * cos(kr)) / operand;
-#ifdef _OPENMP 
-#pragma omp atomic
-							dst[offset + xxtr][_RE] += res_real;
-#pragma omp atomic
-							dst[offset + xxtr][_IM] += res_imag;
-#else
-
-							dst[offset + xxtr][_RE] += res_real;
-							dst[offset + xxtr][_IM] += res_imag;
-#endif
-						}
-					}
-				}
-			}
-
-		}
-	}
-}
-
-void ophGen::RS_Diffraction(vec3 src, Complex<Real> *dst, float lambda, float distance, float amplitude)
-{
-	OphConfig *pConfig = &context_;
-	const int pnX = pConfig->pixel_number[_X];
-	const int pnY = pConfig->pixel_number[_Y];
-	const int pnXY = pnX * pnY;
-	const float ppX = pConfig->pixel_pitch[_X];
-	const float ppY = pConfig->pixel_pitch[_Y];
-	const float ssX = pConfig->ss[_X] = pnX * ppX;
-	const float ssY = pConfig->ss[_Y] = pnY * ppY;
-
-	const float tx = lambda / (2 * ppX);
-	const float ty = lambda / (2 * ppY);
-	const float sqrtX = sqrt(1 - (tx * tx));
-	const float sqrtY = sqrt(1 - (ty * ty));
-	const float x = -ssX / 2;
-	const float y = -ssY / 2;
-	const float k = (2 * M_PI) / lambda;
-	float z = src[_Z] + distance;
-	float zz = z * z;
-	float ampZ = amplitude * z;
-
-	float _xbound[2] = {
-		src[_X] + abs(tx / sqrtX * z),
-		src[_X] - abs(tx / sqrtX * z)
-	};
-
-	float _ybound[2] = {
-		src[_Y] + abs(ty / sqrtY * z),
-		src[_Y] - abs(ty / sqrtY * z)
-	};
-
-	float Xbound[2] = {
-		floorf((_xbound[_X] - x) / ppX) + 1,
-		floorf((_xbound[_Y] - x) / ppX) + 1
-	};
-
-	float Ybound[2] = {
-		pnY - floorf((_ybound[_Y] - y) / ppY),
-		pnY - floorf((_ybound[_X] - y) / ppY)
-	};
-
-	if (Xbound[_X] > pnX)	Xbound[_X] = pnX;
-	if (Xbound[_Y] < 0)		Xbound[_Y] = 0;
-	if (Ybound[_X] > pnY) Ybound[_X] = pnY;
-	if (Ybound[_Y] < 0)		Ybound[_Y] = 0;
-
-
-	for (int yytr = Ybound[_Y]; yytr < Ybound[_X]; ++yytr)
-	{
-		int offset = yytr * pnX;
-		float yyy = y + ((pnY - yytr) * ppY);
-
-		float range_x[2] = {
-			src[_X] + abs(tx / sqrtX * sqrt((yyy - src[_Y]) * (yyy - src[_Y]) + zz)),
-			src[_X] - abs(tx / sqrtX * sqrt((yyy - src[_Y]) * (yyy - src[_Y]) + zz))
-		};
-
-		for (int xxtr = Xbound[_Y]; xxtr < Xbound[_X]; ++xxtr)
-		{
-			float xxx = x + ((xxtr - 1) * ppX);
-			float r = sqrt((xxx - src[_X]) * (xxx - src[_X]) + (yyy - src[_Y]) * (yyy - src[_Y]) + zz);
-			float range_y[2] = {
-				src[_Y] + abs(ty / sqrtY * sqrt((xxx - src[_X]) * (xxx - src[_X]) + zz)),
-				src[_Y] - abs(ty / sqrtY * sqrt((xxx - src[_X]) * (xxx - src[_X]) + zz))
-			};
-
-			if (((xxx < range_x[_X]) && (xxx > range_x[_Y])) && ((yyy < range_y[_X]) && (yyy > range_y[_Y]))) {
-				float kr = k * r;
-				float operand = lambda * r * r;
-				float res_real = (ampZ * sin(kr)) / operand;
-				float res_imag = (-ampZ * cos(kr)) / operand;
-#ifdef _OPENMP 
-#pragma omp atomic
-				dst[offset + xxtr][_RE] += res_real;
-#pragma omp atomic
-				dst[offset + xxtr][_IM] += res_imag;
-#else
-
-				dst[offset + xxtr][_RE] += res_real;
-				dst[offset + xxtr][_IM] += res_imag;
-#endif
-			}
-		}
-	}
+	return bRet;
 }
 
 void ophGen::RS_Diffraction(vec3 src, Complex<Real> *dst, Real lambda, Real distance, Real amplitude)
@@ -615,14 +402,12 @@ void ophGen::RS_Diffraction(vec3 src, Complex<Real> *dst, Real lambda, Real dist
 				Real res_imag = (-ampZ * cos(kr)) / operand;
 #ifdef _OPENMP 
 #pragma omp atomic
-				dst[offset + xxtr][_RE] += res_real;
-#pragma omp atomic
-				dst[offset + xxtr][_IM] += res_imag;
-#else
-
-				dst[offset + xxtr][_RE] += res_real;
-				dst[offset + xxtr][_IM] += res_imag;
 #endif
+				dst[offset + xxtr][_RE] += res_real;
+#ifdef _OPENMP 
+#pragma omp atomic
+#endif
+				dst[offset + xxtr][_IM] += res_imag;
 			}
 		}
 	}
@@ -684,23 +469,20 @@ void ophGen::Fresnel_Diffraction(vec3 src, Complex<Real> *dst, Real lambda, Real
 			Real res_real = amplitude * sin(p) / operand;
 			Real res_imag = amplitude * (-cos(p)) / operand;
 
-#ifdef _OPENMP
+#ifdef _OPENMP 
 #pragma omp atomic
-			dst[offset + xxtr][_RE] += res_real;
-#pragma omp atomic
-			dst[offset + xxtr][_IM] += res_imag;
-#else
-			dst[offset + xxtr][_RE] += res_real;
-			dst[offset + xxtr][_IM] += res_imag;
 #endif
+			dst[offset + xxtr][_RE] += res_real;
+#ifdef _OPENMP 
+#pragma omp atomic
+#endif
+			dst[offset + xxtr][_IM] += res_imag;
 		}
 	}
 }
 
 void ophGen::Fresnel_FFT(Complex<Real> *src, Complex<Real> *dst, Real lambda, Real waveRatio, Real distance)
 {
-	auto begin = CUR_TIME;
-
 	OphConfig *pConfig = &context_;
 	const int pnX = pConfig->pixel_number[_X];
 	const int pnY = pConfig->pixel_number[_Y];
@@ -709,66 +491,71 @@ void ophGen::Fresnel_FFT(Complex<Real> *src, Complex<Real> *dst, Real lambda, Re
 	const Real ppY = pConfig->pixel_pitch[_Y];
 	const Real ssX = pConfig->ss[_X] = pnX * ppX;
 	const Real ssY = pConfig->ss[_Y] = pnY * ppY;
+	const Real ssX2 = ssX * 2;
+	const Real ssY2 = ssY * 2;
 	const Real k = (2 * M_PI) / lambda;
 
-	Complex<Real>* in2x = new Complex<Real>[pnXY * 4 * waveRatio];
-	Complex<Real> zero(0, 0);
-	memsetArr<Complex<Real>>(in2x, zero, 0, pnXY * 4 - 1);
+	int newSize = pnXY * 4;// *waveRatio;
+	Complex<Real>* in2x = new Complex<Real>[newSize];
+	memset(in2x, 0, sizeof(Complex<Real>) * newSize);
 
 	uint idxIn = 0;
-	int idxnY = pnY >> 1;
+	int half_pnX = pnX >> 1;
+	int half_pnY = pnY >> 1;
+	int pnX2 = pnX * 2;
+	int pnY2 = pnY * 2;
 
-#ifdef _OPENMP
-#pragma omp parallel for private(idxnY) reduction(+:idxIn)
-#endif
-	for (idxnY = pnY / 2; idxnY < pnY + (pnY / 2); idxnY++) {
-		for (int idxnX = pnX / 2; idxnX < pnX + (pnX / 2); idxnX++) {
-			in2x[idxnY * pnX * 2 + idxnX] = src[idxIn++];
+	for (int i = 0; i < pnY; i++) {
+		for (int j = 0; j < pnX; j++) {
+			in2x[(i + half_pnY) * pnX2 + (j + half_pnX)] = src[idxIn++];
 		}
 	}
 
-	Complex<Real>* temp1 = new Complex<Real>[pnXY * 4];
+	Complex<Real>* temp1 = new Complex<Real>[newSize];
 
-	fft2({ pnX * 2, pnY * 2 }, in2x, OPH_FORWARD, OPH_ESTIMATE); // fft spatial domain 
-	fft2(in2x, temp1, pnX * 2, pnY * 2, OPH_FORWARD, false); // 
+	fft2({ pnX2, pnY2 }, in2x, OPH_FORWARD, OPH_ESTIMATE); // fft spatial domain 
+	fft2(in2x, temp1, pnX2, pnY2, OPH_FORWARD, false); // 
 
-	Real* fx = new Real[pnXY * 4];
-	Real* fy = new Real[pnXY * 4];
+	Real* fx = new Real[newSize];
+	Real* fy = new Real[newSize];
 
 	uint i = 0;
+
 	for (int idxFy = -pnY; idxFy < pnY; idxFy++) {
 		for (int idxFx = -pnX; idxFx < pnX; idxFx++) {
-			fx[i] = idxFx / (2 * pnX * ppX);
-			fy[i] = idxFy / (2 * pnY * ppY);
+			fx[i] = idxFx / ssX2;
+			fy[i] = idxFy / ssY2;
 			i++;
 		}
 	}
 
-	Complex<Real>* prop = new Complex<Real>[pnXY * 4];
-	memsetArr<Complex<Real>>(prop, zero, 0, pnXY * 4 - 1);
+	Complex<Real>* prop = new Complex<Real>[newSize];
+	memset(prop, 0, sizeof(Complex<Real>) * newSize);
 
 	Real sqrtPart;
 
-	Complex<Real>* temp2 = new Complex<Real>[pnXY * 4];
+	Complex<Real>* temp2 = new Complex<Real>[newSize];
 	Real lambda_square = lambda * lambda;
-	for (int i = 0; i < pnXY * 4; i++) {
+	Real tmp = 2 * M_PI * distance;
+
+	for (int i = 0; i < newSize; i++) {
 		sqrtPart = sqrt(1 / lambda_square - fx[i] * fx[i] - fy[i] * fy[i]);
-		prop[i][_IM] = 2 * M_PI * distance;
+		prop[i][_IM] = tmp;
 		prop[i][_IM] *= sqrtPart;
 		temp2[i] = temp1[i] * exp(prop[i]);
 	}
 
-	Complex<Real>* temp3 = new Complex<Real>[pnXY * 4];
-	fft2({ pnX * 2, pnY * 2 }, temp2, OPH_BACKWARD, OPH_ESTIMATE);
-	fft2(temp2, temp3, pnX * 2, pnY * 2, OPH_BACKWARD, false);
+	Complex<Real>* temp3 = new Complex<Real>[newSize];
+	fft2({ pnX2, pnY2 }, temp2, OPH_BACKWARD, OPH_ESTIMATE);
+	fft2(temp2, temp3, pnX2, pnY2, OPH_BACKWARD, false);
 
 	uint idxOut = 0;
-	for (int idxnY = pnY / 2; idxnY < pnY + (pnY / 2); idxnY++) {
-		for (int idxnX = pnX / 2; idxnX < pnX + (pnX / 2); idxnX++) {
-			dst[idxOut++] = temp3[idxnY * pnX * 2 + idxnX];
+	for (int i = 0; i < pnY; i++) {
+		for (int j = 0; j < pnX; j++) {
+			dst[idxOut++] = temp3[(i + half_pnY) * pnX2 + (j + half_pnX)];
 		}
 	}
-	//delete[] in;
+
 	delete[] in2x;
 	delete[] temp1;
 	delete[] fx;
@@ -776,49 +563,44 @@ void ophGen::Fresnel_FFT(Complex<Real> *src, Complex<Real> *dst, Real lambda, Re
 	delete[] prop;
 	delete[] temp2;
 	delete[] temp3;
-
-	auto end = CUR_TIME;
-	LOG("\n%s : %lf(s)\n\n",
-		__FUNCTION__,
-		((chrono::duration<Real>)(end - begin)).count()
-	);
 }
-
-
 
 void ophGen::AngularSpectrumMethod(Complex<Real> *src, Complex<Real> *dst, Real lambda, Real distance)
 {
-	OphConfig *pConfig = &context_;
-	const int pnX = pConfig->pixel_number[_X];
-	const int pnY = pConfig->pixel_number[_Y];
-	const int pnXY = pnX * pnY;
-	const Real ppX = pConfig->pixel_pitch[_X];
-	const Real ppY = pConfig->pixel_pitch[_Y];
-	const Real ssX = pConfig->ss[_X] = pnX * ppX;
-	const Real ssY = pConfig->ss[_Y] = pnY * ppY;
+	const int pnX = context_.pixel_number[_X];
+	const int pnY = context_.pixel_number[_Y];
+	const int N = pnX * pnY;
+	const Real ppX = context_.pixel_pitch[_X];
+	const Real ppY = context_.pixel_pitch[_Y];
+	const Real ssX = context_.ss[_X] = pnX * ppX;
+	const Real ssY = context_.ss[_Y] = pnY * ppY;
 
 	Real dfx = 1 / ssX;
 	Real dfy = 1 / ssY;
 
-	int i;
-	Real k = pConfig->k = (2 * M_PI / lambda);
+	Real k = context_.k = (2 * M_PI / lambda);
 	Real kk = k * k;
+	Real kd = k * distance;
+	Real fx = -1 / (ppX * 2);
+	Real fy = 1 / (ppY * 2);
 
+	int i;
 #ifdef _OPENMP
-#pragma omp parallel for private(i) firstprivate(lambda, distance, kk, k)
+#pragma omp parallel for private(i) firstprivate(pnX, dfx, dfy, lambda, kd, kk)
 #endif
-	for (i = 0; i < pnXY; i++) {
+	for (i = 0; i < N; i++)
+	{
 		Real x = i % pnX;
 		Real y = i / pnX;
 
-		Real fxx = (-1.0 / (2.0*ppX)) + dfx * x;
-		Real fyy = (1.0 / (2.0*ppY)) - dfy - dfy * y;
+		Real fxx = fx + dfx * x;
+		Real fyy = fy - dfy - dfy * y;
 
 		Real fxxx = lambda * fxx;
 		Real fyyy = lambda * fyy;
 
 		Real sval = sqrt(1 - (fxxx * fxxx) - (fyyy * fyyy));
-		sval = sval * k * distance;
+		sval = sval * kd;
 		Complex<Real> kernel(0, sval);
 		kernel.exp();
 
@@ -833,56 +615,8 @@ void ophGen::AngularSpectrumMethod(Complex<Real> *src, Complex<Real> *dst, Real 
 	}
 }
 
-
-void ophGen::AngularSpectrumMethod(Complex<Real>* input, Complex<Real>* output, Real distance, Real k, Real lambda)
+void ophGen::conv_fft2(Complex<Real>* src1, Complex<Real>* src2, Complex<Real>* dst, ivec2 size)
 {
-	const int pnX = context_.pixel_number[_X];
-	const int pnY = context_.pixel_number[_Y];
-	const Real ppX = context_.pixel_pitch[_X];
-	const Real ppY = context_.pixel_pitch[_Y];
-	const Real ssX = context_.ss[_X] = pnX * ppX;
-	const Real ssY = context_.ss[_Y] = pnY * ppY;
-	const int N = pnX * pnY;
-
-	const Real startX = -1 / (ppX * 2);
-	const Real startY = 1 / (ppY * 2);
-	const Real stepX = 1 / ssX;
-	const Real stepY = 1 / ssY;
-	const Real kk = k * k;
-
-	int i;
-#ifdef _OPENMP
-#pragma omp parallel for private(i) firstprivate(startX, startY, stepX, stepY, lambda, k, kk, distance)
-#endif
-	for (i = 0; i < N; i++)
-	{
-		Real x = i % pnX;
-		Real y = i / pnX;
-
-		Real fxx = startX + stepX * x;
-		Real fyy = startY - stepY * (y + 1);
-
-		Real fxxx = lambda * fxx;
-		Real fyyy = lambda * fyy;
-
-		Real sval = sqrt(1 - (fxxx * fxxx) - (fyyy * fyyy));
-		sval *= k * distance;
-		Complex<Real> kernel(0, sval);
-		kernel.exp();
-
-		bool mask = ((fxx * fxx + fyy * fyy) < (kk)) ? true : false;
-
-		if (mask)
-		{
-			Complex<Real> frequency = kernel * input[i];
-			output[i] += frequency;
-		}	
-	}
-}
-
-
-void ophGen::conv_fft2(Complex<Real>* src1, Complex<Real>* src2, Complex<Real>* dst, ivec2 size) {
-
 	src1FT = new Complex<Real>[size[_X] * size[_Y]];
 	src2FT = new Complex<Real>[size[_X] * size[_Y]];
 	dstFT = new Complex<Real>[size[_X] * size[_Y]];
@@ -940,7 +674,7 @@ void ophGen::normalize(void)
 	for (int ch = 0; ch < nWave; ch++)
 	{
 #ifdef _OPENMP
-#pragma omp parallel for private(j) firstprivate(min, gap)
+#pragma omp parallel for private(j) firstprivate(min, gap, pnX)
 #endif
 		for (j = 0; j < pnY; j++) {
 			for (int i = 0; i < pnX; i++) {
@@ -994,7 +728,7 @@ bool ophGen::save(const char * fname, uint8_t bitsperpixel, uchar* src, uint px,
 			saveAsImg(path, bitsperpixel, source, p[_X], p[_Y]);
 		}
 		else if (nChannel == 3) {
-			if (imgCfg.bMergeImage) {
+			if (imgCfg.merge) {
 				uint nSize = (((p[_X] * bitsperpixel / 8) + 3) & ~3) * p[_Y];
 				source = new uchar[nSize];
 				bAlloc = true;
@@ -1082,87 +816,84 @@ bool ophGen::loadAsOhc(const char * fname)
 
 void ophGen::resetBuffer()
 {
-	const uint pnX = context_.pixel_number[_X];
-	const uint pnY = context_.pixel_number[_Y];
-	const uint pnXY = pnX * pnY;
+	int N = context_.pixel_number[_X] * context_.pixel_number[_Y];
+	int N2 = m_vecEncodeSize[_X] * m_vecEncodeSize[_Y];
 
 	for (int ch = 0; ch < context_.waveNum; ch++) {
 		if (complex_H[ch])
-			memset(complex_H[ch], 0., sizeof(Complex<Real>) * pnXY);
+			memset(complex_H[ch], 0., sizeof(Complex<Real>) * N);
 		if (m_lpEncoded[ch])
-			memset(m_lpEncoded[ch], 0., sizeof(Real) * m_vecEncodeSize[_X] * m_vecEncodeSize[_Y]);
+			memset(m_lpEncoded[ch], 0., sizeof(Real) * N2);
 		if (m_lpNormalized[ch])
-			memset(m_lpNormalized[ch], 0, sizeof(uchar) * m_vecEncodeSize[_X] * m_vecEncodeSize[_Y]);
+			memset(m_lpNormalized[ch], 0, sizeof(uchar) * N2);
 	}
 }
 
 void ophGen::encoding(unsigned int ENCODE_FLAG)
 {
-	LOG("\nEncoding [Begin] ");
 	auto begin = CUR_TIME;
-	const uint pnX = context_.pixel_number[_X];
-	const uint pnY = context_.pixel_number[_Y];
-	const uint nChannel = context_.waveNum;
-	const uint pnXY = pnX * pnY;
-	void (ophGen::*encodeFunc) (Complex<Real>*, Real*, const int) = nullptr;
 
-	switch (ENCODE_FLAG)
-	{
-	case ENCODE_PHASE: encodeFunc = &ophGen::Phase; LOG("Phase\n"); break;
-	case ENCODE_AMPLITUDE: encodeFunc = &ophGen::Amplitude; LOG("Amplitude\n"); break;
-	case ENCODE_REAL: encodeFunc = &ophGen::RealPart; LOG("Real\n"); break;
-	case ENCODE_IMAGINEARY: encodeFunc = &ophGen::ImaginearyPart; LOG("Imagineary\n"); break;
-	case ENCODE_SIMPLENI: encodeFunc = &ophGen::SimpleNI; LOG("SimpleNI\n"); break;
-	case ENCODE_BURCKHARDT: encodeFunc = &ophGen::Burckhardt; LOG("Burckhardt\n"); break;
-	case ENCODE_TWOPHASE: encodeFunc = &ophGen::TwoPhase; LOG("Two-Phase\n"); break;
-	default: LOG("Wrong encode flag.\n");  return;
-	}
+	// func pointer
+	void (ophGen::*encodeFunc) (Complex<Real>*, Real*, const int) = nullptr;
 
 	Complex<Real> *holo = nullptr;
 	Real *encoded = nullptr;
+	const uint pnXY = context_.pixel_number[_X] * context_.pixel_number[_Y];
+	m_vecEncodeSize = context_.pixel_number;
 
-	for (int ch = 0; ch < nChannel; ch++) {
-		holo = complex_H[ch];
-		encoded = m_lpEncoded[ch];
-		(this->*encodeFunc)(holo, encoded, pnXY);
+	switch (ENCODE_FLAG)
+	{
+	case ENCODE_PHASE: encodeFunc = &ophGen::Phase; LOG("ENCODE_PHASE\n"); break;
+	case ENCODE_AMPLITUDE: encodeFunc = &ophGen::Amplitude; LOG("ENCODE_AMPLITUDE\n"); break;
+	case ENCODE_REAL: encodeFunc = &ophGen::RealPart; LOG("ENCODE_REAL\n"); break;
+	case ENCODE_IMAGINARY: encodeFunc = &ophGen::ImaginaryPart; LOG("ENCODE_IMAGINARY\n"); break;
+	case ENCODE_SIMPLENI: encodeFunc = &ophGen::SimpleNI; LOG("ENCODE_SIMPLENI\n"); break;
+	case ENCODE_BURCKHARDT: encodeFunc = &ophGen::Burckhardt; LOG("ENCODE_BURCKHARDT\n"); break;
+	case ENCODE_TWOPHASE: encodeFunc = &ophGen::TwoPhase; LOG("ENCODE_TWOPHASE\n"); break;
+	default: 
+		LOG("<FAILED> WRONG PARAMETERS.\n");
+		LOG("%s => %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
+		return;
 	}
 
-	auto end = CUR_TIME;
-	LOG("[End] %lf(s)\n", ELAPSED_TIME(begin, end));
+	for (int ch = 0; ch < context_.waveNum; ch++) {
+		holo = complex_H[ch];
+		encoded = m_lpEncoded[ch];
+		(this->*encodeFunc)(holo, encoded, m_vecEncodeSize[_X] * m_vecEncodeSize[_Y]);
+	}
+	LOG("%s => %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
 }
 
 //template <typename T>
 //void ophGen::encoding(unsigned int ENCODE_FLAG, Complex<T>* holo, T* encoded)
 void ophGen::encoding(unsigned int ENCODE_FLAG, Complex<Real>* holo, Real* encoded)
 {
-	LOG("\nEncoding [Begin] ");
 	auto begin = CUR_TIME;
-	const uint pnX = context_.pixel_number[_X];
-	const uint pnY = context_.pixel_number[_Y];
-	const uint nChannel = context_.waveNum;
-	const uint pnXY = pnX * pnY;
+
+	// func pointer
 	void (ophGen::*encodeFunc) (Complex<Real>*, Real*, const int) = nullptr;
+
+	const uint pnXY = context_.pixel_number[_X] * context_.pixel_number[_Y];
+	m_vecEncodeSize = context_.pixel_number;
 
 	switch (ENCODE_FLAG)
 	{
-	case ENCODE_PHASE: encodeFunc = &ophGen::Phase; LOG("Phase\n"); break;
-	case ENCODE_AMPLITUDE: encodeFunc = &ophGen::Amplitude; LOG("Amplitude\n"); break;
-	case ENCODE_REAL: encodeFunc = &ophGen::RealPart; LOG("Real\n"); break;
-	case ENCODE_IMAGINEARY: encodeFunc = &ophGen::ImaginearyPart; LOG("Imagineary\n"); break;
-	case ENCODE_SIMPLENI: encodeFunc = &ophGen::SimpleNI; LOG("SimpleNI\n"); break;
-	case ENCODE_BURCKHARDT: encodeFunc = &ophGen::Burckhardt; LOG("Burckhardt\n"); break;
-	case ENCODE_TWOPHASE: encodeFunc = &ophGen::TwoPhase; LOG("Two-Phase\n"); break;
-	default: LOG("Wrong encode flag.\n");  return;
+	case ENCODE_PHASE: encodeFunc = &ophGen::Phase; LOG("ENCODE_PHASE\n"); break;
+	case ENCODE_AMPLITUDE: encodeFunc = &ophGen::Amplitude; LOG("ENCODE_AMPLITUDE\n"); break;
+	case ENCODE_REAL: encodeFunc = &ophGen::RealPart; LOG("ENCODE_REAL\n"); break;
+	case ENCODE_IMAGINARY: encodeFunc = &ophGen::ImaginaryPart; LOG("ENCODE_IMAGINARY\n"); break;
+	case ENCODE_SIMPLENI: encodeFunc = &ophGen::SimpleNI; LOG("ENCODE_SIMPLENI\n"); break;
+	case ENCODE_BURCKHARDT: encodeFunc = &ophGen::Burckhardt; LOG("ENCODE_BURCKHARDT\n"); break;
+	case ENCODE_TWOPHASE: encodeFunc = &ophGen::TwoPhase; LOG("ENCODE_TWOPHASE\n"); break;
+	default: LOG("<FAILED> WRONG PARAMETERS.\n");  return;
 	}
-
+	
 	if (holo == nullptr) holo = complex_H[0];
 	if (encoded == nullptr) encoded = m_lpEncoded[0];
 
+	(this->*encodeFunc)(holo, encoded, m_vecEncodeSize[_X] * m_vecEncodeSize[_Y]);
 
-	(this->*encodeFunc)(holo, encoded, pnXY);
-
-	auto end = CUR_TIME;
-	LOG("[End] %lf(s)\n", ELAPSED_TIME(begin, end));
+	LOG("%s => %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
 }
 
 void ophGen::encoding(unsigned int ENCODE_FLAG, unsigned int passband, Complex<Real>* holo, Real* encoded)
@@ -1189,24 +920,21 @@ void ophGen::encoding(unsigned int ENCODE_FLAG, unsigned int passband, Complex<R
 		switch (ENCODE_FLAG)
 		{
 		case ENCODE_SSB:
-			LOG("Single Side Band Encoding..");
+			LOG("ENCODE_SSB");
 			singleSideBand((holo), m_lpEncoded[ch], context_.pixel_number, passband);
-			LOG("Done.");
 			break;
 		case ENCODE_OFFSSB:
 		{
-			LOG("Off-axis Single Side Band Encoding..");
+			LOG("ENCODE_OFFSSB");
 			Complex<Real> *tmp = new Complex<Real>[pnXY];
 			memcpy(tmp, holo, sizeof(Complex<Real>) * pnXY);
 			freqShift(tmp, tmp, context_.pixel_number, 0, 100);
 			singleSideBand(tmp, m_lpEncoded[ch], context_.pixel_number, passband);
 			delete[] tmp;
-			LOG("Done.\n");
 			break;
 		}
 		default:
-			LOG("error: WRONG ENCODE_FLAG\n");
-			cin.get();
+			LOG("<FAILED> WRONG PARAMETERS.\n");
 			return;
 		}
 	}
@@ -1214,7 +942,6 @@ void ophGen::encoding(unsigned int ENCODE_FLAG, unsigned int passband, Complex<R
 
 void ophGen::encoding(unsigned int BIN_ENCODE_FLAG, unsigned int ENCODE_FLAG, Real threshold, Complex<Real>* holo, Real* encoded)
 {
-	LOG("\n[Encoding] ");
 	auto begin = CUR_TIME;
 	const uint pnX = context_.pixel_number[_X];
 	const uint pnY = context_.pixel_number[_Y];
@@ -1223,18 +950,18 @@ void ophGen::encoding(unsigned int BIN_ENCODE_FLAG, unsigned int ENCODE_FLAG, Re
 
 	switch (BIN_ENCODE_FLAG) {
 	case ENCODE_SIMPLEBINARY:
-		cout << "\nbin?" << endl;
+		LOG("ENCODE_SIMPLEBINARY\n");
 		if (holo == nullptr || encoded == nullptr)
 			for (int ch = 0; ch < nChannel; ch++) {
 				binarization(complex_H[ch], m_lpEncoded[ch], pnXY, ENCODE_FLAG, threshold);
 			}
 		else
 			binarization(holo, encoded, pnXY, ENCODE_FLAG, threshold);
-		LOG("Simple binarization\n");
 		break;
 	case ENCODE_EDBINARY:
+		LOG("ENCODE_EDBINARY\n");
 		if (ENCODE_FLAG != ENCODE_REAL) {
-			LOG("\nENCODE_FLAG should be ENCODE_REAL\n");
+			LOG("<FAILED> WRONG PARAMETERS : %d\n", ENCODE_FLAG);
 			return;
 		}
 		if (holo == nullptr || encoded == nullptr)
@@ -1243,14 +970,13 @@ void ophGen::encoding(unsigned int BIN_ENCODE_FLAG, unsigned int ENCODE_FLAG, Re
 			}
 		else
 			binaryErrorDiffusion(holo, encoded, pnXY, FLOYD_STEINBERG, threshold);
-		LOG("Binarization using Error Diffusion\n");
 
 	default:
-		LOG("Wrong encode flag.\n");  return;
+		LOG("<FAILED> WRONG PARAMETERS.\n");
+		return;
 	}
 
-	auto end = CUR_TIME;
-	LOG("[Done] %lf(s)\n", ELAPSED_TIME(begin, end));
+	LOG("%s => %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
 }
 
 void ophGen::encoding()
@@ -1277,123 +1003,117 @@ void ophGen::encoding()
 		switch (ENCODE_METHOD)
 		{
 		case ENCODE_SIMPLENI:
-			cout << "Simple Numerical Interference Encoding.." << endl;
+			LOG("ENCODE_SIMPLENI\n");
 			SimpleNI(complex_H[ch], m_lpEncoded[ch], pnXY);
 			break;
 		case ENCODE_REAL:
-			cout << "Real Part Encoding.." << endl;
+			LOG("ENCODE_REAL\n");
 			realPart<Real>(complex_H[ch], m_lpEncoded[ch], pnXY);
 			break;
 		case ENCODE_BURCKHARDT:
-			cout << "Burckhardt Encoding.." << endl;
+			LOG("ENCODE_BURCKHARDT\n");
 			Burckhardt(complex_H[ch], m_lpEncoded[ch], pnXY);
 			break;
 		case ENCODE_TWOPHASE:
-			cout << "Two Phase Encoding.." << endl;
+			LOG("ENCODE_TWOPHASE\n");
 			TwoPhase(complex_H[ch], m_lpEncoded[ch], pnXY);
 			break;
 		case ENCODE_PHASE:
-		{
-			auto begin = CUR_TIME;
-			cout << "Phase Encoding.." << endl;
+			LOG("ENCODE_PHASE\n");
 			Phase(complex_H[ch], m_lpEncoded[ch], pnXY);
-			auto end = CUR_TIME;
-			Real elapsed_time = ((chrono::duration<Real>)(end - begin)).count();
-			LOG("\n%s : %lf(sec)\n\n",
-				__FUNCTION__,
-				elapsed_time);
-		}
-		break;
+			break;
 		case ENCODE_AMPLITUDE:
-			cout << "Amplitude Encoding.." << endl;
+			LOG("ENCODE_AMPLITUDE\n");
 			getAmplitude(complex_H[ch], m_lpEncoded[ch], pnXY);
 			break;
 		case ENCODE_SSB:
-			cout << "Single Side Band Encoding.." << endl;
+			LOG("ENCODE_SSB\n");
 			singleSideBand(complex_H[ch], m_lpEncoded[ch], context_.pixel_number, SSB_PASSBAND);
 			break;
 		case ENCODE_OFFSSB:
-			cout << "Off-axis Single Side Band Encoding.." << endl;
+			LOG("ENCODE_OFFSSB\n");
 			freqShift(complex_H[ch], complex_H[ch], context_.pixel_number, 0, 100);
 			singleSideBand(complex_H[ch], m_lpEncoded[ch], context_.pixel_number, SSB_PASSBAND);
 			break;
 		default:
-			cout << "error: WRONG ENCODE_FLAG" << endl;
-			cin.get();
+			LOG("<FAILED> WRONG PARAMETERS.\n");
 			return;
 		}
 	}
 }
 
-void ophGen::singleSideBand(oph::Complex<Real>* holo, Real* encoded, const ivec2 holosize, int SSB_PASSBAND)
+void ophGen::singleSideBand(Complex<Real>* src, Real* dst, const ivec2 holosize, int SSB_PASSBAND)
 {
-	int size = holosize[_X] * holosize[_Y];
+	const int nX = holosize[_X];
+	const int nY = holosize[_Y];
+	const int half_nX = nX >> 1;
+	const int half_nY = nY >> 1;
 
-	oph::Complex<Real>* AS = new oph::Complex<Real>[size];
+	int N = nX * nY;
+	const int half_N = N >> 1;
+
+	Complex<Real>* AS = new Complex<Real>[N];
 	//fft2(holosize, holo, OPH_FORWARD, OPH_ESTIMATE);
-	fft2(holo, AS, holosize[_X], holosize[_Y], OPH_FORWARD, false);
+	fft2(src, AS, nX, nY, OPH_FORWARD, false);
 	//fftExecute(temp);
+
 
 	switch (SSB_PASSBAND)
 	{
 	case SSB_LEFT:
-		for (int i = 0; i < holosize[_Y]; i++)
+		for (int i = 0; i < nY; i++)
 		{
-			for (int j = holosize[_X] / 2; j < holosize[_X]; j++)
+			int k = i * nX;
+			for (int j = half_nX; j < nX; j++)
 			{
-				AS[i*holosize[_X] + j] = 0;
+				AS[k + j] = 0;
 			}
 		}
 		break;
 	case SSB_RIGHT:
-		for (int i = 0; i < holosize[_Y]; i++)
+		for (int i = 0; i < nY; i++)
 		{
-			for (int j = 0; j < holosize[_X] / 2; j++)
+			int k = i * nX;
+			for (int j = 0; j < half_nX; j++)
 			{
-				AS[i*holosize[_X] + j] = 0;
+				AS[k + j] = 0;
 			}
 		}
 		break;
 	case SSB_TOP:
-		for (int i = size / 2; i < size; i++)
-		{
-			AS[i] = 0;
-		}
+		memset(&AS[half_N], 0, sizeof(Complex<Real>) * half_N);
 		break;
 
 	case SSB_BOTTOM:
-		for (int i = 0; i < size / 2; i++)
-		{
-			AS[i] = 0;
-		}
+		memset(&AS[0], 0, sizeof(Complex<Real>) * half_N);
 		break;
 	}
 
-	oph::Complex<Real>* filtered = new oph::Complex<Real>[size];
+	Complex<Real>* filtered = new Complex<Real>[N];
 	//fft2(holosize, AS, OPH_BACKWARD, OPH_ESTIMATE);
-	fft2(AS, filtered, holosize[_X], holosize[_Y], OPH_BACKWARD, false);
+	fft2(AS, filtered, nX, nY, OPH_BACKWARD, false);
 
 	//fftExecute(filtered);
 
 
-	Real* realFiltered = new Real[size];
-	oph::realPart<Real>(filtered, realFiltered, size);
+	Real* realFiltered = new Real[N];
+	oph::realPart<Real>(filtered, realFiltered, N);
 
-	oph::normalize(realFiltered, encoded, size);
+	oph::normalize(realFiltered, dst, N);
 
 	delete[] AS, filtered, realFiltered;
 }
 
-void ophGen::freqShift(oph::Complex<Real>* src, Complex<Real>* dst, const ivec2 holosize, int shift_x, int shift_y)
+void ophGen::freqShift(Complex<Real>* src, Complex<Real>* dst, const ivec2 holosize, int shift_x, int shift_y)
 {
-	int size = holosize[_X] * holosize[_Y];
+	int N = holosize[_X] * holosize[_Y];
 
-	Complex<Real>* AS = new oph::Complex<Real>[size];
+	Complex<Real>* AS = new Complex<Real>[N];
 	//fft2(holosize, src, OPH_FORWARD, OPH_ESTIMATE);
 	fft2(src, AS, holosize[_X], holosize[_Y], OPH_FORWARD);
 	//fftExecute(AS);
 
-	Complex<Real>* shifted = new oph::Complex<Real>[size];
+	Complex<Real>* shifted = new Complex<Real>[N];
 	circShift<Complex<Real>>(AS, shifted, shift_x, shift_y, holosize.v[_X], holosize.v[_Y]);
 
 	//fft2(holosize, shifted, OPH_BACKWARD, OPH_ESTIMATE);
@@ -1405,7 +1125,8 @@ void ophGen::freqShift(oph::Complex<Real>* src, Complex<Real>* dst, const ivec2 
 }
 
 
-bool ophGen::saveRefImages(char* fnameW, char* fnameWC, char* fnameAS, char* fnameSSB, char* fnameHP, char* fnameFreq, char* fnameReal, char* fnameBin, char* fnameReconBin, char* fnameReconErr, char* fnameReconNo) {
+bool ophGen::saveRefImages(char* fnameW, char* fnameWC, char* fnameAS, char* fnameSSB, char* fnameHP, char* fnameFreq, char* fnameReal, char* fnameBin, char* fnameReconBin, char* fnameReconErr, char* fnameReconNo)
+{
 	ivec2 holosize = context_.pixel_number;
 	int nx = holosize[_X], ny = holosize[_Y];
 	int ss = nx*ny;
@@ -1532,7 +1253,8 @@ bool ophGen::saveRefImages(char* fnameW, char* fnameWC, char* fnameAS, char* fna
 	return true;
 }
 
-bool ophGen::binaryErrorDiffusion(Complex<Real>* holo, Real* encoded, const ivec2 holosize, const int type, Real threshold) {
+bool ophGen::binaryErrorDiffusion(Complex<Real>* holo, Real* encoded, const ivec2 holosize, const int type, Real threshold)
+{
 
 	//cout << "\nin?" << endl;
 	int ss = holosize[_X] * holosize[_Y];
@@ -1637,7 +1359,8 @@ bool ophGen::binaryErrorDiffusion(Complex<Real>* holo, Real* encoded, const ivec
 }
 
 
-bool ophGen::getWeightED(const ivec2 holosize, const int type, ivec2* pNw) {
+bool ophGen::getWeightED(const ivec2 holosize, const int type, ivec2* pNw)
+{
 
 	int cx = (holosize[_X] + 1) / 2;
 	int cy = (holosize[_Y] + 1) / 2;
@@ -1646,7 +1369,7 @@ bool ophGen::getWeightED(const ivec2 holosize, const int type, ivec2* pNw) {
 
 	switch (type) {
 	case FLOYD_STEINBERG:
-		cout << "Error diffusion : Floyd Steinberg" << endl;
+		LOG("ERROR DIFFUSION : FLOYD_STEINBERG\n");
 		weight[(cx + 1) + cy*holosize[_X]] = 7.0 / 16.0;
 		weight[(cx - 1) + (cy + 1)*holosize[_X]] = 3.0 / 16.0;
 		weight[(cx)+(cy + 1)*holosize[_X]] = 5.0 / 16.0;
@@ -1654,17 +1377,17 @@ bool ophGen::getWeightED(const ivec2 holosize, const int type, ivec2* pNw) {
 		Nw[_X] = 1;  Nw[_Y] = 1;
 		break;
 	case SINGLE_RIGHT:
-		cout << "Error diffusion : Single Right" << endl;
+		LOG("ERROR DIFFUSION : SINGLE_RIGHT\n");
 		weight[(cx + 1) + cy*holosize[_X]] = 1.0;
 		Nw[_X] = 1;  Nw[_Y] = 0;
 		break;
 	case SINGLE_DOWN:
-		cout << "Error diffusion : Single Down" << endl;
+		LOG("ERROR DIFFUSION : SINGLE_DOWN\n");
 		weight[cx + (cy + 1)*holosize[_X]] = 1.0;
 		Nw[_X] = 0;  Nw[_Y] = 1;
 		break;
 	default:
-		LOG("WRONG WEIGHTING TYPE");
+		LOG("<FAILED> WRONG PARAMETERS.\n");
 		return false;
 	}
 
@@ -1727,8 +1450,8 @@ void ophGen::fresnelPropagation(OphConfig context, Complex<Real>* in, Complex<Re
 	memset(in2x, 0, sizeof(Complex<Real>) * pnXY * 4);
 
 	uint idxIn = 0;
-	int beginY = pnY / 2;
-	int beginX = pnX / 2;
+	int beginY = pnY >> 1;
+	int beginX = pnX >> 1;
 	int endY = pnY + beginY;
 	int endX = pnX + beginX;
 	
@@ -1795,7 +1518,6 @@ void ophGen::fresnelPropagation(OphConfig context, Complex<Real>* in, Complex<Re
 
 void ophGen::fresnelPropagation(Complex<Real>* in, Complex<Real>* out, Real distance, uint channel)
 {
-	LOG("%s : ", __FUNCTION__);
 	auto begin = CUR_TIME;
 
 	const int pnX = context_.pixel_number[_X];
@@ -1862,15 +1584,12 @@ void ophGen::fresnelPropagation(Complex<Real>* in, Complex<Real>* out, Real dist
 	}
 	delete[] temp;
 
-	LOG("%lf (s)\n", ELAPSED_TIME(begin, CUR_TIME));
 }
 
 bool ophGen::Shift(Real x, Real y)
 {
 	if (x == 0.0 && y == 0.0) return false;
-
-	auto begin = CUR_TIME;
-
+	
 	bool bAxisX = (x == 0.0) ? false : true;
 	bool bAxisY = (y == 0.0) ? false : true;
 	const int nChannel = context_.waveNum;
@@ -1922,27 +1641,24 @@ bool ophGen::Shift(Real x, Real y)
 			}
 		}
 	}
-
-	auto end = CUR_TIME;
-	LOG("Complex Field Shift: (x: %lf / y: %lf) %lf(s)\n", x, y, ELAPSED_TIME(begin, end));
 	return true;
 }
 
 void ophGen::waveCarry(Real carryingAngleX, Real carryingAngleY, Real distance)
 {
-	const uint pnX = context_.pixel_number[_X];
-	const uint pnY = context_.pixel_number[_Y];
+	const int pnX = context_.pixel_number[_X];
+	const int pnY = context_.pixel_number[_Y];
 	const Real ppX = context_.pixel_pitch[_X];
 	const Real ppY = context_.pixel_pitch[_Y];
-	const uint pnXY = pnX * pnY;
-	const uint nChannel = context_.waveNum;
+	const int pnXY = pnX * pnY;
+	const int nChannel = context_.waveNum;
 	Real dfx = 1 / ppX / pnX;
 	Real dfy = 1 / ppY / pnY;
 	Real* fx = new Real[pnXY];
 	Real* fy = new Real[pnXY];
 	Real* fz = new Real[pnXY];
-	uint i = 0;
-	for (uint ch = 0; ch < nChannel; ch++) {
+	int i = 0;
+	for (int ch = 0; ch < nChannel; ch++) {
 		Real lambda = context_.wave_length[ch];
 
 		for (int idxFy = pnY / 2; idxFy > -pnY / 2; idxFy--) {
@@ -2219,7 +1935,7 @@ void ophGen::RealPart(Complex<T> *holo, T *encoded, const int size)
 }
 
 template <typename T>
-void ophGen::ImaginearyPart(Complex<T> *holo, T *encoded, const int size)
+void ophGen::ImaginaryPart(Complex<T> *holo, T *encoded, const int size)
 {
 	int i;
 #ifdef _OPENMP
@@ -2258,7 +1974,7 @@ void ophGen::Amplitude(Complex<T> *holo, T *encoded, const int size)
 template <typename T>
 void ophGen::TwoPhase(Complex<T>* holo, T* encoded, const int size)
 {
-	int resize = size / 2;
+	int resize = size >> 1;
 	int i;
 	Complex<T>* normCplx = new Complex<T>[resize];
 
@@ -2405,35 +2121,6 @@ void ophGen::GetMaxMin(Real *src, int len, Real& max, Real& min)
 	}
 	max = maxTmp;
 	min = minTmp;
-}
-
-bool ophGen::readImage(const char* fname, bool bRGB)
-{
-	bool ret = getImgSize(m_width, m_height, m_bpp, fname);
-
-	if (ret) {
-		const uint pnX = context_.pixel_number[_X];
-		const uint pnY = context_.pixel_number[_Y];
-		uchar *imgIFTA = nullptr;
-
-		if (imgIFTA != nullptr) {
-			delete[] imgIFTA;
-			imgIFTA = nullptr;
-		}
-		uchar *imgTmp = loadAsImg(fname);
-		//imgIFTA = new uchar[pnX * pnY * m_bpp];
-		//memset(imgIFTA, 0, pnX * pnY * m_bpp);
-		//imgScaleBilinear(imgTmp, imgIFTA, m_width, m_height, pnX, pnY, m_bpp);
-		imgIFTA = new uchar[m_width * m_height * m_bpp];
-		memcpy(imgIFTA, imgTmp, m_width * m_height * m_bpp);
-
-
-		delete[] imgTmp;
-
-		if (bRGB) imgRGB = imgIFTA;
-		else imgDepth = imgIFTA;
-	}
-	return ret;
 }
 
 
