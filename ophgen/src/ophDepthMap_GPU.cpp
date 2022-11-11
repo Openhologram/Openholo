@@ -164,7 +164,7 @@ void ophDepthMap::calcHoloGPU()
 
 			m_nProgress = (int)((Real)(ch * depth_sz + p + 1) * 100 / ((Real)depth_sz * nChannel));
 		}
-		cudaFFT(stream_, pnX, pnY, u_complex_gpu_, k_temp_d_, 1);
+		//cudaFFT(stream_, pnX, pnY, u_complex_gpu_, k_temp_d_, 1);
 		cudaMemcpy(complex_H[ch], u_complex_gpu_, sizeof(cufftDoubleComplex) * N, cudaMemcpyDeviceToHost);
 	}
 	LOG("%s => %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
