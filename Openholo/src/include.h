@@ -46,8 +46,8 @@
 #ifndef __include_h
 #define __include_h
 
-#define _OPH_LIB_VERSION_MAJOR_ 0
-#define _OPH_LIB_VERSION_MINOR_ 4
+#define _OPH_LIB_VERSION_MAJOR_ 3
+#define _OPH_LIB_VERSION_MINOR_ 0
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -64,8 +64,7 @@
 #include <map>
 #include <chrono>
 
-#include "define.h"
-#include "enumerator.h"
+//#include "define.h"
 #include "function.h"
 #include "typedef.h"
 #include "struct.h"
