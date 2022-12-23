@@ -52,9 +52,7 @@
 #include "vec.h"
 #include "ivec.h"
 #include "fftw3.h"
-
 #include "ImgCodecOhc.h"
-#include <vector>
 
 using namespace oph;
 
@@ -390,8 +388,7 @@ protected:
 	* @param[out] output output data variable.
 	*/
 	void fftShift(int nx, int ny, Complex<Real>* input, Complex<Real>* output);
-	void fftShift(int nx, int ny, Complex<Real>* input, fftw_complex* output);
-	void fftShift(int nx, int ny, fftw_complex* input, Complex<Real>* output);
+
 
 protected:
 	/**
