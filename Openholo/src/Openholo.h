@@ -56,6 +56,7 @@
 
 using namespace oph;
 
+
 struct OPH_DLL OphConfig
 {
 	bool			bUseDP;						// use double precision
@@ -66,6 +67,18 @@ struct OPH_DLL OphConfig
 	vec2			ss;							//< pn * pp
 	uint			waveNum;					// wave num
 	Real*			wave_length;				//< wave length
+
+	//basic constructor
+	OphConfig() {
+		this->bUseDP = true;
+		this->pixel_number = ivec2();
+		this->pixel_pitch = vec2();
+		this->shift = vec3();
+		this->k = 0;
+		this->ss = vec2();
+		this->waveNum = 0;
+		this->wave_length = 0;
+	}
 };
 
 struct OPH_DLL ImageConfig
@@ -73,6 +86,14 @@ struct OPH_DLL ImageConfig
 	bool		rotate;							// rotat
 	bool		merge;							// merge
 	int			flip;							// flip
+
+
+	//basic constructor
+	ImageConfig() {
+		this->rotate = false;
+		this->merge = false;
+		this->flip = 0;
+	}
 };
 
 

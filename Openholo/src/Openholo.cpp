@@ -45,6 +45,7 @@
 
 #include "Openholo.h"
 #include <omp.h>
+#include <limits.h>
 #include "sys.h"
 #include "ImgCodecOhc.h"
 #include "ImgControl.h"
@@ -63,7 +64,6 @@ Openholo::Openholo(void)
 	, OHC_decoder(nullptr)
 	, complex_H(nullptr)
 {
-	context_ = { 0 };
 	fftw_init_threads();
 	fftw_plan_with_nthreads(omp_get_max_threads());
 	OHC_encoder = new oph::ImgEncoderOhc;
@@ -174,25 +174,25 @@ bool Openholo::saveAsImg(const char * fname, uint8_t bitsperpixel, uchar* src, i
 	memset(&bitmap, 0, sizeof(bitmap));
 	int iCur = 0;
 
-	bitmap.fileheader.signature[0] = 'B';
-	bitmap.fileheader.signature[1] = 'M';
-	bitmap.fileheader.filesize = _filesize;
-	bitmap.fileheader.fileoffset_to_pixelarray = _headersize;
+	bitmap._fileheader.signature[0] = 'B';
+	bitmap._fileheader.signature[1] = 'M';
+	bitmap._fileheader.filesize = _filesize;
+	bitmap._fileheader.fileoffset_to_pixelarray = _headersize;
 
-	bitmap.bitmapinfoheader.dibheadersize = sizeof(bitmapinfoheader);
-	bitmap.bitmapinfoheader.width = width;
-	bitmap.bitmapinfoheader.height = height;
-	bitmap.bitmapinfoheader.planes = OPH_PLANES;
-	bitmap.bitmapinfoheader.bitsperpixel = bitsperpixel;
-	bitmap.bitmapinfoheader.compression = OPH_COMPRESSION; //(=BI_RGB)
-	bitmap.bitmapinfoheader.imagesize = _pixelbytesize;
-	bitmap.bitmapinfoheader.ypixelpermeter = 0;// Y_PIXEL_PER_METER;
-	bitmap.bitmapinfoheader.xpixelpermeter = 0;// X_PIXEL_PER_METER;
-	bitmap.bitmapinfoheader.numcolorspallette = _iColor;
+	bitmap._bitmapinfoheader.dibheadersize = sizeof(bitmapinfoheader);
+	bitmap._bitmapinfoheader.width = width;
+	bitmap._bitmapinfoheader.height = height;
+	bitmap._bitmapinfoheader.planes = OPH_PLANES;
+	bitmap._bitmapinfoheader.bitsperpixel = bitsperpixel;
+	bitmap._bitmapinfoheader.compression = OPH_COMPRESSION; //(=BI_RGB)
+	bitmap._bitmapinfoheader.imagesize = _pixelbytesize;
+	bitmap._bitmapinfoheader.ypixelpermeter = 0;// Y_PIXEL_PER_METER;
+	bitmap._bitmapinfoheader.xpixelpermeter = 0;// X_PIXEL_PER_METER;
+	bitmap._bitmapinfoheader.numcolorspallette = _iColor;
 
-	memcpy(&pBitmap[iCur], &bitmap.fileheader, sizeof(fileheader));
+	memcpy(&pBitmap[iCur], &bitmap._fileheader, sizeof(fileheader));
 	iCur += sizeof(fileheader);
-	memcpy(&pBitmap[iCur], &bitmap.bitmapinfoheader, sizeof(bitmapinfoheader));
+	memcpy(&pBitmap[iCur], &bitmap._bitmapinfoheader, sizeof(bitmapinfoheader));
 	iCur += sizeof(bitmapinfoheader);
 
 	if (hasColorTable) {
@@ -233,8 +233,7 @@ bool Openholo::saveAsImg(const char * fname, uint8_t bitsperpixel, uchar* src, i
 	if (iCur != _filesize)
 		bOK = false;
 	else {
-		FILE* fp;
-		fopen_s(&fp, fname, "wb");
+		FILE* fp = fopen(fname, "wb");
 		if (fp == nullptr)
 			bOK = false;
 		else {
@@ -246,7 +245,7 @@ bool Openholo::saveAsImg(const char * fname, uint8_t bitsperpixel, uchar* src, i
 	if (hasColorTable && table) delete[] table;
 	delete[] pBitmap;
 
-	LOG("%s => %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
+	LOG("%s \'%s\' => %.5lf (sec)\n", __FUNCTION__, fname, ELAPSED_TIME(begin, CUR_TIME));
 
 	return bOK;
 }
@@ -316,8 +315,7 @@ bool Openholo::loadAsOhc(const char * fname)
 
 uchar* Openholo::loadAsImg(const char * fname)
 {
-	FILE *infile;
-	fopen_s(&infile, fname, "rb");
+	FILE *infile = fopen(fname, "rb");
 	if (infile == nullptr)
 	{ 
 		LOG("<FAILED> No such file.\n");
@@ -327,7 +325,7 @@ uchar* Openholo::loadAsImg(const char * fname)
 	// BMP Header Information
 	fileheader hf;
 	bitmapinfoheader hInfo;
-	fread(&hf, sizeof(fileheader), 1, infile);
+	size_t nRead = fread(&hf, sizeof(fileheader), 1, infile);
 	if (hf.signature[0] != 'B' || hf.signature[1] != 'M')
 	{
 		LOG("<FAILED> Not BMP file.\n");
@@ -335,13 +333,13 @@ uchar* Openholo::loadAsImg(const char * fname)
 		return nullptr;
 	}
 
-	fread(&hInfo, sizeof(bitmapinfoheader), 1, infile);
+	nRead = fread(&hInfo, sizeof(bitmapinfoheader), 1, infile);
 	fseek(infile, hf.fileoffset_to_pixelarray, SEEK_SET);
 
 	uint size = hInfo.imagesize != 0 ? hInfo.imagesize : (((hInfo.width * hInfo.bitsperpixel >> 3) + 3) & ~3) * hInfo.height;
 
 	oph::uchar *img_tmp = new uchar[size];
-	fread(img_tmp, sizeof(uchar), size, infile);
+	nRead = fread(img_tmp, sizeof(uchar), size, infile);
 	fclose(infile);
 
 	return img_tmp;
@@ -349,8 +347,8 @@ uchar* Openholo::loadAsImg(const char * fname)
 
 bool Openholo::loadAsImgUpSideDown(const char * fname, uchar* dst)
 {
-	FILE *infile;
-	fopen_s(&infile, fname, "rb");
+	FILE *infile = fopen(fname, "rb");
+
 	if (infile == nullptr)
 	{
 		LOG("<FAILED> No such file.\n");
@@ -360,24 +358,24 @@ bool Openholo::loadAsImgUpSideDown(const char * fname, uchar* dst)
 	// BMP Header Information
 	fileheader hf;
 	bitmapinfoheader hInfo;
-	fread(&hf, sizeof(fileheader), 1, infile);
+	size_t nRead = fread(&hf, sizeof(fileheader), 1, infile);
 	if (hf.signature[0] != 'B' || hf.signature[1] != 'M')
 	{
 		LOG("<FAILED> Not BMP file.\n");
 		return false; 
 	}
 
-	fread(&hInfo, sizeof(bitmapinfoheader), 1, infile);
+	nRead = fread(&hInfo, sizeof(bitmapinfoheader), 1, infile);
 	fseek(infile, hf.fileoffset_to_pixelarray, SEEK_SET);
 	
 	oph::uchar* img_tmp;
 	if (hInfo.imagesize == 0) {
 		img_tmp = new oph::uchar[hInfo.width*hInfo.height*(hInfo.bitsperpixel >> 3)];
-		fread(img_tmp, sizeof(oph::uchar), hInfo.width*hInfo.height*(hInfo.bitsperpixel >> 3), infile);
+		nRead = fread(img_tmp, sizeof(oph::uchar), hInfo.width*hInfo.height*(hInfo.bitsperpixel >> 3), infile);
 	}
 	else {
 		img_tmp = new oph::uchar[hInfo.imagesize];
-		fread(img_tmp, sizeof(oph::uchar), hInfo.imagesize, infile);
+		nRead = fread(img_tmp, sizeof(oph::uchar), hInfo.imagesize, infile);
 	}
 	fclose(infile);
 
@@ -399,27 +397,29 @@ bool Openholo::loadAsImgUpSideDown(const char * fname, uchar* dst)
 
 bool Openholo::getImgSize(int & w, int & h, int & bytesperpixel, const char * fname)
 {
-	char szExtension[_MAX_EXT] = { 0, };
+	char szExtension[FILENAME_MAX] = { 0, };
 
 	strcpy(szExtension, strrchr(fname, '.') + 1);
 
 	//sprintf(szExtension, "%s", PathFindExtension(fname) + 1);
-
+#ifdef _MSC_VER
 	if (_stricmp(szExtension, "bmp")) { // not bmp
+#elif __GNUC__
+	if (strcasecmp(szExtension, "bmp")) {
+#endif
 		return false;
 	}
-
 	// BMP
-	FILE *infile;
-	fopen_s(&infile, fname, "rb");
-	if (infile == NULL) { LOG("No Image File"); return false; }
+	FILE *infile = fopen(fname, "rb");
+
+	if (infile == nullptr) { LOG("<FAILED> Load image file.\n"); return false; }
 
 	// BMP Header Information
 	fileheader hf;
 	bitmapinfoheader hInfo;
-	fread(&hf, sizeof(fileheader), 1, infile);
+	size_t nRead = fread(&hf, sizeof(fileheader), 1, infile);
 	if (hf.signature[0] != 'B' || hf.signature[1] != 'M') return false;
-	fread(&hInfo, sizeof(bitmapinfoheader), 1, infile);
+	nRead = fread(&hInfo, sizeof(bitmapinfoheader), 1, infile);
 	//if (hInfo.bitsperpixel != 8) { printf("Bad File Format!!"); return 0; }
 
 	w = hInfo.width;
