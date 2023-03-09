@@ -22,8 +22,18 @@
 class FFTImplementationCallback;
 class AngularSpectrum;
 
+#ifdef OPH_EXPORT
+#ifdef _WIN32
+#define OPH_DLL __declspec(dllexport)
+#else
+#define OPH_DLL __attribute__((visibility("default")))
+#endif
+#else
+#define OPH_DLL __declspec(dllimport)
+#endif
+
 // Type Definitions
-class __declspec(dllexport) FFTImplementationCallback
+class OPH_DLL FFTImplementationCallback
 {
  public:
   static void get_algo_sizes(int nfft, boolean_T useRadix2, int *n2blue, int

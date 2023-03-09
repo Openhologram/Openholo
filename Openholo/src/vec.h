@@ -56,25 +56,25 @@
 #include "ivec.h"
 #include "epsilon.h"
 #include <math.h>
-#include <stdio.h>
+
 
 namespace oph {
 
 	/**
 	* @brief structure for 2-dimensional Real type vector and its arithmetic.
 	*/
-	struct __declspec(dllexport) vec2 {
+	struct OPH_DLL vec2 {
 		Real v[2];
 		static const int n;
 
-		inline vec2() { }
-		inline vec2(Real a) { v[1 - 1] = a;  v[2 - 1] = a; }
-		inline vec2(Real v_1, Real v_2) { v[1 - 1] = v_1;  v[2 - 1] = v_2; }
-		inline vec2(const ivec2& a) { v[1 - 1] = a[1 - 1];  v[2 - 1] = a[2 - 1]; }
-		inline vec2(const vec2& a) { v[1 - 1] = a[1 - 1];  v[2 - 1] = a[2 - 1]; }
+		inline vec2() { v[0] = v[1] = 0; }
+		inline vec2(Real a) { v[0] = v[1] = a; }
+		inline vec2(Real v_1, Real v_2) { v[0] = v_1;  v[1] = v_2; }
+		inline vec2(const ivec2& a) { v[0] = a[0];  v[1] = a[1]; }
+		inline vec2(const vec2& a) { v[0] = a[0];  v[1] = a[1]; }
 
 
-		inline vec2& operator=(const vec2& a) { v[1 - 1] = a[1 - 1];  v[2 - 1] = a[2 - 1]; return *this; }
+		inline vec2& operator=(const vec2& a) { v[0] = a[0];  v[1] = a[1]; return *this; }
 		inline Real& operator[] (int i) { return v[i]; }
 		inline const Real&  operator[] (int i) const { return v[i]; }
 		inline Real& operator() (int i) { return v[i % 2]; }
@@ -277,21 +277,21 @@ namespace oph {
 	inline int operator == (const vec2& a, const vec2& b)
 	{
 		int c = 1;
-		for (int i = 0; i < 2; ++i) { c = c && a[i] == b[i]; }
+		for (int i = 0; i < 2; ++i) { c = c & (a[i] == b[i]); }
 		return c;
 	}
 
 	inline int operator == (Real a, const vec2& b)
 	{
 		int c = 1;
-		for (int i = 0; i < 2; ++i) { c = c && a == b[i]; }
+		for (int i = 0; i < 2; ++i) { c = c & (a == b[i]); }
 		return c;
 	}
 
 	inline int operator == (const vec2& a, Real b)
 	{
 		int c = 1;
-		for (int i = 0; i < 2; ++i) { c = c && a[i] == b; }
+		for (int i = 0; i < 2; ++i) { c = c & (a[i] == b); }
 		return c;
 	}
 
@@ -300,21 +300,21 @@ namespace oph {
 	inline int operator < (const vec2& a, const vec2& b)
 	{
 		int c = 1;
-		for (int i = 0; i < 2; ++i) { c = c && a[i] < b[i]; }
+		for (int i = 0; i < 2; ++i) { c = c & (a[i] < b[i]); }
 		return c;
 	}
 
 	inline int operator < (Real a, const vec2& b)
 	{
 		int c = 1;
-		for (int i = 0; i < 2; ++i) { c = c && a < b[i]; }
+		for (int i = 0; i < 2; ++i) { c = c & (a < b[i]); }
 		return c;
 	}
 
 	inline int operator < (const vec2& a, Real b)
 	{
 		int c = 1;
-		for (int i = 0; i < 2; ++i) { c = c && a[i] < b; }
+		for (int i = 0; i < 2; ++i) { c = c & (a[i] < b); }
 		return c;
 	}
 
@@ -323,21 +323,21 @@ namespace oph {
 	inline int operator <= (const vec2& a, const vec2& b)
 	{
 		int c = 1;
-		for (int i = 0; i < 2; ++i) { c = c && a[i] <= b[i]; }
+		for (int i = 0; i < 2; ++i) { c = c & (a[i] <= b[i]); }
 		return c;
 	}
 
 	inline int operator <= (Real a, const vec2& b)
 	{
 		int c = 1;
-		for (int i = 0; i < 2; ++i) { c = c && a <= b[i]; }
+		for (int i = 0; i < 2; ++i) { c = c & (a <= b[i]); }
 		return c;
 	}
 
 	inline int operator <= (const vec2& a, Real b)
 	{
 		int c = 1;
-		for (int i = 0; i < 2; ++i) { c = c && a[i] <= b; }
+		for (int i = 0; i < 2; ++i) { c = c & (a[i] <= b); }
 		return c;
 	}
 
@@ -346,21 +346,21 @@ namespace oph {
 	inline int operator > (const vec2& a, const vec2& b)
 	{
 		int c = 1;
-		for (int i = 0; i < 2; ++i) { c = c && a[i] > b[i]; }
+		for (int i = 0; i < 2; ++i) { c = c & (a[i] > b[i]); }
 		return c;
 	}
 
 	inline int operator > (Real a, const vec2& b)
 	{
 		int c = 1;
-		for (int i = 0; i < 2; ++i) { c = c && a > b[i]; }
+		for (int i = 0; i < 2; ++i) { c = c & (a > b[i]); }
 		return c;
 	}
 
 	inline int operator > (const vec2& a, Real b)
 	{
 		int c = 1;
-		for (int i = 0; i < 2; ++i) { c = c && a[i] > b; }
+		for (int i = 0; i < 2; ++i) { c = c & (a[i] > b); }
 		return c;
 	}
 
@@ -369,21 +369,21 @@ namespace oph {
 	inline int operator >= (const vec2& a, const vec2& b)
 	{
 		int c = 1;
-		for (int i = 0; i < 2; ++i) { c = c && a[i] >= b[i]; }
+		for (int i = 0; i < 2; ++i) { c = c & (a[i] >= b[i]); }
 		return c;
 	}
 
 	inline int operator >= (Real a, const vec2& b)
 	{
 		int c = 1;
-		for (int i = 0; i < 2; ++i) { c = c && a >= b[i]; }
+		for (int i = 0; i < 2; ++i) { c = c & (a >= b[i]); }
 		return c;
 	}
 
 	inline int operator >= (const vec2& a, Real b)
 	{
 		int c = 1;
-		for (int i = 0; i < 2; ++i) { c = c && a[i] >= b; }
+		for (int i = 0; i < 2; ++i) { c = c & (a[i] >= b); }
 		return c;
 	}
 
@@ -402,8 +402,8 @@ namespace oph {
 	{
 		Real s = 0;
 
-		s += a[1 - 1];
-		s += a[2 - 1];
+		s += a[0];
+		s += a[1];
 
 		return s;
 	}
@@ -463,17 +463,17 @@ namespace oph {
 	/**
 	* @brief structure for 3-dimensional Real type vector and its arithmetic.
 	*/
-	struct __declspec(dllexport) vec3 {
+	struct OPH_DLL vec3 {
 		Real v[3];
 		static const int n;
 
-		inline vec3() { }
-		inline vec3(Real a) { v[1 - 1] = a;  v[2 - 1] = a;  v[3 - 1] = a; }
-		inline vec3(Real v_1, Real v_2, Real v_3) { v[1 - 1] = v_1;  v[2 - 1] = v_2;  v[3 - 1] = v_3; }
-		inline vec3(const ivec3& a) { v[1 - 1] = a[1 - 1];  v[2 - 1] = a[2 - 1];  v[3 - 1] = a[3 - 1]; }
-		inline vec3(const vec3& a) { v[1 - 1] = a[1 - 1];  v[2 - 1] = a[2 - 1];  v[3 - 1] = a[3 - 1]; }
+		inline vec3() { v[0] = v[1] = v[2] = 0; }
+		inline vec3(Real a) { v[0] = v[1] = v[2] = a; }
+		inline vec3(Real v_1, Real v_2, Real v_3) { v[0] = v_1;  v[1] = v_2;  v[2] = v_3; }
+		inline vec3(const ivec3& a) { v[0] = a[0];  v[1] = a[1];  v[2] = a[2]; }
+		inline vec3(const vec3& a) { v[0] = a[0];  v[1] = a[1];  v[2] = a[2]; }
 
-		inline vec3& operator=(const vec3& a) { v[1 - 1] = a[1 - 1];  v[2 - 1] = a[2 - 1];  v[3 - 1] = a[3 - 1]; return *this; }
+		inline vec3& operator=(const vec3& a) { v[0] = a[0];  v[1] = a[1];  v[2] = a[2]; return *this; }
 		inline Real& operator[] (int i) { return v[i]; }
 		inline const Real&  operator[] (int i) const { return v[i]; }
 		inline Real& operator() (int i) { return v[i % 3]; }
@@ -670,21 +670,21 @@ namespace oph {
 	inline int operator == (const vec3& a, const vec3& b)
 	{
 		int c = 1;
-		for (int i = 0; i < 3; ++i) { c = c && a[i] == b[i]; }
+		for (int i = 0; i < 3; ++i) { c = c & (a[i] == b[i]); }
 		return c;
 	}
 
 	inline int operator == (Real a, const vec3& b)
 	{
 		int c = 1;
-		for (int i = 0; i < 3; ++i) { c = c && a == b[i]; }
+		for (int i = 0; i < 3; ++i) { c = c & (a == b[i]); }
 		return c;
 	}
 
 	inline int operator == (const vec3& a, Real b)
 	{
 		int c = 1;
-		for (int i = 0; i < 3; ++i) { c = c && a[i] == b; }
+		for (int i = 0; i < 3; ++i) { c = c & (a[i] == b); }
 		return c;
 	}
 
@@ -693,21 +693,21 @@ namespace oph {
 	inline int operator < (const vec3& a, const vec3& b)
 	{
 		int c = 1;
-		for (int i = 0; i < 3; ++i) { c = c && a[i] < b[i]; }
+		for (int i = 0; i < 3; ++i) { c = c & (a[i] < b[i]); }
 		return c;
 	}
 
 	inline int operator < (Real a, const vec3& b)
 	{
 		int c = 1;
-		for (int i = 0; i < 3; ++i) { c = c && a < b[i]; }
+		for (int i = 0; i < 3; ++i) { c = c & (a < b[i]); }
 		return c;
 	}
 
 	inline int operator < (const vec3& a, Real b)
 	{
 		int c = 1;
-		for (int i = 0; i < 3; ++i) { c = c && a[i] < b; }
+		for (int i = 0; i < 3; ++i) { c = c & (a[i] < b); }
 		return c;
 	}
 
@@ -716,21 +716,21 @@ namespace oph {
 	inline int operator <= (const vec3& a, const vec3& b)
 	{
 		int c = 1;
-		for (int i = 0; i < 3; ++i) { c = c && a[i] <= b[i]; }
+		for (int i = 0; i < 3; ++i) { c = c & (a[i] <= b[i]); }
 		return c;
 	}
 
 	inline int operator <= (Real a, const vec3& b)
 	{
 		int c = 1;
-		for (int i = 0; i < 3; ++i) { c = c && a <= b[i]; }
+		for (int i = 0; i < 3; ++i) { c = c & (a <= b[i]); }
 		return c;
 	}
 
 	inline int operator <= (const vec3& a, Real b)
 	{
 		int c = 1;
-		for (int i = 0; i < 3; ++i) { c = c && a[i] <= b; }
+		for (int i = 0; i < 3; ++i) { c = c & (a[i] <= b); }
 		return c;
 	}
 
@@ -739,21 +739,21 @@ namespace oph {
 	inline int operator > (const vec3& a, const vec3& b)
 	{
 		int c = 1;
-		for (int i = 0; i < 3; ++i) { c = c && a[i] > b[i]; }
+		for (int i = 0; i < 3; ++i) { c = c & (a[i] > b[i]); }
 		return c;
 	}
 
 	inline int operator > (Real a, const vec3& b)
 	{
 		int c = 1;
-		for (int i = 0; i < 3; ++i) { c = c && a > b[i]; }
+		for (int i = 0; i < 3; ++i) { c = c & (a > b[i]); }
 		return c;
 	}
 
 	inline int operator > (const vec3& a, Real b)
 	{
 		int c = 1;
-		for (int i = 0; i < 3; ++i) { c = c && a[i] > b; }
+		for (int i = 0; i < 3; ++i) { c = c & (a[i] > b); }
 		return c;
 	}
 
@@ -762,21 +762,21 @@ namespace oph {
 	inline int operator >= (const vec3& a, const vec3& b)
 	{
 		int c = 1;
-		for (int i = 0; i < 3; ++i) { c = c && a[i] >= b[i]; }
+		for (int i = 0; i < 3; ++i) { c = c & (a[i] >= b[i]); }
 		return c;
 	}
 
 	inline int operator >= (Real a, const vec3& b)
 	{
 		int c = 1;
-		for (int i = 0; i < 3; ++i) { c = c && a >= b[i]; }
+		for (int i = 0; i < 3; ++i) { c = c & (a >= b[i]); }
 		return c;
 	}
 
 	inline int operator >= (const vec3& a, Real b)
 	{
 		int c = 1;
-		for (int i = 0; i < 3; ++i) { c = c && a[i] >= b; }
+		for (int i = 0; i < 3; ++i) { c = c & (a[i] >= b); }
 		return c;
 	}
 
@@ -802,11 +802,11 @@ namespace oph {
 	{
 		Real s = 0;
 
-		s += a[1 - 1];
+		s += a[0];
 
-		s += a[2 - 1];
+		s += a[1];
 
-		s += a[3 - 1];
+		s += a[2];
 
 		return s;
 	}
@@ -861,17 +861,17 @@ namespace oph {
 	/**
 	* @brief structure for 4-dimensional Real type vector and its arithmetic.
 	*/
-	struct __declspec(dllexport) vec4 {
+	struct OPH_DLL vec4 {
 		Real v[4];
 		static const int n;
 
-		inline vec4() { }
-		inline vec4(Real a) { v[1 - 1] = a;  v[2 - 1] = a;  v[3 - 1] = a;  v[4 - 1] = a; }
-		inline vec4(Real v_1, Real v_2, Real v_3, Real v_4) { v[1 - 1] = v_1;  v[2 - 1] = v_2;  v[3 - 1] = v_3;  v[4 - 1] = v_4; }
-		inline vec4(const ivec4& a) { v[1 - 1] = a[1 - 1];  v[2 - 1] = a[2 - 1];  v[3 - 1] = a[3 - 1];  v[4 - 1] = a[4 - 1]; }
-		inline vec4(const vec4& a) { v[1 - 1] = a[1 - 1];  v[2 - 1] = a[2 - 1];  v[3 - 1] = a[3 - 1];  v[4 - 1] = a[4 - 1]; }
+		inline vec4() { v[0] = v[1] = v[2] = v[3] = 0; }
+		inline vec4(Real a) { v[0] = v[1] = v[2] = v[3] = a; }
+		inline vec4(Real v_1, Real v_2, Real v_3, Real v_4) { v[0] = v_1;  v[1] = v_2;  v[2] = v_3;  v[3] = v_4; }
+		inline vec4(const ivec4& a) { v[0] = a[0];  v[1] = a[1];  v[2] = a[2];  v[3] = a[3]; }
+		inline vec4(const vec4& a) { v[0] = a[0];  v[1] = a[1];  v[2] = a[2];  v[3] = a[3]; }
 
-		inline vec4& operator=(const vec4& a) { v[1 - 1] = a[1 - 1];  v[2 - 1] = a[2 - 1];  v[3 - 1] = a[3 - 1];  v[4 - 1] = a[4 - 1]; return *this; }
+		inline vec4& operator=(const vec4& a) { v[0] = a[0];  v[1] = a[1];  v[2] = a[2];  v[3] = a[3]; return *this; }
 		inline Real& operator[] (int i) { return v[i]; }
 		inline const Real&  operator[] (int i) const { return v[i]; }
 		inline Real& operator() (int i) { return v[i % 4]; }
@@ -1042,21 +1042,21 @@ namespace oph {
 	inline int operator == (const vec4& a, const vec4& b)
 	{
 		int c = 1;
-		for (int i = 0; i < 4; ++i) { c = c && a[i] == b[i]; }
+		for (int i = 0; i < 4; ++i) { c = c & (a[i] == b[i]); }
 		return c;
 	}
 
 	inline int operator == (Real a, const vec4& b)
 	{
 		int c = 1;
-		for (int i = 0; i < 4; ++i) { c = c && a == b[i]; }
+		for (int i = 0; i < 4; ++i) { c = c & (a == b[i]); }
 		return c;
 	}
 
 	inline int operator == (const vec4& a, Real b)
 	{
 		int c = 1;
-		for (int i = 0; i < 4; ++i) { c = c && a[i] == b; }
+		for (int i = 0; i < 4; ++i) { c = c & (a[i] == b); }
 		return c;
 	}
 
@@ -1065,21 +1065,21 @@ namespace oph {
 	inline int operator < (const vec4& a, const vec4& b)
 	{
 		int c = 1;
-		for (int i = 0; i < 4; ++i) { c = c && a[i] < b[i]; }
+		for (int i = 0; i < 4; ++i) { c = c & (a[i] < b[i]); }
 		return c;
 	}
 
 	inline int operator < (Real a, const vec4& b)
 	{
 		int c = 1;
-		for (int i = 0; i < 4; ++i) { c = c && a < b[i]; }
+		for (int i = 0; i < 4; ++i) { c = c & (a < b[i]); }
 		return c;
 	}
 
 	inline int operator < (const vec4& a, Real b)
 	{
 		int c = 1;
-		for (int i = 0; i < 4; ++i) { c = c && a[i] < b; }
+		for (int i = 0; i < 4; ++i) { c = c & (a[i] < b); }
 		return c;
 	}
 
@@ -1088,21 +1088,21 @@ namespace oph {
 	inline int operator <= (const vec4& a, const vec4& b)
 	{
 		int c = 1;
-		for (int i = 0; i < 4; ++i) { c = c && a[i] <= b[i]; }
+		for (int i = 0; i < 4; ++i) { c = c & (a[i] <= b[i]); }
 		return c;
 	}
 
 	inline int operator <= (Real a, const vec4& b)
 	{
 		int c = 1;
-		for (int i = 0; i < 4; ++i) { c = c && a <= b[i]; }
+		for (int i = 0; i < 4; ++i) { c = c & (a <= b[i]); }
 		return c;
 	}
 
 	inline int operator <= (const vec4& a, Real b)
 	{
 		int c = 1;
-		for (int i = 0; i < 4; ++i) { c = c && a[i] <= b; }
+		for (int i = 0; i < 4; ++i) { c = c & (a[i] <= b); }
 		return c;
 	}
 
@@ -1111,21 +1111,21 @@ namespace oph {
 	inline int operator > (const vec4& a, const vec4& b)
 	{
 		int c = 1;
-		for (int i = 0; i < 4; ++i) { c = c && a[i] > b[i]; }
+		for (int i = 0; i < 4; ++i) { c = c & (a[i] > b[i]); }
 		return c;
 	}
 
 	inline int operator > (Real a, const vec4& b)
 	{
 		int c = 1;
-		for (int i = 0; i < 4; ++i) { c = c && a > b[i]; }
+		for (int i = 0; i < 4; ++i) { c = c & (a > b[i]); }
 		return c;
 	}
 
 	inline int operator > (const vec4& a, Real b)
 	{
 		int c = 1;
-		for (int i = 0; i < 4; ++i) { c = c && a[i] > b; }
+		for (int i = 0; i < 4; ++i) { c = c & (a[i] > b); }
 		return c;
 	}
 
@@ -1134,21 +1134,21 @@ namespace oph {
 	inline int operator >= (const vec4& a, const vec4& b)
 	{
 		int c = 1;
-		for (int i = 0; i < 4; ++i) { c = c && a[i] >= b[i]; }
+		for (int i = 0; i < 4; ++i) { c = c & (a[i] >= b[i]); }
 		return c;
 	}
 
 	inline int operator >= (Real a, const vec4& b)
 	{
 		int c = 1;
-		for (int i = 0; i < 4; ++i) { c = c && a >= b[i]; }
+		for (int i = 0; i < 4; ++i) { c = c & (a >= b[i]); }
 		return c;
 	}
 
 	inline int operator >= (const vec4& a, Real b)
 	{
 		int c = 1;
-		for (int i = 0; i < 4; ++i) { c = c && a[i] >= b; }
+		for (int i = 0; i < 4; ++i) { c = c & (a[i] >= b); }
 		return c;
 	}
 
@@ -1173,13 +1173,13 @@ namespace oph {
 	{
 		Real s = 0;
 
-		s += a[1 - 1];
+		s += a[0];
 
-		s += a[2 - 1];
+		s += a[1];
 
-		s += a[3 - 1];
+		s += a[2];
 
-		s += a[4 - 1];
+		s += a[3];
 
 		return s;
 	}
