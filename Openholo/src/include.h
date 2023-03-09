@@ -63,14 +63,30 @@
 #include <vector>
 #include <map>
 #include <chrono>
+#include <cstring>
 
 //#include "define.h"
 #include "function.h"
 #include "typedef.h"
 #include "struct.h"
 
+
+#ifdef _WIN32
+#ifdef OPH_EXPORT
+#define OPH_DLL __declspec(dllexport)
+#else
+#define OPH_DLL __declspec(dllimport)
+#endif
+#else
+#ifdef OPH_EXPORT
+#define OPH_DLL __attribute__((visibility("default")))
+#else
+#define OPH_DLL
+#endif
+#endif
+
 using namespace std;
-
+#ifdef _MSC_VER
 #pragma warning(disable : 4251 4819 4244)
-
+#endif
 #endif // !__include_h

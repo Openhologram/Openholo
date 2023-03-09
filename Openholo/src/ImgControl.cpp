@@ -1,11 +1,8 @@
 #include "ImgControl.h"
 #include <string.h>
-#include <gdiplus.h>
-#include <Shlwapi.h>
 #include <omp.h>
 #include "sys.h"
 #include "function.h"
-#pragma comment(lib, "gdiplus.lib")
 
 ImgControl* ImgControl::instance = nullptr;
 
@@ -18,94 +15,20 @@ ImgControl::~ImgControl()
 {
 }
 
-using namespace Gdiplus;
-bool ImgControl::Save(const char *path, BYTE *pSrc, UINT len, int quality)
+
+unsigned long long ImgControl::GetBitmapSize(int width, int height, int channel)
 {
-	Status stat = Ok;
-	GdiplusStartupInput gsi;
-	ULONG_PTR token = NULL;
-
-	if (GdiplusStartup(&token, &gsi, NULL) == Ok) {
-		BYTE *pDest = new BYTE[len];
-		memcpy(pDest, pSrc, len);
-		
-		CComPtr<IStream> pStream;
-		pStream.Attach(SHCreateMemStream(pDest, len));
-		Image img(pStream, FALSE);
-
-		CLSID clsid;
-		wchar_t format[256] = { 0, };
-		wchar_t wpath[256] = { 0, };	
-
-		int len = MultiByteToWideChar(CP_ACP, 0, (LPCTSTR)path, (int)strlen(path), NULL, NULL);
-		MultiByteToWideChar(CP_ACP, 0, (LPCTSTR)path, (int)strlen(path), wpath, len);
-
-		wsprintfW(format, L"image/%s", PathFindExtensionW(wpath) + 1);
-
-		bool bHasParam = false;
-		EncoderParameters params;
-		memset(&params, 0, sizeof(EncoderParameters));
-		if (!_stricmp(PathFindExtensionA(path) + 1, "jpg") ||
-			!_stricmp(PathFindExtensionA(path) + 1, "jpeg")) {
-
-			wsprintfW(format, L"image/%s", L"jpeg");
-
-			ULONG q = (quality > 100 || quality < 0) ? 100 : quality;
-			params.Count = 1;
-			params.Parameter[0].Guid = EncoderQuality;
-			params.Parameter[0].Type = EncoderParameterValueTypeLong;
-			params.Parameter[0].NumberOfValues = 1;
-			params.Parameter[0].Value = &q;
-			bHasParam = true;
-		}
-		else if (!_stricmp(PathFindExtensionA(path) + 1, "tif")) {
-			wsprintfW(format, L"image/%s", L"tiff");
-		}
-		if (GetEncoderClsid(format, &clsid) != -1) {
-			stat = img.Save(wpath, &clsid, bHasParam ? &params : NULL);
-		}
-		pStream.Detach();
-		pStream.Release();
-		delete[] pDest;
-	}
- 	GdiplusShutdown(token);
-	return stat == Ok ? true : false;
+	return (((width * channel) + 3) & ~3) * height;
 }
-
-int ImgControl::GetEncoderClsid(const WCHAR *format, CLSID *pClsid)
-{
-	UINT nEncoder = 0; // number of image encoders
-	UINT nSize = 0; // size of the image encoder array in bytes
-
-	ImageCodecInfo* pImageCodecInfo = NULL;
-
-	GetImageEncodersSize(&nEncoder, &nSize);
-	if (nSize == 0)
-		return -1;  // Failure
-
-	pImageCodecInfo = (ImageCodecInfo*)malloc(nSize);
-	if (pImageCodecInfo == NULL)
-		return -1;  // Failure
-
-	GetImageEncoders(nEncoder, nSize, pImageCodecInfo);
-
-	for (UINT j = 0; j < nEncoder; ++j)
-	{
-		if (wcscmp(pImageCodecInfo[j].MimeType, format) == 0)
-		{
-			*pClsid = pImageCodecInfo[j].Clsid;
-			free(pImageCodecInfo);
-			return j;                                         // Success
-		}
-	}
-	free(pImageCodecInfo);
-	return -1;
-}
-
 
 void ImgControl::Resize(unsigned char* src, unsigned char* dst, int w, int h, int neww, int newh, int ch)
 {
-	if (src == nullptr || dst == nullptr) return;
+	if (src == nullptr) return;
+
+	if (dst == nullptr)
+	{
+		dst = new unsigned char[GetBitmapSize(w, h, ch)];
+	}
 
 	int nBytePerLine = ((w * ch) + 3) & ~3; // src
 	int nNewBytePerLine = ((neww * ch) + 3) & ~3; // dst
@@ -181,17 +104,23 @@ void ImgControl::Resize(unsigned char* src, unsigned char* dst, int w, int h, in
 
 bool ImgControl::Rotate(double rotate, unsigned char *src, unsigned char *dst, int w, int h, int neww, int newh, int ch)
 {
-	if (src == nullptr || dst == nullptr) return false;
+	if (src == nullptr) return false;
 	if (ch > 4) return false;
 
 	bool bChangeSize = false;
 	if (neww != w || newh != h) {
 		bChangeSize = true;
 	}
+
+	unsigned long long nImgSize = bChangeSize ? GetBitmapSize(neww, newh, ch) : GetBitmapSize(w, h, ch);
+
+	if (dst == nullptr)
+	{
+		dst = new unsigned char[nImgSize];
+	}
 	
-	int nImgSize = bChangeSize ? CalcBitmapSize(neww, newh, ch) : CalcBitmapSize(w, h, ch);
 	unsigned char *temp = new unsigned char[nImgSize]; //src
-	unsigned char *temp2 = new unsigned char[nImgSize]; // dst
+	//unsigned char *temp2 = new unsigned char[nImgSize]; // dst
 
 	if (bChangeSize) {
 		Resize(src, temp, w, h, neww, newh, ch);
@@ -225,23 +154,28 @@ bool ImgControl::Rotate(double rotate, unsigned char *src, unsigned char *dst, i
 
 				memcpy(pixels, &temp[offsetY + offsetX], sizeof(unsigned char) * ch);
 			}
-			memcpy(&temp2[dstY + (x * ch)], pixels, sizeof(unsigned char) * ch);
+			//memcpy(&temp2[dstY + (x * ch)], pixels, sizeof(unsigned char) * ch);
+			memcpy(&dst[dstY + (x * ch)], pixels, sizeof(unsigned char) * ch);
 		}
 	}
 
-	memcpy(dst, temp2, nImgSize);
+	//memcpy(dst, temp2, nImgSize);
 	delete[] temp;
-	delete[] temp2;
+	//delete[] temp2;
 	return true;
 }
 
 bool ImgControl::Flip(FLIP mode, unsigned char *src, unsigned char *dst, int w, int h, int ch)
 {
-	if (src == nullptr || dst == nullptr) return false;
+	if (src == nullptr) return false;
 
 	bool bOK = true;
-	int nImgSize = CalcBitmapSize(w, h, ch);
-	unsigned char *temp = new unsigned char[nImgSize];
+
+	if (dst == nullptr)
+	{
+		dst = new unsigned char[GetBitmapSize(w, h, ch)];
+	}
+
 	int nBytePerLine = ((w * ch) + 3) & ~3;
 	if (mode == FLIP::VERTICAL) {
 		int y;
@@ -252,7 +186,7 @@ bool ImgControl::Flip(FLIP mode, unsigned char *src, unsigned char *dst, int w, 
 			int offset = y * nBytePerLine;
 			int offset2 = (h - y - 1) * nBytePerLine;
 			for (int x = 0; x < w; x++) {
-				memcpy(&temp[offset + (x * ch)], &src[offset2 + (x * ch)], sizeof(unsigned char) * ch);
+				memcpy(&dst[offset + (x * ch)], &src[offset2 + (x * ch)], sizeof(unsigned char) * ch);
 			}
 		}
 	}
@@ -264,7 +198,7 @@ bool ImgControl::Flip(FLIP mode, unsigned char *src, unsigned char *dst, int w, 
 		for (y = 0; y < h; y++) {
 			int offset = y * nBytePerLine;
 			for (int x = 0; x < w; x++) {
-				memcpy(&temp[offset + (x * ch)], &src[offset + ((w * ch) - ((x + 1) * ch))], sizeof(unsigned char) * ch);
+				memcpy(&dst[offset + (x * ch)], &src[offset + ((w * ch) - ((x + 1) * ch))], sizeof(unsigned char) * ch);
 			}
 		}
 	}
@@ -277,7 +211,7 @@ bool ImgControl::Flip(FLIP mode, unsigned char *src, unsigned char *dst, int w, 
 			int offset = y * nBytePerLine;
 			int offset2 = (h - y - 1) * nBytePerLine;
 			for (int x = 0; x < w; x++) {
-				memcpy(&temp[offset + (x * ch)], &src[offset2 + ((w * ch) - ((x + 1) * ch))], sizeof(unsigned char) * ch);
+				memcpy(&dst[offset + (x * ch)], &src[offset2 + ((w * ch) - ((x + 1) * ch))], sizeof(unsigned char) * ch);
 			}
 		}
 	}
@@ -286,22 +220,26 @@ bool ImgControl::Flip(FLIP mode, unsigned char *src, unsigned char *dst, int w, 
 		bOK = false;
 	}
 
-	memcpy(dst, temp, sizeof(unsigned char) * nImgSize);
-	delete[] temp;
 	return bOK;
 }
 
 bool ImgControl::Crop(unsigned char *src, unsigned char *dst, int w, int h, int ch, int x, int y, int neww, int newh)
 {
-	if (!src || !dst) return false;
+	if (src == nullptr) return false;
 	if (x < 0 || y < 0 || x + neww > w || y + newh > h) return false;
+
+	if (dst == nullptr)
+	{
+		unsigned long long nImgSize = GetBitmapSize(neww, newh, ch);
+		dst = new unsigned char[nImgSize];
+		memset(dst, 0, nImgSize);
+	}
 
 	bool bOK = true;
 	int nBytePerLine = ((neww * ch) + 3) & ~3;
 	int nBytePerLine2 = ((w * ch) + 3) & ~3;
 	int offsetX = x * ch; // fix
 
-	memset(dst, 0, sizeof(unsigned char) * nBytePerLine * newh);
 
 	int yy;
 #ifdef _OPENMP
@@ -319,25 +257,15 @@ bool ImgControl::GetSize(const char* path, unsigned int *size)
 {
 	bool bOK = true;
 	*size = 0;
-	int num_threads = 1;
-	FILE *fp;
-	fopen_s(&fp, path, "rb");
-
+	FILE *fp = fopen(path, "rb");
 	if (!fp) {
 		bOK = false;
-		goto RETURN;
 	}
-	fseek(fp, 0, SEEK_END);
-	*size = ftell(fp);
-	fclose(fp);
-
-RETURN:
+	else
+	{
+		fseek(fp, 0, SEEK_END);
+		*size = ftell(fp);
+		fclose(fp);
+	}
 	return bOK;
-}
-
-char* ImgControl::GetExtension(const char* path)
-{
-	const char *ext = PathFindExtensionA(path) + 1;
-
-	return (char *)ext;
 }

@@ -62,7 +62,7 @@ namespace oph
 
 	template<typename type, typename T>
 	inline type force_cast(const Complex<T>& p) {
-		return type(p._Val[_RE]);
+		return type(p.real());
 	}
 
 	template<typename type, typename T>
@@ -133,7 +133,7 @@ namespace oph
 
 	template<typename T>
 	inline void absCplx(const oph::Complex<T>& src, T& dst) {
-		dst = sqrt(src._Val[_RE]*src._Val[_RE] + src._Val[_IM]*src._Val[_IM]);
+		dst = sqrt(src.real() * src.real() + src.imag() * src.imag());
 	}
 
 	template<typename T>
@@ -145,13 +145,13 @@ namespace oph
 
 	template<typename T>
 	inline T getReal(const oph::Complex<T> src) {
-		return src->_Val[_RE];
+		return src->real();
 	}
 
 	template<typename T>
 	inline void realPart(const oph::Complex<T>* src, T* dst, const int& size) {
 		for (int i = 0; i < size; i++) {
-			*(dst + i) = (src + i)->_Val[_RE];
+			*(dst + i) = (src + i)->real();
 		}
 	}
 
@@ -201,6 +201,7 @@ namespace oph
 	template<typename T>
 	inline void normalize(T* src, oph::uchar* dst, const oph::uint nx, const oph::uint ny) {
 		T minVal, maxVal;
+		minVal = maxVal = src[0];
 		for (oph::uint ydx = 0; ydx < ny; ydx++){
 			for (oph::uint xdx = 0; xdx < nx; xdx++){
 				T *temp_pos = src + xdx + ydx * nx;
@@ -234,8 +235,7 @@ namespace oph
 			dst->reserve(src->size());
 		}
 
-		auto iter = src->begin();
-		for (iter; iter != src->end(); iter++) {
+		for (auto iter = src->begin(); iter != src->end(); iter++) {
 			if (iter == src->begin()) {
 				minVal = *iter;
 				maxVal = *iter;
@@ -245,8 +245,7 @@ namespace oph
 			}
 		}
 
-		iter = src->begin();
-		for (iter; iter != src->end(); iter++)
+		for (auto iter = src->begin(); iter != src->end(); iter++)
 			dst->push_back(oph::force_cast<oph::uchar>((((*iter) - minVal) / (maxVal - minVal)) * 255 + 0.5));
 	}
 
@@ -359,8 +358,6 @@ namespace oph
 			}
 		}
 	}
-
-
 	/**
 	* @brief
 	*/

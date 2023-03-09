@@ -48,16 +48,9 @@
 
 #include <fstream>
 #include "include.h"
-#include "mat.h"
-#include "vec.h"
-
+//#include "mat.h"
+//#include "vec.h"
 #include "ImgCodecDefine.h"
-
-#ifdef OPH_EXPORT
-#define OPH_DLL __declspec(dllexport)
-#else
-#define OPH_DLL __declspec(dllimport)
-#endif
 
 namespace oph
 {
@@ -65,7 +58,7 @@ namespace oph
 	public: /* method */
 		ImgCodecOhc();
 		ImgCodecOhc(const std::string &_fname);
-		ImgCodecOhc(const std::string &_fname, const ohcHeader &_Header);
+		ImgCodecOhc(const std::string &_fname, const oph::ohcHeader &_Header);
 		virtual ~ImgCodecOhc() = 0;
 		virtual void initOHCheader();
 		virtual void releaseFldData();
@@ -73,10 +66,10 @@ namespace oph
 		void releaseCodeBuffer();
 
 		bool setFileName(const std::string &_fname);
-		bool setOHCheader(const ohcHeader &_Header);
+		bool setOHCheader(const oph::ohcHeader &_Header);
 
-		void getOHCheader(ohcHeader &_Header);
-		void getFieldInfo(ohcFieldInfoHeader &_FieldInfo, std::vector<double_t> &_wavlenTable);
+		void getOHCheader(oph::ohcHeader &_Header);
+		void getFieldInfo(oph::ohcFieldInfoHeader &_FieldInfo, std::vector<double_t> &_wavlenTable);
 
 		void getComplexFieldData(OphComplexField& cmplx_field, uint wavelen_idx) { cmplx_field = field_cmplx[wavelen_idx]; }
 		void getComplexFieldData(Complex<Real>** cmplx_field, uint wavelen_idx);
@@ -93,7 +86,7 @@ namespace oph
 		std::vector<OphComplexField> field_cmplx; //Real & Imagine data
 		std::vector<std::string> linkFilePath;
 
-		ohcHeader* Header = nullptr;
+		oph::ohcHeader* Header = nullptr;
 	};
 
 
@@ -102,19 +95,19 @@ namespace oph
 	public:
 		ImgDecoderOhc();
 		ImgDecoderOhc(const std::string &_fname);
-		ImgDecoderOhc(const std::string &_fname, const ohcHeader &_Header);
+		ImgDecoderOhc(const std::string &_fname, const oph::ohcHeader &_Header);
 		virtual ~ImgDecoderOhc();
 		virtual void releaseFldData();
 
 		//Get field Info parameters functions
 		ivec2		getNumOfPixel();
 		vec2		getPixelPitch();
-		LenUnit		getPixelPitchUnit();
+		oph::LenUnit		getPixelPitchUnit();
 		uint		getNumOfWavlen();
-		ColorType	getColorType();
-		ColorArran	getColorArrange();
-		LenUnit		getUnitOfWavlen();
-		CompresType	getCompressedFormatType();
+		oph::ColorType	getColorType();
+		oph::ColorArran	getColorArrange();
+		oph::LenUnit		getUnitOfWavlen();
+		oph::CompresType	getCompressedFormatType();
 		void getWavelength(std::vector<double_t> &wavlen_array);
 		void getLinkFilePath(std::vector<std::string> &linkFilePath_array);
 

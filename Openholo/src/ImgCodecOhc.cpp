@@ -1221,12 +1221,12 @@ uint64_t oph::ImgEncoderOhc::encodeFieldData()
 		if (FldInfo.cmplxFldType == DataType::Float32) {
 			dataSizeBytes = sizeof(float) * n_fields * n_cmplxChnl;
 			this->buf_f32 = new float[n_fields * n_cmplxChnl];
-			std::memset(this->buf_f32, NULL, dataSizeBytes);
+			std::memset(this->buf_f32, 0, dataSizeBytes);
 		}
 		else if (FldInfo.cmplxFldType == DataType::Float64) {
 			dataSizeBytes = sizeof(double) * n_fields * n_cmplxChnl;
 			this->buf_f64 = new double[n_fields * n_cmplxChnl];
-			std::memset(this->buf_f64, NULL, dataSizeBytes);
+			std::memset(this->buf_f64, 0, dataSizeBytes);
 		}
 
 		for (int x = 0; x < cols; ++x) {
