@@ -57,43 +57,48 @@
 #define _IM 1
 #endif
 
-//#include "typedef.h"
+#ifdef OPH_EXPORT
+#ifdef _WIN32
+#define OPH_DLL __declspec(dllexport)
+#else
+#define OPH_DLL __attribute__((visibility("default")))
+#endif
+#else
+#define OPH_DLL
+#endif
 
 namespace oph {
 	/**
 	* @brief class for the complex number and its arithmetic.
 	*		 type T == type cplx
 	*		 type only float || double
-	*		 T _Val[_RE] : real number
-	*		 T _Val[_IM] : imaginary number
+	*		 T real() : real number
+	*		 T imag() : imaginary number
 	*/
 	template<typename T = double>
-	class __declspec(dllexport) Complex : public std::complex<T>
+	class OPH_DLL Complex : public std::complex<T>
 	{
 	public:
 		using cplx = typename std::enable_if<std::is_same<double, T>::value || std::is_same<float, T>::value || std::is_same<long double, T>::value, T>::type;
 
 	public:
-		Complex() : complex<T>() {}
-		Complex(T p) : complex<T>(p) { _Val[_RE] = p; _Val[_IM] = 0.0; }
-		Complex(T tRe, T tIm) : complex<T>(tRe, tIm) {}
-		Complex(const Complex<T>& p) {
-			_Val[_RE] = p._Val[_RE];
-			_Val[_IM] = p._Val[_IM];
-		}
+		Complex() : std::complex<T>() {}
+		Complex(T p) : std::complex<T>(p, 0.0) {}
+		Complex(T tRe, T tIm) : std::complex<T>(tRe, tIm) {}
+		Complex(const Complex<T>& p) : std::complex<T>(p.real(), p.imag()) {}
 
-		T mag2() const { return _Val[_RE] * _Val[_RE] + _Val[_IM] * _Val[_IM]; }
-		T mag()  const { return sqrt(_Val[_RE] * _Val[_RE] + _Val[_IM] * _Val[_IM]); }
+		T mag2() const { return this->real() * this->real() + this->imag() * this->imag(); }
+		T mag()  const { return sqrt(mag2()); }
 
 		T arg() const
 		{
 			T r = mag();
-			T theta = acos(_Val[_RE] / r);
+			T theta = acos(this->real() / r);
 
-			if (sin(theta) - _Val[_IM] / r < 10e-6)
+			if (sin(theta) - this->imag() / r < 10e-6)
 				return theta;
 			else
-				return 2.0*PI - theta;
+				return 2.0 * M_PI - theta;
 		}
 
 		void euler(T& r, T& theta)
@@ -105,198 +110,207 @@ namespace oph {
 		T angle(void)
 		{
 			if (std::is_same<double, T>::value)
-				return atan2(_Val[_IM], _Val[_RE]);
+				return atan2(this->imag(), this->real());
 			else if (std::is_same<float, T>::value)
-				return atan2f((float)_Val[_IM], (float)_Val[_RE]);
+				return atan2f((float)this->imag(), (float)this->real());
 		}
 
 		Complex<T>& exp() {
-			Complex<T> p(_Val[_RE], _Val[_IM]);
+			Complex<T> p(this->real(), this->imag());
 			if (std::is_same<double, T>::value) {
-				_Val[_RE] = std::exp(p._Val[_RE]) * cos(p._Val[_IM]);
-				_Val[_IM] = std::exp(p._Val[_RE]) * sin(p._Val[_IM]);
+				this->real(std::exp(p.real()) * cos(p.imag()));
+				this->imag(std::exp(p.real()) * sin(p.imag()));
 			}
 			else {
-				_Val[_RE] = std::expf(p._Val[_RE]) * cos(p._Val[_IM]);
-				_Val[_IM] = std::expf(p._Val[_RE]) * sin(p._Val[_IM]);
+#ifdef _MSC_VER
+				this->real(std::expf(p.real()) * cos(p.imag()));
+				this->imag(std::expf(p.real()) * sin(p.imag()));
+#else
+				this->real(std::exp(p.real()) * cos(p.imag()));
+				this->imag(std::exp(p.real()) * sin(p.imag()));
+#endif
 			}
 			return *this;
 		}
 
-		Complex<T> conj() const { return Complex<T>(_Val[_RE], -_Val[_IM]); }
+		Complex<T> conj() const { return Complex<T>(this->real(), -this->imag()); }
 
 		Complex<T>& operator()(T re, T im) {
-			_Val[_RE] = re;
-			_Val[_IM] = im;
+			this->real(re);
+			this->imag(im);
 
 			return *this;
 		}
 
 		// arithmetic
 		Complex<T>& operator= (const Complex<T>& p) {
-			_Val[_RE] = p._Val[_RE];
-			_Val[_IM] = p._Val[_IM];
+			this->real(p.real());
+			this->imag(p.imag());
 
 			return *this;
 		}
 
 		Complex<T>& operator = (const T& p) {
-			_Val[_RE] = p;
-			_Val[_IM] = 0.0;
+			this->real(p);
+			this->imag(0.0);
 
 			return *this;
 		}
 
 		Complex<T> operator+ (const Complex<T>& p) {
-			Complex<T> n(_Val[_RE] + p._Val[_RE], _Val[_IM] + p._Val[_IM]);
+			Complex<T> n(this->real() + p.real(), this->imag() + p.imag());
 
 			return n;
 		}
 
 		Complex<T>& operator+= (const Complex<T>& p) {
-			_Val[_RE] += p._Val[_RE];
-			_Val[_IM] += p._Val[_IM];
+			this->real(this->real() + p.real());
+			this->imag(this->imag() + p.imag());
 
 			return *this;
 		}
 
 		Complex<T> operator+ (const T p) {
-			Complex<T> n(_Val[_RE] + p, _Val[_IM]);
+			Complex<T> n(this->real() + p, this->imag());
 
 			return n;
 		}
 
 		Complex<T>& operator+= (const T p) {
-			_Val[_RE] += p;
+			this->real(this->real() + p);
 
 			return *this;
 		}
 
 		Complex<T> operator- (const Complex<T>& p) {
-			Complex<T> n(_Val[_RE] - p._Val[_RE], _Val[_IM] - p._Val[_IM]);
+			Complex<T> n(this->real() - p.real(), this->imag() - p.imag());
 
 			return n;
 		}
 
 		Complex<T>& operator-= (const Complex<T>& p) {
-			_Val[_RE] -= p._Val[_RE];
-			_Val[_IM] -= p._Val[_IM];
+			this->real(this->real() - p.real());
+			this->imag(this->imag() - p.imag());
 
 			return *this;
 		}
 
 		Complex<T> operator - (const T p) {
-			Complex<T> n(_Val[_RE] - p, _Val[_IM]);
+			Complex<T> n(this->real() - p, this->imag());
 
 			return n;
 		}
 
 		Complex<T>& operator -= (const T p) {
-			_Val[_RE] -= p;
+			this->real(this->real() - p);
 
 			return *this;
 		}
 
 		Complex<T> operator* (const T k) {
-			Complex<T> n(_Val[_RE] * k, _Val[_IM] * k);
+			Complex<T> n(this->real() * k, this->imag() * k);
 
 			return n;
 		}
 
 		Complex<T>& operator*= (const T k) {
-			_Val[_RE] *= k;
-			_Val[_IM] *= k;
+			this->real(this->real() * k);
+			this->imag(this->imag() * k);
 
 			return *this;
 		}
 
 		Complex<T>& operator = (const std::complex<T>& p) {
-			_Val[_RE] = p._Val[_RE];
-			_Val[_IM] = p._Val[_IM];
+			this->real(p.real());
+			this->imag(p.imag());
 
 			return *this;
 		}
 
 		Complex<T> operator* (const Complex<T>& p) {
-			const T tRe = _Val[_RE];
-			const T tIm = _Val[_IM];
+			const T tRe = this->real();
+			const T tIm = this->imag();
 
-			Complex<T> n(tRe * p._Val[_RE] - tIm * p._Val[_IM], tRe * p._Val[_IM] + tIm * p._Val[_RE]);
+			Complex<T> n(tRe * p.real() - tIm * p.imag(), tRe * p.imag() + tIm * p.real());
 
 			return n;
 		}
 
 		Complex<T>& operator*= (const Complex<T>& p) {
-			const T tRe = _Val[_RE];
-			const T tIm = _Val[_IM];
+			const T tRe = this->real();
+			const T tIm = this->imag();
 
-			_Val[_RE] = tRe * p._Val[_RE] - tIm * p._Val[_IM];
-			_Val[_IM] = tRe * p._Val[_IM] + tIm * p._Val[_RE];
+			this->real(tRe * p.real() - tIm * p.imag());
+			this->imag(tRe * p.imag() + tIm * p.real());
 
 			return *this;
 		}
 
 		Complex<T> operator / (const T& p) {
-			Complex<T> n(_Val[_RE] / p, _Val[_IM] / p);
+			Complex<T> n(this->real() / p, this->imag() / p);
 
 			return n;
 		}
 
 		Complex<T>& operator/= (const T k) {
-			_Val[_RE] /= k;
-			_Val[_IM] /= k;
+			this->real(this->real() / k);
+			this->imag(this->imag() / k);
 
 			return *this;
 		}
 
 		Complex<T> operator / (const Complex<T>& p) {
-			complex<T> a(_Val[_RE], _Val[_IM]);
-			complex<T> b(p._Val[_RE], p._Val[_IM]);
+			std::complex<T> a(this->real(), this->imag());
+			std::complex<T> b(p.real(), p.imag());
 
-			complex<T> c = a / b;
+			std::complex<T> c = a / b;
 
-			Complex<T> n(c._Val[_RE], c._Val[_IM]);
+			Complex<T> n(c.real(), c.imag());
 
 			return n;
 		}
 
 		Complex<T>& operator /= (const Complex<T>& p) {
-			complex<T> a(_Val[_RE], _Val[_IM]);
-			complex<T> b(p._Val[_RE], p._Val[_IM]);
+			std::complex<T> a(this->real(), this->imag());
+			std::complex<T> b(p.real(), p.imag());
 
 			a /= b;
-			_Val[_RE] = a._Val[_RE];
-			_Val[_IM] = a._Val[_IM];
+			this->real(a.real());
+			this->imag(a.imag());
 
 			return *this;
 		}
 
 		T& operator [](const int idx) {
+#ifdef _MSC_VER
 			return this->_Val[idx];
+#elif __GNUC__
+			return reinterpret_cast<T*>(this)[idx];
+#endif
 		}
 
 		bool operator < (const Complex<T>& p) {
-			return (_Val[_RE] < p._Val[_RE]);
+			return (this->real() < p.real());
 		}
 
 		bool operator > (const Complex<T>& p) {
-			return (_Val[_RE] > p._Val[_RE]);
+			return (this->real() > p.real());
 		}
 
 		operator unsigned char() {
-			return uchar(_Val[_RE]);
+			return uchar(this->real());
 		}
 
 		operator int() {
-			return int(_Val[_RE]);
+			return int(this->real());
 		}
 
 		friend Complex<T> operator+ (const Complex<T>&p, const T q) {
-			return Complex<T>(p._Val[_RE] + q, p._Val[_IM]);
+			return Complex<T>(p.real() + q, p.imag());
 		}
 
 		friend Complex<T> operator- (const Complex<T>&p, const T q) {
-			return Complex<T>(p._Val[_RE] - q, p._Val[_IM]);
+			return Complex<T>(p.real() - q, p.imag());
 		}
 
 		friend Complex<T> operator* (const T k, const Complex<T>& p) {
@@ -308,7 +322,7 @@ namespace oph {
 		}
 
 		friend Complex<T> operator* (const Complex<T>& p, const Complex<T>& q) {
-			return Complex<T>(p._Val[_RE] * q._Val[_RE] - p._Val[_IM] * q._Val[_IM], p._Val[_RE] * q._Val[_IM] + p._Val[_IM] * q._Val[_RE]);
+			return Complex<T>(p.real() * q.real() - p.imag() * q.imag(), p.real() * q.imag() + p.imag() * q.real());
 		}
 
 		friend Complex<T> operator/ (const Complex<T>& p, const Complex<T>& q) {
@@ -316,19 +330,19 @@ namespace oph {
 		}
 
 		friend Complex<T> operator/ (const Complex<T>& p, const T& q) {
-			return Complex<T>(p._Val[_RE] / q, p._Val[_IM] / q);
+			return Complex<T>(p.real() / q, p.imag() / q);
 		}
 
 		friend Complex<T> operator/ (const T& p, const Complex<T>& q) {
-			return Complex<T>(p / q._Val[_RE], p / q._Val[_IM]);
+			return Complex<T>(p / q.real(), p / q.imag());
 		}
 
 		friend bool operator< (const Complex<T>& p, const Complex<T>& q) {
-			return (p._Val[_RE] < q._Val[_RE]);
+			return (p.real() < q.real());
 		}
 
 		friend bool operator> (const Complex<T>& p, const Complex<T>& q) {
-			return (p._Val[_RE] > q._Val[_RE]);
+			return (p.real() > q.real());
 		}
 	};
 }
