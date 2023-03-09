@@ -106,11 +106,10 @@ bool Openholo::mergeColor(int idx, int width, int height, uchar *src, uchar *dst
 
 	int N = width * height;
 	int a = 2 - idx;
-	int i;
 #ifdef _OPENMP
-#pragma omp parallel for private(i) firstprivate(a)
+#pragma omp parallel for firstprivate(a)
 #endif
-	for (i = 0; i < N; i++) {
+	for (int i = 0; i < N; i++) {
 		dst[i * 3 + a] = src[i];
 	}
 
@@ -123,11 +122,10 @@ bool Openholo::separateColor(int idx, int width, int height, uchar *src, uchar *
 
 	int N = width * height;
 	int a = 2 - idx;
-	int i;
 #ifdef _OPENMP
-#pragma omp parallel for private(i) firstprivate(a)
-	for (i = 0; i < N; i++) {
+#pragma omp parallel for firstprivate(a)
 #endif
+	for (int i = 0; i < N; i++) {
 		dst[i] = src[i * 3 + a];
 	}
 
@@ -298,8 +296,15 @@ bool Openholo::loadAsOhc(const char * fname)
 
 	vector<Real> wavelengthArray;
 	OHC_decoder->getWavelength(wavelengthArray);
-	context_.wave_length = new Real[wavelengthArray.size()];
-	for (int i = 0; i < wavelengthArray.size(); i++)
+	size_t nWave = wavelengthArray.size();
+	if (nWave < 1)
+	{
+		LOG("<FAILED> Do not load wavelength size.\n");
+		return false;
+	}
+
+	context_.wave_length = new Real[nWave];
+	for (int i = 0; i < nWave; i++)
 		context_.wave_length[i] = wavelengthArray[i];
 
 	OHC_decoder->getComplexFieldData(&complex_H);
@@ -435,11 +440,10 @@ void Openholo::imgScaleBilinear(uchar* src, uchar* dst, int w, int h, int neww, 
 	int channel = channels;
 	int nBytePerLine = ((w * channel) + 3) & ~3;
 	int nNewBytePerLine = ((neww * channel) + 3) & ~3;
-	int y;
 #ifdef _OPENMP
-#pragma omp parallel for private(y) firstprivate(nBytePerLine, nNewBytePerLine, w, h, neww, newh, channel)
+#pragma omp parallel for firstprivate(nBytePerLine, nNewBytePerLine, w, h, neww, newh, channel)
 #endif
-	for (y = 0; y < newh; y++)
+	for (int y = 0; y < newh; y++)
 	{
 		int nbppY = y * nNewBytePerLine;
 		for (int x = 0; x < neww; x++)
@@ -728,9 +732,8 @@ void Openholo::fft2(Complex<Real>* src, Complex<Real>* dst, int nx, int ny, int 
 
 	if (bNormalized)
 	{
-		int k;
-#pragma omp parallel for private(k)
-		for (k = 0; k < N; k++) {
+#pragma omp parallel for
+		for (int k = 0; k < N; k++) {
 			out[k][_RE] /= N;
 			out[k][_IM] /= N;
 		}
@@ -752,11 +755,10 @@ void Openholo::fftShift(int nx, int ny, Complex<Real>* input, Complex<Real>* out
 	int hnx = nx >> 1;
 	int hny = ny >> 1;
 
-	int i;
 #ifdef _OPENMP
-#pragma omp parallel for private(i) firstprivate(hnx, hny)
+#pragma omp parallel for firstprivate(hnx, hny)
 #endif
-	for (i = 0; i < nx; i++)
+	for (int i = 0; i < nx; i++)
 	{
 		for (int j = 0; j < ny; j++)
 		{

@@ -25,20 +25,24 @@ void ImgControl::Resize(unsigned char* src, unsigned char* dst, int w, int h, in
 {
 	if (src == nullptr) return;
 
+	unsigned long long newsize;
+	uint nBytePerLine = ((w * ch) + 3) & ~3; // src
+	uint nNewBytePerLine = ((neww * ch) + 3) & ~3; // dst
+
 	if (dst == nullptr)
 	{
-		dst = new unsigned char[GetBitmapSize(w, h, ch)];
+		newsize = GetBitmapSize(neww, newh, ch);
+		dst = new unsigned char[newsize];
 	}
+	else
+		newsize = nNewBytePerLine * newh;
 
-	int nBytePerLine = ((w * ch) + 3) & ~3; // src
-	int nNewBytePerLine = ((neww * ch) + 3) & ~3; // dst
-	int y;
 #ifdef _OPENMP
-#pragma omp parallel for private(y) firstprivate(nNewBytePerLine, nBytePerLine)
+#pragma omp parallel for firstprivate(nNewBytePerLine, nBytePerLine)
 #endif
-	for (y = 0; y < newh; y++)
+	for (int y = 0; y < newh; y++)
 	{
-		int nbppY = y * nNewBytePerLine;
+		uint nbppY = y * nNewBytePerLine;
 		for (int x = 0; x < neww; x++)
 		{
 			float gx = (x / (float)neww) * (w - 1);
@@ -62,13 +66,13 @@ void ImgControl::Resize(unsigned char* src, unsigned char* dst, int w, int h, in
 				float w2 = dx * (1 - dy);
 				float w3 = (1 - dx) * dy;
 				float w4 = dx * dy;
-
-				dst[x + y * neww] = int(a00 * w1 + a01 * w2 + a10 * w3 + a11 * w4);
+				if ( x + y * neww < newsize)
+					dst[x + y * neww] = int(a00 * w1 + a01 * w2 + a10 * w3 + a11 * w4);
 			}
 			else if (ch == 3) {
 				uint32_t b00[3], b01[3], b10[3], b11[3];
-				int srcX = gxi * ch;
-				int dstX = x * ch;
+				uint srcX = gxi * ch;
+				uint dstX = x * ch;
 
 				b00[0] = src[srcX + 0 + gyi * nBytePerLine];
 				b00[1] = src[srcX + 1 + gyi * nBytePerLine];
@@ -93,10 +97,12 @@ void ImgControl::Resize(unsigned char* src, unsigned char* dst, int w, int h, in
 				float w2 = dx * (1 - dy);
 				float w3 = (1 - dx) * dy;
 				float w4 = dx * dy;
-
-				dst[dstX + 0 + nbppY] = int(b00[0] * w1 + b01[0] * w2 + b10[0] * w3 + b11[0] * w4);
-				dst[dstX + 1 + nbppY] = int(b00[1] * w1 + b01[1] * w2 + b10[1] * w3 + b11[1] * w4);
-				dst[dstX + 2 + nbppY] = int(b00[2] * w1 + b01[2] * w2 + b10[2] * w3 + b11[2] * w4);
+				if ((dstX + 2 + nbppY) < newsize)
+				{
+					dst[dstX + 0 + nbppY] = int(b00[0] * w1 + b01[0] * w2 + b10[0] * w3 + b11[0] * w4); // blue
+					dst[dstX + 1 + nbppY] = int(b00[1] * w1 + b01[1] * w2 + b10[1] * w3 + b11[1] * w4); // green
+					dst[dstX + 2 + nbppY] = int(b00[2] * w1 + b01[2] * w2 + b10[2] * w3 + b11[2] * w4); // red
+				}
 			}
 		}
 	}
@@ -137,10 +143,9 @@ bool ImgControl::Rotate(double rotate, unsigned char *src, unsigned char *dst, i
 	double ss = sin(-radian);
 	double centerX = (double)w / 2.0;
 	double centerY = (double)h / 2.0;
-	int y;
 #ifdef _OPENMP
-#pragma omp parallel for private(y) firstprivate(nBytePerLine, ss, cc, centerX, centerY)
-	for (y = 0; y < h; y++) {
+#pragma omp parallel for firstprivate(nBytePerLine, ss, cc, centerX, centerY)
+	for (int y = 0; y < h; y++) {
 #endif
 		int dstY = y * nBytePerLine;
 		for (int x = 0; x < w; x++) {
@@ -178,11 +183,10 @@ bool ImgControl::Flip(FLIP mode, unsigned char *src, unsigned char *dst, int w, 
 
 	int nBytePerLine = ((w * ch) + 3) & ~3;
 	if (mode == FLIP::VERTICAL) {
-		int y;
 #ifdef _OPENMP
-#pragma omp parallel for private(y) firstprivate(nBytePerLine)
+#pragma omp parallel for firstprivate(nBytePerLine)
 #endif
-		for (y = 0; y < h; y++) {
+		for (int y = 0; y < h; y++) {
 			int offset = y * nBytePerLine;
 			int offset2 = (h - y - 1) * nBytePerLine;
 			for (int x = 0; x < w; x++) {
@@ -191,11 +195,10 @@ bool ImgControl::Flip(FLIP mode, unsigned char *src, unsigned char *dst, int w, 
 		}
 	}
 	else if (mode == FLIP::HORIZONTAL) {
-		int y;
 #ifdef _OPENMP
-#pragma omp parallel for private(y) firstprivate(nBytePerLine)
+#pragma omp parallel for firstprivate(nBytePerLine)
 #endif
-		for (y = 0; y < h; y++) {
+		for (int y = 0; y < h; y++) {
 			int offset = y * nBytePerLine;
 			for (int x = 0; x < w; x++) {
 				memcpy(&dst[offset + (x * ch)], &src[offset + ((w * ch) - ((x + 1) * ch))], sizeof(unsigned char) * ch);
@@ -203,11 +206,10 @@ bool ImgControl::Flip(FLIP mode, unsigned char *src, unsigned char *dst, int w, 
 		}
 	}
 	else if (mode == FLIP::BOTH) {
-		int y;
 #ifdef _OPENMP
-#pragma omp parallel for private(y) firstprivate(nBytePerLine)
+#pragma omp parallel for firstprivate(nBytePerLine)
 #endif
-		for (y = 0; y < h; y++) {
+		for (int y = 0; y < h; y++) {
 			int offset = y * nBytePerLine;
 			int offset2 = (h - y - 1) * nBytePerLine;
 			for (int x = 0; x < w; x++) {
@@ -240,14 +242,12 @@ bool ImgControl::Crop(unsigned char *src, unsigned char *dst, int w, int h, int 
 	int nBytePerLine2 = ((w * ch) + 3) & ~3;
 	int offsetX = x * ch; // fix
 
-
-	int yy;
 #ifdef _OPENMP
-#pragma omp parallel for private(yy) firstprivate(nBytePerLine, nBytePerLine2, y, ch, neww)
-	for (yy = 0; yy < newh; yy++) {
+#pragma omp parallel for firstprivate(nBytePerLine, nBytePerLine2, y, ch, neww)
+	for (int i = 0; i < newh; i++) {
 #endif
-		int offset = yy * nBytePerLine;
-		int offsetY = (y + yy) * nBytePerLine2;
+		int offset = i * nBytePerLine;
+		int offsetY = (y + i) * nBytePerLine2;
 		memcpy(&dst[offset], &src[offsetY + offsetX], sizeof(unsigned char) * ch * neww);
 	}
 	return bOK;

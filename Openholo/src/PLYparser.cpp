@@ -537,6 +537,7 @@ bool PLYparser::savePLY(const std::string& fileName, const ulonglong n_points, V
 			return false;
 		}
 	}
+	return false;
 }
 
 bool PLYparser::loadPLY(const std::string& fileName, ulonglong& n_vertices, Face** faces)
