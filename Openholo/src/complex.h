@@ -49,6 +49,7 @@
 #include <iostream>
 #include <cmath>
 #include <complex>
+#include "define.h"
 
 #ifndef _RE
 #define _RE 0

@@ -43,28 +43,86 @@
 //
 //M*/
 
-#ifndef __typedef_h
-#define __typedef_h
+/**
+* @file		ophASKernel.cu
+* @brief	Openholo Angluar Spectrum with CUDA GPGPU
+* @author	Minwoo Nam
+* @date		2023/03
+*/
 
-#define REAL_IS_DOUBLE true
+#ifndef OphASKernel_cu__
+#define OphASKernel_cu__
 
-#if REAL_IS_DOUBLE & true
-typedef double Real;
-typedef float  Real_t;
-#else
-typedef float Real;
-typedef double Real_t;
-#endif
+#include <cuda_runtime.h>
+#include <cuda_runtime_api.h>
+#include <cuda.h>
+#include "typedef.h"
+#include "ophAS_GPU.h"
 
-namespace oph
+__global__ void cudaKernel_Transfer(constValue val, creal_T* a, creal_T* b)
 {
-#define __IPL_H__
-	typedef unsigned int uint;
-	typedef unsigned short ushort;
-	typedef unsigned char uchar;
-	typedef unsigned long ulong;
-	typedef long long longlong;
-	typedef unsigned long long ulonglong;
+	int i = blockIdx.x * blockDim.x + threadIdx.x;
+	int j = blockIdx.y * blockDim.y + threadIdx.y;
+	if (i < val.w && j < val.w)
+	{
+		double eta_id = val.wavelength * (((double(i) + 1.0) - (val.w / 2.0 + 1.0)) *
+			val.minfrequency_eta);
+		double xi_id = val.wavelength * (((double(j) + 1.0) - (val.w / 2.0 + 1.0)) *
+			val.minfrequency_xi);
+		double y_im = (val.knumber * val.depth) * sqrt((1.0 - eta_id * eta_id) - xi_id * xi_id);
+		double y_re = cos(y_im);
+		y_im = sin(y_im);
+		b[i + val.w * j].re = a[i + val.w * j].re * y_re -
+			a[i + val.w * j].im * y_im;
+		b[i + val.w * j].im = a[i + val.w * j].re * y_im +
+			a[i + val.w * j].im * y_re;
+	}
 }
 
-#endif // !__typedef_h
+__global__ void cudaKernel_Tilting(constValue val, creal_T* a, creal_T* b)
+{
+	int i = blockIdx.x * blockDim.x + threadIdx.x;
+	int j = blockIdx.y * blockDim.y + threadIdx.y;
+	if (i < val.w && j < val.w)
+	{
+		double f_eta = (((double(i) + 1.0) - 1.0) - val.w / 2.0) *
+			val.eta_interval;
+		double f_xi = val.knumber * ((((double(j) + 1.0) - 1.0) - val.w / 2.0) *
+			val.xi_interval * 0.0 + f_eta * 0.0);
+
+		double y_re, y_im;
+
+		if (!f_xi)
+		{
+			y_re = 1.0;
+			y_im = 0.0;
+		}
+		else
+		{
+			y_re = nan("");
+			y_im = nan("");
+		}
+		b[i + val.w * j].re = a[i + val.w * j].re * y_re - a[i + val.w * j].im * y_im;
+		b[i + val.w * j].im = a[i + val.w * j].re * y_im + a[i + val.w * j].im * y_re;
+	}
+}
+
+
+extern "C"
+{
+	void cuda_Wrapper_Transfer(const int& w, const int& h, constValue val, creal_T* a, creal_T* b)
+	{
+		dim3 blockSize = dim3(32, 32);
+		dim3 gridSize = dim3((w + 32 - 1) / 32, (h + 32 - 1) / 32);
+		cudaKernel_Transfer << <gridSize, blockSize >> > (val, a, b);
+	}
+
+	void cuda_Wrapper_Tilting(const int& w, const int& h, constValue val, creal_T* a, creal_T* b)
+	{
+		dim3 blockSize = dim3(32, 32);
+		dim3 gridSize = dim3((w + 32 - 1) / 32, (h + 32 - 1) / 32);
+		cudaKernel_Tilting << <gridSize, blockSize >> > (val, a, b);
+	}
+}
+
+#endif // !OphASKernel_cu__

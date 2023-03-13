@@ -1,14 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
-    <ProjectConfiguration Include="Debug|Win32">
-      <Configuration>Debug</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Release|Win32">
-      <Configuration>Release</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
     <ProjectConfiguration Include="Debug|x64">
       <Configuration>Debug</Configuration>
       <Platform>x64</Platform>
@@ -25,20 +17,6 @@
     <ProjectName>ophgen</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
-    <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <UseDebugLibraries>true</UseDebugLibraries>
-    <CharacterSet>MultiByte</CharacterSet>
-    <PlatformToolset>v143</PlatformToolset>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <UseDebugLibraries>false</UseDebugLibraries>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
-    <CharacterSet>MultiByte</CharacterSet>
-    <PlatformToolset>v143</PlatformToolset>
-  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
@@ -54,15 +32,7 @@
     <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
-  <ImportGroup Label="ExtensionSettings">
-    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 9.0.props" />
-  </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
+  <ImportGroup Label="ExtensionSettings" />
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
@@ -70,16 +40,6 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <LinkIncremental>true</LinkIncremental>
-    <OutDir>$(ProjectDir)bin\$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>$(ProjectDir)bin\$(Platform)\$(Configuration)\</IntDir>
-    <TargetName>$(ProjectName)_d</TargetName>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <OutDir>$(ProjectDir)bin\$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>$(ProjectDir)bin\$(Platform)\$(Configuration)\</IntDir>
-  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(ProjectDir)bin\$(Platform)\$(Configuration)\</OutDir>
@@ -90,94 +50,6 @@
     <OutDir>$(ProjectDir)bin\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(ProjectDir)bin\$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
-      <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;WIN64;_DEBUG;_CONSOLE;GEN_EXPORT;FAST_MATH_WITH_FLOAT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)Reference\include\;$(CudaToolkitIncludeDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <OpenMPSupport>true</OpenMPSupport>
-      <WholeProgramOptimization>false</WholeProgramOptimization>
-      <DisableSpecificWarnings>4251;4819;4244;4018</DisableSpecificWarnings>
-    </ClCompile>
-    <Link>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>opencl.lib;libfftw3-3.lib;cudart.lib;cufft.lib;cuda.lib;openholo_d.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(ProjectDir)lib;$(SolutionDir)Reference\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalOptions>/FORCE:multiple %(AdditionalOptions)</AdditionalOptions>
-      <Profile>true</Profile>
-    </Link>
-    <PostBuildEvent>
-      <Command>echo copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"
-copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"
-
-xcopy /y "$(TargetDir)$(ProjectName)_d.lib" "$(SolutionDir)Reference\lib\"
-xcopy /y "$(TargetDir)$(ProjectName)_d.dll" "$(SolutionDir)Reference\dll\"
-xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)Reference\include\"
-
-
-xcopy /y "$(TargetDir)$(ProjectName)_d.dll" "$(USERPROFILE)\source\repos\OpenholoRefAppGUI\x86\Debug\"
-xcopy /y "$(TargetDir)$(ProjectName)_d.lib" "$(USERPROFILE)\source\repos\OpenholoRefAppGUI\Reference\lib\"
-xcopy /y "$(TargetDir)$(ProjectName)_d.dll" "$(USERPROFILE)\source\repos\OpenholoRefAppGUI\Reference\dll\"
-xcopy /y "$(ProjectDir)src\*.h" "$(USERPROFILE)\source\repos\OpenholoRefAppGUI\Reference\include\"
-
-xcopy /y "$(TargetDir)$(ProjectName)_d.dll" "$(USERPROFILE)\source\repos\OpenholoRefApp\bin\x86\Debug\"
-xcopy /y "$(TargetDir)$(ProjectName)_d.lib" "$(USERPROFILE)\source\repos\OpenholoRefApp\Reference\lib\"
-xcopy /y "$(TargetDir)$(ProjectName)_d.dll" "$(USERPROFILE)\source\repos\OpenholoRefApp\Reference\dll\"
-xcopy /y "$(ProjectDir)src\*.h" "$(USERPROFILE)\source\repos\OpenholoRefApp\Reference\include\"</Command>
-    </PostBuildEvent>
-    <CudaCompile>
-      <TargetMachinePlatform>32</TargetMachinePlatform>
-      <GenerateLineInfo>true</GenerateLineInfo>
-    </CudaCompile>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
-      <Optimization>MaxSpeed</Optimization>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>WIN32;WIN64;NDEBUG;_CONSOLE;GEN_EXPORT;FAST_MATH_WITH_FLOAT;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)Reference\include\;$(CudaToolkitIncludeDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <OpenMPSupport>true</OpenMPSupport>
-      <DisableSpecificWarnings>4819;4002;4244;4251;4018</DisableSpecificWarnings>
-      <AdditionalOptions>-Bv %(AdditionalOptions)</AdditionalOptions>
-    </ClCompile>
-    <Link>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <OptimizeReferences>true</OptimizeReferences>
-      <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>libfftw3-3.lib;cudart.lib;cufft.lib;cuda.lib;openholo.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(ProjectDir)lib;$(SolutionDir)Reference\lib;$(CudaToolkitLibDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalOptions>/FORCE:multiple %(AdditionalOptions)</AdditionalOptions>
-      <Profile>true</Profile>
-    </Link>
-    <PostBuildEvent>
-      <Command>echo copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"
-copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"
-
-xcopy /y "$(TargetDir)$(ProjectName).lib" "$(SolutionDir)Reference\lib\"
-xcopy /y "$(TargetDir)$(ProjectName).dll" "$(SolutionDir)Reference\dll\"
-xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)Reference\include\"
-
-xcopy /y "$(TargetDir)$(ProjectName).dll" "$(USERPROFILE)\source\repos\OpenholoRefAppGUI\x86\Release\"
-xcopy /y "$(TargetDir)$(ProjectName).lib" "$(USERPROFILE)\source\repos\OpenholoRefAppGUI\Reference\lib\"
-xcopy /y "$(TargetDir)$(ProjectName).dll" "$(USERPROFILE)\source\repos\OpenholoRefAppGUI\Reference\dll\"
-xcopy /y "$(ProjectDir)src\*.h" "$(USERPROFILE)\source\repos\OpenholoRefAppGUI\Reference\include\"
-
-xcopy /y "$(TargetDir)$(ProjectName).dll" "$(USERPROFILE)\source\repos\OpenholoRefApp\bin\x86\Release\"
-xcopy /y "$(TargetDir)$(ProjectName).lib" "$(USERPROFILE)\source\repos\OpenholoRefApp\Reference\lib\"
-xcopy /y "$(TargetDir)$(ProjectName).dll" "$(USERPROFILE)\source\repos\OpenholoRefApp\Reference\dll\"
-xcopy /y "$(ProjectDir)src\*.h" "$(USERPROFILE)\source\repos\OpenholoRefApp\Reference\include\"</Command>
-    </PostBuildEvent>
-    <CudaCompile>
-      <TargetMachinePlatform>32</TargetMachinePlatform>
-      <FastMath>true</FastMath>
-      <GenerateLineInfo>true</GenerateLineInfo>
-    </CudaCompile>
-  </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
@@ -199,23 +71,17 @@ xcopy /y "$(ProjectDir)src\*.h" "$(USERPROFILE)\source\repos\OpenholoRefApp\Refe
     <PostBuildEvent>
       <Command>echo copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"
 copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"
-
 xcopy /y "$(TargetDir)$(ProjectName)_d.lib" "$(SolutionDir)Reference\lib\"
 xcopy /y "$(TargetDir)$(ProjectName)_d.dll" "$(SolutionDir)Reference\dll\"
 xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)Reference\include\"
-
-
-xcopy /y "$(TargetDir)$(ProjectName)_d.dll" "$(USERPROFILE)\source\repos\OpenholoRefAppGUI\x64\Debug\"
-xcopy /y "$(TargetDir)$(ProjectName)_d.lib" "$(USERPROFILE)\source\repos\OpenholoRefAppGUI\Reference\lib\"
-xcopy /y "$(TargetDir)$(ProjectName)_d.dll" "$(USERPROFILE)\source\repos\OpenholoRefAppGUI\Reference\dll\"
-
-xcopy /y "$(ProjectDir)src\*.h" "$(USERPROFILE)\source\repos\OpenholoRefAppGUI\Reference\include\"
-
-xcopy /y "$(TargetDir)$(ProjectName)_d.dll" "$(USERPROFILE)\source\repos\OpenholoRefApp\bin\x64\Debug\"
-xcopy /y "$(TargetDir)$(ProjectName)_d.lib" "$(USERPROFILE)\source\repos\OpenholoRefApp\Reference\lib\"
-xcopy /y "$(TargetDir)$(ProjectName)_d.dll" "$(USERPROFILE)\source\repos\OpenholoRefApp\Reference\dll\"
-
-xcopy /y "$(ProjectDir)src\*.h" "$(USERPROFILE)\source\repos\OpenholoRefApp\Reference\include\"</Command>
+xcopy /y "$(TargetDir)$(ProjectName)_d.dll" "$(SolutionDir)..\OpenholoRefAppGUI\x64\Release\"
+xcopy /y "$(TargetDir)$(ProjectName)_d.lib" "$(SolutionDir)..\OpenholoRefAppGUI\Reference\lib\"
+xcopy /y "$(TargetDir)$(ProjectName)_d.dll" "$(SolutionDir)..\OpenholoRefAppGUI\Reference\dll\"
+xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)..\OpenholoRefAppGUI\Reference\include\"
+xcopy /y "$(TargetDir)$(ProjectName)_d.dll" "$(SolutionDir)..\OpenholoRefApp\bin\x64\Release\"
+xcopy /y "$(TargetDir)$(ProjectName)_d.lib" "$(SolutionDir)..\OpenholoRefApp\Reference\lib\"
+xcopy /y "$(TargetDir)$(ProjectName)_d.dll" "$(SolutionDir)..\OpenholoRefApp\Reference\dll\"
+xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)..\OpenholoRefApp\Reference\include\"</Command>
     </PostBuildEvent>
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
@@ -249,23 +115,17 @@ xcopy /y "$(ProjectDir)src\*.h" "$(USERPROFILE)\source\repos\OpenholoRefApp\Refe
     <PostBuildEvent>
       <Command>echo copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"
 copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"
-
 xcopy /y "$(TargetDir)$(ProjectName).lib" "$(SolutionDir)Reference\lib\"
 xcopy /y "$(TargetDir)$(ProjectName).dll" "$(SolutionDir)Reference\dll\"
 xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)Reference\include\"
-
-xcopy /y "$(TargetDir)$(ProjectName).dll" "$(USERPROFILE)\source\repos\OpenholoRefAppGUI\x64\Release\"
-xcopy /y "$(TargetDir)$(ProjectName).lib" "$(USERPROFILE)\source\repos\OpenholoRefAppGUI\Reference\lib\"
-xcopy /y "$(TargetDir)$(ProjectName).dll" "$(USERPROFILE)\source\repos\OpenholoRefAppGUI\Reference\dll\"
-
-xcopy /y "$(ProjectDir)src\*.h" "$(USERPROFILE)\source\repos\OpenholoRefAppGUI\Reference\include\"
-
-
-xcopy /y "$(TargetDir)$(ProjectName).dll" "$(USERPROFILE)\source\repos\OpenholoRefApp\bin\x64\Release\"
-xcopy /y "$(TargetDir)$(ProjectName).lib" "$(USERPROFILE)\source\repos\OpenholoRefApp\Reference\lib\"
-xcopy /y "$(TargetDir)$(ProjectName).dll" "$(USERPROFILE)\source\repos\OpenholoRefApp\Reference\dll\"
-
-xcopy /y "$(ProjectDir)src\*.h" "$(USERPROFILE)\source\repos\OpenholoRefApp\Reference\include\"</Command>
+xcopy /y "$(TargetDir)$(ProjectName).dll" "$(SolutionDir)..\OpenholoRefAppGUI\x64\Release\"
+xcopy /y "$(TargetDir)$(ProjectName).lib" "$(SolutionDir)..\OpenholoRefAppGUI\Reference\lib\"
+xcopy /y "$(TargetDir)$(ProjectName).dll" "$(SolutionDir)..\OpenholoRefAppGUI\Reference\dll\"
+xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)..\OpenholoRefAppGUI\Reference\include\"
+xcopy /y "$(TargetDir)$(ProjectName).dll" "$(SolutionDir)..\OpenholoRefApp\bin\x64\Release\"
+xcopy /y "$(TargetDir)$(ProjectName).lib" "$(SolutionDir)..\OpenholoRefApp\Reference\lib\"
+xcopy /y "$(TargetDir)$(ProjectName).dll" "$(SolutionDir)..\OpenholoRefApp\Reference\dll\"
+xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)..\OpenholoRefApp\Reference\include\"</Command>
     </PostBuildEvent>
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
@@ -278,8 +138,6 @@ xcopy /y "$(ProjectDir)src\*.h" "$(USERPROFILE)\source\repos\OpenholoRefApp\Refe
     <ClInclude Include="resource.h" />
     <ClInclude Include="src\CUDA.h" />
     <ClInclude Include="src\OpenCL.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </ClInclude>
@@ -307,8 +165,6 @@ xcopy /y "$(ProjectDir)src\*.h" "$(USERPROFILE)\source\repos\OpenholoRefApp\Refe
   <ItemGroup>
     <ClCompile Include="src\CUDA.cpp" />
     <ClCompile Include="src\OpenCL.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </ClCompile>
@@ -342,14 +198,10 @@ xcopy /y "$(ProjectDir)src\*.h" "$(USERPROFILE)\source\repos\OpenholoRefApp\Refe
   </ItemGroup>
   <ItemGroup>
     <None Include="src\ophPCKernel.cl">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </None>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
-  <ImportGroup Label="ExtensionTargets">
-    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 9.0.targets" />
-  </ImportGroup>
+  <ImportGroup Label="ExtensionTargets" />
 </Project>

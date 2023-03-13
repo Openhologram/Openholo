@@ -2,8 +2,7 @@
 #define __ophPAS_GPU_h
 
 #include "ophGen.h"
-
-
+#include <cuda.h>
 using namespace oph;
 
 #define PI				(3.14159265358979323846f)
@@ -17,6 +16,8 @@ using namespace oph;
 #define MAX_STR_LEN 4000
 
 #define FFT_SEGMENT_SIZE 64
+
+
 
 
 struct constValue {
@@ -126,7 +127,17 @@ public:
 	float	m_cy;
 	float	m_cz;
 	float	m_amp;
-};
+
+	ivec3 se;
+}; 
+
+extern "C"
+{
+	void cuda_Wrapper_phaseCalc(float* inRe, float* inIm, constValue val,
+		float& cx, float& cy, float& cz, float& amp, ivec3& seg);
+
+}
+
 
 
 #endif // !__ophPAS_h

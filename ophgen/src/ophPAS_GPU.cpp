@@ -5,7 +5,6 @@
 #include <iostream>
 #include <string>
 #include <iomanip>
-#include <windows.h>
 #include <cooperative_groups.h>
 #include "sys.h"
 #include <cuda.h>
@@ -13,74 +12,14 @@
 #include <cuda_device_runtime_api.h>
 #include "tinyxml2.h"
 #include "PLYparser.h"
-#include <cuda_runtime.h>
+#include <cuda_runtime_api.h>
 #include <device_launch_parameters.h>
 #include <device_functions.h>
 #include <math_constants.h>
 
 //CGHEnvironmentData CONF;	// config
 
-
 using namespace std;
-
-
-__managed__ int sex, sey, sen;
-__managed__ float amplitude, c_x, c_y, c_z;
-
-/**
-@fn __global__ void phaseCalc(float* inRe, float* inIm, constValue val)
-@brief CalcCompensatedPhase의 GPU버전 함수
-@return void
-@param inRe 
-@param inIm
-*/
-__global__ void phaseCalc(float* inRe, float* inIm, constValue val)
-{
-	int segy = blockIdx.x*blockDim.x + threadIdx.x;
-	int segx = blockIdx.y*blockDim.y + threadIdx.y;// coordinate in a Segment 
-	int segX = sex;
-	int segY = sey;
-
-	if ((segy < sey) && (segx < sex))
-	{
-		int		segxx, segyy;
-		float	theta_s, theta_c;
-		int		dtheta_s, dtheta_c;
-		int		idx_c, idx_s;
-		float	theta;
-		int segNo = sen;
-		int tbl = 1024;
-		float amp = amplitude;
-		float pi = 3.14159265358979323846f;
-		float m2_pi = (float)(pi*2.0);
-		float rWaveNum = 9926043.13930423;// _CGHE->rWaveNumber;
-		float R;
-		int cf_cx = val.cf_cx[segx];
-		int cf_cy = val.cf_cy[segy];
-		float xc = val.xc[segx];
-		float yc = val.yc[segy];
-		segyy = segy * segX + segx;
-		segxx = cf_cy * segNo + cf_cx;
-		R = (float)(sqrt((xc - c_x)*(xc - c_x) + (yc - c_y)*(yc - c_y) + c_z * c_z));
-		theta = rWaveNum * R;
-		theta_c = theta;
-		theta_s = theta + pi;
-		dtheta_c = ((int)(theta_c*tbl / (pi * 2.0)));
-		dtheta_s = ((int)(theta_s*tbl / (pi * 2.0)));
-		idx_c = (dtheta_c) & (tbl -1);
-		idx_s = (dtheta_s) & (tbl - 1);
-		float costbl = val.costbl[idx_c];
-		float sintbl = val.sintbl[idx_s];
-		atomicAdd(&inRe[segyy*segNo*segNo + segxx], (float)(amplitude*costbl));
-		atomicAdd(&inIm[segyy*segNo*segNo + segxx], (float)(amplitude*sintbl));
-		
-		/*
-		inRe[segyy*sen*sen + segxx]+= (float)(amplitude * costbl);
-		inIm[segyy*sen*sen + segxx]+= (float)(amplitude * sintbl);
-		*/
-	}
-}
-
 
 ophPAS_GPU::ophPAS_GPU(void)
 	: ophGen()
@@ -152,7 +91,7 @@ bool ophPAS_GPU::readConfig(const char* fname) {
 
 	char szNodeName[32] = { 0, };
 	for (int i = 1; i <= nWave; i++) {
-		wsprintfA(szNodeName, "SLM_WaveLength_%d", i);
+		sprintf(szNodeName, "SLM_WaveLength_%d", i);
 		next = xml_node->FirstChildElement(szNodeName);
 		if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&context_.wave_length[i - 1]))
 			return false;
@@ -249,7 +188,7 @@ int ophPAS_GPU::save(const char * fname, uint8_t bitsperpixel, uchar* src, uint 
 	else {									// when extension is not .ohf, .bmp - force bmp
 		char buf[256];
 		memset(buf, 0x00, sizeof(char) * 256);
-		sprintf_s(buf, "%s.bmp", fname);
+		sprintf(buf, "%s.bmp", fname);
 
 		return Openholo::saveAsImg(buf, bitsperpixel, source, p[_X], p[_Y]);
 	}
@@ -331,7 +270,7 @@ char* ophPAS_GPU::rtrim(char* s)
 	// Visual C 2003 이하에서는
 	// strcpy(t, s);
 	// 이렇게 해야 함
-	strcpy_s(t, s); // 이것은 Visual C 2005용
+	strcpy(t, s); // 이것은 Visual C 2005용
 	end = t + strlen(t) - 1;
 	while (end != t && isspace(*end))
 		end--;
@@ -570,7 +509,6 @@ void ophPAS_GPU::PAS(long voxelnum, OphPointCloudData *data, double * m_pHologra
 	float	Amplitude;
 	float	sf_base = 1.0 / (xiInterval* FFT_SEGMENT_SIZE);
 
-
 	//CString mm;
 	clock_t start, finish;
 	double  duration;
@@ -580,16 +518,17 @@ void ophPAS_GPU::PAS(long voxelnum, OphPointCloudData *data, double * m_pHologra
 	for (no = 0; no < voxelnum * 3; no += 3)
 	{
 		// point coordinate
-		X = (data->vertex[no]) * cghScale;
-		Y = (data->vertex[no + 1]) * cghScale;
-		Z = data->vertex[no + 2] * cghScale - defaultDepth;
-		Amplitude = data->phase[no / 3];
+		X = (data->vertices[no].point.pos[_X]) * cghScale;
+		Y = (data->vertices[no].point.pos[_Y]) * cghScale;
+		Z = (data->vertices[no].point.pos[_Z]) * cghScale - defaultDepth;
+		Amplitude = data->vertices[no].phase;
 
 		std::cout << "X: " << X << ", Y: " << Y << ", Z: " << Z << ", Amp: " << Amplitude << endl;
-		c_x = X;
-		c_y = Y;
-		c_z = Z;
-		amplitude = Amplitude;
+
+		//c_x = X;
+		//c_y = Y;
+		//c_z = Z;
+		//amplitude = Amplitude;
 		/*
 		CalcSpatialFrequency(X, Y, Z, Amplitude
 		, m_segNumx, m_segNumy
@@ -666,7 +605,6 @@ void ophPAS_GPU::DataInit(int segsize, int cghwidth, int cghheight, float xiinte
 {
 	int i, j;
 	
-
 	
 
 	// size
@@ -745,15 +683,17 @@ void ophPAS_GPU::DataInit(int segsize, int cghwidth, int cghheight, float xiinte
 
 	m_plan = fftw_plan_dft_2d(m_segSize, m_segSize, m_in, m_out, FFTW_BACKWARD, FFTW_ESTIMATE);
 
-	sex = m_segNumx;
-	sey = m_segNumy;
-	sen = segsize;
+	//sex = m_segNumx;
+	//sey = m_segNumy;
+	//sen = segsize;
 	
 }
 
 void ophPAS_GPU::MemoryRelease(void)
 {
 	int i, j;
+
+	cudaFree(&se);
 
 	fftw_destroy_plan(m_plan);
 	fftw_free(m_in);
@@ -916,12 +856,9 @@ void ophPAS_GPU::CalcCompensatedPhase(float cx, float cy, float cz, float amp
 	cudaMemcpyAsync(d_const.sintbl, SINtbl, sizeof(float)*NUMTBL, cudaMemcpyHostToDevice);
 	
 	
-	dim3 blockSize(segNumy/32 + 1, segNumx /32+ 1);
-	dim3 gridSize(32, 32);
-
 	
-	
-	phaseCalc << <blockSize, gridSize >> >(inRe_d, inIm_d, d_const);
+	cuda_Wrapper_phaseCalc(inRe_d, inIm_d, d_const, cx, cy, cz, amp, ivec3(segNumx, segNumy, segsize));
+	//phaseCalc << <blockSize, gridSize >> >(inRe_d, inIm_d, d_const);
 	
 	
 	
@@ -1051,7 +988,7 @@ void ophPAS_GPU::encodeHologram(const vec2 band_limit, const vec2 spectrum_shift
 	const uint pnY = context_.pixel_number[_Y];
 	const Real ppX = context_.pixel_pitch[_X];
 	const Real ppY = context_.pixel_pitch[_Y];
-	const uint pnXY = pnX * pnY;
+	const long long int pnXY = pnX * pnY;
 
 	m_vecEncodeSize = ivec2(pnX, pnY);
 	context_.ss[_X] = pnX * ppX;

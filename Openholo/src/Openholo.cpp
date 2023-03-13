@@ -637,25 +637,22 @@ void Openholo::fftExecute(Complex<Real>* out, bool bReverse)
 	int size = pnx * pny * pnz;
 
 	if (!bReverse) {
-		int i;
 #ifdef _OPENMP
-#pragma omp for private(i)
+#pragma omp parallel for
 #endif
-		for (i = 0; i < size; i++) {
+		for (int i = 0; i < size; i++) {
 			out[i][_RE] = fft_out[i][_RE];
 			out[i][_IM] = fft_out[i][_IM];
 		}
 	}
 	else {
-		int i;
 #ifdef _OPENMP
-#pragma omp for private(i)
+#pragma omp parallel for
 #endif
-		for (i = 0; i < size; i++) {
+		for (int i = 0; i < size; i++) {
 			out[i][_RE] = fft_out[i][_RE] / size;
 			out[i][_IM] = fft_out[i][_IM] / size;
 		}
-
 	}
 
 	fftFree();

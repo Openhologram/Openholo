@@ -1,57 +1,8 @@
 #include "ophAS_GPU.h"
 #include "complex.h"
 #include "sys.h"
-#include "ophAS.h"
 
-__global__ void transfer(constValue val, creal_T* a, creal_T* b)
-{
-	int i = blockIdx.x*blockDim.x + threadIdx.x;
-	int j = blockIdx.y*blockDim.y + threadIdx.y;
-	if (i < val.w && j < val.w)
-	{
-		double eta_id = val.wavelength * (((double(i) + 1.0) - (val.w / 2.0 + 1.0))*
-			val.minfrequency_eta);
-		double xi_id = val.wavelength * (((double(j) + 1.0) - (val.w / 2.0 + 1.0))*
-			val.minfrequency_xi);
-		double y_im = (val.knumber*val.depth)*sqrt((1.0 - eta_id*eta_id) - xi_id*xi_id);
-		double y_re = cos(y_im);
-		y_im = sin(y_im);
-		b[i + val.w * j].re = a[i + val.w*j].re * y_re -
-			a[i + val.w*j].im*y_im;
-		b[i + val.w * j].im = a[i + val.w*j].re * y_im +
-			a[i + val.w*j].im*y_re;
-	}
-}
-
-__global__ void tilting(constValue val, creal_T* a, creal_T* b)
-{
-	int i = blockIdx.x*blockDim.x + threadIdx.x;
-	int j = blockIdx.y*blockDim.y + threadIdx.y;
-	if (i < val.w && j < val.w)
-	{
-		double f_eta = (((double(i) + 1.0) - 1.0) - val.w / 2.0)*
-			val.eta_interval;
-		double f_xi = val.knumber*((((double(j) + 1.0) - 1.0) - val.w / 2.0)*
-			val.xi_interval*0.0 + f_eta*0.0);
-
-		double y_re, y_im;
-
-		if (!f_xi)
-		{
-			y_re = 1.0;
-			y_im = 0.0;
-		}
-		else
-		{
-			y_re = nan("");
-			y_im = nan("");
-		}
-		b[i + val.w*j].re = a[i + val.w*j].re*y_re - a[i + val.w*j].im*y_im;
-		b[i + val.w*j].im = a[i + val.w*j].re*y_im + a[i + val.w*j].im*y_re;
-	}
-}
-
-void Angular_Spectrum_GPU(double w, double h, double wavelength, double knumber, double xi_interval, double eta_interval, double depth, const coder::array<creal_T, 2U>& fringe, coder::array<creal_T, 2U>& b_AngularC)
+void ophAS::Angular_Spectrum_GPU(double w, double h, double wavelength, double knumber, double xi_interval, double eta_interval, double depth, const coder::array<creal_T, 2U>& fringe, coder::array<creal_T, 2U>& b_AngularC)
 {
 	
 	coder::array<creal_T, 2U> fringe_temp1;
@@ -100,7 +51,8 @@ void Angular_Spectrum_GPU(double w, double h, double wavelength, double knumber,
 		cudaMalloc((void**)&fringe_d, sizeof(creal_T)*w*h);
 		cudaMemcpy(fringe_d, fringe.data(), sizeof(creal_T)*w*h, cudaMemcpyHostToDevice);
 
-		tilting << <gridSize, blockSize >> >(val, fringe_d, fringe_temp1d);
+		cuda_Wrapper_Tilting((int)w, (int)h, val, fringe_d, fringe_temp1d);
+		//tilting << < gridSize, blockSize >> >(val, fringe_d, fringe_temp1d);
 		cudaMemcpy(fringe_temp1.data(), fringe_temp1d, sizeof(creal_T)*w*h, cudaMemcpyDeviceToHost);
 
 		cudaFree(fringe_temp1d);
@@ -133,7 +85,7 @@ void Angular_Spectrum_GPU(double w, double h, double wavelength, double knumber,
 	}
 	}*/
 
-	ophAS* as;
+	ophAS* as = new ophAS();
 	auto start = CUR_TIME;
 	//  fourier transform of fringe pattern
 	as->eml_fftshift(fringe_temp1, 1);
@@ -146,9 +98,6 @@ void Angular_Spectrum_GPU(double w, double h, double wavelength, double knumber,
 	auto during = ((std::chrono::duration<Real>)(end - start)).count();
 
 	{
-
-		dim3 blockSize = dim3(32, 32);
-		dim3 gridSize = dim3((w + 32 - 1) / 32, (h + 32 - 1) / 32);
 		creal_T* fringe_temp2d;
 		creal_T* fringe_temp3d;
 		cudaMalloc((void**)&fringe_temp2d, sizeof(creal_T)*w*h);
@@ -189,8 +138,8 @@ void Angular_Spectrum_GPU(double w, double h, double wavelength, double knumber,
 
 
 		cudaMemcpy(fringe_temp2d, fringe_temp2.data(), sizeof(creal_T)*w*h, cudaMemcpyHostToDevice);
-
-		transfer << <gridSize, blockSize >> > (val, fringe_temp2d, fringe_temp3d);
+		cuda_Wrapper_Transfer((int)w, (int)h, val, fringe_temp2d, fringe_temp3d);
+		//transfer << <gridSize, blockSize >> > (val, fringe_temp2d, fringe_temp3d);
 
 
 

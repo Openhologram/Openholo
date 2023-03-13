@@ -43,96 +43,89 @@
 //
 //M*/
 
-#ifndef __ophLightField_GPU_h
-#define __ophLightField_GPU_h
+/**
+* @file		ophPASKernel.cu
+* @brief	Openholo Phase Added Stereogram with CUDA GPGPU
+* @author	Minwoo Nam
+* @date		2023/03
+*/
 
-#include "ophLightField.h"
+#ifndef OphPASKernel_cu__
+#define OphPASKernel_cu__
+
 #include <cuda_runtime.h>
-#include <cufft.h>
-#include <math_constants.h>
+#include <cuda_runtime_api.h>
+#include <cuda.h>
+#include "typedef.h"
+#include "ophPAS_GPU.h"
 
 
-static void HandleError(cudaError_t err,
-	const char *file,
-	int line) {
-	if (err != cudaSuccess) {
-		printf("%s in %s at line %d\n", cudaGetErrorString(err),
-			file, line);
-		return;
+/**
+@fn __global__ void phaseCalc(float* inRe, float* inIm, constValue val)
+@brief CalcCompensatedPhase의 GPU버전 함수
+@return void
+@param inRe
+@param inIm
+*/
+__global__
+void cudaKernel_phaseCalc(float* inRe, float* inIm, constValue val, int c_x, int c_y, int c_z, int amplitude, 
+							int sex, int sey, int sen)
+{
+	int segy = blockIdx.x * blockDim.x + threadIdx.x;
+	int segx = blockIdx.y * blockDim.y + threadIdx.y;// coordinate in a Segment 
+	int segX = sex;
+	int segY = sey;
+
+	if ((segy < sey) && (segx < sex))
+	{
+		int		segxx, segyy;
+		float	theta_s, theta_c;
+		int		dtheta_s, dtheta_c;
+		int		idx_c, idx_s;
+		float	theta;
+		int segNo = sen;
+		int tbl = 1024;
+		float amp = amplitude;
+		float pi = 3.14159265358979323846f;
+		float m2_pi = (float)(pi * 2.0);
+		float rWaveNum = 9926043.13930423;// _CGHE->rWaveNumber;
+		float R;
+		int cf_cx = val.cf_cx[segx];
+		int cf_cy = val.cf_cy[segy];
+		float xc = val.xc[segx];
+		float yc = val.yc[segy];
+		segyy = segy * segX + segx;
+		segxx = cf_cy * segNo + cf_cx;
+		R = (float)(sqrt((xc - c_x) * (xc - c_x) + (yc - c_y) * (yc - c_y) + c_z * c_z));
+		theta = rWaveNum * R;
+		theta_c = theta;
+		theta_s = theta + pi;
+		dtheta_c = ((int)(theta_c * tbl / (pi * 2.0)));
+		dtheta_s = ((int)(theta_s * tbl / (pi * 2.0)));
+		idx_c = (dtheta_c) & (tbl - 1);
+		idx_s = (dtheta_s) & (tbl - 1);
+		float costbl = val.costbl[idx_c];
+		float sintbl = val.sintbl[idx_s];
+		atomicAdd(&inRe[segyy * segNo * segNo + segxx], (float)(amplitude * costbl));
+		atomicAdd(&inIm[segyy * segNo * segNo + segxx], (float)(amplitude * sintbl));
+
+		/*
+		inRe[segyy*sen*sen + segxx]+= (float)(amplitude * costbl);
+		inIm[segyy*sen*sen + segxx]+= (float)(amplitude * sintbl);
+		*/
 	}
 }
-#define HANDLE_ERROR( err ) (HandleError( err, __FILE__, __LINE__ ))
-
-
-#define HANDLE_NULL( a ) {if (a == NULL) { \
-                            printf( "Host memory failed in %s at line %d\n", \
-                                    __FILE__, __LINE__ ); \
-                            exit( EXIT_FAILURE );}} 
-
-typedef struct KernelConst {
-	int pnX;
-	int pnY;
-	Real ppX;
-	Real ppY;
-	Real lambda;
-	Real pi2;
-	Real k;
-	Real distance;
-	bool randomPhase;
-	int nX;
-	int nY;
-	int rX;
-	int rY;
-	int nChannel;
-	int iAmp;
-
-	KernelConst(
-		const int &channel,
-		const int &iAmp,
-		const int &pnX,
-		const int &pnY,
-		const Real &ppX,
-		const Real &ppY,
-		const int &nX,
-		const int &nY,
-		const int &rX,
-		const int &rY,
-		const Real &distance,
-		const Real &k,
-		const Real &lambda,
-		const bool &random_phase
-	)
-	{
-		this->nChannel = channel;
-		this->iAmp = iAmp;
-		this->pnX = pnX;
-		this->pnY = pnY;
-		this->ppX = ppX;
-		this->ppY = ppY;
-		this->nX = nX;
-		this->nY = nY;
-		this->rX = rX;
-		this->rY = rY;
-		this->lambda = lambda;
-		this->pi2 = M_PI * 2;
-		this->k = pi2 / lambda;
-		this->distance = distance;
-		this->randomPhase = random_phase;
-	}
-} LFGpuConst;
 
 extern "C"
 {
-	void cudaConvertLF2ComplexField_Kernel(CUstream_st* stream, const int &nBlocks, const int &nThreads, const LFGpuConst *config, uchar1** LF, cufftDoubleComplex* output);
-	void cudaFFT_LF(cufftHandle *plan, CUstream_st* stream, const int &nBlocks, const int &nThreads, const int &nx, const int &ny, cufftDoubleComplex* in_field, cufftDoubleComplex* output_field, const int &direction);
+	void cuda_Wrapper_phaseCalc(float* inRe, float* inIm, constValue val, float& cx, float&cy,
+		float&cz, float& amp, ivec3& seg)
+	{
+		dim3 blockSize(seg[_Y] / 32 + 1, seg[_X] / 32 + 1);
+		dim3 gridSize(32, 32);
 
-	void procMultiplyPhase(CUstream_st* stream, const int &nBlocks, const int &nThreads, const LFGpuConst *config, cufftDoubleComplex* in, cufftDoubleComplex* output);
-
-	void cudaFresnelPropagationLF(
-		const int &nBlocks, const int &nBlocks2, const int &nThreads, const int &nx, const int &ny,
-		cufftDoubleComplex *src, cufftDoubleComplex *tmp, cufftDoubleComplex *tmp2, cufftDoubleComplex *dst,
-		const LFGpuConst* cuda_config);
+		cudaKernel_phaseCalc << <gridSize, blockSize >> > (inRe, inIm, val, cx, cy, cz, amp, seg[_X], seg[_Y], seg[_Z]);
+	}
 }
 
-
-#endif
+#endif // !OphPASKernel_cu__
