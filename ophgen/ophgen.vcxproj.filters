@@ -113,6 +113,8 @@
     <ClInclude Include="src\ophNonHogelLF.h">
       <Filter>_1_Generation\_ophNonHogelLF</Filter>
     </ClInclude>
+    <ClInclude Include="src\ophAS_GPU.h" />
+    <ClInclude Include="src\ophPAS_GPU.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\ophDepthMap_GPU.cpp">
@@ -173,6 +175,8 @@
     <ClCompile Include="src\ophNonHogelLF.cpp">
       <Filter>_1_Generation\_ophNonHogelLF</Filter>
     </ClCompile>
+    <ClCompile Include="src\ophAS_GPU.cpp" />
+    <ClCompile Include="src\ophPAS_GPU.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="src\ophDMKernel.cu">
@@ -190,24 +194,12 @@
     <CudaCompile Include="src\ophTriMeshKernel.cu">
       <Filter>_1_Generation\_ophTriangleMesh</Filter>
     </CudaCompile>
-    <CudaCompile Include="src\ophPAS_GPU.cpp">
-      <Filter>_1_Generation\_ophPAS</Filter>
-    </CudaCompile>
-    <CudaCompile Include="src\ophAS_GPU.cpp">
-      <Filter>_1_Generation\_ophAS</Filter>
-    </CudaCompile>
+    <CudaCompile Include="src\ophASKernel.cu" />
+    <CudaCompile Include="src\ophPASKernel.cu" />
   </ItemGroup>
   <ItemGroup>
     <None Include="src\ophPCKernel.cl">
       <Filter>_1_Generation\_ophPointCloud</Filter>
     </None>
-  </ItemGroup>
-  <ItemGroup>
-    <CustomBuild Include="src\ophPAS_GPU.h">
-      <Filter>_1_Generation\_ophPAS</Filter>
-    </CustomBuild>
-    <CustomBuild Include="src\ophAS_GPU.h">
-      <Filter>_1_Generation\_ophAS</Filter>
-    </CustomBuild>
   </ItemGroup>
 </Project>

@@ -13,7 +13,7 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{272C3F0A-E929-4A98-8307-D9D01D5DA1F2}</ProjectGuid>
     <RootNamespace>ophgen</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
     <ProjectName>ophgen</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -21,18 +21,22 @@
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <CharacterSet>MultiByte</CharacterSet>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v140</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
+    <PreferredToolArchitecture>x64</PreferredToolArchitecture>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v140</PlatformToolset>
+    <PreferredToolArchitecture>x64</PreferredToolArchitecture>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
-  <ImportGroup Label="ExtensionSettings" />
+  <ImportGroup Label="ExtensionSettings">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 9.0.props" />
+  </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
@@ -54,7 +58,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;WIN64;_DEBUG;_CONSOLE;GEN_EXPORT;FAST_MATH_WITH_FLOAT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_USE_MATH_DEFINES;_CRT_SECURE_NO_WARNINGS;WIN32;WIN64;_DEBUG;_CONSOLE;GEN_EXPORT;FAST_MATH_WITH_FLOAT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir)Reference\include\;$(CudaToolkitIncludeDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <OpenMPSupport>true</OpenMPSupport>
       <WholeProgramOptimization>false</WholeProgramOptimization>
@@ -63,17 +67,17 @@
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>libfftw3-3.lib;cudart.lib;cufft.lib;cuda.lib;openholo_d.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(ProjectDir)lib;$(SolutionDir)Reference\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalOptions>/FORCE:multiple %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalDependencies>OpenCL.lib;libfftw3-3.lib;cudart.lib;cufft.lib;cuda.lib;openholo_d.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)lib;$(SolutionDir)Reference\lib;$(CudaToolkitLibDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <Profile>true</Profile>
+      <AdditionalOptions>/FORCE:multiple %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <PostBuildEvent>
       <Command>echo copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"
 copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"
 xcopy /y "$(TargetDir)$(ProjectName)_d.lib" "$(SolutionDir)Reference\lib\"
 xcopy /y "$(TargetDir)$(ProjectName)_d.dll" "$(SolutionDir)Reference\dll\"
-xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)Reference\include\"
+
 xcopy /y "$(TargetDir)$(ProjectName)_d.dll" "$(SolutionDir)..\OpenholoRefAppGUI\x64\Release\"
 xcopy /y "$(TargetDir)$(ProjectName)_d.lib" "$(SolutionDir)..\OpenholoRefAppGUI\Reference\lib\"
 xcopy /y "$(TargetDir)$(ProjectName)_d.dll" "$(SolutionDir)..\OpenholoRefAppGUI\Reference\dll\"
@@ -87,8 +91,12 @@ xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)..\OpenholoRefApp\Reference\inclu
       <TargetMachinePlatform>64</TargetMachinePlatform>
       <GenerateLineInfo>true</GenerateLineInfo>
       <FastMath>true</FastMath>
-      <CodeGeneration>compute_61,sm_61</CodeGeneration>
+      <CodeGeneration>
+      </CodeGeneration>
     </CudaCompile>
+    <CudaLink>
+      <AdditionalDependencies>openholo.lib</AdditionalDependencies>
+    </CudaLink>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -96,7 +104,7 @@ xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)..\OpenholoRefApp\Reference\inclu
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>WIN32;WIN64;NDEBUG;_CONSOLE;GEN_EXPORT;FAST_MATH_WITH_FLOAT;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_USE_MATH_DEFINES;_CRT_SECURE_NO_WARNINGS;WIN32;WIN64;NDEBUG;_CONSOLE;GEN_EXPORT;FAST_MATH_WITH_FLOAT;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir)Reference\include\;$(CudaToolkitIncludeDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <OpenMPSupport>true</OpenMPSupport>
       <DisableSpecificWarnings>4819;4002;4244;4251;4018</DisableSpecificWarnings>
@@ -107,7 +115,7 @@ xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)..\OpenholoRefApp\Reference\inclu
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>libfftw3-3.lib;cudart.lib;cufft.lib;cuda.lib;openholo.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>OpenCL.lib;libfftw3-3.lib;cudart.lib;cufft.lib;cuda.lib;openholo.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(ProjectDir)lib;$(SolutionDir)Reference\lib;$(CudaToolkitLibDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>/FORCE:multiple %(AdditionalOptions)</AdditionalOptions>
       <Profile>true</Profile>
@@ -117,7 +125,7 @@ xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)..\OpenholoRefApp\Reference\inclu
 copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"
 xcopy /y "$(TargetDir)$(ProjectName).lib" "$(SolutionDir)Reference\lib\"
 xcopy /y "$(TargetDir)$(ProjectName).dll" "$(SolutionDir)Reference\dll\"
-xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)Reference\include\"
+
 xcopy /y "$(TargetDir)$(ProjectName).dll" "$(SolutionDir)..\OpenholoRefAppGUI\x64\Release\"
 xcopy /y "$(TargetDir)$(ProjectName).lib" "$(SolutionDir)..\OpenholoRefAppGUI\Reference\lib\"
 xcopy /y "$(TargetDir)$(ProjectName).dll" "$(SolutionDir)..\OpenholoRefAppGUI\Reference\dll\"
@@ -131,19 +139,23 @@ xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)..\OpenholoRefApp\Reference\inclu
       <TargetMachinePlatform>64</TargetMachinePlatform>
       <FastMath>true</FastMath>
       <GenerateLineInfo>true</GenerateLineInfo>
-      <CodeGeneration>compute_61,sm_61</CodeGeneration>
+      <CodeGeneration>
+      </CodeGeneration>
     </CudaCompile>
+    <CudaLink>
+      <AdditionalDependencies>openholo.lib</AdditionalDependencies>
+    </CudaLink>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="resource.h" />
     <ClInclude Include="src\CUDA.h" />
     <ClInclude Include="src\OpenCL.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="src\ophACPAS.h" />
     <ClInclude Include="src\ophAS.h" />
-    <CustomBuild Include="src\ophAS_GPU.h" />
+    <ClInclude Include="src\ophAS_GPU.h" />
     <ClInclude Include="src\ophDepthMap.h" />
     <ClInclude Include="src\ophDepthMap_GPU.h" />
     <ClInclude Include="src\ophGen.h" />
@@ -153,7 +165,7 @@ xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)..\OpenholoRefApp\Reference\inclu
     <ClInclude Include="src\ophLUT.h" />
     <ClInclude Include="src\ophNonHogelLF.h" />
     <ClInclude Include="src\ophPAS.h" />
-    <CustomBuild Include="src\ophPAS_GPU.h" />
+    <ClInclude Include="src\ophPAS_GPU.h" />
     <ClInclude Include="src\ophPointCloud.h" />
     <ClInclude Include="src\ophTriMesh.h" />
     <ClInclude Include="src\ophPointCloud_GPU.h" />
@@ -165,12 +177,13 @@ xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)..\OpenholoRefApp\Reference\inclu
   <ItemGroup>
     <ClCompile Include="src\CUDA.cpp" />
     <ClCompile Include="src\OpenCL.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="src\ophACPAS.cpp" />
     <ClCompile Include="src\ophAS.cpp" />
-    <CudaCompile Include="src\ophAS_GPU.cpp" />
+    <CudaCompile Include="src\ophASKernel.cu" />
+    <ClCompile Include="src\ophAS_GPU.cpp" />
     <ClCompile Include="src\ophDepthMap.cpp" />
     <ClCompile Include="src\ophDepthMap_GPU.cpp" />
     <ClCompile Include="src\ophGen.cpp" />
@@ -180,7 +193,8 @@ xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)..\OpenholoRefApp\Reference\inclu
     <ClCompile Include="src\ophLUT.cpp" />
     <ClCompile Include="src\ophNonHogelLF.cpp" />
     <ClCompile Include="src\ophPAS.cpp" />
-    <CudaCompile Include="src\ophPAS_GPU.cpp" />
+    <CudaCompile Include="src\ophPASKernel.cu" />
+    <ClCompile Include="src\ophPAS_GPU.cpp" />
     <ClCompile Include="src\ophPointCloud.cpp" />
     <ClCompile Include="src\ophPointCloud_GPU.cpp" />
     <ClCompile Include="src\ophTriMesh.cpp" />
@@ -203,5 +217,7 @@ xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)..\OpenholoRefApp\Reference\inclu
     </None>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
-  <ImportGroup Label="ExtensionTargets" />
+  <ImportGroup Label="ExtensionTargets">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 9.0.targets" />
+  </ImportGroup>
 </Project>

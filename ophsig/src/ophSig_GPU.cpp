@@ -84,11 +84,11 @@ void ophSig::cvtOffaxis_GPU(Real angleX, Real angleY) {
 	ophSigConfig *device_config = nullptr;
 	//Malloc 
 	
-	cudaMalloc(&src_data, sizeof(Complex<Real>)*nx*ny);
-	cudaMalloc(&dst_data, sizeof(Real)*nx*ny);
-	cudaMalloc(&F, sizeof(Complex<Real>)*ny*nx);
-	cudaMalloc(&device_config, sizeof(ophSigConfig));
-	cudaMalloc(&device_angle, sizeof(Real) * 2);
+	cudaMalloc((void**)&src_data, sizeof(Complex<Real>)*nx*ny);
+	cudaMalloc((void**)&dst_data, sizeof(Real)*nx*ny);
+	cudaMalloc((void**)&F, sizeof(Complex<Real>)*ny*nx);
+	cudaMalloc((void**)&device_config, sizeof(ophSigConfig));
+	cudaMalloc((void**)&device_angle, sizeof(Real) * 2);
 
 	//memcpy
 	cudaMemcpy(src_data, host_data, sizeof(Complex<Real>)*nx*ny, cudaMemcpyHostToDevice);
@@ -134,11 +134,11 @@ bool ophSig::sigConvertHPO_GPU(Real depth, Real_t redRate) {
 
 	cField2Buffer(*ComplexH, &host_data, nx, ny);
 	
-	cudaMalloc(&temp_data, sizeof(Complex<Real>)*nx*ny);
-	cudaMalloc(&fft_temp_data, sizeof(cufftDoubleComplex)*nx*ny);
-	cudaMalloc(&out_data, sizeof(cufftDoubleComplex)*nx*ny);
-	cudaMalloc(&F, sizeof(Complex<Real>)*ny*nx);
-	cudaMalloc(&device_config, sizeof(ophSigConfig));
+	cudaMalloc((void**)&temp_data, sizeof(Complex<Real>)*nx*ny);
+	cudaMalloc((void**)&fft_temp_data, sizeof(cufftDoubleComplex)*nx*ny);
+	cudaMalloc((void**)&out_data, sizeof(cufftDoubleComplex)*nx*ny);
+	cudaMalloc((void**)&F, sizeof(Complex<Real>)*ny*nx);
+	cudaMalloc((void**)&device_config, sizeof(ophSigConfig));
 
 	cudaMemcpy(temp_data, host_data, sizeof(Complex<Real>)*nx*ny, cudaMemcpyHostToDevice);
 	cudaMemcpy(fft_temp_data, 0, sizeof(cufftDoubleComplex)*nx*ny, cudaMemcpyHostToDevice);
@@ -199,11 +199,11 @@ bool ophSig::sigConvertCAC_GPU(double red, double green, double blue) {
 	};
 	
 	ColorField2Buffer(ComplexH[0], &host_data, nx, ny);
-	cudaMalloc(&temp_data, sizeof(Complex<Real>)*nx*ny);
-	cudaMalloc(&fft_temp_data, sizeof(cufftDoubleComplex)*nx*ny);
-	cudaMalloc(&out_data, sizeof(cufftDoubleComplex)*nx*ny);
-	cudaMalloc(&F, sizeof(Complex<Real>)*ny*nx);
-	cudaMalloc(&device_config, sizeof(ophSigConfig));
+	cudaMalloc((void**)&temp_data, sizeof(Complex<Real>)*nx*ny);
+	cudaMalloc((void**)&fft_temp_data, sizeof(cufftDoubleComplex)*nx*ny);
+	cudaMalloc((void**)&out_data, sizeof(cufftDoubleComplex)*nx*ny);
+	cudaMalloc((void**)&F, sizeof(Complex<Real>)*ny*nx);
+	cudaMalloc((void**)&device_config, sizeof(ophSigConfig));
 
 	cudaMemcpy(F, 0, sizeof(Complex<Real>)*nx*ny, cudaMemcpyHostToDevice);
 	cudaMemcpy(device_config, &_cfgSig, sizeof(ophSigConfig), cudaMemcpyHostToDevice);
@@ -271,11 +271,11 @@ bool ophSig::propagationHolo_GPU(float depth) {
 
 	cField2Buffer(*ComplexH, &host_data, nx, ny);
 
-	cudaMalloc(&temp_data, sizeof(Complex<Real>)*nx*ny);
-	cudaMalloc(&fft_temp_data, sizeof(cufftDoubleComplex)*nx*ny);
-	cudaMalloc(&out_data, sizeof(cufftDoubleComplex)*nx*ny);
-	cudaMalloc(&F, sizeof(Complex<Real>)*ny*nx);
-	cudaMalloc(&device_config, sizeof(ophSigConfig));
+	cudaMalloc((void**)&temp_data, sizeof(Complex<Real>)*nx*ny);
+	cudaMalloc((void**)&fft_temp_data, sizeof(cufftDoubleComplex)*nx*ny);
+	cudaMalloc((void**)&out_data, sizeof(cufftDoubleComplex)*nx*ny);
+	cudaMalloc((void**)&F, sizeof(Complex<Real>)*ny*nx);
+	cudaMalloc((void**)&device_config, sizeof(ophSigConfig));
 
 	cudaMemcpy(temp_data, host_data, sizeof(Complex<Real>)*nx*ny, cudaMemcpyHostToDevice);
 	cudaMemcpy(fft_temp_data, 0, sizeof(cufftDoubleComplex)*nx*ny, cudaMemcpyHostToDevice);
@@ -328,11 +328,11 @@ bool ophSig::Color_propagationHolo_GPU(float depth) {
 
 	cField2Buffer(*ComplexH, &host_data, nx, ny);
 
-	cudaMalloc(&temp_data, sizeof(Complex<Real>)*nx*ny);
-	cudaMalloc(&fft_temp_data, sizeof(cufftDoubleComplex)*nx*ny);
-	cudaMalloc(&out_data, sizeof(cufftDoubleComplex)*nx*ny);
-	cudaMalloc(&F, sizeof(Complex<Real>)*ny*nx);
-	cudaMalloc(&device_config, sizeof(ophSigConfig));
+	cudaMalloc((void**)&temp_data, sizeof(Complex<Real>)*nx*ny);
+	cudaMalloc((void**)&fft_temp_data, sizeof(cufftDoubleComplex)*nx*ny);
+	cudaMalloc((void**)&out_data, sizeof(cufftDoubleComplex)*nx*ny);
+	cudaMalloc((void**)&F, sizeof(Complex<Real>)*ny*nx);
+	cudaMalloc((void**)&device_config, sizeof(ophSigConfig));
 
 	cudaMemcpy(temp_data, host_data, sizeof(Complex<Real>)*nx*ny, cudaMemcpyHostToDevice);
 	cudaMemcpy(fft_temp_data, 0, sizeof(cufftDoubleComplex)*nx*ny, cudaMemcpyHostToDevice);
@@ -407,13 +407,13 @@ double ophSig::sigGetParamSF_GPU(float zMax, float zMin, int sampN, float th) {
 	Real *f;
 	ophSigConfig *device_config = nullptr;
 
-	cudaMalloc(&f, sizeof(Real)*nx*ny);
-	cudaMalloc(&FH, sizeof(Complex<Real>)*ny*nx);
-	cudaMalloc(&device_config, sizeof(ophSigConfig));
-	cudaMalloc(&temp_data, sizeof(Complex<Real>)*nx*ny);
-	cudaMalloc(&fft_temp_data, sizeof(cufftDoubleComplex)*nx*ny);
-	cudaMalloc(&Ftemp_data, sizeof(cufftDoubleComplex)*nx*ny);
-	cudaMalloc(&out_data, sizeof(cufftDoubleComplex)*nx*ny);
+	cudaMalloc((void**)&f, sizeof(Real)*nx*ny);
+	cudaMalloc((void**)&FH, sizeof(Complex<Real>)*ny*nx);
+	cudaMalloc((void**)&device_config, sizeof(ophSigConfig));
+	cudaMalloc((void**)&temp_data, sizeof(Complex<Real>)*nx*ny);
+	cudaMalloc((void**)&fft_temp_data, sizeof(cufftDoubleComplex)*nx*ny);
+	cudaMalloc((void**)&Ftemp_data, sizeof(cufftDoubleComplex)*nx*ny);
+	cudaMalloc((void**)&out_data, sizeof(cufftDoubleComplex)*nx*ny);
 
 	if (cufftPlan2d(&fftplan, nx, ny, CUFFT_Z2Z) != CUFFT_SUCCESS)
 	{
@@ -488,14 +488,14 @@ double ophSig::sigGetParamAT_GPU() {
 
 	cField2Buffer(*ComplexH, &host_data, nx, ny);
 
-	cudaMalloc(&temp_data, sizeof(Complex<Real>)*nx*ny);
-	cudaMalloc(&Flr, sizeof(Complex<Real>)*nx*ny);
-	cudaMalloc(&Fli, sizeof(Complex<Real>)*nx*ny);
-	cudaMalloc(&G, sizeof(Complex<Real>)*nx*ny);
-	cudaMalloc(&device_config, sizeof(ophSigConfig));
+	cudaMalloc((void**)&temp_data, sizeof(Complex<Real>)*nx*ny);
+	cudaMalloc((void**)&Flr, sizeof(Complex<Real>)*nx*ny);
+	cudaMalloc((void**)&Fli, sizeof(Complex<Real>)*nx*ny);
+	cudaMalloc((void**)&G, sizeof(Complex<Real>)*nx*ny);
+	cudaMalloc((void**)&device_config, sizeof(ophSigConfig));
 
-	cudaMalloc(&fft_data, sizeof(cufftDoubleComplex)*nx*ny);
-	cudaMalloc(&out_data, sizeof(cufftDoubleComplex)*nx*ny);
+	cudaMalloc((void**)&fft_data, sizeof(cufftDoubleComplex)*nx*ny);
+	cudaMalloc((void**)&out_data, sizeof(cufftDoubleComplex)*nx*ny);
 
 
 	cudaMemcpy(temp_data, host_data, sizeof(Complex<Real>)*nx*ny, cudaMemcpyHostToDevice);
