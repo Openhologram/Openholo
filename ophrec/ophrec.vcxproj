@@ -188,7 +188,7 @@ xcopy /y "$(ProjectDir)src\*.h" "$(USERPROFILE)\source\repos\OpenholoRefApp\Refe
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;WIN64;_DEBUG;_CONSOLE;RECON_EXPORT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;WIN64;_DEBUG;_CONSOLE;RECON_EXPORT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir)Reference\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
@@ -202,25 +202,27 @@ xcopy /y "$(ProjectDir)src\*.h" "$(USERPROFILE)\source\repos\OpenholoRefApp\Refe
     <PostBuildEvent>
       <Command>echo copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"
 copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"
-copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"
 
 xcopy /y "$(TargetDir)$(ProjectName)_d.lib" "$(SolutionDir)Reference\lib\"
 xcopy /y "$(TargetDir)$(ProjectName)_d.dll" "$(SolutionDir)Reference\dll\"
-xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)Reference\include\"
 
-xcopy /y "$(TargetDir)$(ProjectName)_d.dll" "$(USERPROFILE)\source\repos\OpenholoRefAppGUI\x64\Debug\"
-xcopy /y "$(TargetDir)$(ProjectName)_d.lib" "$(USERPROFILE)\source\repos\OpenholoRefAppGUI\Reference\lib\"
-xcopy /y "$(TargetDir)$(ProjectName)_d.dll" "$(USERPROFILE)\source\repos\OpenholoRefAppGUI\Reference\dll\"
-xcopy /y "$(ProjectDir)src\*.h" "$(USERPROFILE)\source\repos\OpenholoRefAppGUI\Reference\include\"
+xcopy /y "$(TargetDir)$(ProjectName)_d.dll" "$(SolutionDir)..\OpenholoRefAppGUI\x64\Debug\"
+xcopy /y "$(TargetDir)$(ProjectName)_d.lib" "$(SolutionDir)..\OpenholoRefAppGUI\Reference\lib\"
+xcopy /y "$(TargetDir)$(ProjectName)_d.dll" "$(SolutionDir)..\OpenholoRefAppGUI\Reference\dll\"
 
-xcopy /y "$(TargetDir)$(ProjectName)_d.dll" "$(USERPROFILE)\source\repos\OpenholoRefApp\bin\x64\Debug\"
-xcopy /y "$(TargetDir)$(ProjectName)_d.lib" "$(USERPROFILE)\source\repos\OpenholoRefApp\Reference\lib\"
-xcopy /y "$(TargetDir)$(ProjectName)_d.dll" "$(USERPROFILE)\source\repos\OpenholoRefApp\Reference\dll\"
-xcopy /y "$(ProjectDir)src\*.h" "$(USERPROFILE)\source\repos\OpenholoRefApp\Reference\include\"</Command>
+xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)..\OpenholoRefAppGUI\Reference\include\"
+
+xcopy /y "$(TargetDir)$(ProjectName)_d.dll" "$(SolutionDir)..\OpenholoRefApp\bin\x64\Debug\"
+xcopy /y "$(TargetDir)$(ProjectName)_d.lib" "$(SolutionDir)..\OpenholoRefApp\Reference\lib\"
+xcopy /y "$(TargetDir)$(ProjectName)_d.dll" "$(SolutionDir)..\OpenholoRefApp\Reference\dll\"
+xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)..\OpenholoRefApp\Reference\include\"</Command>
     </PostBuildEvent>
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
     </CudaCompile>
+    <CudaLink>
+      <AdditionalDependencies>openholo_d.lib</AdditionalDependencies>
+    </CudaLink>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -228,7 +230,7 @@ xcopy /y "$(ProjectDir)src\*.h" "$(USERPROFILE)\source\repos\OpenholoRefApp\Refe
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>WIN32;WIN64;NDEBUG;_CONSOLE;RECON_EXPORT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;WIN64;NDEBUG;_CONSOLE;RECON_EXPORT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir)Reference\include\;$(CudaToolkitIncludeDir)</AdditionalIncludeDirectories>
       <AdditionalOptions>-Bv %(AdditionalOptions)</AdditionalOptions>
       <OpenMPSupport>true</OpenMPSupport>
@@ -249,21 +251,25 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"
 
 xcopy /y "$(TargetDir)$(ProjectName).lib" "$(SolutionDir)Reference\lib\"
 xcopy /y "$(TargetDir)$(ProjectName).dll" "$(SolutionDir)Reference\dll\"
-xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)Reference\include\"
-xcopy /y "$(TargetDir)$(ProjectName).dll" "$(USERPROFILE)\source\repos\OpenholoRefAppGUI\x64\Release\"
-xcopy /y "$(TargetDir)$(ProjectName).lib" "$(USERPROFILE)\source\repos\OpenholoRefAppGUI\Reference\lib\"
-xcopy /y "$(TargetDir)$(ProjectName).dll" "$(USERPROFILE)\source\repos\OpenholoRefAppGUI\Reference\dll\"
 
-xcopy /y "$(ProjectDir)src\*.h" "$(USERPROFILE)\source\repos\OpenholoRefAppGUI\Reference\include\"
+xcopy /y "$(TargetDir)$(ProjectName).dll" "$(SolutionDir)..\OpenholoRefAppGUI\x64\Release\"
+xcopy /y "$(TargetDir)$(ProjectName).lib" "$(SolutionDir)..\OpenholoRefAppGUI\Reference\lib\"
+xcopy /y "$(TargetDir)$(ProjectName).dll" "$(SolutionDir)..\OpenholoRefAppGUI\Reference\dll\"
 
-xcopy /y "$(TargetDir)$(ProjectName).dll" "$(USERPROFILE)\source\repos\OpenholoRefApp\bin\x64\Release\"
-xcopy /y "$(TargetDir)$(ProjectName).lib" "$(USERPROFILE)\source\repos\OpenholoRefApp\Reference\lib\"
-xcopy /y "$(TargetDir)$(ProjectName).dll" "$(USERPROFILE)\source\repos\OpenholoRefApp\Reference\dll\"
-xcopy /y "$(ProjectDir)src\*.h" "$(USERPROFILE)\source\repos\OpenholoRefApp\Reference\include\"</Command>
+xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)..\OpenholoRefAppGUI\Reference\include\"
+
+xcopy /y "$(TargetDir)$(ProjectName).dll" "$(SolutionDir)..\OpenholoRefApp\bin\x64\Release\"
+xcopy /y "$(TargetDir)$(ProjectName).lib" "$(SolutionDir)..\OpenholoRefApp\Reference\lib\"
+xcopy /y "$(TargetDir)$(ProjectName).dll" "$(SolutionDir)..\OpenholoRefApp\Reference\dll\"
+xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)..\OpenholoRefApp\Reference\include\"</Command>
     </PostBuildEvent>
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
     </CudaCompile>
+    <CudaLink>
+      <AdditionalDependencies>
+      </AdditionalDependencies>
+    </CudaLink>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

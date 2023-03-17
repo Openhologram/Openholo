@@ -47,6 +47,8 @@
 #include	"ophDepthMap_GPU.h"
 #include	<sys.h> 
 
+using namespace oph;
+
 void ophDepthMap::initGPU()
 {
 	const int nx = context_.pixel_number[0];
@@ -89,7 +91,7 @@ bool ophDepthMap::prepareInputdataGPU()
 	}
 	HANDLE_ERROR(cudaMemcpyAsync(dimg_src_gpu, depth_img, sizeof(uchar1) * N, cudaMemcpyHostToDevice, stream_));
 
-	LOG("%s => %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
+	LOG("%s : %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
 	return true;
 }
 
@@ -125,21 +127,21 @@ void ophDepthMap::calcHoloGPU()
 	const Real ppY = context_.pixel_pitch[_Y];
 	const Real ssX = context_.ss[_X] = pnX * ppX;
 	const Real ssY = context_.ss[_Y] = pnY * ppY;
-	const int N = pnX * pnY;
-	const int nChannel = context_.waveNum;
+	const uint N = pnX * pnY;
+	const uint nChannel = context_.waveNum;
 
 	size_t depth_sz = dm_config_.render_depth.size();
 
 	const bool bRandomPhase = GetRandomPhase();
 
-	for (int ch = 0; ch < nChannel; ch++)
+	for (uint ch = 0; ch < nChannel; ch++)
 	{
 		HANDLE_ERROR(cudaMemsetAsync(u_complex_gpu_, 0, sizeof(cufftDoubleComplex) * N, stream_));
 		HANDLE_ERROR(cudaMemcpyAsync(img_src_gpu, m_vecRGB[ch], sizeof(uchar1) * N, cudaMemcpyHostToDevice, stream_));
 		Real lambda = context_.wave_length[ch];
 		Real k = context_.k = (2 * M_PI / lambda);
 
-		for (int p = 0; p < depth_sz; ++p)
+		for (size_t p = 0; p < depth_sz; ++p)
 		{
 			Complex<Real> rand_phase_val;
 			GetRandomPhaseValue(rand_phase_val, bRandomPhase);
@@ -167,7 +169,7 @@ void ophDepthMap::calcHoloGPU()
 		//cudaFFT(stream_, pnX, pnY, u_complex_gpu_, k_temp_d_, 1);
 		cudaMemcpy(complex_H[ch], u_complex_gpu_, sizeof(cufftDoubleComplex) * N, cudaMemcpyDeviceToHost);
 	}
-	LOG("%s => %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
+	LOG("%s : %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
 }
 
 void ophDepthMap::free_gpu()

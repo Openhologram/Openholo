@@ -47,7 +47,7 @@
 #ifndef __ophSigKernel_cu
 #define __ophSigKernel_cu
 
-#include <cuda_runtime.h>
+#include <cuda_runtime_api.h>
 #include <cuda.h>
 #include <cufft.h>
 #include <device_launch_parameters.h>
@@ -296,8 +296,7 @@ extern "C"
 		unsigned int nblocks = (nx*ny + kBlockThreads - 1) / kBlockThreads;
 		int N = nx * ny;
 		cufftHandle plan;
-
-		cufftResult result;
+		cufftResult result = cufftPlan2d(&plan, ny, nx, CUFFT_Z2Z);
 
 		if (direction == -1)
 			result = cufftExecZ2Z(plan, output_field, in_field, CUFFT_FORWARD);
@@ -367,14 +366,14 @@ extern "C"
 		cudaKernel_sigCvtOFF << < nBlocks, kBlockThreads >> > (src_data, dst_data, device_config, nx, ny, wl, F, angle);
 		int tid = threadIdx.x + blockIdx.x*blockDim.x;
 		uchar * pDeviceBuffer;
-		Real* pM;
+		Real pM = 0;
 		int nBufferSize;
 		nppsSumGetBufferSize_64f(nx*ny, &nBufferSize);
 		cudaMalloc((void**)(&pDeviceBuffer), nBufferSize);
-		nppsMin_64f(dst_data, nx*ny, pM, pDeviceBuffer);
-		cudaKernel_sub << < nBlocks, kBlockThreads >> > (dst_data, nx, ny, pM);
-		nppsMax_64f(dst_data, nx*ny, pM, pDeviceBuffer);
-		cudaKernel_div << < nBlocks, kBlockThreads >> > (dst_data, src_data, nx, ny, pM);
+		nppsMin_64f(dst_data, nx*ny, &pM, pDeviceBuffer);
+		cudaKernel_sub << < nBlocks, kBlockThreads >> > (dst_data, nx, ny, &pM);
+		nppsMax_64f(dst_data, nx*ny, &pM, pDeviceBuffer);
+		cudaKernel_div << < nBlocks, kBlockThreads >> > (dst_data, src_data, nx, ny, &pM);
 		cudaFree(pDeviceBuffer);
 
 	}

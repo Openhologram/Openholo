@@ -50,7 +50,7 @@
 #include "ophLightField_GPU.h"
 #include <curand_kernel.h>
 
-__global__ void cudaKernel_CalcData(cufftDoubleComplex *src, const LFGpuConst* config)
+__global__ void cudaKernel_CalcDataLF(cufftDoubleComplex *src, const LFGpuConst* config)
 {
 	ulonglong tid = blockIdx.x * blockDim.x + threadIdx.x;
 	__shared__ double s_ppX;
@@ -113,7 +113,7 @@ __global__ void cudaKernel_CalcData(cufftDoubleComplex *src, const LFGpuConst* c
 	}
 }
 
-__global__ void cudaKernel_MoveDataPost(cufftDoubleComplex *src, cuDoubleComplex *dst, const LFGpuConst* config)
+__global__ void cudaKernel_MoveDataPostLF(cufftDoubleComplex *src, cuDoubleComplex *dst, const LFGpuConst* config)
 {
 	ulonglong tid = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -139,7 +139,7 @@ __global__ void cudaKernel_MoveDataPost(cufftDoubleComplex *src, cuDoubleComplex
 	}
 }
 
-__global__ void cudaKernel_MoveDataPre(cuDoubleComplex *src, cufftDoubleComplex *dst, const LFGpuConst* config)
+__global__ void cudaKernel_MoveDataPreLF(cuDoubleComplex *src, cufftDoubleComplex *dst, const LFGpuConst* config)
 {
 	ulonglong tid = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -260,11 +260,6 @@ __global__ void cudaKernel_MultiplyPhase(const LFGpuConst *config, cufftDoubleCo
 		{
 			double randomData = s_bRandomPhase ? curand_uniform_double(&state) : 1.0;
 
-			if (n == 15 && tid >= 0 && tid <= 10)
-			{
-				printf("bid(%d)tid(%d) : %lf\n", blockIdx.x, threadIdx.x, randomData);
-			}
-
 			cufftDoubleComplex phase = make_cuDoubleComplex(0, randomData * s_pi2);
 			exponent_complex(&phase);
 
@@ -327,7 +322,7 @@ extern "C"
 		const LFGpuConst* cuda_config)
 	{
 		cudaError_t error;
-		cudaKernel_MoveDataPre << <nBlocks, nThreads >> > (src, tmp, cuda_config);
+		cudaKernel_MoveDataPreLF << <nBlocks, nThreads >> > (src, tmp, cuda_config);
 		error = cudaDeviceSynchronize();
 		if (error != cudaSuccess)
 		{
@@ -335,7 +330,7 @@ extern "C"
 		}
 		cudaFFT(nullptr, nx * 2, ny * 2, tmp, tmp2, CUFFT_FORWARD, false);
 
-		cudaKernel_CalcData << <nBlocks2, nThreads >> > (tmp2, cuda_config);
+		cudaKernel_CalcDataLF << <nBlocks2, nThreads >> > (tmp2, cuda_config);
 		error = cudaDeviceSynchronize();
 		if (error != cudaSuccess)
 		{
@@ -343,7 +338,7 @@ extern "C"
 		}
 		cudaFFT(nullptr, nx * 2, ny * 2, tmp2, tmp, CUFFT_INVERSE, true);
 
-		cudaKernel_MoveDataPost << <nBlocks, nThreads >> > (tmp, dst, cuda_config);
+		cudaKernel_MoveDataPostLF << <nBlocks, nThreads >> > (tmp, dst, cuda_config);
 		error = cudaDeviceSynchronize();
 		if (error != cudaSuccess)
 		{

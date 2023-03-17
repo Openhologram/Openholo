@@ -17,6 +17,10 @@ static void HandleError(cudaError_t err,
                             printf( "Host memory failed in %s at line %d\n", \
                                     __FILE__, __LINE__ ); \
                             exit( EXIT_FAILURE );}} 
+
+
+CUDA* CUDA::instance = nullptr;
+
 CUDA::CUDA()
 {
 	printDevInfo();
@@ -34,15 +38,27 @@ bool CUDA::printDevInfo()
 	HANDLE_ERROR(cudaGetDeviceProperties(&devProp, devID));
 
 	LOG("GPU Spec : %s\n", devProp.name);
-	LOG(" - Global Memory : %u\n", devProp.totalGlobalMem);
-	LOG(" - Const Memory : %u\n", devProp.totalConstMem);
+#ifdef _WIN64
+	LOG(" - Global Memory : %llu\n", devProp.totalGlobalMem);
+	LOG(" - Const Memory : %llu\n", devProp.totalConstMem);
+#else
+	LOG(" - Global Memory : %zu\n", devProp.totalGlobalMem);
+	LOG(" - Const Memory : %zu\n", devProp.totalConstMem);
+#endif
 	LOG("  - MP(Multiprocessor) Count : %d\n", devProp.multiProcessorCount);
 	LOG("  - Maximum Threads per MP : %d\n", devProp.maxThreadsPerMultiProcessor);
 	LOG("  - Warp Size : %u\n", devProp.warpSize);
-	LOG("  - Shared Memory per MP : %u\n", devProp.sharedMemPerMultiprocessor);
+#ifdef _WIN64
+	LOG("  - Shared Memory per MP : %llu\n", devProp.sharedMemPerMultiprocessor);
+#else
+	LOG("  - Shared Memory per MP : %zu\n", devProp.sharedMemPerMultiprocessor);
+#endif
 	LOG("   - Block per MP : %d\n", devProp.maxThreadsPerMultiProcessor / devProp.maxThreadsPerBlock);
-
-	LOG("   - Shared Memory per Block : %u\n", devProp.sharedMemPerBlock);
+#ifdef _WIN64
+	LOG("   - Shared Memory per Block : %llu\n", devProp.sharedMemPerBlock);
+#else
+	LOG("   - Shared Memory per Block : %zu\n", devProp.sharedMemPerBlock);
+#endif
 	LOG("   - Maximum Threads per Block : %d\n", devProp.maxThreadsPerBlock);
 	LOG("   - Maximum Threads of each Dimension of a Block (X: %d / Y: %d / Z: %d)\n",
 		devProp.maxThreadsDim[_X], devProp.maxThreadsDim[_Y], devProp.maxThreadsDim[_Z]);
@@ -50,12 +66,6 @@ bool CUDA::printDevInfo()
 		devProp.maxGridSize[_X], devProp.maxGridSize[_Y], devProp.maxGridSize[_Z]);
 	LOG("   - Device supports allocating Managed Memory on this system : %d\n\n", devProp.managedMemory);
 
-
-	return true;
-}
-
-bool CUDA::init()
-{
 
 	return true;
 }

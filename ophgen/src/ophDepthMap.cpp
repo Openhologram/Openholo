@@ -45,8 +45,12 @@
 
 #include	"ophDepthMap.h"
 #include	<random>
+#ifdef _WIN64
 #include	<io.h>
 #include	<direct.h>
+#else
+#include	<dirent.h>
+#endif
 #include    "sys.h"
 #include	"tinyxml2.h"
 #include	"include.h"
@@ -69,7 +73,7 @@ ophDepthMap::ophDepthMap()
 	dmap = 0;
 	dstep = 0;
 	dlevel.clear();
-	setViewingWindow(FALSE);
+	setViewingWindow(false);
 	LOG("*** DEPTH MAP : BUILD DATE: %s %s ***\n\n", __DATE__, __TIME__);
 }
 
@@ -88,7 +92,6 @@ bool ophDepthMap::readConfig(const char * fname)
 		return false;
 
 	bool bRet = true;
-	auto begin = CUR_TIME;
 	/*XML parsing*/
 
 	using namespace tinyxml2;
@@ -111,21 +114,21 @@ bool ophDepthMap::readConfig(const char * fname)
 	xml_node = xml_doc.FirstChild();
 
 	char szNodeName[32] = { 0, };
-	wsprintfA(szNodeName, "FlagChangeDepthQuantization");
+	sprintf(szNodeName, "FlagChangeDepthQuantization");
 	auto next = xml_node->FirstChildElement(szNodeName);
 	if (!next || XML_SUCCESS != next->QueryBoolText(&dm_config_.change_depth_quantization))
 	{
 		LOG("<FAILED> Not found node : \'%s\' (Boolean) \n", szNodeName);
 		bRet = false;
 	}
-	wsprintfA(szNodeName, "DefaultDepthQuantization");
+	sprintf(szNodeName, "DefaultDepthQuantization");
 	next = xml_node->FirstChildElement(szNodeName);
 	if (!next || XML_SUCCESS != next->QueryUnsignedText(&dm_config_.default_depth_quantization))
 	{
 		LOG("<FAILED> Not found node : \'%s\' (Unsinged Integer) \n", szNodeName);
 		bRet = false;
 	}
-	wsprintfA(szNodeName, "NumberOfDepthQuantization");
+	sprintf(szNodeName, "NumberOfDepthQuantization");
 	next = xml_node->FirstChildElement(szNodeName);
 	if (!next || XML_SUCCESS != next->QueryUnsignedText(&dm_config_.num_of_depth_quantization))
 	{
@@ -139,7 +142,7 @@ bool ophDepthMap::readConfig(const char * fname)
 		dm_config_.num_of_depth = dm_config_.num_of_depth_quantization;
 
 	string render_depth;
-	wsprintfA(szNodeName, "RenderDepth");
+	sprintf(szNodeName, "RenderDepth");
 	next = xml_node->FirstChildElement(szNodeName);
 	if (!next || XML_SUCCESS != next->QueryBoolText(&dm_config_.change_depth_quantization))
 	{
@@ -174,28 +177,28 @@ bool ophDepthMap::readConfig(const char * fname)
 		bRet = false;
 	}
 
-	wsprintfA(szNodeName, "RandomPhase");
+	sprintf(szNodeName, "RandomPhase");
 	next = xml_node->FirstChildElement(szNodeName);
 	if (!next || XML_SUCCESS != next->QueryBoolText(&dm_config_.random_phase))
 	{
 		LOG("<FAILED> Not found node : \'%s\' (Boolean) \n", szNodeName);
 		bRet = false;
 	}
-	wsprintfA(szNodeName, "FieldLength");
+	sprintf(szNodeName, "FieldLength");
 	next = xml_node->FirstChildElement(szNodeName);
 	if (!next || XML_SUCCESS != next->QueryDoubleText(&dm_config_.fieldLength))
 	{
 		LOG("<FAILED> Not found node : \'%s\' (Double) \n", szNodeName);
 		bRet = false;
 	}
-	wsprintfA(szNodeName, "NearOfDepth");
+	sprintf(szNodeName, "NearOfDepth");
 	next = xml_node->FirstChildElement(szNodeName);
 	if (!next || XML_SUCCESS != next->QueryDoubleText(&dm_config_.near_depthmap))
 	{
 		LOG("<FAILED> Not found node : \'%s\' (Double) \n", szNodeName);
 		bRet = false;
 	}
-	wsprintfA(szNodeName, "FarOfDepth");
+	sprintf(szNodeName, "FarOfDepth");
 	next = xml_node->FirstChildElement(szNodeName);
 	if (!next || XML_SUCCESS != next->QueryDoubleText(&dm_config_.far_depthmap))
 	{
@@ -203,8 +206,15 @@ bool ophDepthMap::readConfig(const char * fname)
 		bRet = false;
 	}
 
-	LOG("%s => %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
 	initialize();
+
+	LOG("**************************************************\n");
+	LOG("              Read Config (Depth Map)             \n");
+	LOG("1) Focal Length : %.5lf ~ %.5lf\n", dm_config_.near_depthmap, dm_config_.far_depthmap);
+	LOG("2) Render Depth : %d:%d\n", dm_config_.render_depth[0], dm_config_.render_depth[dm_config_.render_depth.size() - 1]);
+	LOG("3) Number of Depth Quantization : %d\n", dm_config_.num_of_depth_quantization);
+	LOG("**************************************************\n");
+
 	return bRet;
 }
 
@@ -307,16 +317,17 @@ bool ophDepthMap::readImageDepth(const char* source_folder, const char* img_pref
 	const int pnY = context_.pixel_number[_Y];
 	const int N = pnX * pnY;
 
-	for (int i = 0; i < m_vecRGB.size(); i++)
+	for (size_t i = 0; i < m_vecRGB.size(); i++)
 	{
 		delete[] m_vecRGB[i];
 	} 
 	m_vecRGB.clear();
 
 	// RGB Image
+
+#ifdef _WIN64
 	std::string sdir = source_folder;
 	sdir = sdir.append("\\").append(img_prefix).append("*.bmp");
-
 	_finddatai64_t fd;
 	intptr_t handle;
 	handle = _findfirst64(sdir.c_str(), &fd);
@@ -326,9 +337,31 @@ bool ophDepthMap::readImageDepth(const char* source_folder, const char* img_pref
 		LOG("%.5lf (sec)\n.", ELAPSED_TIME(begin, CUR_TIME));
 		return false;
 	}
-
 	std::string imgfullname;
 	imgfullname = std::string(source_folder).append("\\").append(fd.name);
+#else
+	std::string sdir = source_folder;
+	std::string file = std::string(img_prefix) + ".bmp";
+
+	DIR* dir = nullptr;
+	struct dirent* ent;
+	if ((dir = opendir(sdir.c_str())) != nullptr) {
+		while ((ent = readdir(dir)) != nullptr) {
+			if (!strcmp(file.c_str(), ent->d_name))	break;
+		}
+		closedir(dir);
+	}
+	else
+	{
+		LOG("<FAILED> Source image does not exist: %s.\n", sdir.c_str());
+		LOG("%.5lf (sec)\n.", ELAPSED_TIME(begin, CUR_TIME));
+		return false;
+	}
+
+	std::string imgfullname;
+	imgfullname = std::string(source_folder).append("/").append(file);
+
+#endif
 
 	int w, h, bytesperpixel;
 	bool ret = getImgSize(w, h, bytesperpixel, imgfullname.c_str());
@@ -338,7 +371,7 @@ bool ophDepthMap::readImageDepth(const char* source_folder, const char* img_pref
 	ret = loadAsImgUpSideDown(imgfullname.c_str(), buf);
 	if (!ret) {
 		LOG("<FAILED> Image Load: %s\n", imgfullname.c_str());
-		LOG("%s => %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
+		LOG("%s : %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
 		return false;
 	}
 	LOG(" <SUCCEEDED> Image Load: %s\n", imgfullname.c_str());
@@ -379,17 +412,36 @@ bool ophDepthMap::readImageDepth(const char* source_folder, const char* img_pref
 
 	// Depth Image
 	//=================================================================================
+#ifdef _WIN64
 	std::string sddir = std::string(source_folder).append("\\").append(depth_img_prefix).append("*.bmp");
 	handle = _findfirst64(sddir.c_str(), &fd);
 	if (handle == -1)
 	{
-		LOG("<FAILED> Source depthmap does not exist: %s.\n", sdir.c_str());
-		LOG("%s => %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
+		LOG("<FAILED> Source depthmap does not exist: %s.\n", sddir.c_str());
+		LOG("%s : %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
 		return false;
 	}
 
 	std::string dimgfullname = std::string(source_folder).append("\\").append(fd.name);
+#else
+	std::string sddir = std::string(source_folder);
+	std::string file2 = std::string(depth_img_prefix) + ".bmp";
 
+	if ((dir = opendir(sddir.c_str())) != nullptr) {
+		while ((ent = readdir(dir)) != nullptr) {
+			if (!strcmp(file.c_str(), ent->d_name)) break;
+		}
+		closedir(dir);
+	}
+	else
+	{
+		LOG("<FAILED> Source depthmap does not exist: %s.\n", sddir.c_str());
+		LOG("%.5lf (sec)\n.", ELAPSED_TIME(begin, CUR_TIME));
+		return false;
+	}
+	std::string dimgfullname = std::string(source_folder).append("/").append(file2);
+
+#endif
 	int dw, dh, dbytesperpixel;
 	ret = getImgSize(dw, dh, dbytesperpixel, dimgfullname.c_str());
 	
@@ -398,7 +450,7 @@ bool ophDepthMap::readImageDepth(const char* source_folder, const char* img_pref
 	ret = loadAsImgUpSideDown(dimgfullname.c_str(), dbuf);
 	if (!ret) {
 		LOG("<FAILED> Image Load: %s\n", dimgfullname.c_str());
-		LOG("%s => %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
+		LOG("%s : %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
 		return false;
 	}
 	LOG(" <SUCCEEDED> Image Load: %s\n", dimgfullname.c_str());
@@ -429,13 +481,15 @@ bool ophDepthMap::readImageDepth(const char* source_folder, const char* img_pref
 	delete[] img;
 	delete[] dimg;
 
-	LOG("%s => %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
+	LOG("%s : %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
 	return true;
 }
 
 Real ophDepthMap::generateHologram()
 {
 	auto begin = CUR_TIME;
+	LOG("**************************************************\n");
+	LOG("                Generate Hologram                 \n");
 	LOG("1) Algorithm Method : Depth Map\n");
 	LOG("2) Generate Hologram with %s\n", m_mode & MODE_GPU ?
 		"GPU" :
@@ -445,7 +499,7 @@ Real ophDepthMap::generateHologram()
 		"Single Core CPU"
 #endif
 		);
-	LOG("3) Depth Level: %d\n", dm_config_.num_of_depth);
+	LOG("**************************************************\n");
 
 	resetBuffer();
 	m_vecEncodeSize = context_.pixel_number;
@@ -502,7 +556,7 @@ void ophDepthMap::encoding(unsigned int ENCODE_FLAG, unsigned int SSB_PASSBAND)
 	for (uint ch = 0; ch < nChannel; ch++) {
 
 		if (ENCODE_FLAG == ophGen::ENCODE_SSB) {
-			ivec2 location;
+			ivec2 location = ivec2(0, 0);
 			switch (SSB_PASSBAND) {
 			case SSB_TOP:
 				location = ivec2(0, 1);
@@ -572,14 +626,14 @@ void ophDepthMap::getDepthValues()
 		else
 			changeDepthQuanGPU();
 	}
-	LOG("%s => %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
+	LOG("%s : %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
 }
 
 void ophDepthMap::transVW()
 {
 	Real val;
 	dlevel_transform.clear();
-	for (int p = 0; p < dlevel.size(); p++)
+	for (size_t p = 0; p < dlevel.size(); p++)
 	{
 		val = -dm_config_.fieldLength * dlevel[p] / (dlevel[p] - dm_config_.fieldLength);
 		dlevel_transform.push_back(val);
@@ -591,7 +645,7 @@ void ophDepthMap::initCPU()
 	const uint pnX = context_.pixel_number[_X];
 	const uint pnY = context_.pixel_number[_Y];
 	const uint N = pnX * pnY;
-	const int nChannel = context_.waveNum;
+	const uint nChannel = context_.waveNum;
 
 	for (vector<Real *>::iterator it = m_vecImgSrc.begin(); it != m_vecImgSrc.end(); it++)
 	{
@@ -604,7 +658,7 @@ void ophDepthMap::initCPU()
 	}
 	m_vecAlphaMap.clear();
 
-	for (int ch = 0; ch < nChannel; ch++)
+	for (uint ch = 0; ch < nChannel; ch++)
 	{
 		Real *img_src = new Real[N];
 		int *alpha_map = new int[N];
@@ -628,8 +682,8 @@ void ophDepthMap::initCPU()
 bool ophDepthMap::prepareInputdataCPU()
 {
 	auto begin = CUR_TIME;
-	const uint N = context_.pixel_number[_X] * context_.pixel_number[_Y];
-	const int nChannel = context_.waveNum;
+	const long long int N = context_.pixel_number[_X] * context_.pixel_number[_Y];
+	const uint nChannel = context_.waveNum;
 
 	memset(depth_index, 0, sizeof(uint) * N);
 
@@ -641,18 +695,18 @@ bool ophDepthMap::prepareInputdataCPU()
 
 	Real gapDepth = dm_config_.far_depthmap - dm_config_.near_depthmap;
 	Real nearDepth = dm_config_.near_depthmap;
-	int k;
-	
-	for (int ch = 0; ch < nChannel; ch++)
+
+	for (uint ch = 0; ch < nChannel; ch++)
 	{
 #ifdef _OPENMP
-#pragma omp parallel for private(k) firstprivate(gapDepth, nearDepth)
+#pragma omp parallel for firstprivate(gapDepth, nearDepth)
 #endif
-		for (k = 0; k < N; k++)
+		for (long long int k = 0; k < N; k++)
 		{
 			m_vecImgSrc[ch][k] = Real(m_vecRGB[ch][k]) / 255.0; // RGB IMG
 			m_vecAlphaMap[ch][k] = (m_vecRGB[ch][k] > 0 ? 1 : 0); // RGB IMG
 
+			// once
 			if (ch == 0)
 			{
 				dmap_src[k] = Real(depth_img[k]) / 255.0; // DEPTH IMG
@@ -664,14 +718,14 @@ bool ophDepthMap::prepareInputdataCPU()
 		}
 	}
 
-	LOG("%s => %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
+	LOG("%s : %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
 	return true;
 }
 
 void ophDepthMap::changeDepthQuanCPU()
 {
 	auto begin = CUR_TIME;
-	const uint N = context_.pixel_number[_X] * context_.pixel_number[_Y];
+	const long long int N = context_.pixel_number[_X] * context_.pixel_number[_Y];
 
 	uint num_depth = dm_config_.num_of_depth;
 	Real near_depth = dm_config_.near_depthmap;
@@ -683,27 +737,27 @@ void ophDepthMap::changeDepthQuanCPU()
 	depth_fill.resize(dm_config_.render_depth.size() + 1, 0);
 	Real locDstep = dstep;
 
-	int i;
 #ifdef _OPENMP
-#pragma omp parallel for private(i) firstprivate(nearv, half_step, locDstep)
+#pragma omp parallel for firstprivate(nearv, half_step, locDstep)
 #endif
-	for (i = 0; i < N; i++)
+	for (long long int i = 0; i < N; i++)
 	{
 		int idx = int(((dmap[i] - nearv) + half_step) / locDstep);
 		depth_index[i] = idx + 1;
 		depth_fill[idx + 1] = 1;
 	}
-	LOG("%s => %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
+
+	LOG("%s : %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
 }
 
 void ophDepthMap::calcHoloCPU()
 {
 	auto begin = CUR_TIME;
 
-	const int pnX = context_.pixel_number[_X];
-	const int pnY = context_.pixel_number[_Y];
-	const int N = pnX * pnY;
-	const int nChannel = context_.waveNum;
+	const uint pnX = context_.pixel_number[_X];
+	const uint pnY = context_.pixel_number[_Y];
+	const long long int N = pnX * pnY;
+	const uint nChannel = context_.waveNum;
 
 	size_t depth_sz = dm_config_.render_depth.size();
 
@@ -712,19 +766,18 @@ void ophDepthMap::calcHoloCPU()
 
 	fftInit2D(context_.pixel_number, OPH_FORWARD, OPH_ESTIMATE);
 
-	for (int ch = 0; ch < nChannel; ch++)
+	for (uint ch = 0; ch < nChannel; ch++)
 	{
 		Real lambda = context_.wave_length[ch];
 		Real k = context_.k = (2 * M_PI / lambda);
 		Real *img_src = m_vecImgSrc[ch];
 		int *alpha_map = m_vecAlphaMap[ch];
 
-		for (int i = 0; i < depth_sz; i++)
+		for (size_t i = 0; i < depth_sz; i++)
 		{
 			int dtr = dm_config_.render_depth[i];
 			if (depth_fill[dtr])
 			{
-
 				memset(input, 0, sizeof(Complex<Real>) * N);
 				Real temp_depth = (is_ViewingWindow) ? dlevel_transform[dtr - 1] : dlevel[dtr - 1];
 
@@ -732,15 +785,13 @@ void ophDepthMap::calcHoloCPU()
 				GetRandomPhaseValue(rand_phase_val, bRandomPhase);
 
 				Complex<Real> carrier_phase_delay(0, k * -temp_depth);
-				carrier_phase_delay.exp();
-
-				int j;
+				carrier_phase_delay.exp();				
 #ifdef _OPENMP
-#pragma omp parallel for private(j) firstprivate(dtr, rand_phase_val, carrier_phase_delay)
+#pragma omp parallel for firstprivate(dtr, rand_phase_val, carrier_phase_delay)
 #endif
-				for (j = 0; j < N; j++)
+				for (long long int j = 0; j < N; j++)
 				{
-					input[j][_RE] = img_src[j] * alpha_map[j] * (depth_index[j] == dtr ? 1.0 : 0.0);
+					input[j][_RE] = img_src[j] * alpha_map[j] * ((int)depth_index[j] == dtr ? 1.0 : 0.0);
 					input[j] *= rand_phase_val * carrier_phase_delay;
 				}
 
@@ -753,7 +804,7 @@ void ophDepthMap::calcHoloCPU()
 	}
 	delete[] input;
 	fftFree();
-	LOG("%s => %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
+	LOG("%s : %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
 }
 
 void ophDepthMap::ophFree(void)

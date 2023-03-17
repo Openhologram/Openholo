@@ -37,12 +37,12 @@ Real ophIFTA::generateHologram()
 
 	auto begin = CUR_TIME;
 
-	const int nWave = context_.waveNum;
-	const uint pnX = context_.pixel_number[_X];
-	const uint pnY = context_.pixel_number[_Y];
+	const uint nWave = context_.waveNum;
+	const int pnX = context_.pixel_number[_X];
+	const int pnY = context_.pixel_number[_Y];
 	const Real ppX = context_.pixel_pitch[_X];
 	const Real ppY = context_.pixel_pitch[_Y];
-	const uint pnXY = pnX * pnY;
+	const long long int pnXY = pnX * pnY;
 	const Real ssX = context_.ss[_X];
 	const Real ssY = context_.ss[_Y];
 	const Real nDepth = m_config.num_of_depth;
@@ -52,7 +52,7 @@ Real ophIFTA::generateHologram()
 	int num_thread = 1;
 
 	Real *waveRatio = new Real[nWave];
-	for (int i = 0; i < nWave; i++) {
+	for (uint i = 0; i < nWave; i++) {
 		waveRatio[i] = context_.wave_length[nWave - 1] / context_.wave_length[i];
 	}
 
@@ -65,11 +65,10 @@ Real ophIFTA::generateHologram()
 	memset(depth_quant, 0, sizeof(Real) * pnXY);
 
 	for (int depth = nDepth; depth > 0; depth--) {
-		int i;
 #ifdef _OPENMP
-#pragma omp parallel for private(i)
+#pragma omp parallel for
 #endif
-		for (i = 0; i < pnXY; i++) {
+		for (int i = 0; i < pnXY; i++) {
 			depth_quant[i] += (imgDepth[i] > (depth*m / nDepth)) ? 1 : 0;
 		}
 	}
@@ -81,15 +80,13 @@ Real ophIFTA::generateHologram()
 	for (int depth = 0; depth < nDepth; depth++) {
 		z = farDepth - (d*depth);
 
-		for (int ch = 0; ch < nWave; ch++) {
+		for (uint ch = 0; ch < nWave; ch++) {
 			uchar *img = new uchar[pnXY];
 			separateColor(ch, pnX, pnY, imgRGB, img);
-
-			int i, j;
 #ifdef _OPENMP
-#pragma omp parallel for private(i)
+#pragma omp parallel for
 #endif
-			for (i = 0; i < pnXY; i++) {
+			for (int i = 0; i < pnXY; i++) {
 				Real val = (depth_quant[i] == depth) ? 1.0 : 0.0;
 				img[i] = val * (Real)img[i];
 			}
@@ -110,8 +107,6 @@ Real ophIFTA::generateHologram()
 			Complex<Real> c3(0.0, -k / (2 * z));
 			uchar *img_tmp = nullptr;
 			uchar *imgScaled = nullptr;
-
-			int y;
 
 			// blue에서는 리사이즈 할 필요가 없다.
 			if (ch < 2)
@@ -135,9 +130,9 @@ Real ophIFTA::generateHologram()
 
 				// 이미지를 중앙으로 조정
 #ifdef _OPENMP
-#pragma omp parallel for private(y)
+#pragma omp parallel for
 #endif
-				for (y = 0; y < scaleY; y++) {
+				for (int y = 0; y < scaleY; y++) {
 					for (int x = 0; x < scaleX; x++) {
 						img_tmp[(y + h1)*ww + x + w1] = imgScaled[y*scaleX + x];
 					}
@@ -151,9 +146,9 @@ Real ophIFTA::generateHologram()
 			Complex<Real> *kernel = new Complex<Real>[pnXY];
 			Complex<Real> *kernel2 = new Complex<Real>[pnXY];
 #ifdef _OPENMP
-#pragma omp parallel for private(y)
+#pragma omp parallel for
 #endif
-			for (y = 0; y < pnY; y++) {
+			for (int y = 0; y < pnY; y++) {
 				int offset = y * pnX;
 
 				Real ty = hStartY + (y * hppY);
@@ -198,26 +193,25 @@ Real ophIFTA::generateHologram()
 
 			if (nIteration == 0) {
 #ifdef _OPENMP
-#pragma omp parallel for private(j)
+#pragma omp parallel for
 #endif
-				for (j = 0; j < pnXY; j++) {
+				for (int j = 0; j < pnXY; j++) {
 					result2[j] = tmp[j] / kernel2[j];
 					complex_H[ch][j] += result2[j];
 				}
 			}
 			else {
 #ifdef _OPENMP
-#pragma omp parallel for private(y)
+#pragma omp parallel for
 #endif
-				for (y = 0; y < pnX*pnY; y++) {
+				for (int y = 0; y < pnXY; y++) {
 					result2[y] = tmp[y] / kernel2[y];
 				}
 
 				memset(tmp, 0, sizeof(Complex<Real>) * pnXY);
 
 				for (int i = 0; i < nIteration; i++) {
-					int j;
-					for (j = 0; j < pnXY; j++) {
+					for (int j = 0; j < pnXY; j++) {
 						result2[j] = tmp[j] / kernel2[j];
 						tmp[j][_RE] = 0.0;
 						tmp[j][_IM] = result2[j].angle();
@@ -230,7 +224,7 @@ Real ophIFTA::generateHologram()
 					fftExecute(tmp);
 					fftShift(pnX, pnY, tmp, result1);
 
-					for (j = 0; j < pnXY; j++) {
+					for (int j = 0; j < pnXY; j++) {
 						result1[j] /= kernel[j];
 						Complex<Real> aa(0.0, result1[j].angle());
 						aa = aa.exp();
@@ -241,13 +235,13 @@ Real ophIFTA::generateHologram()
 					fft2(ivec2(pnX, pnY), tmp, OPH_FORWARD, OPH_ESTIMATE);
 					fftExecute(tmp2, true);
 
-					for (j = 0; j < pnXY; j++) {
+					for (int j = 0; j < pnXY; j++) {
 						result2[j] = tmp2[j] / kernel2[j];
 					}
 					LOG("Iteration (%d / %d)\n", i + 1, nIteration);
 				}
-				memset(img, 0, pnX * pnY);
-				for (j = 0; j < pnXY; j++) {
+				memset(img, 0, pnXY);
+				for (int j = 0; j < pnXY; j++) {
 					complex_H[ch][j] += result2[j];
 				}
 			}
@@ -277,13 +271,13 @@ Real ophIFTA::generateHologram()
 
 bool ophIFTA::normalize()
 {
-	const int nWave = context_.waveNum;
+	const uint nWave = context_.waveNum;
 	const uint pnX = context_.pixel_number[_X];
 	const uint pnY = context_.pixel_number[_Y];
-	const uint pnXY = pnX * pnY;
+	const long long int pnXY = pnX * pnY;
 	const Real pi2 = M_PI * 2;
 
-	for (int ch = 0; ch < nWave; ch++) {
+	for (uint ch = 0; ch < nWave; ch++) {
 		for (int i = 0; i < pnXY; i++) {
 			m_lpNormalized[ch][i] = m_lpEncoded[ch][i] / pi2 * 255;
 		}
@@ -399,7 +393,7 @@ bool ophIFTA::readImage(const char* fname, bool bRGB)
 
 uchar ophIFTA::getMax(uchar *src, int width, int height)
 {
-	uint size = width * height;
+	const long long int size = width * height;
 	uchar max = 0;
 
 	for (int i = 0; i < size; i++) {

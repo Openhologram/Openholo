@@ -20,6 +20,7 @@
 //CGHEnvironmentData CONF;	// config
 
 using namespace std;
+using namespace oph;
 
 ophPAS_GPU::ophPAS_GPU(void)
 	: ophGen()
@@ -603,7 +604,7 @@ void ophPAS_GPU::PAS(long voxelnum, OphPointCloudData *data, double * m_pHologra
 */
 void ophPAS_GPU::DataInit(int segsize, int cghwidth, int cghheight, float xiinter, float etainter)
 {
-	int i, j;
+	int i;
 	
 	
 
@@ -644,7 +645,7 @@ void ophPAS_GPU::DataInit(int segsize, int cghwidth, int cghheight, float xiinte
 	m_PickPoint_cy = new int[m_segNumy];
 
 	
-	for (i = 0; i<NUMTBL; i++) {
+	for (int i = 0; i<NUMTBL; i++) {
 		float theta = (float)M2_PI * (float)(i + i - 1) / (float)(2 * NUMTBL);
 		m_COStbl[i] = (float)cos(theta);
 		m_SINtbl[i] = (float)sin(theta);
@@ -691,8 +692,6 @@ void ophPAS_GPU::DataInit(int segsize, int cghwidth, int cghheight, float xiinte
 
 void ophPAS_GPU::MemoryRelease(void)
 {
-	int i, j;
-
 	cudaFree(&se);
 
 	fftw_destroy_plan(m_plan);
@@ -856,8 +855,8 @@ void ophPAS_GPU::CalcCompensatedPhase(float cx, float cy, float cz, float amp
 	cudaMemcpyAsync(d_const.sintbl, SINtbl, sizeof(float)*NUMTBL, cudaMemcpyHostToDevice);
 	
 	
-	
-	cuda_Wrapper_phaseCalc(inRe_d, inIm_d, d_const, cx, cy, cz, amp, ivec3(segNumx, segNumy, segsize));
+	ivec3 v(segNumx, segNumy, segsize);
+	cuda_Wrapper_phaseCalc(inRe_d, inIm_d, d_const, cx, cy, cz, amp, v);
 	//phaseCalc << <blockSize, gridSize >> >(inRe_d, inIm_d, d_const);
 	
 	
@@ -1006,21 +1005,21 @@ void ophPAS_GPU::encodeHologram(const vec2 band_limit, const vec2 spectrum_shift
 	Real* x_o = new Real[pnX];
 	Real* y_o = new Real[pnY];
 
-	for (int i = 0; i < pnX; i++)
+	for (uint i = 0; i < pnX; i++)
 		x_o[i] = (-ss[_X] / 2) + (ppX * i) + (ppX / 2);
 
-	for (int i = 0; i < pnY; i++)
+	for (uint i = 0; i < pnY; i++)
 		y_o[i] = (ss[_Y] - ppY) - (ppY * i);
 
 	Real* xx_o = new Real[pnXY];
 	Real* yy_o = new Real[pnXY];
 
-	for (int i = 0; i < pnXY; i++)
+	for (uint i = 0; i < pnXY; i++)
 		xx_o[i] = x_o[i % pnX];
 
 
-	for (int i = 0; i < pnX; i++)
-		for (int j = 0; j < pnY; j++)
+	for (uint i = 0; i < pnX; i++)
+		for (uint j = 0; j < pnY; j++)
 			yy_o[i + j * pnX] = y_o[j];
 
 	Complex<Real>* h = new Complex<Real>[pnXY];

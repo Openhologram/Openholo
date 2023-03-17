@@ -43,11 +43,18 @@
 //
 //M*/
 
+/**
+* @file		ophRecKernel.cu
+* @brief	Openholo Reconstruction with CUDA GPGPU
+* @author	Minwoo Nam
+* @date		2021/12
+*/
+
+
 #ifndef ophRecKernel_cu__
 #define ophRecKernel_cu__
-
 #include "ophKernel.cuh"
-#include <cuda_runtime.h>
+#include <cuda_runtime_api.h>
 #include <cuda.h>
 #include <curand_kernel.h>
 #include <curand_uniform.h>

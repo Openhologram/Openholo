@@ -88,8 +88,15 @@ property uchar blue		#diffuse_blue
 end_header
 */
 
+//#ifdef _WIN32
+//#define OPH_DLL __declspec(dllexport)
+//#else
+//#define OPH_DLL __attribute__((visibility("default")))
+//#endif
 
-class __declspec(dllexport) PLYparser {
+
+
+class OPH_DLL PLYparser {
 public:
 	PLYparser();
 	~PLYparser();
@@ -141,38 +148,31 @@ private:
 		int &propertyIdx);
 	
 public:
-	bool loadPLY(					// for Point Cloud Data
+	bool loadPLY(
 		const std::string& fileName,
-		ulonglong &n_points,
-		int &color_channels, //1 or 3 (If it is 4, Alpha channel is not loaded.)
-		Real** vertexArray,
-		Real** colorArray,
-		Real** phaseArray, //If isPhaseParse is false, PhaseArray is nullptr
-		bool &isPhaseParse);
-
-	bool savePLY(					
-		const std::string& fileName,
-		const ulonglong n_points,
-		const int color_channels,
-		Real* vertexArray,
-		Real* colorArray,
-		Real* phaseArray);
-
-	bool loadPLY(					// for Triangle Mesh Data
-		const char* fileName,
-		ulonglong &n_vertices,
-		int &color_channels,
-		uint** face_idx,
-		Real** vertexArray,
-		Real** colorArray);
+		ulonglong& n_points,
+		Vertex** vertices
+	);
 
 	bool savePLY(
-		const char* fileName,
+		const std::string& fileName,
+		const ulonglong n_points,
+		Vertex* vertices,
+		bool isBinary
+	);
+
+	bool loadPLY(
+		const std::string& fileName,
+		ulonglong& n_Vertices,
+		Face** faces
+	);
+
+	bool savePLY(
+		const std::string& fileName,
 		const ulonglong n_vertices,
-		const int color_channels,
-		uint* face_idx,
-		Real* vertexArray,
-		Real* colorArray);
+		Face* faces,
+		bool isBinary
+	);
 };
 
 

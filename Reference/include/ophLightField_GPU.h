@@ -43,37 +43,96 @@
 //
 //M*/
 
-#ifndef __ophSig_GPU_H_
-#define __ophSig_GPU_H_
+#ifndef __ophLightField_GPU_h
+#define __ophLightField_GPU_h
 
-#include	<cufft.h>
-#include <npp.h>
-//#include	"ophSig.h"
-#include <cuda_profiler_api.h>
+#include "ophLightField.h"
+#include <cuda_runtime_api.h>
+#include <cufft.h>
+#include <math_constants.h>
 
-#include <cuda_runtime.h>
 
-cufftDoubleComplex* complex_holog_gpu;
+static void HandleError(cudaError_t err,
+	const char *file,
+	int line) {
+	if (err != cudaSuccess) {
+		printf("%s in %s at line %d\n", cudaGetErrorString(err),
+			file, line);
+		return;
+	}
+}
+#define HANDLE_ERROR( err ) (HandleError( err, __FILE__, __LINE__ ))
 
-cudaStream_t streamLF;
+
+#define HANDLE_NULL( a ) {if (a == NULL) { \
+                            printf( "Host memory failed in %s at line %d\n", \
+                                    __FILE__, __LINE__ ); \
+                            exit( EXIT_FAILURE );}} 
+
+typedef struct KernelConst {
+	int pnX;
+	int pnY;
+	Real ppX;
+	Real ppY;
+	Real lambda;
+	Real pi2;
+	Real k;
+	Real distance;
+	bool randomPhase;
+	int nX;
+	int nY;
+	int rX;
+	int rY;
+	int nChannel;
+	int iAmp;
+
+	KernelConst(
+		const int &channel,
+		const int &iAmp,
+		const int &pnX,
+		const int &pnY,
+		const Real &ppX,
+		const Real &ppY,
+		const int &nX,
+		const int &nY,
+		const int &rX,
+		const int &rY,
+		const Real &distance,
+		const Real &k,
+		const Real &lambda,
+		const bool &random_phase
+	)
+	{
+		this->nChannel = channel;
+		this->iAmp = iAmp;
+		this->pnX = pnX;
+		this->pnY = pnY;
+		this->ppX = ppX;
+		this->ppY = ppY;
+		this->nX = nX;
+		this->nY = nY;
+		this->rX = rX;
+		this->rY = rY;
+		this->lambda = lambda;
+		this->pi2 = M_PI * 2;
+		this->k = pi2 / lambda;
+		this->distance = distance;
+		this->randomPhase = random_phase;
+	}
+} LFGpuConst;
 
 extern "C"
 {
-	void cudaCvtFieldToCuFFT(Complex<Real> *src_data, cufftDoubleComplex *dst_data, int nx, int ny);
-	void cudaCvtCuFFTToField(cufftDoubleComplex *src_data, Complex<Real> *dst_data, int nx, int ny);
-	void cudaCuFFT(cufftHandle* plan, cufftDoubleComplex *src_data, cufftDoubleComplex *dst_data, int nx, int ny, int direction);
-	
-	void cudaCuIFFT(cufftHandle* plan, cufftDoubleComplex *src_data, cufftDoubleComplex *dst_data, int nx, int ny, int direction);
-	
-	
-	void cudaCvtOFF( Complex<Real> *src_data, Real *dst_data, ophSigConfig *device_config,  int nx, int ny, Real wl,Complex<Real> *F, Real *angle);
-	void cudaCvtHPO(CUstream_st* stream, cufftDoubleComplex *src_data, cufftDoubleComplex *dst_data, ophSigConfig *device_config, Complex<Real> *F,int nx, int ny, Real Rephase, Real Imphase);
-	void cudaCvtCAC(cufftDoubleComplex *src_data, cufftDoubleComplex *dst_data,  Complex<Real> *FFZP, ophSigConfig *device_config, int nx, int ny,Real sigmaf, Real radius);
+	void cudaConvertLF2ComplexField_Kernel(CUstream_st* stream, const int &nBlocks, const int &nThreads, const LFGpuConst *config, uchar1** LF, cufftDoubleComplex* output);
+	void cudaFFT_LF(cufftHandle *plan, CUstream_st* stream, const int &nBlocks, const int &nThreads, const int &nx, const int &ny, cufftDoubleComplex* in_field, cufftDoubleComplex* output_field, const int &direction);
 
-	void cudaPropagation(cufftDoubleComplex *src_data, cufftDoubleComplex *dst_data, Complex<Real> *FH, ophSigConfig *device_config, int nx, int ny, Real sigmaf);
-	double cudaGetParamSF(cufftHandle *fftplan, cufftDoubleComplex *src_data,  cufftDoubleComplex *temp_data, cufftDoubleComplex *dst_data, Real *f, Complex<Real> *FH, ophSigConfig *device_config, int nx, int ny, float zMax, float zMin, int sampN, float th, Real wl);
-	void cudaGetParamAT1(Complex<Real> *src_data, Complex<Real> *Flr, Complex<Real> *Fli, Complex<Real> *G, ophSigConfig *device_config, int nx, int ny, Real_t NA_g, Real wl);
-	void cudaGetParamAT2(Complex<Real> *Flr, Complex<Real> *Fli, Complex<Real> *G, Complex<Real> *temp_data, int nx, int ny);
+	void procMultiplyPhase(CUstream_st* stream, const int &nBlocks, const int &nThreads, const LFGpuConst *config, cufftDoubleComplex* in, cufftDoubleComplex* output);
 
+	void cudaFresnelPropagationLF(
+		const int &nBlocks, const int &nBlocks2, const int &nThreads, const int &nx, const int &ny,
+		cufftDoubleComplex *src, cufftDoubleComplex *tmp, cufftDoubleComplex *tmp2, cufftDoubleComplex *dst,
+		const LFGpuConst* cuda_config);
 }
+
+
 #endif

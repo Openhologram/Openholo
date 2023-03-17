@@ -9,19 +9,15 @@ void ophAS::Angular_Spectrum_GPU(double w, double h, double wavelength, double k
 	int loop_ub;
 	int i;
 	coder::array<creal_T, 2U> fringe_temp3;
-	double eta;
-	int xi_id;
+	//double eta;
+	//int xi_id;
 	coder::array<creal_T, 2U> fringe_temp2;
-	double y_im;
-	double y_re;
+	//double y_im;
+	//double y_re;
 	double minfrequency_eta;
 	double minfrequency_xi;
 
 	constValue val;
-	dim3 blockSize = dim3(32, 32);
-	dim3 gridSize = dim3((w + 32 - 1) / 32, (h + 32 - 1) / 32);
-
-
 	val.wavelength = wavelength;
 	val.depth = depth;
 	val.knumber = knumber;

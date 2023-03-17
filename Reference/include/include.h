@@ -46,8 +46,8 @@
 #ifndef __include_h
 #define __include_h
 
-#define _OPH_LIB_VERSION_MAJOR_ 0
-#define _OPH_LIB_VERSION_MINOR_ 4
+#define _OPH_LIB_VERSION_MAJOR_ 3
+#define _OPH_LIB_VERSION_MINOR_ 0
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -63,15 +63,30 @@
 #include <vector>
 #include <map>
 #include <chrono>
+#include <cstring>
 
-#include "define.h"
-#include "enumerator.h"
+//#include "define.h"
 #include "function.h"
 #include "typedef.h"
 #include "struct.h"
 
+#pragma once
+#if defined(_WIN32) || defined(_WIN64)
+#ifdef OPH_EXPORT
+#define OPH_DLL __declspec(dllexport)
+#else
+#define OPH_DLL __declspec(dllimport)
+#endif
+#else
+#ifdef OPH_EXPORT
+#define OPH_DLL __attribute__((visibility("default")))
+#else
+#define OPH_DLL
+#endif
+#endif
+
 using namespace std;
-
+#ifdef _MSC_VER
 #pragma warning(disable : 4251 4819 4244)
-
+#endif
 #endif // !__include_h

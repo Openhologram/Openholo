@@ -98,13 +98,13 @@ void ophRec::ASM_Propagation_GPU()
 
 	Real* max_device;
 	Real* min_device;
-	HANDLE_ERROR(cudaMalloc(&max_device, sizeof(Real)));
-	HANDLE_ERROR(cudaMalloc(&min_device, sizeof(Real)));
+	HANDLE_ERROR(cudaMalloc((void **)&max_device, sizeof(Real)));
+	HANDLE_ERROR(cudaMalloc((void**)&min_device, sizeof(Real)));
 
-	byte* nppMaxBuffer;
+	unsigned char* nppMaxBuffer;
 	int nBuffer;
 	nppsSumGetBufferSize_64f(N, &nBuffer);
-	HANDLE_ERROR(cudaMalloc(&nppMaxBuffer, nBuffer));
+	HANDLE_ERROR(cudaMalloc((void**)&nppMaxBuffer, nBuffer));
 
 	LOG("%lf (s)\n", ELAPSED_TIME(step, CUR_TIME));
 

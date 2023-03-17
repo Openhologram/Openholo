@@ -46,9 +46,13 @@
 #include "ophGen.h"
 #include "sys.h"
 #include "function.h"
-#include <cuda_runtime.h>
+#include <cuda_runtime_api.h>
 #include <cufft.h>
 #include <omp.h>
+#include <iostream>
+#include <sstream>
+#include <algorithm>
+#include "ImgControl.h"
 #include "tinyxml2.h"
 #include "PLYparser.h"
 
@@ -107,14 +111,28 @@ extern "C"
 
 ophGen::ophGen(void)
 	: Openholo()
+	, m_vecEncodeSize()
+	, ENCODE_METHOD(0)
+	, SSB_PASSBAND(0)
+	, m_elapsedTime(0.0)
 	, m_lpEncoded(nullptr)
 	, m_lpNormalized(nullptr)
 	, m_nOldChannel(0)
-	, m_elapsedTime(0.0)
+	, m_precision(PRECISION::DOUBLE)
 	, m_dFieldLength(0.0)
 	, m_nStream(1)
 	, m_mode(0)
-	, m_precision(PRECISION::DOUBLE)
+	, AS(nullptr)
+	, normalized(nullptr)
+	, fftTemp(nullptr)
+	, weight(nullptr)
+	, weightC(nullptr)
+	, freqW(nullptr)
+	, realEnc(nullptr)
+	, binary(nullptr)
+	, maskSSB(nullptr)
+	, maskHP(nullptr)
+	, m_bRandomPhase(false)
 {
 
 }
@@ -126,12 +144,9 @@ ophGen::~ophGen(void)
 
 void ophGen::initialize(void)
 {
-	auto begin = CUR_TIME;
 	// Output Image Size
-	const uint pnX = context_.pixel_number[_X];
-	const uint pnY = context_.pixel_number[_Y];
-	const uint pnXY = pnX * pnY;
-	const int nChannel = context_.waveNum;
+	const long long int pnXY = context_.pixel_number[_X] * context_.pixel_number[_Y];
+	const uint nChannel = context_.waveNum;
 
 	// Memory Location for Result Image
 	if (complex_H != nullptr) {
@@ -184,9 +199,8 @@ void ophGen::initialize(void)
 	}
 
 	m_nOldChannel = nChannel;
-	m_vecEncodeSize[_X] = pnX;
-	m_vecEncodeSize[_Y] = pnY;
-	LOG("%s => %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
+	m_vecEncodeSize[_X] = context_.pixel_number[_X];
+	m_vecEncodeSize[_Y] = context_.pixel_number[_Y];
 }
 
 int ophGen::loadPointCloud(const char* pc_file, OphPointCloudData *pc_data_)
@@ -195,11 +209,11 @@ int ophGen::loadPointCloud(const char* pc_file, OphPointCloudData *pc_data_)
 	auto begin = CUR_TIME;
 
 	PLYparser plyIO;
-	if (!plyIO.loadPLY(pc_file, pc_data_->n_points, pc_data_->n_colors, &pc_data_->vertex, &pc_data_->color, &pc_data_->phase, pc_data_->isPhaseParse))
+	if (!plyIO.loadPLY(pc_file, pc_data_->n_points, &pc_data_->vertices))
 		n_points = -1;
 	else
 		n_points = pc_data_->n_points;
-	LOG("%s => %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
+	LOG("%s : %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
 	return n_points;
 }
 
@@ -207,8 +221,6 @@ bool ophGen::readConfig(const char* fname)
 {
 	bool bRet = true;
 	using namespace tinyxml2;
-
-	auto begin = CUR_TIME;
 	tinyxml2::XMLDocument xml_doc;
 	XMLNode *xml_node = nullptr;
 
@@ -220,7 +232,7 @@ bool ophGen::readConfig(const char* fname)
 	auto ret = xml_doc.LoadFile(fname);
 	if (ret != XML_SUCCESS)
 	{
-		LOG("<FAILED> Loading file.\n");
+		LOG("<FAILED> Loading file (%d)\n", ret);
 		return false;
 	}
 	xml_node = xml_doc.FirstChild();
@@ -228,7 +240,7 @@ bool ophGen::readConfig(const char* fname)
 	int nWave = 1;
 	char szNodeName[32] = { 0, };
 
-	wsprintfA(szNodeName, "SLM_WaveNum");
+	sprintf(szNodeName, "SLM_WaveNum");
 	auto next = xml_node->FirstChildElement(szNodeName); // OffsetInDepth
 	if (!next || XML_SUCCESS != next->QueryIntText(&nWave))
 	{
@@ -240,7 +252,7 @@ bool ophGen::readConfig(const char* fname)
 	context_.wave_length = new Real[nWave];
 
 	for (int i = 1; i <= nWave; i++) {
-		wsprintfA(szNodeName, "SLM_WaveLength_%d", i);
+		sprintf(szNodeName, "SLM_WaveLength_%d", i);
 		next = xml_node->FirstChildElement(szNodeName);
 		if (!next || XML_SUCCESS != next->QueryDoubleText(&context_.wave_length[i - 1]))
 		{
@@ -249,7 +261,7 @@ bool ophGen::readConfig(const char* fname)
 		}
 	}
 
-	wsprintfA(szNodeName, "SLM_PixelNumX");
+	sprintf(szNodeName, "SLM_PixelNumX");
 	next = xml_node->FirstChildElement(szNodeName);
 	if (!next || XML_SUCCESS != next->QueryIntText(&context_.pixel_number[_X]))
 	{
@@ -257,7 +269,7 @@ bool ophGen::readConfig(const char* fname)
 		bRet = false;
 	}
 
-	wsprintfA(szNodeName, "SLM_PixelNumY");
+	sprintf(szNodeName, "SLM_PixelNumY");
 	next = xml_node->FirstChildElement(szNodeName);
 	if (!next || XML_SUCCESS != next->QueryIntText(&context_.pixel_number[_Y]))
 	{
@@ -265,7 +277,7 @@ bool ophGen::readConfig(const char* fname)
 		bRet = false;
 	}
 
-	wsprintfA(szNodeName, "SLM_PixelPitchX");
+	sprintf(szNodeName, "SLM_PixelPitchX");
 	next = xml_node->FirstChildElement("SLM_PixelPitchX");
 	if (!next || XML_SUCCESS != next->QueryDoubleText(&context_.pixel_pitch[_X]))
 	{
@@ -273,7 +285,7 @@ bool ophGen::readConfig(const char* fname)
 		bRet = false;
 	}
 
-	wsprintfA(szNodeName, "SLM_PixelPitchY");
+	sprintf(szNodeName, "SLM_PixelPitchY");
 	next = xml_node->FirstChildElement("SLM_PixelPitchY");
 	if (!next || XML_SUCCESS != next->QueryDoubleText(&context_.pixel_pitch[_Y]))
 	{
@@ -308,7 +320,7 @@ bool ophGen::readConfig(const char* fname)
 		m_dFieldLength = 0.0;
 	next = xml_node->FirstChildElement("RandomPhase");
 	if (!next || XML_SUCCESS != next->QueryBoolText(&m_bRandomPhase))
-		m_bRandomPhase = true;
+		m_bRandomPhase = false;
 	next = xml_node->FirstChildElement("NumOfStream");
 	if (!next || XML_SUCCESS != next->QueryIntText(&m_nStream))
 		m_nStream = 1;
@@ -323,12 +335,25 @@ bool ophGen::readConfig(const char* fname)
 	for (int i = 0; i < nWave; i++)
 		Openholo::setWavelengthOHC(context_.wave_length[i], LenUnit::m);
 
-	LOG("%s => %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
+	LOG("**************************************************\n");
+	LOG("                Read Config (Common)              \n");
+	LOG("1) SLM Number of Waves : %d\n", context_.waveNum);
+	for (uint i = 0; i < context_.waveNum; i++)
+		LOG(" 1-%d) SLM Wave length : %e\n", i + 1, context_.wave_length[i]);
+	LOG("2) SLM Resolution : %d x %d\n", context_.pixel_number[_X], context_.pixel_number[_Y]);
+	LOG("3) SLM Pixel Pitch : %e x %e\n", context_.pixel_pitch[_X], context_.pixel_pitch[_Y]);
+	LOG("4) Image Rotate : %s\n", imgCfg.rotate ? "Y" : "N");
+	LOG("5) Image Flip : %s\n", (imgCfg.flip == FLIP::NONE) ? "NONE" : 
+		(imgCfg.flip == FLIP::VERTICAL) ? "VERTICAL" : 
+		(imgCfg.flip == FLIP::HORIZONTAL) ? "HORIZONTAL" : "BOTH");
+	LOG("6) Image Merge : %s\n", imgCfg.merge ? "Y" : "N");
+	LOG("**************************************************\n");
 
 	return bRet;
 }
 
-void ophGen::RS_Diffraction(vec3 src, Complex<Real> *dst, Real lambda, Real distance, Real amplitude)
+
+void ophGen::RS_Diffraction(Point src, Complex<Real> *dst, Real lambda, Real distance, Real amplitude)
 {
 	OphConfig *pConfig = &context_;
 	const int pnX = pConfig->pixel_number[_X];
@@ -346,18 +371,18 @@ void ophGen::RS_Diffraction(vec3 src, Complex<Real> *dst, Real lambda, Real dist
 	const Real x = -ssX / 2;
 	const Real y = -ssY / 2;
 	const Real k = (2 * M_PI) / lambda;
-	Real z = src[_Z] + distance;
+	Real z = src.pos[_Z] + distance;
 	Real zz = z * z;
 	Real ampZ = amplitude * z;
 
 	Real _xbound[2] = {
-		src[_X] + abs(tx / sqrtX * z),
-		src[_X] - abs(tx / sqrtX * z)
+		src.pos[_X] + abs(tx / sqrtX * z),
+		src.pos[_X] - abs(tx / sqrtX * z)
 	};
 
 	Real _ybound[2] = {
-		src[_Y] + abs(ty / sqrtY * z),
-		src[_Y] - abs(ty / sqrtY * z)
+		src.pos[_Y] + abs(ty / sqrtY * z),
+		src.pos[_Y] - abs(ty / sqrtY * z)
 	};
 
 	Real Xbound[2] = {
@@ -382,17 +407,17 @@ void ophGen::RS_Diffraction(vec3 src, Complex<Real> *dst, Real lambda, Real dist
 		Real yyy = y + ((pnY - yytr) * ppY);
 
 		Real range_x[2] = {
-			src[_X] + abs(tx / sqrtX * sqrt((yyy - src[_Y]) * (yyy - src[_Y]) + zz)),
-			src[_X] - abs(tx / sqrtX * sqrt((yyy - src[_Y]) * (yyy - src[_Y]) + zz))
+			src.pos[_X] + abs(tx / sqrtX * sqrt((yyy - src.pos[_Y]) * (yyy - src.pos[_Y]) + zz)),
+			src.pos[_X] - abs(tx / sqrtX * sqrt((yyy - src.pos[_Y]) * (yyy - src.pos[_Y]) + zz))
 		};
 
 		for (int xxtr = Xbound[_Y]; xxtr < Xbound[_X]; ++xxtr)
 		{
 			Real xxx = x + ((xxtr - 1) * ppX);
-			Real r = sqrt((xxx - src[_X]) * (xxx - src[_X]) + (yyy - src[_Y]) * (yyy - src[_Y]) + zz);
+			Real r = sqrt((xxx - src.pos[_X]) * (xxx - src.pos[_X]) + (yyy - src.pos[_Y]) * (yyy - src.pos[_Y]) + zz);
 			Real range_y[2] = {
-				src[_Y] + abs(ty / sqrtY * sqrt((xxx - src[_X]) * (xxx - src[_X]) + zz)),
-				src[_Y] - abs(ty / sqrtY * sqrt((xxx - src[_X]) * (xxx - src[_X]) + zz))
+				src.pos[_Y] + abs(ty / sqrtY * sqrt((xxx - src.pos[_X]) * (xxx - src.pos[_X]) + zz)),
+				src.pos[_Y] - abs(ty / sqrtY * sqrt((xxx - src.pos[_X]) * (xxx - src.pos[_X]) + zz))
 			};
 
 			if (((xxx < range_x[_X]) && (xxx > range_x[_Y])) && ((yyy < range_y[_X]) && (yyy > range_y[_Y]))) {
@@ -402,18 +427,18 @@ void ophGen::RS_Diffraction(vec3 src, Complex<Real> *dst, Real lambda, Real dist
 				Real res_imag = (-ampZ * cos(kr)) / operand;
 #ifdef _OPENMP 
 #pragma omp atomic
-#endif
 				dst[offset + xxtr][_RE] += res_real;
+#endif
 #ifdef _OPENMP 
 #pragma omp atomic
-#endif
 				dst[offset + xxtr][_IM] += res_imag;
+#endif
 			}
 		}
 	}
 }
 
-void ophGen::Fresnel_Diffraction(vec3 src, Complex<Real> *dst, Real lambda, Real distance, Real amplitude)
+void ophGen::Fresnel_Diffraction(Point src, Complex<Real> *dst, Real lambda, Real distance, Real amplitude)
 {
 	OphConfig *pConfig = &context_;
 	const int pnX = pConfig->pixel_number[_X];
@@ -428,18 +453,18 @@ void ophGen::Fresnel_Diffraction(vec3 src, Complex<Real> *dst, Real lambda, Real
 	// for performance
 	Real x = -ssX / 2;
 	Real y = -ssY / 2;
-	Real z = src[_Z] + distance;
+	Real z = src.pos[_Z] + distance;
 	Real zz = z * z;
 	Real operand = lambda * z;
 
 	Real _xbound[2] = {
-		src[_X] + abs(operand / (2 * ppX)),
-		src[_X] - abs(operand / (2 * ppX))
+		src.pos[_X] + abs(operand / (2 * ppX)),
+		src.pos[_X] - abs(operand / (2 * ppX))
 	};
 
 	Real _ybound[2] = {
-		src[_Y] + abs(operand / (2 * ppY)),
-		src[_Y] - abs(operand / (2 * ppY))
+		src.pos[_Y] + abs(operand / (2 * ppY)),
+		src.pos[_Y] - abs(operand / (2 * ppY))
 	};
 
 	Real Xbound[2] = {
@@ -459,11 +484,11 @@ void ophGen::Fresnel_Diffraction(vec3 src, Complex<Real> *dst, Real lambda, Real
 
 	for (int yytr = Ybound[_Y]; yytr < Ybound[_X]; ++yytr)
 	{
-		Real yyy = (y + (pnY - yytr) * ppY) - src[_Y];
+		Real yyy = (y + (pnY - yytr) * ppY) - src.pos[_Y];
 		int offset = yytr * pnX;
 		for (int xxtr = Xbound[_Y]; xxtr < Xbound[_X]; ++xxtr)
 		{
-			Real xxx = (x + (xxtr - 1) * ppX) - src[_X];
+			Real xxx = (x + (xxtr - 1) * ppX) - src.pos[_X];
 			Real p = k * (xxx * xxx + yyy * yyy + 2 * zz) / (2 * z);
 
 			Real res_real = amplitude * sin(p) / operand;
@@ -584,11 +609,10 @@ void ophGen::AngularSpectrumMethod(Complex<Real> *src, Complex<Real> *dst, Real 
 	Real fx = -1 / (ppX * 2);
 	Real fy = 1 / (ppY * 2);
 
-	int i;
 #ifdef _OPENMP
-#pragma omp parallel for private(i) firstprivate(pnX, dfx, dfy, lambda, kd, kk)
+#pragma omp parallel for firstprivate(pnX, dfx, dfy, lambda, kd, kk)
 #endif
-	for (i = 0; i < N; i++)
+	for (int i = 0; i < N; i++)
 	{
 		Real x = i % pnX;
 		Real y = i / pnX;
@@ -617,33 +641,27 @@ void ophGen::AngularSpectrumMethod(Complex<Real> *src, Complex<Real> *dst, Real 
 
 void ophGen::conv_fft2(Complex<Real>* src1, Complex<Real>* src2, Complex<Real>* dst, ivec2 size)
 {
-	src1FT = new Complex<Real>[size[_X] * size[_Y]];
-	src2FT = new Complex<Real>[size[_X] * size[_Y]];
-	dstFT = new Complex<Real>[size[_X] * size[_Y]];
+	int N = size[_X] * size[_Y];
+	if (N <= 0) return;
 
+	Complex<Real>* src1FT = new Complex<Real>[N];
+	Complex<Real>* src2FT = new Complex<Real>[N];
+	Complex<Real>* dstFT = new Complex<Real>[N];
 
-	//fft2(size, src1, OPH_FORWARD, OPH_ESTIMATE);
 	fft2(src1, src1FT, size[_X], size[_Y], OPH_FORWARD, (bool)OPH_ESTIMATE);
-
-	//fft2(size, src2, OPH_FORWARD, OPH_ESTIMATE);
 	fft2(src2, src2FT, size[_X], size[_Y], OPH_FORWARD, (bool)OPH_ESTIMATE);
 
-
-	for (int i = 0; i < size[_X] * size[_Y]; i++)
+	for (int i = 0; i < N; i++)
 		dstFT[i] = src1FT[i] * src2FT[i];
 
-	//fft2(size, dstFT, OPH_BACKWARD, OPH_ESTIMATE);
 	fft2(dstFT, dst, size[_X], size[_Y], OPH_BACKWARD, (bool)OPH_ESTIMATE);
 
-	//for (int i = 0; i < size[_X] * size[_Y]; i++) {
-	//	if (src2[i][_RE]!=0)
-	//		cout << i << ": " << src2[i] << endl;
-	//}
-	//fftFree();
-	delete[] src1FT, src2FT, dstFT;
+	delete[] src1FT;
+	delete[] src2FT;
+	delete[] dstFT;
 }
 
-void ophGen::normalize(int ch)
+void ophGen::normalize(uint ch)
 {
 	const uint pnX = context_.pixel_number[_X];
 	const uint pnY = context_.pixel_number[_Y];
@@ -652,13 +670,13 @@ void ophGen::normalize(int ch)
 
 void ophGen::normalize(void)
 {
-	const uint pnX = context_.pixel_number[_X];
-	const uint pnY = context_.pixel_number[_Y];
-	const int nWave = context_.waveNum;
-	const int N = pnX * pnY;
+	const int pnX = context_.pixel_number[_X];
+	const int pnY = context_.pixel_number[_Y];
+	const uint nWave = context_.waveNum;
+	const long long int N = pnX * pnY;
 	
 	Real min = MAX_DOUBLE, max = MIN_DOUBLE, gap = 0;
-	for (int ch = 0; ch < nWave; ch++)
+	for (uint ch = 0; ch < nWave; ch++)
 	{
 		Real minTmp = minOfArr(m_lpEncoded[ch], N);
 		Real maxTmp = maxOfArr(m_lpEncoded[ch], N);
@@ -670,13 +688,12 @@ void ophGen::normalize(void)
 	}
 
 	gap = max - min;
-	int j;
-	for (int ch = 0; ch < nWave; ch++)
+	for (uint ch = 0; ch < nWave; ch++)
 	{
 #ifdef _OPENMP
-#pragma omp parallel for private(j) firstprivate(min, gap, pnX)
+#pragma omp parallel for firstprivate(min, gap, pnX)
 #endif
-		for (j = 0; j < pnY; j++) {
+		for (int j = 0; j < pnY; j++) {
 			for (int i = 0; i < pnX; i++) {
 				int idx = j * pnX + i;
 				m_lpNormalized[ch][idx] = (((m_lpEncoded[ch][idx] - min) / gap) * 255 + 0.5);
@@ -685,9 +702,11 @@ void ophGen::normalize(void)
 	}
 }
 
-bool ophGen::save(const char * fname, uint8_t bitsperpixel, uchar* src, uint px, uint py)
+bool ophGen::save(const char* fname, uint8_t bitsperpixel, uchar* src, uint px, uint py)
 {
-	if (fname == nullptr) return false;
+	bool bOK = false;
+
+	if (fname == nullptr) return bOK;
 
 	uchar* source = src;
 	bool bAlloc = false;
@@ -697,50 +716,61 @@ bool ophGen::save(const char * fname, uint8_t bitsperpixel, uchar* src, uint px,
 	if (px == 0 && py == 0)
 		p = ivec2(context_.pixel_number[_X], context_.pixel_number[_Y]);
 
-	char path[_MAX_PATH] = { 0, };
-	char drive[_MAX_DRIVE] = { 0, };
-	char dir[_MAX_DIR] = { 0, };
-	char file[_MAX_FNAME] = { 0, };
-	char ext[_MAX_EXT] = { 0, };
-	_splitpath_s(fname, drive, dir, file, ext);
 
-	sprintf_s(path, "%s", fname);
+	std::string file = fname;
+	std::replace(file.begin(), file.end(), '\\', '/');
 
-	if (!strlen(ext)) {
-		sprintf_s(path, "%s.bmp", path);
-		sprintf_s(ext, ".bmp");
-	}
-	if (!strlen(drive)) { // Relative path to Absolute path
-		char curDir[MAX_PATH] = { 0, };
-		GetCurrentDirectory(MAX_PATH, curDir);
-		sprintf_s(path, "%s\\%s", curDir, fname);
-		for (int i = 0; i < strlen(path); i++) {
-			char ch = path[i];
-			if (ch == '/')
-				path[i] = '\\';
-		}
+	// split path
+	std::vector<std::string> components;
+	std::stringstream ss(file);
+	std::string item;
+	char token = '/';
+
+	while (std::getline(ss, item, token)) {
+		components.push_back(item);
 	}
 
+	std::string dir;
 
+	for (size_t i = 0; i < components.size() - 1; i++)
+	{
+		dir += components[i];
+		dir += "/";
+	}
+
+	std::string filename = components[components.size() - 1];
+
+	// find extension
+	bool hasExt;
+	size_t ext_pos = file.rfind(".");
+	hasExt = (ext_pos == string::npos) ? false : true;
+
+	if (!hasExt)
+		filename.append(".bmp");
+
+	std::string fullpath = dir + filename;
+	
 	if (src == nullptr) {
 		if (nChannel == 1) {
 			source = m_lpNormalized[0];
-			saveAsImg(path, bitsperpixel, source, p[_X], p[_Y]);
+			saveAsImg(fullpath.c_str(), bitsperpixel, source, p[_X], p[_Y]);
 		}
 		else if (nChannel == 3) {
 			if (imgCfg.merge) {
-				uint nSize = (((p[_X] * bitsperpixel / 8) + 3) & ~3) * p[_Y];
+				uint nSize = (((p[_X] * bitsperpixel >> 3) + 3) & ~3) * p[_Y];
 				source = new uchar[nSize];
 				bAlloc = true;
-				for (int i = 0; i < nChannel; i++) {
+				for (uint i = 0; i < nChannel; i++) {
 					mergeColor(i, p[_X], p[_Y], m_lpNormalized[i], source);
 				}
-				saveAsImg(path, bitsperpixel, source, p[_X], p[_Y]);
+
+				saveAsImg(fullpath.c_str(), bitsperpixel, source, p[_X], p[_Y]);
 				if (bAlloc) delete[] source;
 			}
 			else {
-				for (int i = 0; i < nChannel; i++) {
-					sprintf_s(path, "%s%s%s_%d%s", drive, dir, file, i, ext);
+				for (uint i = 0; i < nChannel; i++) {
+					char path[FILENAME_MAX] = { 0, };
+					sprintf(path, "%s%d_%s", dir.c_str(), i, filename.c_str());
 					source = m_lpNormalized[i];
 					saveAsImg(path, bitsperpixel / nChannel, source, p[_X], p[_Y]);
 				}
@@ -749,37 +779,7 @@ bool ophGen::save(const char * fname, uint8_t bitsperpixel, uchar* src, uint px,
 		else return false;
 	}
 	else
-		saveAsImg(path, bitsperpixel, source, p[_X], p[_Y]);
-
-	return true;
-}
-
-bool ophGen::save(const char * fname, uint8_t bitsperpixel, uint px, uint py, uint fnum, uchar* args ...)
-{
-	std::string file = fname;
-	std::string name;
-	std::string ext;
-
-	size_t ex = file.rfind(".");
-	if (ex == -1) ex = file.length();
-
-	name = file.substr(0, ex);
-	ext = file.substr(ex, file.length() - 1);
-
-	va_list ap;
-	__crt_va_start(ap, args);
-
-	for (uint i = 0; i < fnum; i++) {
-		name.append(std::to_string(i)).append(ext);
-		if (i == 0) {
-			save(name.c_str(), bitsperpixel, args, px, py);
-			continue;
-		}
-		uchar* data = __crt_va_arg(ap, uchar*);
-		save(name.c_str(), bitsperpixel, data, px, py);
-	}
-
-	__crt_va_end(ap);
+		saveAsImg(fullpath.c_str(), bitsperpixel, source, p[_X], p[_Y]);
 
 	return true;
 }
@@ -801,7 +801,7 @@ bool ophGen::loadAsOhc(const char * fname)
 	if (!Openholo::loadAsOhc(fname)) return false;
 
 	const uint nChannel = context_.waveNum;
-	const uint pnXY = context_.pixel_number[_X] * context_.pixel_number[_Y];
+	const long long int pnXY = context_.pixel_number[_X] * context_.pixel_number[_Y];
 
 	m_lpEncoded = new Real*[nChannel];
 	m_lpNormalized = new uchar*[nChannel];
@@ -819,7 +819,7 @@ void ophGen::resetBuffer()
 	int N = context_.pixel_number[_X] * context_.pixel_number[_Y];
 	int N2 = m_vecEncodeSize[_X] * m_vecEncodeSize[_Y];
 
-	for (int ch = 0; ch < context_.waveNum; ch++) {
+	for (uint ch = 0; ch < context_.waveNum; ch++) {
 		if (complex_H[ch])
 			memset(complex_H[ch], 0., sizeof(Complex<Real>) * N);
 		if (m_lpEncoded[ch])
@@ -838,7 +838,7 @@ void ophGen::encoding(unsigned int ENCODE_FLAG)
 
 	Complex<Real> *holo = nullptr;
 	Real *encoded = nullptr;
-	const uint pnXY = context_.pixel_number[_X] * context_.pixel_number[_Y];
+	const long long int pnXY = context_.pixel_number[_X] * context_.pixel_number[_Y];
 	m_vecEncodeSize = context_.pixel_number;
 
 	switch (ENCODE_FLAG)
@@ -852,16 +852,16 @@ void ophGen::encoding(unsigned int ENCODE_FLAG)
 	case ENCODE_TWOPHASE: encodeFunc = &ophGen::TwoPhase; LOG("ENCODE_TWOPHASE\n"); break;
 	default: 
 		LOG("<FAILED> WRONG PARAMETERS.\n");
-		LOG("%s => %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
+		LOG("%s : %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
 		return;
 	}
 
-	for (int ch = 0; ch < context_.waveNum; ch++) {
+	for (uint ch = 0; ch < context_.waveNum; ch++) {
 		holo = complex_H[ch];
 		encoded = m_lpEncoded[ch];
 		(this->*encodeFunc)(holo, encoded, m_vecEncodeSize[_X] * m_vecEncodeSize[_Y]);
 	}
-	LOG("%s => %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
+	LOG("%s : %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
 }
 
 //template <typename T>
@@ -869,11 +869,10 @@ void ophGen::encoding(unsigned int ENCODE_FLAG)
 void ophGen::encoding(unsigned int ENCODE_FLAG, Complex<Real>* holo, Real* encoded)
 {
 	auto begin = CUR_TIME;
-
 	// func pointer
 	void (ophGen::*encodeFunc) (Complex<Real>*, Real*, const int) = nullptr;
 
-	const uint pnXY = context_.pixel_number[_X] * context_.pixel_number[_Y];
+	const long long int pnXY = context_.pixel_number[_X] * context_.pixel_number[_Y];
 	m_vecEncodeSize = context_.pixel_number;
 
 	switch (ENCODE_FLAG)
@@ -893,7 +892,7 @@ void ophGen::encoding(unsigned int ENCODE_FLAG, Complex<Real>* holo, Real* encod
 
 	(this->*encodeFunc)(holo, encoded, m_vecEncodeSize[_X] * m_vecEncodeSize[_Y]);
 
-	LOG("%s => %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
+	LOG("%s : %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
 }
 
 void ophGen::encoding(unsigned int ENCODE_FLAG, unsigned int passband, Complex<Real>* holo, Real* encoded)
@@ -901,14 +900,13 @@ void ophGen::encoding(unsigned int ENCODE_FLAG, unsigned int passband, Complex<R
 	holo == nullptr ? holo = *complex_H : holo;
 	encoded == nullptr ? encoded = *m_lpEncoded : encoded;
 
-	const uint pnX = m_vecEncodeSize[_X] = context_.pixel_number[_X];
-	const uint pnY = m_vecEncodeSize[_Y] = context_.pixel_number[_Y];
-	const uint pnXY = pnX * pnY;
+	m_vecEncodeSize = context_.pixel_number;
+	const long long int pnXY = context_.pixel_number[_X] * context_.pixel_number[_Y];
 	const uint nChannel = context_.waveNum;
 
 	for (uint ch = 0; ch < nChannel; ch++) {
 		/*	initialize	*/
-		int m_vecEncodeSize = pnXY;
+		long long int m_vecEncodeSize = pnXY;
 		if (m_lpEncoded[ch] != nullptr) delete[] m_lpEncoded[ch];
 		m_lpEncoded[ch] = new Real[m_vecEncodeSize];
 		memset(m_lpEncoded[ch], 0, sizeof(Real) * m_vecEncodeSize);
@@ -943,16 +941,14 @@ void ophGen::encoding(unsigned int ENCODE_FLAG, unsigned int passband, Complex<R
 void ophGen::encoding(unsigned int BIN_ENCODE_FLAG, unsigned int ENCODE_FLAG, Real threshold, Complex<Real>* holo, Real* encoded)
 {
 	auto begin = CUR_TIME;
-	const uint pnX = context_.pixel_number[_X];
-	const uint pnY = context_.pixel_number[_Y];
 	const uint nChannel = context_.waveNum;
-	const uint pnXY = pnX * pnY;
+	const long long int pnXY = context_.pixel_number[_X] * context_.pixel_number[_Y];
 
 	switch (BIN_ENCODE_FLAG) {
 	case ENCODE_SIMPLEBINARY:
 		LOG("ENCODE_SIMPLEBINARY\n");
 		if (holo == nullptr || encoded == nullptr)
-			for (int ch = 0; ch < nChannel; ch++) {
+			for (uint ch = 0; ch < nChannel; ch++) {
 				binarization(complex_H[ch], m_lpEncoded[ch], pnXY, ENCODE_FLAG, threshold);
 			}
 		else
@@ -965,25 +961,23 @@ void ophGen::encoding(unsigned int BIN_ENCODE_FLAG, unsigned int ENCODE_FLAG, Re
 			return;
 		}
 		if (holo == nullptr || encoded == nullptr)
-			for (int ch = 0; ch < nChannel; ch++) {
+			for (uint ch = 0; ch < nChannel; ch++) {
 				binaryErrorDiffusion(complex_H[ch], m_lpEncoded[ch], context_.pixel_number, FLOYD_STEINBERG, threshold);
 			}
 		else
 			binaryErrorDiffusion(holo, encoded, pnXY, FLOYD_STEINBERG, threshold);
-
+		break;
 	default:
 		LOG("<FAILED> WRONG PARAMETERS.\n");
 		return;
 	}
 
-	LOG("%s => %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
+	LOG("%s : %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
 }
 
 void ophGen::encoding()
 {
-	const uint pnX = m_vecEncodeSize[_X] = context_.pixel_number[_X];
-	const uint pnY = m_vecEncodeSize[_Y] = context_.pixel_number[_Y];
-	const uint pnXY = pnX * pnY;
+	const long long int pnXY = context_.pixel_number[_X] * context_.pixel_number[_Y];
 	const uint nChannel = context_.waveNum;
 
 	if (ENCODE_METHOD == ENCODE_BURCKHARDT) m_vecEncodeSize[_X] *= 3;
@@ -1049,8 +1043,8 @@ void ophGen::singleSideBand(Complex<Real>* src, Real* dst, const ivec2 holosize,
 	const int half_nX = nX >> 1;
 	const int half_nY = nY >> 1;
 
-	int N = nX * nY;
-	const int half_N = N >> 1;
+	const long long int N = nX * nY;
+	const long long int half_N = N >> 1;
 
 	Complex<Real>* AS = new Complex<Real>[N];
 	//fft2(holosize, holo, OPH_FORWARD, OPH_ESTIMATE);
@@ -1101,7 +1095,9 @@ void ophGen::singleSideBand(Complex<Real>* src, Real* dst, const ivec2 holosize,
 
 	oph::normalize(realFiltered, dst, N);
 
-	delete[] AS, filtered, realFiltered;
+	delete[] AS;
+	delete[] filtered;
+	delete[] realFiltered;
 }
 
 void ophGen::freqShift(Complex<Real>* src, Complex<Real>* dst, const ivec2 holosize, int shift_x, int shift_y)
@@ -1185,7 +1181,7 @@ bool ophGen::saveRefImages(char* fnameW, char* fnameWC, char* fnameAS, char* fna
 	fft2(temp, temp, nx, ny, OPH_BACKWARD);
 
 	Complex<Real>* reconBin = new Complex<Real>[ss];
-	memsetArr<Complex<Real>>(reconBin, (0, 0), 0, ss - 1);
+	memset(reconBin, 0, sizeof(Complex<Real>) * ss);
 	fresnelPropagation(temp, reconBin, 0.001, 0);
 
 	oph::absCplxArr<Real>(reconBin, temp1, ss);
@@ -1396,16 +1392,16 @@ bool ophGen::getWeightED(const ivec2 holosize, const int type, ivec2* pNw)
 
 }
 
-bool ophGen::shiftW(ivec2 holosize) {
-
+bool ophGen::shiftW(ivec2 holosize)
+{
 	int ss = holosize[_X] * holosize[_Y];
 
 	Complex<Real> term(0, 0);
 	Complex<Real> temp(0, 0);
 	int x, y;
-	for (uint i = 0; i < ss; i++) {
+	for (int i = 0; i < ss; i++) {
 
-		x = i%holosize[_X] - holosize[_X] / 2;  y = i / holosize[_X] - holosize[_Y];
+		x = i % holosize[_X] - holosize[_X] / 2;  y = i / holosize[_X] - holosize[_Y];
 		term[_IM] = 2.0 * M_PI*((1.0 / 4.0)*(Real)x + (0.0)*(Real)y);
 		temp[_RE] = weight[i];
 		weightC[i] = temp *exp(term);
@@ -1427,11 +1423,10 @@ void ophGen::binarization(Complex<Real>* src, Real* dst, const int size, int ENC
 	oph::normalize(src, src, size);
 	encoding(ENCODE_FLAG);
 
-	int i;
 #ifdef _OPENMP
-#pragma omp parallel for private(i) firstprivate(threshold)
+#pragma omp parallel for firstprivate(threshold)
 #endif
-	for (i = 0; i < size; i++) {
+	for (int i = 0; i < size; i++) {
 		if (src[i][_RE] > threshold)
 			dst[i] = 1;
 		else
@@ -1443,7 +1438,7 @@ void ophGen::fresnelPropagation(OphConfig context, Complex<Real>* in, Complex<Re
 {
 	const int pnX = context.pixel_number[_X];
 	const int pnY = context.pixel_number[_Y];
-	const uint pnXY = pnX * pnY;
+	const long long int pnXY = pnX * pnY;
 
 	Complex<Real>* in2x = new Complex<Real>[pnXY * 4];
 	Complex<Real> zero(0, 0);
@@ -1518,8 +1513,6 @@ void ophGen::fresnelPropagation(OphConfig context, Complex<Real>* in, Complex<Re
 
 void ophGen::fresnelPropagation(Complex<Real>* in, Complex<Real>* out, Real distance, uint channel)
 {
-	auto begin = CUR_TIME;
-
 	const int pnX = context_.pixel_number[_X];
 	const int pnY = context_.pixel_number[_Y];
 	const Real ppX = context_.pixel_pitch[_X];
@@ -1538,11 +1531,10 @@ void ophGen::fresnelPropagation(Complex<Real>* in, Complex<Real>* out, Real dist
 	Complex<Real>* temp = new Complex<Real>[pnXY * 4];
 	memset(temp, 0, sizeof(Complex<Real>) * pnXY * 4);
 
-	int i;
 #ifdef _OPENMP
-#pragma omp parallel for private(i) firstprivate(pnX, pnX2, hpnX, hpnY)
+#pragma omp parallel for firstprivate(pnX, pnX2, hpnX, hpnY)
 #endif
-	for (i = 0; i < pnY; i++)
+	for (int i = 0; i < pnY; i++)
 	{
 		int src = pnX * i;
 		int dst = pnX2 * (i + hpnY) + hpnX;
@@ -1551,11 +1543,10 @@ void ophGen::fresnelPropagation(Complex<Real>* in, Complex<Real>* out, Real dist
 	
 	fft2(temp, temp, pnX2, pnY2, OPH_FORWARD, false);
 	
-	int j;
 #ifdef _OPENMP
-#pragma omp parallel for private(j) firstprivate(ssX, ssY, z, v)
+#pragma omp parallel for firstprivate(ssX, ssY, z, v)
 #endif
-	for (j = 0; j < pnY2; j++)
+	for (int j = 0; j < pnY2; j++)
 	{
 		Real fy = (-pnY + j) / ssY;
 		Real fyy = fy * fy;
@@ -1574,9 +1565,9 @@ void ophGen::fresnelPropagation(Complex<Real>* in, Complex<Real>* out, Real dist
 	fft2(temp, temp, pnX2, pnY2, OPH_BACKWARD, true);
 
 #ifdef _OPENMP
-#pragma omp parallel for private(i) firstprivate(pnX, pnX2, hpnX, hpnY)
+#pragma omp parallel for firstprivate(pnX, pnX2, hpnX, hpnY)
 #endif
-	for (i = 0; i < pnY; i++)
+	for (int i = 0; i < pnY; i++)
 	{
 		int src = pnX2 * (i + hpnY) + hpnX;
 		int dst = pnX * i;
@@ -1592,12 +1583,11 @@ bool ophGen::Shift(Real x, Real y)
 	
 	bool bAxisX = (x == 0.0) ? false : true;
 	bool bAxisY = (y == 0.0) ? false : true;
-	const int nChannel = context_.waveNum;
-	const uint pnX = context_.pixel_number[_X];
-	const uint pnY = context_.pixel_number[_Y];
+	const uint nChannel = context_.waveNum;
+	const int pnX = context_.pixel_number[_X];
+	const int pnY = context_.pixel_number[_Y];
 	const Real ppX = context_.pixel_pitch[_X];
 	const Real ppY = context_.pixel_pitch[_Y];
-	const uint pnXY = pnX * pnY;
 	const vec2 ss = context_.ss;
 	Real ppY2 = ppY * 2;
 	Real ppX2 = ppX * 2;
@@ -1607,19 +1597,17 @@ bool ophGen::Shift(Real x, Real y)
 	Real *waveRatio = new Real[nChannel];
 
 	Complex<Real> pi2(0.0, -2 * M_PI);
-	int num_threads = 1;
 
-	for (int i = 0; i < nChannel; i++) {
+	for (uint i = 0; i < nChannel; i++) {
 		waveRatio[i] = context_.wave_length[nChannel - 1] / context_.wave_length[i];
 
 		Real ratioX = x * waveRatio[i];
 		Real ratioY = y * waveRatio[i];
-		int y;
 
 #ifdef _OPENMP
-#pragma omp parallel for private(y) firstprivate(ppX, ppY, ppX2, ppY2, ssX, ssY, pi2)
+#pragma omp parallel for firstprivate(ppX, ppY, ppX2, ppY2, ssX, ssY, pi2)
 #endif
-		for (y = 0; y < pnY; y++) {
+		for (int y = 0; y < pnY; y++) {
 			Complex<Real> yy(0, 0);
 			if (bAxisY) {
 				Real startY = ssY + (ppY * y);
@@ -1650,74 +1638,68 @@ void ophGen::waveCarry(Real carryingAngleX, Real carryingAngleY, Real distance)
 	const int pnY = context_.pixel_number[_Y];
 	const Real ppX = context_.pixel_pitch[_X];
 	const Real ppY = context_.pixel_pitch[_Y];
-	const int pnXY = pnX * pnY;
-	const int nChannel = context_.waveNum;
+	const long long int pnXY = pnX * pnY;
+	const uint nChannel = context_.waveNum;
 	Real dfx = 1 / ppX / pnX;
 	Real dfy = 1 / ppY / pnY;
-	Real* fx = new Real[pnXY];
-	Real* fy = new Real[pnXY];
-	Real* fz = new Real[pnXY];
-	int i = 0;
-	for (int ch = 0; ch < nChannel; ch++) {
-		Real lambda = context_.wave_length[ch];
 
-		for (int idxFy = pnY / 2; idxFy > -pnY / 2; idxFy--) {
-			for (int idxFx = -pnX / 2; idxFx < pnX / 2; idxFx++) {
-				fx[i] = idxFx * dfx;
-				fy[i] = idxFy * dfy;
-				fz[i] = sqrt((1 / lambda)*(1 / lambda) - fx[i] * fx[i] - fy[i] * fy[i]);
+	int beginX = -pnX >> 1;
+	int endX = pnX >> 1;
+	int beginY = pnY >> 1;
+	int endY = -pnY >> 1;
 
-				i++;
+	Real carryX = distance * tan(carryingAngleX);
+	Real carryY = distance * tan(carryingAngleY);
+
+	for (uint ch = 0; ch < nChannel; ch++) {
+		int k = 0;
+		for (int i = beginY; i > endY; i--)
+		{
+			Real _carryY = carryY * i * dfy;
+
+			for (int j = beginX; j < endX; j++)
+			{
+				Real x = j * dfx;
+				Complex<Real> carrier(0, carryX * x + _carryY);
+				complex_H[ch][k] = complex_H[ch][k] * exp(carrier);
+
+				k++;
 			}
 		}
-
-		Complex<Real> carrier;
-		for (int i = 0; i < pnXY; i++) {
-			carrier[_RE] = 0;
-			carrier[_IM] = distance * tan(carryingAngleX)*fx[i] + distance * tan(carryingAngleY)*fy[i];
-			complex_H[ch][i] = complex_H[ch][i] * exp(carrier);
-		}
 	}
-	delete[] fx;
-	delete[] fy;
-	delete[] fz;
 }
 
 void ophGen::waveCarry(Complex<Real>* src, Complex<Real>* dst, Real wavelength, int carryIdxX, int carryIdxY)
 {
 	const int pnX = context_.pixel_number[_X];
 	const int pnY = context_.pixel_number[_Y];
-	const int pnXY = pnX * pnY;
-	const int nChannel = context_.waveNum;
-	Real dfx = 1 / context_.pixel_pitch[_X] / pnX;
-	Real dfy = 1 / context_.pixel_pitch[_Y] / pnY;
-	Real* fx = new Real[pnXY];
-	Real* fy = new Real[pnXY];
-	Real* fz = new Real[pnXY];
-	uint i = 0;
+	const Real ppX = context_.pixel_pitch[_X];
+	const Real ppY = context_.pixel_pitch[_Y];
+	const long long int pnXY = pnX * pnY;
+	Real dfx = 1 / ppX / pnX;
+	Real dfy = 1 / ppY / pnY;
 
-	for (int idxFy = pnY / 2; idxFy > -pnY / 2; idxFy--) {
-		for (int idxFx = -pnX / 2; idxFx < pnX / 2; idxFx++) {
-			fx[i] = idxFx * dfx;
-			fy[i] = idxFy * dfy;
-			fz[i] = sqrt((1 / wavelength)*(1 / wavelength) - fx[i] * fx[i] - fy[i] * fy[i]);
+	int beginX = -pnX >> 1;
+	int endX = pnX >> 1;
+	int beginY = pnY >> 1;
+	int endY = -pnY >> 1;
+	Real pi2 = M_PI * 2;
 
-			i++;
+	int k = 0;
+	for (int i = beginY; i > endY; i--)
+	{
+		Real y = i * dfy * ppY * carryIdxY;
+
+		for (int j = beginX; j < endX; j++)
+		{
+			Real x = j * dfx * ppX * carryIdxX;
+
+			Complex<Real> carrier(0, pi2 * (x + y));
+			dst[k] = src[k] * exp(carrier);
+
+			k++;
 		}
 	}
-
-	Complex<Real>* carrier = new Complex<Real>[pnXY];
-
-	for (int i = 0; i < pnXY; i++) {
-		carrier[i][_RE] = 0;
-		carrier[i][_IM] = 2 * M_PI*(carryIdxX*context_.pixel_pitch[_X] * fx[i] + carryIdxY*context_.pixel_pitch[_Y] * fy[i]);
-		dst[i] = src[i] * exp(carrier[i]);
-	}
-
-	delete[] carrier;
-	delete[] fx;
-	delete[] fy;
-	delete[] fz;
 }
 
 void ophGen::encodeSideBand(bool bCPU, ivec2 sig_location)
@@ -1766,7 +1748,7 @@ void ophGen::encodeSideBand_CPU(int cropx1, int cropx2, int cropy1, int cropy2, 
 {
 	const uint pnX = context_.pixel_number[_X];
 	const uint pnY = context_.pixel_number[_Y];
-	const uint pnXY = pnX * pnY;
+	const long long int pnXY = pnX * pnY;
 	const uint nChannel = context_.waveNum;
 
 	Complex<Real>* h_crop = new Complex<Real>[pnXY];
@@ -1774,10 +1756,10 @@ void ophGen::encodeSideBand_CPU(int cropx1, int cropx2, int cropy1, int cropy2, 
 	for (uint ch = 0; ch < nChannel; ch++) {
 
 		memset(h_crop, 0.0, sizeof(Complex<Real>) * pnXY);
-
-		int p = 0;
-#pragma omp parallel for private(p)
-		for (p = 0; p < pnXY; p++)
+#ifdef _OPENMP
+#pragma omp parallel for firstprivate(cropx1, cropx2, cropy1, cropy2, pnX)
+#endif
+		for (int p = 0; p < pnXY; p++)
 		{
 			int x = p % pnX;
 			int y = p / pnX;
@@ -1791,9 +1773,10 @@ void ophGen::encodeSideBand_CPU(int cropx1, int cropx2, int cropy1, int cropy2, 
 		fft2(h_crop, h_crop, pnX, pnY, OPH_BACKWARD, true);
 
 		memset(m_lpEncoded[ch], 0.0, sizeof(Real) * pnXY);
-		int i = 0;
-#pragma omp parallel for private(i)	
-		for (i = 0; i < pnXY; i++) {
+#ifdef _OPENMP
+#pragma omp parallel for firstprivate(sig_location)
+#endif
+		for (int i = 0; i < pnXY; i++) {
 			Complex<Real> shift_phase(1, 0);
 			getShiftPhaseValue(shift_phase, i, sig_location);
 
@@ -1807,7 +1790,7 @@ void ophGen::encodeSideBand_GPU(int cropx1, int cropx2, int cropy1, int cropy2, 
 {
 	const int pnX = context_.pixel_number[_X];
 	const int pnY = context_.pixel_number[_Y];
-	const int pnXY = pnX * pnY;
+	const long long int pnXY = pnX * pnY;
 	const Real ppX = context_.pixel_pitch[_X];
 	const Real ppY = context_.pixel_pitch[_Y];
 	const Real ssX = context_.ss[_X] = pnX * ppX;
@@ -1836,7 +1819,7 @@ void ophGen::encodeSideBand_GPU(int cropx1, int cropx2, int cropy1, int cropy2, 
 		cufftDoubleComplex* sample_fd = (cufftDoubleComplex*)malloc(sizeof(cufftDoubleComplex) * pnXY);
 		memset(sample_fd, 0.0, sizeof(cufftDoubleComplex) * pnXY);
 
-		cudaMemcpyAsync(sample_fd, k_temp_d_, sizeof(cufftDoubleComplex) * pnXY, cudaMemcpyDeviceToHost), stream_;
+		cudaMemcpyAsync(sample_fd, k_temp_d_, sizeof(cufftDoubleComplex) * pnXY, cudaMemcpyDeviceToHost, stream_);
 		memset(m_lpEncoded[ch], 0.0, sizeof(Real) * pnXY);
 
 		for (int i = 0; i < pnX * pnY; i++)
@@ -1925,11 +1908,10 @@ void ophGen::setResolution(ivec2 resolution)
 template <typename T>
 void ophGen::RealPart(Complex<T> *holo, T *encoded, const int size)
 {
-	int i;
 #ifdef _OPENMP
-#pragma omp parallel for private(i)
+#pragma omp parallel for
 #endif
-	for (i = 0; i < size; i++) {
+	for (int i = 0; i < size; i++) {
 		encoded[i] = real(holo[i]);
 	}
 }
@@ -1937,11 +1919,10 @@ void ophGen::RealPart(Complex<T> *holo, T *encoded, const int size)
 template <typename T>
 void ophGen::ImaginaryPart(Complex<T> *holo, T *encoded, const int size)
 {
-	int i;
 #ifdef _OPENMP
-#pragma omp parallel for private(i)
+#pragma omp parallel for
 #endif
-	for (i = 0; i < size; i++) {
+	for (int i = 0; i < size; i++) {
 		encoded[i] = imag(holo[i]);
 	}
 }
@@ -1949,12 +1930,11 @@ void ophGen::ImaginaryPart(Complex<T> *holo, T *encoded, const int size)
 template <typename T>
 void ophGen::Phase(Complex<T> *holo, T *encoded, const int size)
 {
-	int i;
 	double pi2 = M_PI * 2;
 #ifdef _OPENMP
-#pragma omp parallel for private(i) firstprivate(pi2)
+#pragma omp parallel for firstprivate(pi2)
 #endif
-	for (i = 0; i < size; i++) {
+	for (int i = 0; i < size; i++) {
 		encoded[i] = (holo[i].angle() + M_PI) / pi2; // 0 ~ 1
 	}
 }
@@ -1962,11 +1942,10 @@ void ophGen::Phase(Complex<T> *holo, T *encoded, const int size)
 template <typename T>
 void ophGen::Amplitude(Complex<T> *holo, T *encoded, const int size)
 {
-	int i;
 #ifdef _OPENMP
-#pragma omp parallel for private(i)
+#pragma omp parallel for
 #endif
-	for (i = 0; i < size; i++) {
+	for (int i = 0; i < size; i++) {
 		encoded[i] = holo[i].mag();
 	}
 }
@@ -1975,13 +1954,12 @@ template <typename T>
 void ophGen::TwoPhase(Complex<T>* holo, T* encoded, const int size)
 {
 	int resize = size >> 1;
-	int i;
 	Complex<T>* normCplx = new Complex<T>[resize];
 
 #ifdef _OPENMP
-#pragma omp parallel for private(i)
+#pragma omp parallel for
 #endif
-	for (i = 0; i < resize; i++) {
+	for (int i = 0; i < resize; i++) {
 		normCplx[i] = holo[i * 2];
 	}
 
@@ -1994,9 +1972,9 @@ void ophGen::TwoPhase(Complex<T>* holo, T* encoded, const int size)
 	Phase(normCplx, phase, resize);
 
 #ifdef _OPENMP
-#pragma omp parallel for private(i)
+#pragma omp parallel for
 #endif
-	for (i = 0; i < resize; i++) {
+	for (int i = 0; i < resize; i++) {
 		T delPhase = acos(ampl[i]);
 		encoded[i * 2] = (phase[i] + M_PI) + delPhase;
 		encoded[i * 2 + 1] = (phase[i] + M_PI) - delPhase;
@@ -2011,12 +1989,11 @@ template <typename T>
 void ophGen::Burckhardt(Complex<T>* holo, T* encoded, const int size)
 {
 	int resize = size / 3;
-	int i;
 	Complex<T>* norm = new Complex<T>[resize];
 #ifdef _OPENMP
-#pragma omp parallel for private(i)
+#pragma omp parallel for
 #endif
-	for (i = 0; i < resize; i++) {
+	for (int i = 0; i < resize; i++) {
 		norm[i] = holo[i * 3];
 	}
 
@@ -2033,9 +2010,9 @@ void ophGen::Burckhardt(Complex<T>* holo, T* encoded, const int size)
 	T pi4 = 4 * M_PI;
 
 #ifdef _OPENMP
-#pragma omp parallel for private(i) firstprivate(pi2, pi4, sqrt3)
+#pragma omp parallel for firstprivate(pi2, pi4, sqrt3)
 #endif
-	for (i = 0; i < resize; i++) {
+	for (int i = 0; i < resize; i++) {
 		int idx = 3 * i;
 		if (phase[i] >= 0 && phase[i] < (pi2 / 3))
 		{
@@ -2064,11 +2041,10 @@ template <typename T>
 void ophGen::SimpleNI(Complex<T>* holo, T* encoded, const int size)
 {
 	T* tmp1 = new T[size];
-	int i;
 #ifdef _OPENMP
-#pragma omp parallel for private(i)
+#pragma omp parallel for
 #endif
-	for (i = 0; i < size; i++) {
+	for (int i = 0; i < size; i++) {
 		tmp1[i] = holo[i].mag();
 	}
 
@@ -2076,19 +2052,30 @@ void ophGen::SimpleNI(Complex<T>* holo, T* encoded, const int size)
 	delete[] tmp1;
 
 #ifdef _OPENMP
-#pragma omp parallel for private(i) firstprivate(max)
+#pragma omp parallel for firstprivate(max)
 #endif
-	for (i = 0; i < size; i++) {
+	for (int i = 0; i < size; i++) {
 		T tmp = (holo[i] + max).mag();
 		encoded[i] = tmp * tmp;
 	}
 }
 
-void ophGen::transVW(int nSize, Real *dst, Real *src)
+void ophGen::transVW(int nVertex, Vertex* dst, Vertex* src)
 {
 	Real fieldLens = m_dFieldLength;
-	for (int i = 0; i < nSize; i++) {
-		*(dst + i) = -fieldLens * src[i] / (src[i] - fieldLens);
+	for (int i = 0; i < nVertex; i++)
+	{
+		dst[i].point.pos[_X] = -fieldLens * src[i].point.pos[_X] / (src[i].point.pos[_X] - fieldLens);
+		dst[i].point.pos[_Y] = -fieldLens * src[i].point.pos[_Y] / (src[i].point.pos[_Y] - fieldLens);
+		dst[i].point.pos[_Z] = -fieldLens * src[i].point.pos[_Z] / (src[i].point.pos[_Z] - fieldLens);
+	}
+}
+
+void ophGen::transVW(int nVertex, Real *dst, Real *src)
+{
+	Real fieldLens = m_dFieldLength;
+	for (int i = 0; i < nVertex; i++) {
+		dst[i] = -fieldLens * src[i] / (src[i] - fieldLens);
 	}
 }
 
@@ -2097,11 +2084,11 @@ void ophGen::ScaleChange(Real *src, Real *dst, int nSize, Real scaleX, Real scal
 	Real x = scaleX;
 	Real y = scaleY;
 	Real z = scaleZ;
-	int i;
+
 #ifdef _OPENMP
-#pragma omp parallel for private(i) firstprivate(x, y, z)
+#pragma omp parallel for firstprivate(x, y, z)
 #endif
-	for (i = 0; i < nSize; i++) {
+	for (int i = 0; i < nSize; i++) {
 		dst[i + 0] = src[i + 0] * x;
 		dst[i + 1] = src[i + 1] * y;
 		dst[i + 2] = src[i + 2] * z;
@@ -2128,7 +2115,7 @@ void ophGen::CorrectionChromaticAberration(uchar* src, uchar* dst, int width, in
 {
 	if (ch < 2)
 	{
-		const int nWave = context_.waveNum;
+		const uint nWave = context_.waveNum;
 		const int pnXY = width * height;
 		const Real lambda = context_.wave_length[ch];
 		const Real waveRatio = nWave > 1 ? context_.wave_length[nWave - 1] / lambda : 1.0;
@@ -2148,11 +2135,10 @@ void ophGen::CorrectionChromaticAberration(uchar* src, uchar* dst, int width, in
 
 		int h1 = round((hh - scaleY) / 2);
 		int w1 = round((ww - scaleX) / 2);
-		int y;
 #ifdef _OPENMP
-#pragma omp parallel for private(y) firstprivate(w1, h1, scaleX, ww)
+#pragma omp parallel for firstprivate(w1, h1, scaleX, ww)
 #endif
-		for (y = 0; y < scaleY; y++) {
+		for (int y = 0; y < scaleY; y++) {
 			for (int x = 0; x < scaleX; x++) {
 				img_tmp[(y + h1)*ww + x + w1] = imgScaled[y*scaleX + x];
 			}
@@ -2169,7 +2155,7 @@ void ophGen::ophFree(void)
 {
 	Openholo::ophFree();
 
-	const int nChannel = context_.waveNum;
+	const uint nChannel = context_.waveNum;
 
 	if (m_lpEncoded != nullptr) {
 		for (uint i = 0; i < nChannel; i++) {
@@ -2192,4 +2178,6 @@ void ophGen::ophFree(void)
 		delete[] m_lpNormalized;
 		m_lpNormalized = nullptr;
 	}
+
+	if (freqW != nullptr) delete[] freqW;
 }

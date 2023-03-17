@@ -57,7 +57,7 @@ bool ophSigCH::saveNumRec(const char *fname) {
 		saveAsImg(fnamestr.c_str(), 8, intensityData, _cfgSig.cols, _cfgSig.rows);
 	}
 
-	return TRUE;
+	return true;
 }
 
 bool ophSigCH::setCHparam(vector<Real> &z, int maxIter, double tau, double tolA, int tvIter) {
@@ -68,7 +68,7 @@ bool ophSigCH::setCHparam(vector<Real> &z, int maxIter, double tau, double tolA,
 	Z.resize(z.size());
 	Z = z;
 	Nz = Z.size();
-	return TRUE;
+	return true;
 }
 
 bool ophSigCH::runCH(int complexHidx) 
@@ -87,7 +87,7 @@ bool ophSigCH::runCH(int complexHidx)
 
 	LOG("Implement time : %.5lf sec\n", during_time);
 
-	return TRUE;
+	return true;
 }
 
 void ophSigCH::tvdenoise(matrix<Real>& input, double lam, int iters, matrix<Real>& output)

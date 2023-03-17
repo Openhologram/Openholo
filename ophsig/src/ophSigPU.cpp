@@ -227,7 +227,7 @@ bool ophSigPU::savePhaseUnwrapped(const char * fname)
 		}
 	}
 	saveAsImg(fnamestr.c_str(), 8, phaseData, Nc, Nr);
-	return TRUE;
+	return true;
 }
 
 

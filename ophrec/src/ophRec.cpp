@@ -48,7 +48,7 @@
 #include "function.h"
 #include "tinyxml2.h"
 #include "ImgControl.h"
-#include "fftw3.h"
+//#include "fftw3.h"
 #include <omp.h>
 
 ophRec::ophRec(void)
@@ -1185,8 +1185,8 @@ bool ophRec::save(const char * fname, uint8_t bitsperpixel, uchar* src, uint px,
 		sprintf_s(ext, ".bmp");
 	}
 	if (!strlen(drive)) { // Relative path to Absolute path
-		char curDir[MAX_PATH] = { 0, };
-		GetCurrentDirectory(MAX_PATH, curDir);
+		char curDir[FILENAME_MAX] = { 0, };
+		GetCurrentDirectory(FILENAME_MAX, curDir); // win func
 		sprintf_s(path, "%s\\%s", curDir, fname);
 		for (int i = 0; i < strlen(path); i++) {
 			char ch = path[i];
@@ -1247,7 +1247,7 @@ void ophRec::SaveImage(const char *path, const char *ext)
 		step = (simTo - simFrom) / (nSimStep - 1);
 	}
 
-	char tmpPath[MAX_PATH] = { 0, };
+	char tmpPath[FILENAME_MAX] = { 0, };
 	bool bMultiStep = nSimStep > 1 ? true : false;
 	uint nSize = (((pnX * nChannel) + 3) & ~3) * pnY;
 	uchar *tmp = new uchar[nSize];

@@ -152,7 +152,7 @@ namespace oph
 			this->fileVersionMinor = _OPH_LIB_VERSION_MINOR_;
 			this->fileReserved1 = 0;
 			this->fileReserved2 = 0;
-			this->fileOffBytes = -1;
+			this->fileOffBytes = 0;
 		}
 	};
 

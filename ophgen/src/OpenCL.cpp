@@ -1,8 +1,10 @@
 #include "OpenCL.h"
-#include <istream>
-#include <string>
+//#include <istream>
+//#include <iostream>
+//#include <string>
 #include <sstream>
 #include "ophPCKernel.cl"
+#include <stdio.h>
 
 
 OpenCL::OpenCL()
@@ -12,14 +14,18 @@ OpenCL::OpenCL()
 	device_id = nullptr;
 	platform = nullptr;
 	item = nullptr;
+	kernel_source = nullptr;
 	init();
 }
 
 
 OpenCL::~OpenCL()
 {
-	clReleaseProgram(program);
-	clReleaseKernel(*kernel);
+	for (int i = 0; i < nKernel; i++)
+	{
+		clReleaseProgram(program[i]);
+		clReleaseKernel(kernel[i]);
+	}
 	clReleaseCommandQueue(commands);
 	clReleaseContext(context);
 	delete[] item;
@@ -151,13 +157,61 @@ void OpenCL::errorCheck(cl_int err, const char *operation, char *filename, int l
 }
 
 
-bool OpenCL::LoadKernel(char *path)
+bool OpenCL::LoadKernel()
 {
+	cl_int nErr;
+	nKernel = sizeof(pKernel) / sizeof(pKernel[0]);
+
+	// Create the compute kernel from the program
+	kernel = new cl_kernel[nKernel];
+	program = new cl_program[nKernel];
+
+
+	char kname[MAX_KERNEL_NAME] = { 0, };
+	size_t workSize;
+
+	for (cl_uint i = 0; i < nKernel; i++) {
+		kernel_source = const_cast<char*>(pKernel[i]);
+
+		// Create the compute program from the source buffer
+		program[i] = clCreateProgramWithSource(context, 1, (const char**)&kernel_source, nullptr, &nErr);
+		checkError(nErr, "Creating program");
+
+		// Build the program
+		nErr = clBuildProgram(program[i], 1, &device_id, nullptr, nullptr, nullptr);
+		if (nErr != CL_SUCCESS) {
+			size_t len;
+			clGetProgramBuildInfo(program[i], device_id, CL_PROGRAM_BUILD_LOG, 0, nullptr, &len);
+			char* buf = (char*)calloc(len + 1, sizeof(char));
+			clGetProgramBuildInfo(program[i], device_id, CL_PROGRAM_BUILD_LOG, len + 1, buf, nullptr);
+			LOG("\n=> %s\n", buf);
+			free(buf);
+			return false;
+		}
+
+		getKernelName(i, kname);
+		kernel[i] = clCreateKernel(program[i], kname, &nErr);
+
+		LOG("kernel[%d] : %s\n", i, kname);
+		//nErr = clEnqueueNDRangeKernel(commands, kernel[i], 2, nullptr, global, local, 0, nullptr, nullptr);
+
+		nErr = clGetKernelWorkGroupInfo(kernel[i], device_id, CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE,
+			sizeof(size_t), &workSize, nullptr);
+		LOG("%d] => Work Group Size: %d\n", i, workSize);
+		nErr = clGetKernelWorkGroupInfo(kernel[i], device_id, CL_KERNEL_WORK_GROUP_SIZE,
+			sizeof(size_t), &workSize, nullptr);
+		work_size = workSize;
+
+		LOG("%d] => Max Work Group Size: %d\n", i, workSize);
+	}
+	checkError(nErr, "Creating kernel");
 	return true;
 }
 
 void OpenCL::getKernelName(cl_int iKernel, char *kernel)
 {
+	if (pKernel == nullptr) return;
+
 	using namespace std;
 	stringstream ss(pKernel[iKernel]);
 	string item;
@@ -290,44 +344,6 @@ bool OpenCL::init()
 	commands = clCreateCommandQueue(context, device_id, 0, &nErr);
 	checkError(nErr, "Creating command queue");
 	
-	//LoadKernel("\\src\\ophPCKernel.cl");
-
-	nKernel = sizeof(pKernel) / sizeof(pKernel[0]);
-
-	// Create the compute program from the source buffer
-	program = clCreateProgramWithSource(context, nKernel, (const char **)&pKernel, nullptr, &nErr);
-	checkError(nErr, "Creating program");
-	
-	// Build the program
-	nErr = clBuildProgram(program, 1, &device_id, nullptr, nullptr, nullptr);
-	if (nErr != CL_SUCCESS) {
-		size_t len;
-		clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_LOG, 0, nullptr, &len);
-		char *buf = (char *)calloc(len + 1, sizeof(char));
-		clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_LOG, len+1, buf, nullptr);
-		LOG("\n=> %s\n", buf);
-		free(buf);
-		return false;
-	}
-
-
-	// Create the compute kernel from the program
-
-	kernel = new cl_kernel[nKernel];
-	char kname[MAX_KERNEL_NAME] = { 0, };
-	size_t workSize;
-	for (cl_uint i = 0; i < nKernel; i++) {
-		getKernelName(i, kname);
-		kernel[i] = clCreateKernel(program, kname, &nErr);
-
-		nErr = clGetKernelWorkGroupInfo(kernel[i], device_id, CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE,
-			sizeof(size_t), &workSize, nullptr);
-		LOG("%d] => Work Group Size: %d\n", i, workSize);
-		nErr = clGetKernelWorkGroupInfo(kernel[i], device_id, CL_KERNEL_WORK_GROUP_SIZE,
-			sizeof(size_t), &workSize, nullptr);
-		LOG("%d] => Max Work Group Size: %d\n", i, workSize);
-	}
-	checkError(nErr, "Creating kernel");
 
 	return true;
 }

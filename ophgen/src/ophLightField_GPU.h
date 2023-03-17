@@ -47,7 +47,7 @@
 #define __ophLightField_GPU_h
 
 #include "ophLightField.h"
-#include <cuda_runtime.h>
+#include <cuda_runtime_api.h>
 #include <cufft.h>
 #include <math_constants.h>
 

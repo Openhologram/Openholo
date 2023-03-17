@@ -58,7 +58,7 @@ using namespace oph;
 namespace oph
 {
 	template<typename T>
-	class _declspec(dllexport) matrix
+	class OPH_DLL matrix
 	{
 	public:
 		using typeT = typename std::enable_if<
@@ -276,7 +276,6 @@ namespace oph
 
 			for (int x = 0; x < size[_X]; x++) {
 				for (int y = 0; y < size[_Y]; y++) {
-					if (p[x][y] == 0) continue;
 					mat[x][y] /= p[x][y];
 				}
 			}

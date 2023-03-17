@@ -42,17 +42,17 @@
 // Check whether software you use contains licensed software.
 //
 //M*/
-#pragma once
 #ifndef ophDMKernel_cu__
 #define ophDMKernel_cu__
 
 #include "ophKernel.cuh"
 
+
 __global__ void depth_sources_kernel(cufftDoubleComplex* u_o_gpu, unsigned char* img_src_gpu, unsigned char* dimg_src_gpu, double* depth_index_gpu,
 	int dtr, double rand_phase_val_a, double rand_phase_val_b, double carrier_phase_delay_a, double carrier_phase_delay_b, int pnx, int pny,
 	int change_depth_quantization, unsigned int default_depth_quantization)
 {
-	int tid = threadIdx.x + blockIdx.x*blockDim.x;
+	int tid = threadIdx.x + blockIdx.x * blockDim.x;
 
 	if (tid < pnx*pny) {
 
@@ -185,46 +185,45 @@ __global__ void change_depth_quan_kernel(double* depth_index_gpu, unsigned char*
 }
 
 extern "C"
-void cudaDepthHoloKernel(CUstream_st* stream, int pnx, int pny, cufftDoubleComplex* u_o_gpu, unsigned char* img_src_gpu, unsigned char* dimg_src_gpu, double* depth_index_gpu,
-	int dtr, double rand_phase_val_a, double rand_phase_val_b, double carrier_phase_delay_a, double carrier_phase_delay_b, int flag_change_depth_quan, unsigned int default_depth_quan)
 {
-	dim3 grid((pnx*pny + kBlockThreads - 1) / kBlockThreads, 1, 1);
-	depth_sources_kernel << <grid, kBlockThreads, 0, stream >> >(u_o_gpu, img_src_gpu, dimg_src_gpu, depth_index_gpu,
-		dtr, rand_phase_val_a, rand_phase_val_b, carrier_phase_delay_a, carrier_phase_delay_b, pnx, pny, flag_change_depth_quan, default_depth_quan);
-}
+	void cudaDepthHoloKernel(CUstream_st* stream, int pnx, int pny, cufftDoubleComplex* u_o_gpu, unsigned char* img_src_gpu, unsigned char* dimg_src_gpu, double* depth_index_gpu,
+		int dtr, double rand_phase_val_a, double rand_phase_val_b, double carrier_phase_delay_a, double carrier_phase_delay_b, int flag_change_depth_quan, unsigned int default_depth_quan)
+	{
+		dim3 grid((pnx * pny + kBlockThreads - 1) / kBlockThreads, 1, 1);
+		depth_sources_kernel << <grid, kBlockThreads, 0, stream >> > (u_o_gpu, img_src_gpu, dimg_src_gpu, depth_index_gpu,
+			dtr, rand_phase_val_a, rand_phase_val_b, carrier_phase_delay_a, carrier_phase_delay_b, pnx, pny, flag_change_depth_quan, default_depth_quan);
+	}
 
-extern "C"
-void cudaPropagation_AngularSpKernel(CUstream_st* stream, int pnx, int pny, cufftDoubleComplex* input_d, cufftDoubleComplex* u_complex,
-	double ppx, double ppy, double ssx, double ssy, double lambda, double params_k, double propagation_dist)
-{
-	dim3 grid((pnx*pny + kBlockThreads - 1) / kBlockThreads, 1, 1);
-	propagation_angularsp_kernel << <grid, kBlockThreads, 0, stream >> >(input_d, u_complex, pnx, pny, ppx, ppy, ssx, ssy, lambda, params_k, propagation_dist);
-}
 
-extern "C"
-void cudaCropFringe(CUstream_st* stream, int nx, int ny, cufftDoubleComplex* in_field, cufftDoubleComplex* out_field, int cropx1, int cropx2, int cropy1, int cropy2)
-{
-	unsigned int nblocks = (nx*ny + kBlockThreads - 1) / kBlockThreads;
+	void cudaPropagation_AngularSpKernel(CUstream_st* stream, int pnx, int pny, cufftDoubleComplex* input_d, cufftDoubleComplex* u_complex,
+		double ppx, double ppy, double ssx, double ssy, double lambda, double params_k, double propagation_dist)
+	{
+		dim3 grid((pnx * pny + kBlockThreads - 1) / kBlockThreads, 1, 1);
+		propagation_angularsp_kernel << <grid, kBlockThreads, 0, stream >> > (input_d, u_complex, pnx, pny, ppx, ppy, ssx, ssy, lambda, params_k, propagation_dist);
+	}
 
-	cropFringe << < nblocks, kBlockThreads, 0, stream >> > (nx, ny, in_field, out_field, cropx1, cropx2, cropy1, cropy2);
-}
+	void cudaCropFringe(CUstream_st* stream, int nx, int ny, cufftDoubleComplex* in_field, cufftDoubleComplex* out_field, int cropx1, int cropx2, int cropy1, int cropy2)
+	{
+		unsigned int nblocks = (nx * ny + kBlockThreads - 1) / kBlockThreads;
 
-extern "C"
-void cudaGetFringe(CUstream_st* stream, int pnx, int pny, cufftDoubleComplex* in_field, cufftDoubleComplex* out_field, int sig_locationx, int sig_locationy,
-	double ssx, double ssy, double ppx, double ppy, double PI)
-{
-	unsigned int nblocks = (pnx*pny + kBlockThreads - 1) / kBlockThreads;
+		cropFringe << < nblocks, kBlockThreads, 0, stream >> > (nx, ny, in_field, out_field, cropx1, cropx2, cropy1, cropy2);
+	}
 
-	getFringe << < nblocks, kBlockThreads, 0, stream >> > (pnx, pny, in_field, out_field, sig_locationx, sig_locationy, ssx, ssy, ppx, ppy, PI);
-}
+	void cudaGetFringe(CUstream_st* stream, int pnx, int pny, cufftDoubleComplex* in_field, cufftDoubleComplex* out_field, int sig_locationx, int sig_locationy,
+		double ssx, double ssy, double ppx, double ppy, double PI)
+	{
+		unsigned int nblocks = (pnx * pny + kBlockThreads - 1) / kBlockThreads;
 
-extern "C"
-void cudaChangeDepthQuanKernel(CUstream_st* stream, int pnx, int pny, double* depth_index_gpu, unsigned char* dimg_src_gpu,
-	int dtr, double d1, double d2, double params_num_of_depth, double params_far_depthmap, double params_near_depthmap)
-{
-	dim3 grid((pnx*pny + kBlockThreads - 1) / kBlockThreads, 1, 1);
-	change_depth_quan_kernel << <grid, kBlockThreads, 0, stream >> > (depth_index_gpu, dimg_src_gpu, pnx, pny,
-		dtr, d1, d2, params_num_of_depth, params_far_depthmap, params_near_depthmap);
+		getFringe << < nblocks, kBlockThreads, 0, stream >> > (pnx, pny, in_field, out_field, sig_locationx, sig_locationy, ssx, ssy, ppx, ppy, PI);
+	}
+
+	void cudaChangeDepthQuanKernel(CUstream_st* stream, int pnx, int pny, double* depth_index_gpu, unsigned char* dimg_src_gpu,
+		int dtr, double d1, double d2, double params_num_of_depth, double params_far_depthmap, double params_near_depthmap)
+	{
+		dim3 grid((pnx * pny + kBlockThreads - 1) / kBlockThreads, 1, 1);
+		change_depth_quan_kernel << <grid, kBlockThreads, 0, stream >> > (depth_index_gpu, dimg_src_gpu, pnx, pny,
+			dtr, d1, d2, params_num_of_depth, params_far_depthmap, params_near_depthmap);
+	}
 }
 
 #endif // !ophDMKernel_cu__

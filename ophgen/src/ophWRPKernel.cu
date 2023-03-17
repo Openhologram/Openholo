@@ -45,16 +45,15 @@
 
 #ifndef ophWRPKernel_cu__
 #define ophWRPKernel_cu__
-
 #include "ophKernel.cuh"
-#include <cuda_runtime.h>
+#include <cuda_runtime_api.h>
 #include <cuda.h>
 #include <curand_kernel.h>
 #include <curand_uniform.h>
 #include <device_launch_parameters.h>
 #include "ophWRP_GPU.h"
 
-__global__ void cudaKernel_CalcData(cufftDoubleComplex *src, const WRPGpuConst* config)
+__global__ void cudaKernel_CalcDataWRP(cufftDoubleComplex *src, const WRPGpuConst* config)
 {
 	ulonglong tid = blockIdx.x * blockDim.x + threadIdx.x;
 	__shared__ double ppX;
@@ -116,7 +115,7 @@ __global__ void cudaKernel_CalcData(cufftDoubleComplex *src, const WRPGpuConst* 
 	}
 }
 
-__global__ void cudaKernel_MoveDataPost(cuDoubleComplex *src, cuDoubleComplex *dst, const WRPGpuConst* config)
+__global__ void cudaKernel_MoveDataPostWRP(cuDoubleComplex *src, cuDoubleComplex *dst, const WRPGpuConst* config)
 {
 	ulonglong tid = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -142,7 +141,7 @@ __global__ void cudaKernel_MoveDataPost(cuDoubleComplex *src, cuDoubleComplex *d
 	}
 }
 
-__global__ void cudaKernel_MoveDataPre(cuDoubleComplex *src, cuDoubleComplex *dst, const WRPGpuConst* config)
+__global__ void cudaKernel_MoveDataPreWRP(cuDoubleComplex *src, cuDoubleComplex *dst, const WRPGpuConst* config)
 {
 	ulonglong tid = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -167,7 +166,9 @@ __global__ void cudaKernel_MoveDataPre(cuDoubleComplex *src, cuDoubleComplex *ds
 	}
 }
 
-__global__ void cudaKernel_GenWRP(Real* pc_dst, Real* amp_dst, const WRPGpuConst* config, const int n_points_stream, cuDoubleComplex* dst)
+//__global__ void cudaKernel_GenWRP(Real* pc_dst, Real* amp_dst, const WRPGpuConst* config, const int n_points_stream, cuDoubleComplex* dst)
+__global__
+void cudaKernel_GenWRP(Vertex* pc_dst, const WRPGpuConst* config, const int n_points_stream, cuDoubleComplex* dst)
 {
 	ulonglong tid = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -200,11 +201,11 @@ __global__ void cudaKernel_GenWRP(Real* pc_dst, Real* amp_dst, const WRPGpuConst
 		}
 		__syncthreads();
 
-		int idx = tid * 3;
-		double x = pc_dst[idx + _X];
-		double y = pc_dst[idx + _Y];
-		double z = pc_dst[idx + _Z];
-		double amp = amp_dst[idx + config->iAmplitude];
+		//int idx = tid * 3;
+		double x = pc_dst[tid].point.pos[_X];
+		double y = pc_dst[tid].point.pos[_Y];
+		double z = pc_dst[tid].point.pos[_Z];
+		double amp = pc_dst[tid].color.color[_R + config->iAmplitude];
 
 		int hpnX = pnX / 2;
 		int hpnY = pnY / 2;
@@ -272,23 +273,25 @@ extern "C"
 		cuDoubleComplex *src, cuDoubleComplex *dst, cufftDoubleComplex *fftsrc, cufftDoubleComplex *fftdst,
 		const WRPGpuConst* cuda_config)
 	{
-		cudaKernel_MoveDataPre << <nBlocks, nThreads >> > (src, dst, cuda_config);
+		cudaKernel_MoveDataPreWRP << <nBlocks, nThreads >> > (src, dst, cuda_config);
 
 		cudaFFT(nullptr, nx * 2, ny * 2, dst, fftsrc, CUFFT_FORWARD, false);
 
-		cudaKernel_CalcData << <nBlocks2, nThreads >> > (fftsrc, cuda_config);
+		cudaKernel_CalcDataWRP << <nBlocks2, nThreads >> > (fftsrc, cuda_config);
 
 		cudaFFT(nullptr, nx * 2, ny * 2, fftsrc, fftdst, CUFFT_INVERSE, true);
 
-		cudaKernel_MoveDataPost << <nBlocks, nThreads >> > (fftdst, src, cuda_config);
+		cudaKernel_MoveDataPostWRP << <nBlocks, nThreads >> > (fftdst, src, cuda_config);
 	}
 
 	void cudaGenWRP(
 		const int &nBlocks, const int &nThreads, const int &n_pts_per_stream,
-		Real* cuda_pc_data, Real* cuda_amp_data,
+		//Real* cuda_pc_data, Real* cuda_amp_data,
+		Vertex* cuda_pc_data,
 		cuDoubleComplex* cuda_dst, const WRPGpuConst* cuda_config)
 	{
-		cudaKernel_GenWRP << <nBlocks, nThreads >> > (cuda_pc_data, cuda_amp_data, cuda_config, n_pts_per_stream, cuda_dst);
+		//cudaKernel_GenWRP << <nBlocks, nThreads >> > (cuda_pc_data, cuda_amp_data, cuda_config, n_pts_per_stream, cuda_dst);
+		cudaKernel_GenWRP << <nBlocks, nThreads >> > (cuda_pc_data, cuda_config, n_pts_per_stream, cuda_dst);
 	}
 }
 

@@ -45,10 +45,11 @@
 
 #include "ophTriMesh_GPU.h"
 
+using namespace oph;
 
 void ophTri::initialize_GPU()
 {
-	const uint pnXY = context_.pixel_number[_X] * context_.pixel_number[_Y];
+	const long long int pnXY = context_.pixel_number[_X] * context_.pixel_number[_Y];
 	const int N = meshData->n_faces;
 
 	if (scaledMeshData) {
@@ -97,40 +98,31 @@ void ophTri::initialize_GPU()
 
 void ophTri::generateAS_GPU(uint SHADING_FLAG)
 {
-	if (SHADING_FLAG != SHADING_FLAT && SHADING_FLAG != SHADING_CONTINUOUS) {
-		LOG("<FAILED> WRONG SHADING_FLAG\n");
-		return;
-	}
-
 	const uint pnX = context_.pixel_number[_X];
 	const uint pnY = context_.pixel_number[_Y];
-	const uint pnXY = pnX * pnY;
+	const long long int pnXY = context_.pixel_number[_X] * context_.pixel_number[_Y];
 	int N = meshData->n_faces;
-
-	Real* mesh = new Real[9];
-
 	uint nChannel = context_.waveNum;
 
 	cufftDoubleComplex* output = new cufftDoubleComplex[pnXY];
 
-	for (uint ch = 0; ch < nChannel; ch++) {
-		
-		findNormals(SHADING_FLAG);
+	findNormals(SHADING_FLAG);
+
+	for (uint ch = 0; ch < nChannel; ch++) {	
 
 		HANDLE_ERROR(cudaMemsetAsync(angularSpectrum_GPU, 0, sizeof(cufftDoubleComplex) * pnXY, streamTriMesh));
 
-		geometric geom = { 0, };
+		geometric geom;
 
-		for (int j = 0; j < N; j++) {
-			memcpy(mesh, &scaledMeshData[9 * j], sizeof(Real) * 9);
-
+		for (int j = 0; j < N; j++)
+		{
 			if (!checkValidity(no[j])) // Ignore Invalid
 				continue;
 
-			if (!findGeometricalRelations(mesh, no[j], geom))
+			if (!findGeometricalRelations(scaledMeshData[j], no[j], geom))
 				continue;
 
-			refAS_GPU(j, ch, SHADING_FLAG);
+			refAS_GPU(j, context_.wave_length[ch], SHADING_FLAG);
 
 			m_nProgress = (int)((Real)(ch * N + j + 1) * 50 / ((Real)N * nChannel));
 		}
@@ -150,17 +142,21 @@ void ophTri::generateAS_GPU(uint SHADING_FLAG)
 	}
 
 	m_nProgress = 100;
-	delete[] output, mesh, scaledMeshData, no, na, nv;
+	if (output != nullptr) delete[] output;
+	if (scaledMeshData != nullptr) delete[] scaledMeshData;
+	if (no != nullptr) delete[] no;
+	if (na != nullptr) delete[] na;
+	if (nv != nullptr) delete[] nv;
 }
 
 
-void ophTri::refAS_GPU(int idx, int ch, uint SHADING_FLAG)
+void ophTri::refAS_GPU(int idx, Real lambda, uint SHADING_FLAG)
 {
 	int nx = context_.pixel_number[_X];
 	int ny = context_.pixel_number[_Y];
 	double px = context_.pixel_pitch[_X];
 	double py = context_.pixel_pitch[_Y];
-	double waveLength = context_.wave_length[ch];
+	double waveLength = lambda;
 
 	Real shadingFactor = 0;
 	vec3 av(0, 0, 0);

@@ -43,7 +43,7 @@
 //
 //M*/
 
-#include "ophwrp.h"
+#include "ophWRP.h"
 #include "sys.h"
 #include "tinyxml2.h"
 
@@ -78,54 +78,50 @@ void ophWRP::autoScaling()
 
 	Real size = pnY * ppY * 0.8 / 2.0;
 
-	OphPointCloudData pc = obj_;
 	if (scaledVertex) {
 		delete[] scaledVertex;
 		scaledVertex = nullptr;
 	}
-	scaledVertex = new Real[n_points * 3];
-	memcpy(scaledVertex, pc.vertex, sizeof(Real) * n_points * 3);
+	scaledVertex = new Vertex[n_points];
 
+	std::memcpy(scaledVertex, obj_.vertices, sizeof(Vertex) * n_points);
 
-	Real* x = new Real[n_points];
-	Real* y = new Real[n_points];
-	Real* z = new Real[n_points];
+	vec3 scale = wrp_config_.scale;
 
-	int i;
-#ifdef _OPENMP
-#pragma omp parallel for private(i)
-#endif
-	for (i = 0; i < n_points; i++) {
-		uint idx = 3 * i;
-		x[i] = scaledVertex[idx + _X];
-		y[i] = scaledVertex[idx + _Y];
-		z[i] = scaledVertex[idx + _Z];
+#if 1
+	zmax_ = MIN_DOUBLE;
+	for (int i = 0; i < n_points; i++)
+	{
+		scaledVertex[i].point.pos[_X] = scaledVertex[i].point.pos[_X] * scale[_X];
+		scaledVertex[i].point.pos[_Y] = scaledVertex[i].point.pos[_Y] * scale[_Y];
+		scaledVertex[i].point.pos[_Z] = scaledVertex[i].point.pos[_Z] * scale[_Z];
+
+		if (zmax_ < scaledVertex[i].point.pos[_Z]) zmax_ = scaledVertex[i].point.pos[_Z];
+	}
+#else
+
+	Real x_max, y_max, z_max;
+	x_max = y_max = z_max = MIN_DOUBLE;
+
+	for (int i = 0; i < n_points; i++)
+	{
+		if (x_max < scaledVertex[i].point.pos[_X]) x_max = scaledVertex[i].point.pos[_X];
+		if (y_max < scaledVertex[i].point.pos[_Y]) y_max = scaledVertex[i].point.pos[_Y];
+		if (z_max < scaledVertex[i].point.pos[_Z]) z_max = scaledVertex[i].point.pos[_Z];
 	}
 
-	Real xmax = maxOfArr(x, n_points);
-	Real ymax = maxOfArr(y, n_points);
-	Real zmax = maxOfArr(z, n_points);
+	Real maxXY = (x_max > y_max) ? x_max : y_max;
+	zmax_ = MIN_DOUBLE;
+	for (int j = 0; j < n_points; ++j)
+	{ //Create Fringe Pattern
+		scaledVertex[j].point.pos[_X] = scaledVertex[j].point.pos[_X] / maxXY * size;
+		scaledVertex[j].point.pos[_Y] = scaledVertex[j].point.pos[_Y] / maxXY * size;
+		scaledVertex[j].point.pos[_Z] = scaledVertex[j].point.pos[_Z] / z_max * size;
 
-	Real maxXY = (xmax > ymax) ? xmax : ymax;
-
-	int j;
-#ifdef _OPENMP
-#pragma omp parallel for private(j) firstprivate(maxXY, zmax, size)
-#endif
-	for (j = 0; j < n_points; ++j) { //Create Fringe Pattern
-		uint idx = 3 * j;
-		scaledVertex[idx + _X] = scaledVertex[idx + _X] / maxXY * size;
-		scaledVertex[idx + _Y] = scaledVertex[idx + _Y] / maxXY * size;
-		scaledVertex[idx + _Z] = scaledVertex[idx + _Z] / zmax * size;
-		z[j] = scaledVertex[idx + _Z];
+		if (zmax_ < scaledVertex[j].point.pos[_Z]) zmax_ = scaledVertex[j].point.pos[_Z];
 	}
 
-	zmax_ = maxOfArr(z, n_points);
-
-	delete[] x;
-	delete[] y;
-	delete[] z;
-
+#endif
 	LOG("%lf (s)\n", ELAPSED_TIME(begin, CUR_TIME));
 }
 
@@ -142,60 +138,87 @@ bool ophWRP::readConfig(const char* fname)
 	if (!ophGen::readConfig(fname))
 		return false;
 
-	LOG("Reading....%s...", fname);
-
-	auto start = CUR_TIME;
-
+	bool bRet = true;
 	using namespace tinyxml2;
 	/*XML parsing*/
 	tinyxml2::XMLDocument xml_doc;
-	XMLNode *xml_node;
+	XMLNode* xml_node;
 
 	if (!checkExtension(fname, ".xml"))
 	{
-		LOG("file's extension is not 'xml'\n");
+		LOG("<FAILED> Wrong file ext.\n");
 		return false;
 	}
-	auto ret = xml_doc.LoadFile(fname);
-	if (ret != XML_SUCCESS)
+	if (xml_doc.LoadFile(fname) != XML_SUCCESS)
 	{
-		LOG("Failed to load file \"%s\"\n", fname);
+		LOG("<FAILED> Loading file.\n");
 		return false;
 	}
-
 	xml_node = xml_doc.FirstChild();
 
+	char szNodeName[32] = { 0, };
 	// about viewing window
-	auto next = xml_node->FirstChildElement("FieldLength");
+	sprintf(szNodeName, "FieldLength");
+	auto next = xml_node->FirstChildElement(szNodeName);
 	if (!next || XML_SUCCESS != next->QueryDoubleText(&wrp_config_.fieldLength))
-		return false;
-
+	{
+		LOG("<FAILED> Not found node : \'%s\' (Double) \n", szNodeName);
+		bRet = false;
+	}
 	// about point
-	next = xml_node->FirstChildElement("ScaleX");
+	sprintf(szNodeName, "ScaleX");
+	next = xml_node->FirstChildElement(szNodeName);
 	if (!next || XML_SUCCESS != next->QueryDoubleText(&wrp_config_.scale[_X]))
-		return false;
-	next = xml_node->FirstChildElement("ScaleY");
+	{
+		LOG("<FAILED> Not found node : \'%s\' (Double) \n", szNodeName);
+		bRet = false;
+	}
+	sprintf(szNodeName, "ScaleY");
+	next = xml_node->FirstChildElement(szNodeName);
 	if (!next || XML_SUCCESS != next->QueryDoubleText(&wrp_config_.scale[_Y]))
-		return false;
-	next = xml_node->FirstChildElement("ScaleZ");
+	{
+		LOG("<FAILED> Not found node : \'%s\' (Double) \n", szNodeName);
+		bRet = false;
+	}
+	sprintf(szNodeName, "ScaleZ");
+	next = xml_node->FirstChildElement(szNodeName);
 	if (!next || XML_SUCCESS != next->QueryDoubleText(&wrp_config_.scale[_Z]))
-		return false;
-	next = xml_node->FirstChildElement("Distance");
+	{
+		LOG("<FAILED> Not found node : \'%s\' (Double) \n", szNodeName);
+		bRet = false;
+	}
+	sprintf(szNodeName, "Distance");
+	next = xml_node->FirstChildElement(szNodeName);
 	if (!next || XML_SUCCESS != next->QueryDoubleText(&wrp_config_.propagation_distance))
-		return false;
-	next = xml_node->FirstChildElement("LocationOfWRP");
+	{
+		LOG("<FAILED> Not found node : \'%s\' (Double) \n", szNodeName);
+		bRet = false;
+	}
+	sprintf(szNodeName, "LocationOfWRP");
+	next = xml_node->FirstChildElement(szNodeName);
 	if (!next || XML_SUCCESS != next->QueryDoubleText(&wrp_config_.wrp_location))
-		return false;
-	next = xml_node->FirstChildElement("NumOfWRP");
+	{
+		LOG("<FAILED> Not found node : \'%s\' (Double) \n", szNodeName);
+		bRet = false;
+	}
+	sprintf(szNodeName, "NumOfWRP");
+	next = xml_node->FirstChildElement(szNodeName);
 	if (!next || XML_SUCCESS != next->QueryIntText(&wrp_config_.num_wrp))
-		return false;
-
-	auto end = CUR_TIME;
-	auto during = ((chrono::duration<Real>)(end - start)).count();
-	LOG("%lf (s)..done\n", during);
-
+	{
+		LOG("<FAILED> Not found node : \'%s\' (Integer) \n", szNodeName);
+		bRet = false;
+	}
 	initialize();
-	return true;
+
+
+	LOG("**************************************************\n");
+	LOG("                Read Config (WRP)                 \n");
+	LOG("1) Focal Length : %.5lf\n", wrp_config_.propagation_distance);
+	LOG("2) Object Scale : %.5lf / %.5lf / %.5lf\n", wrp_config_.scale[_X], wrp_config_.scale[_Y], wrp_config_.scale[_Z]);
+	LOG("3) Number of WRP : %d\n", wrp_config_.num_wrp);
+	LOG("**************************************************\n");
+
+	return bRet;
 }
 
 void ophWRP::addPixel2WRP(int x, int y, Complex<Real> temp)
@@ -203,7 +226,7 @@ void ophWRP::addPixel2WRP(int x, int y, Complex<Real> temp)
 	const uint pnX = context_.pixel_number[_X];
 	const uint pnY = context_.pixel_number[_Y];
 
-	if (x >= 0 && x < pnX && y >= 0 && y < pnY) {
+	if (x >= 0 && x < (int)pnX && y >= 0 && y < (int)pnY) {
 		uint adr = x + y * pnX;
 		if (adr == 0) 
 			std::cout << ".0";
@@ -217,7 +240,7 @@ void ophWRP::addPixel2WRP(int x, int y, oph::Complex<Real> temp, oph::Complex<Re
 	long long int Nx = context_.pixel_number.v[0];
 	long long int Ny = context_.pixel_number.v[1];
 
-	if (x >= 0 && x<Nx && y >= 0 && y< Ny) {
+	if (x >= 0 && x < Nx && y >= 0 && y < Ny) {
 		long long int adr = x + y*Nx;
 		wrp[adr] += temp[adr];
 	}
@@ -243,19 +266,17 @@ oph::Complex<Real>* ophWRP::calSubWRP(double wrp_d, Complex<Real>* wrp, OphPoint
 
 
 #ifdef _OPENMP
-	omp_set_num_threads(omp_get_num_threads());
-#pragma omp parallel for
+#pragma omp parallel for firstprivate(wrp_d, wpx, wpy, Nx_h, Ny_h, wave_num, wave_len)
 #endif
-
 	for (int k = 0; k < num; k++) {
 
 		uint idx = 3 * k;
 		uint color_idx = pc->n_colors * k;
 
-		Real x = pc->vertex[idx + _X];
-		Real y = pc->vertex[idx + _Y];
-		Real z = pc->vertex[idx + _Z];
-		Real amplitude = pc->color[color_idx];
+		Real x = pc->vertices[k].point.pos[_X];
+		Real y = pc->vertices[k].point.pos[_Y];
+		Real z = pc->vertices[k].point.pos[_Z];
+		Real amplitude = pc->vertices[k].color.color[_R];
 
 		float dz = wrp_d - z;
 		//	float tw = (int)fabs(wave_len*dz / wpx / wpx / 2 + 0.5) * 2 - 1;
@@ -281,8 +302,8 @@ oph::Complex<Real>* ophWRP::calSubWRP(double wrp_d, Complex<Real>* wrp, OphPoint
 				//double tmp_re,tmp_im;
 				Complex<Real> tmp;
 
-				tmp._Val[_RE] = (amplitude*cosf(wave_num*r)*cosf(wave_num*wave_len*rand(0, 1))) / (r + 0.05);
-				tmp._Val[_IM] = (-amplitude*sinf(wave_num*r)*sinf(wave_num*wave_len*rand(0, 1))) / (r + 0.05);
+				tmp[_RE] = (amplitude*cosf(wave_num*r)*cosf(wave_num*wave_len*rand(0, 1))) / (r + 0.05);
+				tmp[_IM] = (-amplitude*sinf(wave_num*r)*sinf(wave_num*wave_len*rand(0, 1))) / (r + 0.05);
 
 				if (tx + wx >= 0 && tx + wx < Nx && ty + wy >= 0 && ty + wy < Ny)
 				{
@@ -295,16 +316,16 @@ oph::Complex<Real>* ophWRP::calSubWRP(double wrp_d, Complex<Real>* wrp, OphPoint
 	return wrp;
 }
 
-double ophWRP::calculateWRPCPU(void)
+void ophWRP::calculateWRPCPU()
 {
 	LOG("%s\n", __FUNCTION__);
 	auto begin = CUR_TIME;
 
-	const uint pnX = context_.pixel_number[_X]; //slm_pixelNumberX
-	const uint pnY = context_.pixel_number[_Y]; //slm_pixelNumberY
+	const int pnX = context_.pixel_number[_X]; //slm_pixelNumberX
+	const int pnY = context_.pixel_number[_Y]; //slm_pixelNumberY
 	const Real ppX = context_.pixel_pitch[_X]; //wrp pitch
 	const Real ppY = context_.pixel_pitch[_Y];
-	const uint N = pnX * pnY;
+	const long long int N = pnX * pnY;
 	const uint nChannel = context_.waveNum;
 	const Real distance = wrp_config_.propagation_distance;
 	int hpnX = pnX >> 1;
@@ -336,20 +357,19 @@ double ophWRP::calculateWRPCPU(void)
 		Real lambda = context_.wave_length[ch];  //wave_length
 		Real k = context_.k = pi2 / lambda;
 		int iColor = ch;
-		int i;
 		int sum = 0;
 #ifdef _OPENMP
-#pragma omp parallel for private(i) firstprivate(iColor, ppXX, pnX, pnY, ppX, ppY, hpnX, hpnY, wrp_d, k, pi2)
+#pragma omp parallel for firstprivate(iColor, ppXX, pnX, pnY, ppX, ppY, hpnX, hpnY, wrp_d, k, pi2)
 #endif
-		for (i = 0; i < n_points; ++i)
+		for (int i = 0; i < n_points; ++i)
 		{
 			uint idx = 3 * i;
 			uint color_idx = pc.n_colors * i;
 
-			Real x = scaledVertex[idx + _X];
-			Real y = scaledVertex[idx + _Y];
-			Real z = scaledVertex[idx + _Z];
-			Real amplitude = pc.color[color_idx + iColor];
+			Real x = scaledVertex[i].point.pos[_X];
+			Real y = scaledVertex[i].point.pos[_Y];
+			Real z = scaledVertex[i].point.pos[_Z];
+			Real amplitude = pc.vertices[i].color.color[_R + ch];
 
 			//Real dz = wrp_d - z;
 			//Real dzz = dz * dz;
@@ -398,8 +418,6 @@ double ophWRP::calculateWRPCPU(void)
 				}
 			}
 		}
-		LOG("\t");
-
 		fresnelPropagation(p_wrp_, complex_H[ch], distance, ch);
 		memset(p_wrp_, 0.0, sizeof(Complex<Real>) * N);
 	}
@@ -410,7 +428,7 @@ double ophWRP::calculateWRPCPU(void)
 
 	LOG("Total : %lf (s)\n", ELAPSED_TIME(begin, CUR_TIME));
 
-	return 0.;
+	//return 0.;
 }
 
 void ophWRP::generateHologram(void)
@@ -418,6 +436,8 @@ void ophWRP::generateHologram(void)
 	resetBuffer();
 
 	auto begin = CUR_TIME;
+	LOG("**************************************************\n");
+	LOG("                Generate Hologram                 \n");
 	LOG("1) Algorithm Method : WRP\n");
 	LOG("2) Generate Hologram with %s\n", m_mode & MODE_GPU ?
 		"GPU" :
@@ -428,6 +448,11 @@ void ophWRP::generateHologram(void)
 #endif
 	);
 	LOG("3) Random Phase Use : %s\n", GetRandomPhase() ? "Y" : "N");
+	LOG("4) Number of Point Cloud : %d\n", n_points);
+	LOG("5) Precision Level : %s\n", m_mode & MODE_FLOAT ? "Single" : "Double");
+	if (m_mode & MODE_GPU)
+		LOG("6) Use FastMath : %s\n", m_mode & MODE_FASTMATH ? "Y" : "N");
+	LOG("**************************************************\n");
 	
 	autoScaling();
 	m_mode & MODE_GPU ? calculateWRPGPU() : calculateWRPCPU();
@@ -447,16 +472,11 @@ Complex<Real>** ophWRP::calculateMWRP(void)
 
 	Real k = context_.k;   // wave_number
 	Real lambda = context_.wave_length[0];  //wave_length
-
-	const uint pnX = context_.pixel_number[_X]; //slm_pixelNumberX
-	const uint pnY = context_.pixel_number[_Y]; //slm_pixelNumberY
-	const uint pnXY = pnX * pnY;
-	const Real ppX = context_.pixel_pitch[_X];//wrp pitch
-	const Real ppY = context_.pixel_pitch[_Y];
+	const long long int pnXY = context_.pixel_number[_X] * context_.pixel_number[_Y];
 
 	Complex<Real>* wrp = new Complex<Real>[pnXY];
 
-	OphPointCloudData pc = obj_;
+	//OphPointCloudData pc = obj_;
 
 	for (int i = 0; i<wrp_num; i++)
 	{
@@ -469,13 +489,9 @@ Complex<Real>** ophWRP::calculateMWRP(void)
 
 void ophWRP::ophFree(void)
 {
-	if (obj_.vertex) {
-		delete[] obj_.vertex;
-		obj_.vertex = nullptr;
-	}
-	if (obj_.color) {
-		delete[] obj_.color;
-		obj_.color = nullptr;
+	if (obj_.vertices) {
+		delete[] obj_.vertices;
+		obj_.vertices = nullptr;
 	}
 }
 

@@ -1,0 +1,59 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="__Header Files">
+      <UniqueIdentifier>{91cb3114-1b37-457b-bc1b-3b25f42b0704}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="__ophSig">
+      <UniqueIdentifier>{a370331d-05de-4333-972c-e4c85ad64678}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="__Add Files">
+      <UniqueIdentifier>{3e0ab729-d2b2-494a-a4de-33f1fed9a9e4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="_1_Compressive Hologram">
+      <UniqueIdentifier>{87be1279-478b-4021-afaf-9ab90234c48e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="_2_Phase Unwrapping">
+      <UniqueIdentifier>{5b4ea7ac-add0-40c2-9043-0e0f255effbf}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\ophSig.cpp">
+      <Filter>__ophSig</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ophSigCH.cpp">
+      <Filter>_1_Compressive Hologram</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ophSigPU.cpp">
+      <Filter>_2_Phase Unwrapping</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ophSig_GPU.cpp">
+      <Filter>__ophSig</Filter>
+    </ClCompile>
+    <ClCompile Include="src\tinyxml2.cpp">
+      <Filter>__Header Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\ophSig.h">
+      <Filter>__ophSig</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ophSigCH.h">
+      <Filter>_1_Compressive Hologram</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ophSigPU.h">
+      <Filter>_2_Phase Unwrapping</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ophSig_GPU.h">
+      <Filter>__ophSig</Filter>
+    </ClInclude>
+    <ClInclude Include="src\tinyxml2.h">
+      <Filter>__Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="src\ophSigKernel.cu">
+      <Filter>__ophSig</Filter>
+    </CudaCompile>
+  </ItemGroup>
+</Project>

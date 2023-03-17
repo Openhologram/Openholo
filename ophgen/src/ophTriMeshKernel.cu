@@ -45,19 +45,14 @@
 #pragma once
 #ifndef ophTriMeshKernel_cu__
 #define ophTriMeshKernel_cu__
-
 #include "ophKernel.cuh"
-
-#include <cuda_runtime.h>
+#include <cuda_runtime_api.h>
 #include <cuComplex.h>
 #include <cuda.h>
 #include <device_launch_parameters.h>
-#include <device_functions.h>
+#include <cuda_runtime_api.h>
 #include <cufft.h>
 #include <vector>
-
-//#define USE_FLOAT
-#define USE_SHARED_MEMORY
 
 __device__  void exponent_complex_mesh(cuDoubleComplex* val)
 {

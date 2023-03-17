@@ -5,7 +5,7 @@
 #include "sys.h"
 #include "tinyxml2.h"
 #include "PLYparser.h"
-#include <cuda_runtime.h>
+#include <cuda_runtime_api.h>
 #include <device_launch_parameters.h>
 #include "ophAS_GPU.h"
 #include "FFTImplementationCallback.h"
@@ -13,6 +13,7 @@
 
 
 ophAS::ophAS()
+	: ophGen()
 {
 	this->x = 0.0;
 	this->y = 0.0;
@@ -27,58 +28,65 @@ ophAS::~ophAS()
 
 bool ophAS::readConfig(const char * fname)
 {
-	ophGen::readConfig(fname);
+	if (!ophGen::readConfig(fname))
+		return false;
 
-	LOG("[%s] %s\n", __FUNCTION__, fname);
-
-	auto start = CUR_TIME;
+	bool bRet = true;
+	auto begin = CUR_TIME;
+	using namespace tinyxml2;
 
 	/*XML parsing*/
 	tinyxml2::XMLDocument xml_doc;
-	tinyxml2::XMLNode *xml_node;
+	XMLNode *xml_node;
 
 
 	if (!checkExtension(fname, ".xml"))
 	{
-		LOG("file's extension is not 'xml'\n");
+		LOG("<FAILED> Wrong file ext.\n");
 		return false;
 	}
-	auto ret = xml_doc.LoadFile(fname);
-	LOG("%d", ret);
-	if (ret != tinyxml2::XML_SUCCESS)
+	if (xml_doc.LoadFile(fname) != XML_SUCCESS)
 	{
-		LOG("Failed to load file \"%s\"\n", fname);
+		LOG("<FAILED> Loading file.\n");
 		return false;
 	}
 
 	xml_node = xml_doc.FirstChild();
+	char szNodeName[32] = { 0, };
 
-	auto next = xml_node->FirstChildElement("ScaleX");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&pc_config.scale[_X]))
-		return false;
-	next = xml_node->FirstChildElement("ScaleY");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&pc_config.scale[_Y]))
-		return false;
-	next = xml_node->FirstChildElement("ScaleZ");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&pc_config.scale[_Z]))
-		return false;
-	next = xml_node->FirstChildElement("Distance");
-	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&pc_config.distance))
-		return false;
-	depth = pc_config.distance;
-	wavelength = context_.wave_length[0];
-	this->w = context_.pixel_number[_X];
-	this->h = context_.pixel_number[_Y];
+	sprintf(szNodeName, "ScaleX");
+	// about point
+	auto next = xml_node->FirstChildElement(szNodeName);
+	if (!next || XML_SUCCESS != next->QueryDoubleText(&pc_config.scale[_X]))
+	{
+		LOG("<FAILED> Not found node : \'%s\' (Double) \n", szNodeName);
+		bRet = false;
+	}
+	sprintf(szNodeName, "ScaleY");
+	next = xml_node->FirstChildElement(szNodeName);
+	if (!next || XML_SUCCESS != next->QueryDoubleText(&pc_config.scale[_Y]))
+	{
+		LOG("<FAILED> Not found node : \'%s\' (Double) \n", szNodeName);
+		bRet = false;
+	}
+	sprintf(szNodeName, "ScaleZ");
+	next = xml_node->FirstChildElement(szNodeName);
+	if (!next || XML_SUCCESS != next->QueryDoubleText(&pc_config.scale[_Z]))
+	{
+		LOG("<FAILED> Not found node : \'%s\' (Double) \n", szNodeName);
+		bRet = false;
+	}
+	sprintf(szNodeName, "Distance");
+	next = xml_node->FirstChildElement(szNodeName);
+	if (!next || XML_SUCCESS != next->QueryDoubleText(&pc_config.distance))
+	{
+		LOG("<FAILED> Not found node : \'%s\' (Double) \n", szNodeName);
+		bRet = false;
+	}
+	LOG("%s : %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
 
-	xi_interval = context_.pixel_pitch[_X];
-	eta_interval = context_.pixel_pitch[_Y];	
-	auto end = CUR_TIME;
-
-	auto during = ((std::chrono::duration<Real>)(end - start)).count();
-	knumber = 2 * M_PI / wavelength;
-	LOG("%.5lfsec...done\n", during);
 	initialize();
-	return true;
+	return bRet;
 }
 
 int ophAS::loadPointCloud(const char * fname)
@@ -93,6 +101,7 @@ void ophAS::ASCalculation(double w, double h, double wavelength, double knumber,
 	&b_AngularC)
 {
 	fringe.set_size(w, h);
+	
 	RayleighSommerfield(w, h, wavelength, knumber, xi_interval, eta_interval, depth, fringe);
 	depth = -500e-3;
 	bool is_CPU = m_mode & MODE_GPU ? false : true;
@@ -240,9 +249,11 @@ void ophAS::AngularSpectrum(double w, double h, double wavelength, double knumbe
 void ophAS::generateHologram()
 {
 	coder::array<creal_T, 2U> temp;
-	res = new unsigned char[w*h]{ 0 };
-	ASCalculation(w, h, wavelength, knumber, xi_interval, eta_interval, depth, temp, im);
-	for (int i = 0; i < w*h; i++)
+
+#ifdef OLD
+	res = new unsigned char[w * h] { 0 };
+	ASCalculation(w, h, wavelength, knumber, xi_interval, eta_interval, pc_config.distance, temp, im);
+	for (int i = 0; i < w * h; i++)
 	{
 		Complex<double> a(im[i].re, im[i].im);
 		if (a.mag() * 255 > 255)
@@ -251,9 +262,36 @@ void ophAS::generateHologram()
 			res[i] = 0;
 		else
 			res[i] = a.mag() * 255;
-		
-	}
 
+	}
+#else
+	res = getNormalizedBuffer()[0];
+	const uint nWave = context_.waveNum;
+	const uint pnX = context_.pixel_number[_X];
+	const uint pnY = context_.pixel_number[_Y];
+	const Real ppX = context_.pixel_pitch[_X];
+	const Real ppY = context_.pixel_pitch[_Y];
+	const long long int pnXY = pnX * pnY;
+	const Real distance = pc_config.distance;
+
+	for (uint ch = 0; ch < nWave; ch++)
+	{
+		Real lambda = context_.wave_length[ch];
+		Real k = 2 * M_PI / lambda;
+		ASCalculation(pnX, pnY, lambda, k, ppX, ppY, distance, temp, im);
+		for (int i = 0; i < w * h; i++)
+		{
+			Complex<double> a(im[i].re, im[i].im);
+			if (a.mag() * 255 > 255)
+				res[i] = 255;
+			else if (a.mag() * 255 < 0)
+				res[i] = 0;
+			else
+				res[i] = a.mag() * 255;
+
+		}
+	}
+#endif
 }
 
 void ophAS::MemoryRelease()
@@ -662,7 +700,7 @@ int ophAS::save(const char * fname, uint8_t bitsperpixel, uchar * src, uint px, 
 	else {									// when extension is not .ohf, .bmp - force bmp
 		char buf[256];
 		memset(buf, 0x00, sizeof(char) * 256);
-		sprintf_s(buf, "%s.bmp", fname);
+		sprintf(buf, "%s.bmp", fname);
 
 		return Openholo::saveAsImg(buf, bitsperpixel, source, p[_X], p[_Y]);
 	}

@@ -5,13 +5,9 @@
 #include <iostream>
 #include <string>
 #include <iomanip>
-
 #include "sys.h"
-
 #include "tinyxml2.h"
 #include "PLYparser.h"
-
-//CGHEnvironmentData CONF;	// config
 
 using namespace std;
 
@@ -41,7 +37,7 @@ bool ophACPAS::loadConfig(const char* filename, CGHEnvironmentData* conf)
 	ifstream inFile(filename);
 	if (!(inFile.is_open()))
 	{
-		cout << "파일을 찾을 수 없습니다." << endl;
+		LOG("Cannot find file: %s\n", filename);
 		return false;
 	}
 	else {
@@ -50,64 +46,64 @@ bool ophACPAS::loadConfig(const char* filename, CGHEnvironmentData* conf)
 			inFile.getline(inputString, MAX_SIZE);
 
 			// 주석 및 빈칸 제거
-			if (!(inputString[0] == NULL || (inputString[0] == '#' && inputString[1] == ' ')))
+			if (!(inputString[0] == 0 || (inputString[0] == '#' && inputString[1] == ' ')))
 			{
 				char* token = NULL;
 				char* parameter = NULL;
-				char* context = nullptr;
-				token = strtok_s(inputString, "=", &context);
+
+				token = strtok(inputString, "=");
 
 				// 데이터 받아서 구조체에 저장
 				if (strcmp(token, "CGH width ") == 0) {
-					token = strtok_s(NULL, "=", &context);
+					token = strtok(nullptr, "=");
 					conf->CghWidth = atoi(trim(token));
 				}
 				else if (strcmp(token, "CGH height ") == 0) {
-					token = strtok_s(NULL, "=", &context);
+					token = strtok(nullptr, "=");
 					conf->CghHeight = atoi(trim(token));
 				}
 				else if (strcmp(token, "Segmentation size ") == 0) {
-					token = strtok_s(NULL, "=", &context);
+					token = strtok(nullptr, "=");
 					conf->SegmentationSize = atoi(trim(token));
 				}
 				else if (strcmp(token, "FFT segmentation size ") == 0) {
-					token = strtok_s(NULL, "=", &context);
+					token = strtok(nullptr, "=");
 					conf->fftSegmentationSize = atoi(trim(token));
 				}
 				else if (strcmp(token, "Red wavelength ") == 0) {
-					token = strtok_s(NULL, "=", &context);
+					token = strtok(nullptr, "=");
 					conf->rWaveLength = atof(trim(token));
 				}
 				else if (strcmp(token, "Tilting angle on x axis ") == 0) {
-					token = strtok_s(NULL, "=", &context);
+					token = strtok(nullptr, "=");
 					conf->ThetaX = atof(trim(token));
 				}
 				else if (strcmp(token, "Tilting angle on y axis ") == 0) {
-					token = strtok_s(NULL, "=", &context);
+					token = strtok(nullptr, "=");
 					conf->ThetaY = atof(trim(token));
 				}
 				else if (strcmp(token, "Default depth ") == 0) {
-					token = strtok_s(NULL, "=", &context);
+					token = strtok(nullptr, "=");
 					conf->DefaultDepth = atof(trim(token));
 				}
 				else if (strcmp(token, "3D point interval on x axis ") == 0) {
-					token = strtok_s(NULL, "=", &context);
+					token = strtok(nullptr, "=");
 					conf->xInterval = atof(trim(token));
 				}
 				else if (strcmp(token, "3D point interval on y axis ") == 0) {
-					token = strtok_s(NULL, "=", &context);
+					token = strtok(nullptr, "=");
 					conf->yInterval = atof(trim(token));
 				}
 				else if (strcmp(token, "Hologram interval on xi axis ") == 0) {
-					token = strtok_s(NULL, "=", &context);
+					token = strtok(nullptr, "=");
 					conf->xiInterval = atof(trim(token));
 				}
 				else if (strcmp(token, "Hologram interval on eta axis ") == 0) {
-					token = strtok_s(NULL, "=", &context);
+					token = strtok(nullptr, "=");
 					conf->etaInterval = atof(trim(token));
 				}
 				else if (strcmp(token, "CGH scale ") == 0) {
-					token = strtok_s(NULL, "=", &context);
+					token = strtok(nullptr, "=");
 					conf->CGHScale = atof(trim(token));
 				}
 			}
@@ -227,33 +223,32 @@ bool ophACPAS::loadPoint(const char* _filename, VoxelStruct* h_vox)
 		{
 			inFile.getline(inputString, MAX_SIZE);
 
-			if (inputString[0] != NULL)
+			if (inputString[0] != 0)
 			{
-				char* token = NULL;
-				char* context = nullptr;
+				char* token = nullptr;
 
-				token = strtok_s(inputString, "\t", &context);
+				token = strtok(inputString, "\t");
 				h_vox[no].num = atoi(token);	// 인덱스
 
-				token = strtok_s(NULL, "\t", &context);
+				token = strtok(nullptr, "\t");
 				h_vox[no].x = atof(token);	// x 좌표
 
-				token = strtok_s(NULL, "\t", &context);
+				token = strtok(nullptr, "\t");
 				h_vox[no].y = atof(token);	// y 좌표
 
-				token = strtok_s(NULL, "\t", &context);
+				token = strtok(nullptr, "\t");
 				h_vox[no].z = atof(token);	// z 좌표
 
-				token = strtok_s(NULL, "\t", &context);
+				token = strtok(nullptr, "\t");
 				h_vox[no].ph = atof(token);	// phase
 
-				token = strtok_s(NULL, "\t", &context);
+				token = strtok(nullptr, "\t");
 				h_vox[no].r = atof(token);	// red
 
-				//token = strtok_s(NULL, "\t", &context);
+				//token = strtok(NULL, "\t");
 				//h_vox[no].g = atof(token);	// green
 
-				//token = strtok_s(NULL, "\t", &context);
+				//token = strtok(NULL, "\t");
 				//h_vox[no].b = atof(token);	// blue
 
 				no++;
@@ -356,15 +351,16 @@ int ophACPAS::save(const char * fname, uint8_t bitsperpixel, uchar* src, uint px
 			p = ivec2(pnX, pnY);
 
 		if (checkExtension(fname, ".bmp")) 	// when the extension is bmp
-			return Openholo::saveAsImg(fname, bitsperpixel, source, p[_X], p[_Y]);
+			return Openholo::saveAsImg(fname, bitsperpixel, source, p[_X], p[_Y]) ? 1 : -1;
 		else {									// when extension is not .ohf, .bmp - force bmp
 			char buf[256];
 			memset(buf, 0x00, sizeof(char) * 256);
-			sprintf_s(buf, "%s.bmp", fname);
+			sprintf(buf, "%s.bmp", fname);
 
-			return Openholo::saveAsImg(buf, bitsperpixel, source, p[_X], p[_Y]);
+			return Openholo::saveAsImg(buf, bitsperpixel, source, p[_X], p[_Y]) ? 1 : -1;
 		}
 	}
+	return -1;
 }
 
 // 문자열 우측 공백문자 삭제 함수
@@ -376,7 +372,7 @@ char* ophACPAS::rtrim(char* s)
 	// Visual C 2003 이하에서는
 	// strcpy(t, s);
 	// 이렇게 해야 함
-	strcpy_s(t, s); // 이것은 Visual C 2005용
+	strcpy(t, s); // 이것은 Visual C 2005용
 	end = t + strlen(t) - 1;
 	while (end != t && isspace(*end))
 		end--;
@@ -588,11 +584,11 @@ void ophACPAS::ACPAS(long voxelnum, OphPointCloudData *data, OphPointCloudConfig
 	for (no = 0; no < voxelnum*3; no+=3)
 	{
 		// point coordinate
-		X = (data->vertex[no]) * conf.scale[_X];
-		Y = (data->vertex[no+1]) * conf.scale[_X];
-		Z = data->vertex[no+2] * conf.scale[_X] - conf.distance;
-		Amplitude = data->phase[no/3];
-		phase = data->phase[no / 3];
+		X = data->vertices[no].point.pos[_X] * conf.scale[_X];
+		Y = data->vertices[no].point.pos[_Y] * conf.scale[_X];
+		Z = data->vertices[no].point.pos[_Z] * conf.scale[_X] - conf.distance;
+		Amplitude = data->vertices[no].color.color[_R];
+		phase = data->vertices[no].phase;
 
 		for (segy = 0; segy < segNumy; segy++)
 		{

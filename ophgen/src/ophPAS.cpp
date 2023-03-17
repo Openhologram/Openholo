@@ -1,4 +1,3 @@
-#define OPH_DM_EXPORT 
 
 #include "ophPAS.h"
 #include <fstream>
@@ -11,12 +10,9 @@
 #include "tinyxml2.h"
 #include "PLYparser.h"
 
-//CGHEnvironmentData CONF;	// config
-
-using namespace std;
-
 ophPAS::ophPAS(void)
 	: ophGen()
+	, n_points(-1)
 {
 }
 
@@ -24,8 +20,6 @@ ophPAS::~ophPAS()
 {
 	
 }
-
-
 
 bool ophPAS::readConfig(const char* fname)
 {
@@ -54,7 +48,7 @@ bool ophPAS::readConfig(const char* fname)
 
 
 	char szNodeName[32] = { 0, };
-	wsprintfA(szNodeName, "ScaleX");
+	sprintf(szNodeName, "ScaleX");
 	// about point
 	auto next = xml_node->FirstChildElement(szNodeName);
 	if (!next || XML_SUCCESS != next->QueryDoubleText(&pc_config.scale[_X]))
@@ -62,21 +56,21 @@ bool ophPAS::readConfig(const char* fname)
 		LOG("<FAILED> Not found node : \'%s\' (Double) \n", szNodeName);
 		bRet = false;
 	}
-	wsprintfA(szNodeName, "ScaleY");
+	sprintf(szNodeName, "ScaleY");
 	next = xml_node->FirstChildElement(szNodeName);
 	if (!next || XML_SUCCESS != next->QueryDoubleText(&pc_config.scale[_Y]))
 	{
 		LOG("<FAILED> Not found node : \'%s\' (Double) \n", szNodeName);
 		bRet = false;
 	}
-	wsprintfA(szNodeName, "ScaleZ");
+	sprintf(szNodeName, "ScaleZ");
 	next = xml_node->FirstChildElement(szNodeName);
 	if (!next || XML_SUCCESS != next->QueryDoubleText(&pc_config.scale[_Z]))
 	{
 		LOG("<FAILED> Not found node : \'%s\' (Double) \n", szNodeName);
 		bRet = false;
 	}
-	wsprintfA(szNodeName, "Distance");
+	sprintf(szNodeName, "Distance");
 	next = xml_node->FirstChildElement(szNodeName);
 	if (!next || XML_SUCCESS != next->QueryDoubleText(&pc_config.distance))
 	{
@@ -84,9 +78,9 @@ bool ophPAS::readConfig(const char* fname)
 		bRet = false;
 	}
 	
-	LOG("%s => %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
+	LOG("%s : %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
 	initialize();
-	return true;
+	return bRet;
 }
 
 int ophPAS::loadPoint(const char* _filename)
@@ -95,94 +89,7 @@ int ophPAS::loadPoint(const char* _filename)
 	return n_points;
 }
 
-int ophPAS::save(const char * fname, uint8_t bitsperpixel, uchar* src, uint px, uint py)
-{
-	if (fname == nullptr) return -1;
-
-	uchar* source = src;
-	ivec2 p(px, py);
-
-	if (src == nullptr)
-		source = m_lpNormalized[0];
-	if (px == 0 && py == 0)
-		p = ivec2(context_.pixel_number[_X], context_.pixel_number[_Y]);
-	
-	if (checkExtension(fname, ".bmp")) 	// when the extension is bmp
-		return Openholo::saveAsImg(fname, bitsperpixel, source, p[_X], p[_Y]);
-	else {									// when extension is not .ohf, .bmp - force bmp
-		char buf[256];
-		memset(buf, 0x00, sizeof(char) * 256);
-		sprintf_s(buf, "%s.bmp", fname);
-
-		return Openholo::saveAsImg(buf, bitsperpixel, source, p[_X], p[_Y]);
-	}
-}
-
-void ophPAS::save(const char * fname)
-{
-	save(fname, 8, cgh_fringe, context_.pixel_number[_X], context_.pixel_number[_Y]);
-	delete[] cgh_fringe;
-}
-
-/*
-int ophPAS::saveAsImg(const char * fname, uint8_t bitsperpixel, void * src, int pic_width, int pic_height)
-{
-	LOG("Saving...%s...", fname);
-	auto start = CUR_TIME;
-
-	int _width = pic_width, _height = pic_height;
-
-	int _pixelbytesize = _height * _width * bitsperpixel / 8;
-	int _filesize = _pixelbytesize + sizeof(bitmap);
-
-	FILE *fp;
-	fopen_s(&fp, fname, "wb");
-	if (fp == nullptr) return -1;
-
-	bitmap *pbitmap = (bitmap*)calloc(1, sizeof(bitmap));
-	memset(pbitmap, 0x00, sizeof(bitmap));
-
-	pbitmap->fileheader.signature[0] = 'B';
-	pbitmap->fileheader.signature[1] = 'M';
-	pbitmap->fileheader.filesize = _filesize;
-	pbitmap->fileheader.fileoffset_to_pixelarray = sizeof(bitmap);
-
-	for (int i = 0; i < 256; i++) {
-		pbitmap->rgbquad[i].rgbBlue = i;
-		pbitmap->rgbquad[i].rgbGreen = i;
-		pbitmap->rgbquad[i].rgbRed = i;
-	}
-
-	pbitmap->bitmapinfoheader.dibheadersize = sizeof(bitmapinfoheader);
-	pbitmap->bitmapinfoheader.width = _width;
-	pbitmap->bitmapinfoheader.height = _height;
-	//pbitmap->bitmapinfoheader.planes = _planes;
-	pbitmap->bitmapinfoheader.bitsperpixel = bitsperpixel;
-	//pbitmap->bitmapinfoheader.compression = _compression;
-	pbitmap->bitmapinfoheader.imagesize = _pixelbytesize;
-	//pbitmap->bitmapinfoheader.ypixelpermeter = _ypixelpermeter;
-	//pbitmap->bitmapinfoheader.xpixelpermeter = _xpixelpermeter;
-	pbitmap->bitmapinfoheader.numcolorspallette = 256;
-	fwrite(pbitmap, 1, sizeof(bitmap), fp);
-
-	fwrite(src, 1, _pixelbytesize, fp);
-	fclose(fp);
-	free(pbitmap);
-
-	auto end = CUR_TIME;
-
-	auto during = ((std::chrono::duration<Real>)(end - start)).count();
-
-	LOG("%.5lfsec...done\n", during);
-
-	return 0;
-}
-*/
-
-
-
-
-void ophPAS::DataInit(OphPointCloudConfig &conf)
+void ophPAS::init()
 {
 	m_pHologram = new double[getContext().pixel_number[_X] * getContext().pixel_number[_Y]];
 	memset(m_pHologram, 0x00, sizeof(double)*getContext().pixel_number[_X] * getContext().pixel_number[_Y]);
@@ -200,40 +107,6 @@ void ophPAS::DataInit(OphPointCloudConfig &conf)
 
 
 
-/*
-void ophPAS::PASCalcuation(long voxnum, unsigned char * cghfringe, VoxelStruct * h_vox, CGHEnvironmentData * _CGHE)
-{
-	long i, j;
-
-	double Max = -1E9, Min = 1E9;
-	double myBuffer;
-	int cghwidth = _CGHE->CghWidth;
-	int cghheight = _CGHE->CghHeight;
-
-	DataInit(_CGHE);
-
-	//PAS
-	//
-	PAS(voxnum, h_vox, m_pHologram, _CGHE);
-	//
-
-	for (i = 0; i<cghheight; i++) {
-		for (j = 0; j<cghwidth; j++) {
-			if (Max < m_pHologram[i*cghwidth + j])	Max = m_pHologram[i*cghwidth + j];
-			if (Min > m_pHologram[i*cghwidth + j])	Min = m_pHologram[i*cghwidth + j];
-		}
-	}
-
-	for (i = 0; i<cghheight; i++) {
-		for (j = 0; j<cghwidth; j++) {
-			myBuffer = 1.0*(((m_pHologram[i*cghwidth + j] - Min) / (Max - Min))*255. + 0.5);
-			if (myBuffer >= 255.0)  cghfringe[i*cghwidth + j] = 255;
-			else					cghfringe[i*cghwidth + j] = (unsigned char)(myBuffer);
-		}
-	}
-
-}
-*/
 void ophPAS::PASCalculation(long voxnum, unsigned char * cghfringe, OphPointCloudData *data, OphPointCloudConfig& conf) {
 	long i, j;
 
@@ -245,7 +118,7 @@ void ophPAS::PASCalculation(long voxnum, unsigned char * cghfringe, OphPointClou
 	
 	
 	//DataInit(_CGHE);
-	DataInit(conf);
+	init();
 
 	//PAS
 	//
@@ -357,21 +230,16 @@ void ophPAS::PAS(long voxelnum, OphPointCloudData *data, double * m_pHologram, O
 	float	X, Y, Z; ;		// x, y, real distance
 	float	Amplitude;
 	float	sf_base = 1.0 / (xiInterval* FFT_SEGMENT_SIZE);
-
-	//CString mm;
-	clock_t start, finish;
-	double  duration;
-	start = clock();
-
-	
+		
 	// Iteration according to the point number
 	for (no = 0; no < voxelnum*3; no+=3)
 	{
 		// point coordinate
-		X = ((float)data->vertex[no]) * cghScale;
-		Y = ((float)data->vertex[no+1]) * cghScale;
-		Z = ((float)data->vertex[no+2]) * cghScale - defaultDepth;
-		Amplitude = (float)data->phase[no/3];
+		X = ((float)data->vertices[no].point.pos[_X]) * cghScale;
+		Y = ((float)data->vertices[no].point.pos[_Y]) * cghScale;
+		Z = ((float)data->vertices[no].point.pos[_Z]) * cghScale - defaultDepth;
+		Amplitude = (float)data->vertices[no].phase;
+
 
 		//std::cout << "X: " << X << ", Y: " << Y << ", Z: " << Z << ", Amp: " << Amplitude << endl;
 
@@ -426,12 +294,6 @@ void ophPAS::PAS(long voxelnum, OphPointCloudData *data, double * m_pHologram, O
 		, m_in, m_out
 		, &m_plan, m_pHologram, conf);
 
-	finish = clock();
-
-	duration = (double)(finish - start) / CLOCKS_PER_SEC;
-	//mm.Format("%f", duration);
-	//AfxMessageBox(mm);
-	
 	MemoryRelease();
 }
 
@@ -461,10 +323,10 @@ void ophPAS::PAS_GPU(long voxelnum, OphPointCloudData * data, double * m_pHologr
 	for (no = 0; no < voxelnum * 3; no += 3)
 	{
 		// point coordinate
-		X = ((float)data->vertex[no]) * cghScale;
-		Y = ((float)data->vertex[no + 1]) * cghScale;
-		Z = ((float)data->vertex[no + 2]) * cghScale - defaultDepth;
-		Amplitude = (float)data->phase[no / 3];
+		X = ((float)data->vertices[no].point.pos[_X]) * cghScale;
+		Y = ((float)data->vertices[no].point.pos[_Y]) * cghScale;
+		Z = ((float)data->vertices[no].point.pos[_Z]) * cghScale - defaultDepth;
+		Amplitude = (float)data->vertices[no].phase;
 
 		std::cout << "X: " << X << ", Y: " << Y << ", Z: " << Z << ", Amp: " << Amplitude << endl;
 
@@ -754,7 +616,7 @@ void ophPAS::encodeHologram(const vec2 band_limit, const vec2 spectrum_shift)
 	const uint pnY = context_.pixel_number[_Y];
 	const Real ppX = context_.pixel_pitch[_X];
 	const Real ppY = context_.pixel_pitch[_Y];
-	const uint pnXY = pnX * pnY;
+	const long long int pnXY = pnX * pnY;
 
 	m_vecEncodeSize = ivec2(pnX, pnY);
 	context_.ss[_X] = pnX * ppX;
@@ -772,10 +634,10 @@ void ophPAS::encodeHologram(const vec2 band_limit, const vec2 spectrum_shift)
 	Real* x_o = new Real[pnX];
 	Real* y_o = new Real[pnY];
 
-	for (int i = 0; i < pnX; i++)
+	for (uint i = 0; i < pnX; i++)
 		x_o[i] = (-ss[_X] / 2) + (ppX * i) + (ppX / 2);
 
-	for (int i = 0; i < pnY; i++)
+	for (uint i = 0; i < pnY; i++)
 		y_o[i] = (ss[_Y] - ppY) - (ppY * i);
 
 	Real* xx_o = new Real[pnXY];
@@ -785,8 +647,8 @@ void ophPAS::encodeHologram(const vec2 band_limit, const vec2 spectrum_shift)
 		xx_o[i] = x_o[i % pnX];
 
 
-	for (int i = 0; i < pnX; i++)
-		for (int j = 0; j < pnY; j++)
+	for (uint i = 0; i < pnX; i++)
+		for (uint j = 0; j < pnY; j++)
 			yy_o[i + j * pnX] = y_o[j];
 
 	Complex<Real>* h = new Complex<Real>[pnXY];

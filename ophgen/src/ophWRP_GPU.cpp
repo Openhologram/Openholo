@@ -67,21 +67,24 @@ void ophWRP::calculateWRPGPU()
 
 	//Host Memory Location
 	const int n_colors = obj_.n_colors;
-	Real* host_pc_data = scaledVertex;//obj_.vertex;
-	Real* host_amp_data = obj_.color;
+	//Real* host_pc_data = scaledVertex;//obj_.vertex;
+	Vertex* host_pc_data = scaledVertex;//obj_.vertex;
+	//Real* host_amp_data = obj_.color;
 	const uint pnX = context_.pixel_number[_X];
 	const uint pnY = context_.pixel_number[_Y];
-	const uint pnXY = pnX * pnY;
+	const long long int pnXY = pnX * pnY;
 	const Real ppX = context_.pixel_pitch[_X];
 	const Real ppY = context_.pixel_pitch[_Y];
 	const Real distance = wrp_config_.propagation_distance;
 	const uint nChannel = context_.waveNum;
 
 	//Device(GPU) Memory Location
-	Real* device_pc_data;
-	HANDLE_ERROR(cudaMalloc((void**)&device_pc_data, n_points * 3 * sizeof(Real)));
-	Real* device_amp_data;
-	HANDLE_ERROR(cudaMalloc((void**)&device_amp_data, n_points * n_colors * sizeof(Real)));
+	//Real* device_pc_data;
+	//HANDLE_ERROR(cudaMalloc((void**)&device_pc_data, n_points * 3 * sizeof(Real)));
+	//Real* device_amp_data;
+	//HANDLE_ERROR(cudaMalloc((void**)&device_amp_data, n_points * n_colors * sizeof(Real)));
+	Vertex* device_pc_data = nullptr;
+	HANDLE_ERROR(cudaMalloc((void**)&device_pc_data, n_points * sizeof(Vertex)));
 	WRPGpuConst* device_config = nullptr;
 	HANDLE_ERROR(cudaMalloc((void**)&device_config, sizeof(WRPGpuConst)));
 
@@ -90,18 +93,19 @@ void ophWRP::calculateWRPGPU()
 
 	ulonglong gridSize2 = (pnXY + blockSize - 1) / blockSize; //n_blocks
 	ulonglong gridSize3 = (pnXY * 4 + blockSize - 1) / blockSize;
-	cuDoubleComplex *device_dst;
+	cuDoubleComplex* device_dst = nullptr;
 	//Real* device_dst;
 	HANDLE_ERROR(cudaMalloc((void**)&device_dst, pnXY * sizeof(cuDoubleComplex)));
 
-	cuDoubleComplex *src;
+	cuDoubleComplex* src;
 	cufftDoubleComplex *fftsrc;
 	cufftDoubleComplex *fftdst;
 	HANDLE_ERROR(cudaMalloc((void**)&src, pnXY * 4 * sizeof(cuDoubleComplex)));
 	HANDLE_ERROR(cudaMalloc((void**)&fftsrc, pnXY * 4 * sizeof(cufftDoubleComplex)));
 	HANDLE_ERROR(cudaMalloc((void**)&fftdst, pnXY * 4 * sizeof(cufftDoubleComplex)));	
-	HANDLE_ERROR(cudaMemcpy(device_pc_data, host_pc_data, n_points * 3 * sizeof(Real), cudaMemcpyHostToDevice));
-	HANDLE_ERROR(cudaMemcpy(device_amp_data, host_amp_data, n_points * n_colors * sizeof(Real), cudaMemcpyHostToDevice));
+	//HANDLE_ERROR(cudaMemcpy(device_pc_data, host_pc_data, n_points * 3 * sizeof(Real), cudaMemcpyHostToDevice));
+	//HANDLE_ERROR(cudaMemcpy(device_amp_data, host_amp_data, n_points * n_colors * sizeof(Real), cudaMemcpyHostToDevice));
+	HANDLE_ERROR(cudaMemcpy(device_pc_data, host_pc_data, n_points * sizeof(Vertex), cudaMemcpyHostToDevice));
 	bool bRandomPhase = GetRandomPhase();
 
 	LOG("%lf (s)\n", ELAPSED_TIME(step, CUR_TIME));
@@ -110,8 +114,7 @@ void ophWRP::calculateWRPGPU()
 	//Real wz = wrp_config_.wrp_location - zmax_;
 	for (uint ch = 0; ch < nChannel; ch++)
 	{
-		LOG("\tCUDA Gen WRP <<<%d, %d>>> : ", gridSize, blockSize);
-
+		LOG("\tCUDA Gen WRP <<<%llu, %d>>> : ", gridSize, blockSize);
 		HANDLE_ERROR(cudaMemset(src, 0, pnXY * 4 * sizeof(cuDoubleComplex)));
 		HANDLE_ERROR(cudaMemset(fftsrc, 0, pnXY * 4 * sizeof(cufftDoubleComplex)));
 		HANDLE_ERROR(cudaMemset(fftdst, 0, pnXY * 4 * sizeof(cufftDoubleComplex)));
@@ -134,7 +137,7 @@ void ophWRP::calculateWRPGPU()
 		HANDLE_ERROR(cudaMemset(device_dst, 0., pnXY * sizeof(cuDoubleComplex)));
 
 		// cuda WRP
-		cudaGenWRP(gridSize, blockSize, n_points, device_pc_data, device_amp_data, device_dst, (WRPGpuConst*)device_config);
+		cudaGenWRP(gridSize, blockSize, n_points, device_pc_data, device_dst, (WRPGpuConst*)device_config);
 
 		LOG("%lf (s)\n", ELAPSED_TIME(step, CUR_TIME));
 		
@@ -153,8 +156,7 @@ void ophWRP::calculateWRPGPU()
 				continue;
 			}
 		}
-		
-		LOG("\tCUDA FresnelPropagation <<<%d, %d>>> : ", gridSize2, blockSize);
+		LOG("\tCUDA FresnelPropagation <<<%llu, %d>>> : ", gridSize2, blockSize);
 		step = CUR_TIME;
 		cudaFresnelPropagationWRP(gridSize2, gridSize3, blockSize, pnX, pnY, device_dst, src, fftsrc, fftdst, (WRPGpuConst*)device_config);
 		HANDLE_ERROR(cudaMemcpy(complex_H[ch], device_dst, sizeof(cuDoubleComplex) * pnXY, cudaMemcpyDeviceToHost));
@@ -174,7 +176,7 @@ void ophWRP::calculateWRPGPU()
 	HANDLE_ERROR(cudaFree(fftdst));
 	HANDLE_ERROR(cudaFree(device_dst));
 	HANDLE_ERROR(cudaFree(device_pc_data));
-	HANDLE_ERROR(cudaFree(device_amp_data));
+	//HANDLE_ERROR(cudaFree(device_amp_data));
 	HANDLE_ERROR(cudaFree(device_config));
 	LOG("Total : %lf (s)\n", ELAPSED_TIME(begin, CUR_TIME));
 }

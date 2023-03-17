@@ -52,11 +52,10 @@
 #include "vec.h"
 #include "ivec.h"
 #include "fftw3.h"
-
 #include "ImgCodecOhc.h"
-#include <vector>
 
 using namespace oph;
+
 
 struct OPH_DLL OphConfig
 {
@@ -68,6 +67,18 @@ struct OPH_DLL OphConfig
 	vec2			ss;							//< pn * pp
 	uint			waveNum;					// wave num
 	Real*			wave_length;				//< wave length
+
+	//basic constructor
+	OphConfig() {
+		this->bUseDP = true;
+		this->pixel_number = ivec2();
+		this->pixel_pitch = vec2();
+		this->shift = vec3();
+		this->k = 0;
+		this->ss = vec2();
+		this->waveNum = 0;
+		this->wave_length = 0;
+	}
 };
 
 struct OPH_DLL ImageConfig
@@ -75,6 +86,14 @@ struct OPH_DLL ImageConfig
 	bool		rotate;							// rotat
 	bool		merge;							// merge
 	int			flip;							// flip
+
+
+	//basic constructor
+	ImageConfig() {
+		this->rotate = false;
+		this->merge = false;
+		this->flip = 0;
+	}
 };
 
 
@@ -390,8 +409,7 @@ protected:
 	* @param[out] output output data variable.
 	*/
 	void fftShift(int nx, int ny, Complex<Real>* input, Complex<Real>* output);
-	void fftShift(int nx, int ny, Complex<Real>* input, fftw_complex* output);
-	void fftShift(int nx, int ny, fftw_complex* input, Complex<Real>* output);
+
 
 protected:
 	/**
@@ -407,12 +425,6 @@ private:
 	fftw_complex *fft_in, *fft_out;
 	int pnx, pny, pnz;
 	int fft_sign;
-
-	/**
-	* @brief variable for precision
-	*/
-	int m_precision;
-
 protected:
 	OphConfig context_;
 	ImageConfig imgCfg;

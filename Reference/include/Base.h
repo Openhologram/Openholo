@@ -47,9 +47,17 @@
 #define __Base_h
 
 #ifdef OPH_EXPORT
+#ifdef _WIN32
 #define OPH_DLL __declspec(dllexport)
 #else
+#define OPH_DLL __attribute__((visibility("default")))
+#endif
+#else
+#ifdef _WIN32 
 #define OPH_DLL __declspec(dllimport)
+#else
+#define OPH_DLL
+#endif
 #endif
 
 class OPH_DLL Base {
@@ -91,7 +99,7 @@ protected:
 	* @brief When refCnt is 0 (zero), it is call inside release() when release() is called. 
 	* @details A class inheriting from Base can override this method.
 	*/
-	virtual void ophFree(void) = 0 {}
+	virtual void ophFree(void) = 0;
 };
 
 #endif // !__Base_h

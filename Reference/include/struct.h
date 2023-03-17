@@ -47,13 +47,13 @@
 #define __struct_h
 
 #pragma pack(push,1)
-typedef struct {
+typedef struct fileheader {
 	uint8_t signature[2];
 	uint32_t filesize;
 	uint32_t reserved;
 	uint32_t fileoffset_to_pixelarray;
-} fileheader;
-typedef struct {
+} _fileheader;
+typedef struct bitmapinfoheader {
 	uint32_t dibheadersize;
 	uint32_t width;
 	uint32_t height;
@@ -65,22 +65,63 @@ typedef struct {
 	uint32_t xpixelpermeter;
 	uint32_t numcolorspallette;
 	uint32_t mostimpcolor;
-} bitmapinfoheader;
-typedef struct {
+} _bitmapinfoheader;
+typedef struct rgbquad {
 	uint8_t rgbBlue;
 	uint8_t rgbGreen;
 	uint8_t rgbRed;
 	uint8_t rgbReserved;
-} rgbquad;
-typedef struct {
-	fileheader fileheader;
-	bitmapinfoheader bitmapinfoheader;
-} bitmap;
-typedef struct {
-	fileheader fileheader;
-	bitmapinfoheader bitmapinfoheader;
-	rgbquad rgbquad[256];
-} bitmap8bit;
+} _rgbquad;
+typedef struct bitmap {
+	fileheader _fileheader;
+	bitmapinfoheader _bitmapinfoheader;
+} _bitmap;
+typedef struct bitmap8bit {
+	fileheader _fileheader;
+	bitmapinfoheader _bitmapinfoheader;
+	rgbquad _rgbquad[256];
+} _bitmap8bit;
+
+
+typedef struct Point {
+	Real pos[3];
+} _Point;
+
+typedef struct Pointf {
+	float pos[3];
+} _Pointf;
+
+typedef struct Color {
+	Real color[3];
+} _Color;
+
+typedef struct Colorf {
+	float color[3];
+} _Colorf;
+
+typedef struct Vertex {
+	Point point;
+	Color color;
+	Real phase;
+} _Vertex;
+
+typedef struct Vertexf {
+	Pointf point;
+	Colorf color;
+	float phase;
+} _Vertexf;
+
+
+typedef struct Face {
+	ulonglong idx;
+	Vertex vertices[3];
+} _Face;
+
+typedef struct Facef {
+	ulonglong idx;
+	Vertexf vertices[3];
+} _Facef;
+
 #pragma pack(pop)
 
 #endif // !__struct_h

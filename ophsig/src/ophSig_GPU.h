@@ -50,8 +50,7 @@
 #include <npp.h>
 //#include	"ophSig.h"
 #include <cuda_profiler_api.h>
-
-#include <cuda_runtime.h>
+#include <cuda_runtime_api.h>
 
 cufftDoubleComplex* complex_holog_gpu;
 

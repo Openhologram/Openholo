@@ -418,7 +418,7 @@ bool ophSig::save(const char *real, const char *imag)
 				cos.close();
 				delete[] realdata;
 				delete[] imagdata;
-				return FALSE;
+				return false;
 			}
 
 			if (!sin.is_open()) {
@@ -426,7 +426,7 @@ bool ophSig::save(const char *real, const char *imag)
 				sin.close();
 				delete[] realdata;
 				delete[] imagdata;
-				return FALSE;
+				return false;
 			}
 
 			for (int i = 0; i < context_.pixel_number[_X]; i++)
@@ -474,7 +474,7 @@ bool ophSig::save(const char *real, const char *imag)
 		if ((freal == nullptr) || (fimag == nullptr))
 		{
 			LOG("file not found\n");
-			return FALSE;
+			return false;
 		}
 
 		if (bitpixel == 8)
@@ -486,15 +486,15 @@ bool ophSig::save(const char *real, const char *imag)
 			bitmap8bit *pbitmap = (bitmap8bit*)calloc(1, sizeof(bitmap8bit));
 			memset(pbitmap, 0x00, sizeof(bitmap8bit));
 
-			pbitmap->fileheader.signature[0] = 'B';
-			pbitmap->fileheader.signature[1] = 'M';
-			pbitmap->fileheader.filesize = _filesize;
-			pbitmap->fileheader.fileoffset_to_pixelarray = sizeof(bitmap8bit);
+			pbitmap->_fileheader.signature[0] = 'B';
+			pbitmap->_fileheader.signature[1] = 'M';
+			pbitmap->_fileheader.filesize = _filesize;
+			pbitmap->_fileheader.fileoffset_to_pixelarray = sizeof(bitmap8bit);
 
 			for (int i = 0; i < 256; i++) {
-				pbitmap->rgbquad[i].rgbBlue = i;
-				pbitmap->rgbquad[i].rgbGreen = i;
-				pbitmap->rgbquad[i].rgbRed = i;
+				pbitmap->_rgbquad[i].rgbBlue = i;
+				pbitmap->_rgbquad[i].rgbGreen = i;
+				pbitmap->_rgbquad[i].rgbRed = i;
 			}
 
 
@@ -558,16 +558,16 @@ bool ophSig::save(const char *real, const char *imag)
 				}
 			}
 
-			pbitmap->bitmapinfoheader.dibheadersize = sizeof(bitmapinfoheader);
-			pbitmap->bitmapinfoheader.width = _width;
-			pbitmap->bitmapinfoheader.height = _height;
-			pbitmap->bitmapinfoheader.planes = OPH_PLANES;
-			pbitmap->bitmapinfoheader.bitsperpixel = bitpixel;
-			pbitmap->bitmapinfoheader.compression = OPH_COMPRESSION;
-			pbitmap->bitmapinfoheader.imagesize = _pixelbytesize;
-			pbitmap->bitmapinfoheader.ypixelpermeter = 0;
-			pbitmap->bitmapinfoheader.xpixelpermeter = 0;
-			pbitmap->bitmapinfoheader.numcolorspallette = 256;
+			pbitmap->_bitmapinfoheader.dibheadersize = sizeof(bitmapinfoheader);
+			pbitmap->_bitmapinfoheader.width = _width;
+			pbitmap->_bitmapinfoheader.height = _height;
+			pbitmap->_bitmapinfoheader.planes = OPH_PLANES;
+			pbitmap->_bitmapinfoheader.bitsperpixel = bitpixel;
+			pbitmap->_bitmapinfoheader.compression = OPH_COMPRESSION;
+			pbitmap->_bitmapinfoheader.imagesize = _pixelbytesize;
+			pbitmap->_bitmapinfoheader.ypixelpermeter = 0;
+			pbitmap->_bitmapinfoheader.xpixelpermeter = 0;
+			pbitmap->_bitmapinfoheader.numcolorspallette = 256;
 
 			fwrite(pbitmap, 1, sizeof(bitmap8bit), freal);
 			fwrite(realdata, 1, _pixelbytesize, freal);
@@ -672,7 +672,7 @@ bool ophSig::save(const char *real, const char *imag)
 	else {
 		LOG("failed : The Invalid data type! - %s\n", type);
 	}
-	return TRUE;
+	return true;
 }
 
 bool ophSig::save(const char *fname)
@@ -742,7 +742,7 @@ bool ophSig::save(const char *fname)
 				LOG("Error: file name not found.\n");
 				cos.close();
 				delete[] realdata;
-				return FALSE;
+				return false;
 			}
 
 			for (int i = 0; i < context_.pixel_number[_X]; i++)
@@ -760,7 +760,7 @@ bool ophSig::save(const char *fname)
 	}
 
 	LOG("Writing Openholo Complex Field...%s\n", fullname.c_str());
-	return TRUE;
+	return true;
 }
 
 void ophSig::Data_output(uchar *data, int pos, int bitpixel)

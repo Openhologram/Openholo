@@ -42,7 +42,7 @@
 // Check whether software you use contains licensed software.
 //
 //M*/
-
+#pragma once
 #ifndef __ophKernel_cuh__
 #define __ophKernel_cuh__
 
@@ -50,27 +50,30 @@
 #include <cufft.h>
 #include <cuda.h>
 #include <device_launch_parameters.h>
-#include <device_functions.h>
-#include <cuda_runtime.h>
+#include <cuda_runtime_api.h>
+#include "sys.h"
 
 static const int kBlockThreads = 512;
 
-
-__global__ void fftShift(int N, int nx, int ny, cufftDoubleComplex* input, cufftDoubleComplex* output, bool bNormalized)
+inline __global__ void fftShift(int N, int nx, int ny, cufftDoubleComplex* input, cufftDoubleComplex* output, bool bNormalized)
 {
-	int tid = threadIdx.x + blockIdx.x*blockDim.x;
+	int tid = threadIdx.x + blockIdx.x * blockDim.x;
 
 	double normalF = 1.0;
-	if (bNormalized == true)
+	if (bNormalized)
 		normalF = nx * ny;
+
+	int half_nx = nx >> 1;
+	int half_ny = ny >> 1;
+	unsigned int size = blockDim.x * gridDim.x;
 
 	while (tid < N)
 	{
 		int i = tid % nx;
 		int j = tid / nx;
 
-		int ti = i - nx / 2; if (ti < 0) ti += nx;
-		int tj = j - ny / 2; if (tj < 0) tj += ny;
+		int ti = i - half_nx; if (ti < 0) ti += nx;
+		int tj = j - half_ny; if (tj < 0) tj += ny;
 
 		int oindex = tj * nx + ti;
 
@@ -78,25 +81,30 @@ __global__ void fftShift(int N, int nx, int ny, cufftDoubleComplex* input, cufft
 		output[tid].x = input[oindex].x / normalF;
 		output[tid].y = input[oindex].y / normalF;
 
-		tid += blockDim.x * gridDim.x;
+		tid += size;
 	}
 }
 
-__global__ void fftShiftf(int N, int nx, int ny, cuFloatComplex* input, cuFloatComplex* output, bool bNormalized)
+inline __global__ void fftShiftf(int N, int nx, int ny, cuFloatComplex* input, cuFloatComplex* output, bool bNormalized)
 {
-	int tid = threadIdx.x + blockIdx.x*blockDim.x;
+	int tid = threadIdx.x + blockIdx.x * blockDim.x;
 
 	float normalF = 1.0;
-	if (bNormalized == true)
+	if (bNormalized)
 		normalF = nx * ny;
+
+	int half_nx = nx >> 1;
+	int half_ny = ny >> 1;
+
+	unsigned int size = blockDim.x * gridDim.x;
 
 	while (tid < N)
 	{
 		int i = tid % nx;
 		int j = tid / nx;
 
-		int ti = i - nx / 2; if (ti < 0) ti += nx;
-		int tj = j - ny / 2; if (tj < 0) tj += ny;
+		int ti = i - half_nx; if (ti < 0) ti += nx;
+		int tj = j - half_ny; if (tj < 0) tj += ny;
 
 		int oindex = tj * nx + ti;
 
@@ -104,14 +112,14 @@ __global__ void fftShiftf(int N, int nx, int ny, cuFloatComplex* input, cuFloatC
 		output[tid].x = input[oindex].x / normalF;
 		output[tid].y = input[oindex].y / normalF;
 
-		tid += blockDim.x * gridDim.x;
+		tid += size;
 	}
 }
 
-__device__  void exponent_complex(cuDoubleComplex* val)
+inline __device__ void exponent_complex(cuDoubleComplex* val)
 {
 	double exp_val = exp(val->x);
-	double re = val->x;
+	//double re = val->x;
 	double im = val->y;
 
 	val->x = exp_val * cos(im);
@@ -119,42 +127,43 @@ __device__  void exponent_complex(cuDoubleComplex* val)
 }
 
 extern "C"
-
-void cudaFFT(CUstream_st* stream, int nx, int ny, cufftDoubleComplex* in_field, cufftDoubleComplex* output_field, int direction, bool bNormalized)
 {
-	unsigned int nblocks = (nx*ny + kBlockThreads - 1) / kBlockThreads;
-	int N = nx * ny;
-	fftShift << <nblocks, kBlockThreads, 0, stream >> > (N, nx, ny, in_field, output_field, false);
-
-	cufftHandle plan;
-	cufftResult result;
-	// fft
-	result = cufftPlan2d(&plan, ny, nx, CUFFT_Z2Z);
-	if (result != CUFFT_SUCCESS)
+	inline void cudaFFT(CUstream_st* stream, int nx, int ny, cufftDoubleComplex* in_field, cufftDoubleComplex* output_field, int direction, bool bNormalized)
 	{
-		LOG("<FAILED> cufftPlan2d (%d)\n", result);
-		return;
-	};
+		unsigned int nblocks = (nx * ny + kBlockThreads - 1) / kBlockThreads;
+		int N = nx * ny;
+		fftShift << <nblocks, kBlockThreads, 0, stream >> > (N, nx, ny, in_field, output_field, false);
 
-	if (direction == -1)
-		result = cufftExecZ2Z(plan, output_field, in_field, CUFFT_FORWARD);
-	else
-		result = cufftExecZ2Z(plan, output_field, in_field, CUFFT_INVERSE);
+		cufftHandle plan;
+		cufftResult result;
+		// fft
+		result = cufftPlan2d(&plan, ny, nx, CUFFT_Z2Z);
+		if (result != CUFFT_SUCCESS)
+		{
+			LOG("<FAILED> cufftPlan2d (%d)\n", result);
+			return;
+		};
 
-	if (result != CUFFT_SUCCESS)
-	{
-		LOG("<FAILED> cufftExecZ2Z (%d)\n", result);
-		return;
+		if (direction == -1)
+			result = cufftExecZ2Z(plan, output_field, in_field, CUFFT_FORWARD);
+		else
+			result = cufftExecZ2Z(plan, output_field, in_field, CUFFT_INVERSE);
+
+		if (result != CUFFT_SUCCESS)
+		{
+			LOG("<FAILED> cufftExecZ2Z (%d)\n", result);
+			return;
+		}
+
+		if (cudaDeviceSynchronize() != cudaSuccess) {
+			LOG("<FAILED> cudaDeviceSynchronize\n");
+			return;
+		}
+
+		fftShift << < nblocks, kBlockThreads, 0, stream >> > (N, nx, ny, in_field, output_field, bNormalized);
+
+		cufftDestroy(plan);
 	}
-
-	if (cudaDeviceSynchronize() != cudaSuccess) {
-		LOG("<FAILED> cudaDeviceSynchronize\n");
-		return;
-	}
-
-	fftShift << < nblocks, kBlockThreads, 0, stream >> > (N, nx, ny, in_field, output_field, bNormalized);
-
-	cufftDestroy(plan);
 }
 
 #endif // !__ophKernel_cuh__

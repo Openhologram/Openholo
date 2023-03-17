@@ -47,12 +47,23 @@
 #include "include.h"
 #include "sys.h"
 #include "tinyxml2.h"
+#include <fstream>
+#ifdef _WIN64
+#include <io.h>
+#include <direct.h>
+#else
+#include <dirent.h>
+#include <sys/stat.h>
+#include <algorithm>
+#endif
 
 ophLF::ophLF(void)
 	: num_image(ivec2(0, 0))
 	, resolution_image(ivec2(0, 0))
 	, distanceRS2Holo(0.0)
+	, fieldLens(0.0)
 	, is_ViewingWindow(false)
+	, nImages(-1)
 {
 	LOG("*** LIGHT FIELD : BUILD DATE: %s %s ***\n\n", __DATE__, __TIME__);
 }
@@ -68,7 +79,6 @@ bool ophLF::readConfig(const char* fname)
 		return false;
 
 	bool bRet = true;
-	auto begin = CUR_TIME;
 
 	using namespace tinyxml2;
 	/*XML parsing*/
@@ -89,7 +99,7 @@ bool ophLF::readConfig(const char* fname)
 	xml_node = xml_doc.FirstChild();
 
 	char szNodeName[32] = { 0, };
-	wsprintfA(szNodeName, "FieldLength");
+	sprintf(szNodeName, "FieldLength");
 	// about viewing window
 	auto next = xml_node->FirstChildElement(szNodeName);
 	if (!next || XML_SUCCESS != next->QueryDoubleText(&fieldLens))
@@ -99,35 +109,35 @@ bool ophLF::readConfig(const char* fname)
 	}
 
 	// about image
-	wsprintfA(szNodeName, "Image_NumOfX");
+	sprintf(szNodeName, "Image_NumOfX");
 	next = xml_node->FirstChildElement(szNodeName);
 	if (!next || XML_SUCCESS != next->QueryIntText(&num_image[_X]))
 	{
 		LOG("<FAILED> Not found node : \'%s\' (Integer) \n", szNodeName);
 		bRet = false;
 	}
-	wsprintfA(szNodeName, "Image_NumOfY");
+	sprintf(szNodeName, "Image_NumOfY");
 	next = xml_node->FirstChildElement(szNodeName);
 	if (!next || XML_SUCCESS != next->QueryIntText(&num_image[_Y]))
 	{
 		LOG("<FAILED> Not found node : \'%s\' (Integer) \n", szNodeName);
 		bRet = false;
 	}
-	wsprintfA(szNodeName, "Image_Width");
+	sprintf(szNodeName, "Image_Width");
 	next = xml_node->FirstChildElement(szNodeName);
 	if (!next || XML_SUCCESS != next->QueryIntText(&resolution_image[_X]))
 	{
 		LOG("<FAILED> Not found node : \'%s\' (Integer) \n", szNodeName);
 		bRet = false;
 	}
-	wsprintfA(szNodeName, "Image_Height");
+	sprintf(szNodeName, "Image_Height");
 	next = xml_node->FirstChildElement(szNodeName);
 	if (!next || XML_SUCCESS != next->QueryIntText(&resolution_image[_Y]))
 	{
 		LOG("<FAILED> Not found node : \'%s\' (Integer) \n", szNodeName);
 		bRet = false;
 	}
-	wsprintfA(szNodeName, "Distance");
+	sprintf(szNodeName, "Distance");
 	next = xml_node->FirstChildElement(szNodeName);
 	if (!next || XML_SUCCESS != next->QueryDoubleText(&distanceRS2Holo))
 	{
@@ -135,23 +145,31 @@ bool ophLF::readConfig(const char* fname)
 		bRet = false;
 	}
 
-	LOG("%s => %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
 	initialize();
+
+	LOG("**************************************************\n");
+	LOG("             Read Config (Light Field)            \n");
+	LOG("1) Focal Length : %.5lf\n", distanceRS2Holo);
+	LOG("2) Number of Images : %d x %d\n", num_image[_X], num_image[_Y]);
+	LOG("3) Resolution of Each Image : %d x %d\n", resolution_image[_X], resolution_image[_Y]);
+	LOG("4) Field Length (Unused) : %.5lf\n", fieldLens);
+	LOG("**************************************************\n");
+
 	return bRet;
 }
 
 int ophLF::loadLF(const char* directory, const char* exten)
 {
-	LF_directory = directory;
-	ext = exten;
 	int nWave = context_.waveNum;
 
 	initializeLF();
 
+#ifdef _WIN64
 	_finddata_t data;
 
-	string sdir = std::string(LF_directory).append("\\").append("*.").append(ext);
+	string sdir = std::string(directory).append("\\").append("*.").append(exten);
 	intptr_t ff = _findfirst(sdir.c_str(), &data);
+
 	if (ff != -1)
 	{
 		int num = 0;
@@ -160,8 +178,7 @@ int ophLF::loadLF(const char* directory, const char* exten)
 
 		while (true)
 		{
-			string imgfullname = std::string(LF_directory).append("/").append(data.name);
-
+			string imgfullname = std::string(directory).append("/").append(data.name);
 			getImgSize(sizeOut[_X], sizeOut[_Y], bytesperpixel, imgfullname.c_str());
 
 			int size = (((sizeOut[_X] * bytesperpixel) + 3) & ~3) * sizeOut[_Y];
@@ -169,12 +186,12 @@ int ophLF::loadLF(const char* directory, const char* exten)
 			if (nWave == 1)
 			{
 				size = ((sizeOut[_X] + 3) & ~3) * sizeOut[_Y];
-				uchar *img = loadAsImg(imgfullname.c_str());
+				uchar* img = loadAsImg(imgfullname.c_str());
 				m_vecImages[num] = new uchar[size];
 				convertToFormatGray8(img, m_vecImages[num], sizeOut[_X], sizeOut[_Y], bytesperpixel);
 				m_vecImgSize[num] = size;
 				if (img == nullptr) {
-					LOG("<FAILED> Load image.");
+					LOG("<FAILED> Load image.\n");
 					return -1;
 				}
 			}
@@ -183,7 +200,7 @@ int ophLF::loadLF(const char* directory, const char* exten)
 				m_vecImages[num] = loadAsImg(imgfullname.c_str());
 				m_vecImgSize[num] = size;
 				if (m_vecImages[num] == nullptr) {
-					LOG("<FAILED> Load image.");
+					LOG("<FAILED> Load image.\n");
 					return -1;
 				}
 			}
@@ -196,86 +213,104 @@ int ophLF::loadLF(const char* directory, const char* exten)
 		_findclose(ff);
 
 		if (num_image[_X] * num_image[_Y] != num) {
-			LOG("<FAILED> Not matching image.");
+			LOG("<FAILED> Not matching image.\n");
 		}
 		return 1;
-	}
+}
 	else
 	{
-		LOG("<FAILED> Load image.");
+		LOG("<FAILED> Load image.\n");
 		return -1;
 	}
-}
 
-int ophLF::loadLF()
-{
-	int nWave = context_.waveNum;
-	initializeLF();
+#else
 
-	_finddata_t data;
+	string sdir;
+	DIR* dir = nullptr;
+	if (directory[0] != '/') {
+		char buf[PATH_MAX] = { 0, };
+		if (getcwd(buf, sizeof(buf)) != nullptr) {
+			sdir = sdir.append(buf).append("/").append(directory);
+		}
+	}
+	else
+		sdir = string(directory);
+	string ext = string(exten);
 
-	string sdir = std::string("./").append(LF_directory).append("/").append("*.").append(ext);
-	intptr_t ff = _findfirst(sdir.c_str(), &data);
-	if (ff != -1)
-	{
+	if ((dir = opendir(sdir.c_str())) != nullptr) {
+
 		int num = 0;
 		ivec2 sizeOut;
 		int bytesperpixel;
+		struct dirent* ent;
 
-		while (true)
+		// Add file
+		int cnt = 0;
+		vector<string> fileList;
+		while ((ent = readdir(dir)) != nullptr) {
+			string filePath;
+			filePath = filePath.append(sdir.c_str()).append("/").append(ent->d_name);
+			if (filePath != "." && filePath != "..") {
+				struct stat fileInfo;
+				if (stat(filePath.c_str(), &fileInfo) == 0 && S_ISREG(fileInfo.st_mode)) {
+					if (filePath.substr(filePath.find_last_of(".") + 1) == ext) {
+						fileList.push_back(filePath);
+						cnt++;
+					}
+				}
+			}
+		}
+		closedir(dir);
+		std::sort(fileList.begin(), fileList.end());
+
+		for (size_t i = 0; i < fileList.size(); i++)
 		{
-			string imgfullname = std::string(LF_directory).append("/").append(data.name);
-
-			getImgSize(sizeOut[_X], sizeOut[_Y], bytesperpixel, imgfullname.c_str());
-
+			// to do
+			getImgSize(sizeOut[_X], sizeOut[_Y], bytesperpixel, fileList[i].c_str());
 			int size = (((sizeOut[_X] * bytesperpixel) + 3) & ~3) * sizeOut[_Y];
 
 			if (nWave == 1)
 			{
 				size = ((sizeOut[_X] + 3) & ~3) * sizeOut[_Y];
-				uchar *img = loadAsImg(imgfullname.c_str());
-				m_vecImages[num] = new uchar[size];
-				convertToFormatGray8(img, m_vecImages[num], sizeOut[_X], sizeOut[_Y], bytesperpixel);
-				m_vecImgSize[num] = size;
+				uchar* img = loadAsImg(fileList[i].c_str());
+				m_vecImages[i] = new uchar[size];
+				convertToFormatGray8(img, m_vecImages[i], sizeOut[_X], sizeOut[_Y], bytesperpixel);
+				m_vecImgSize[i] = size;
 				if (img == nullptr) {
-					LOG("<FAILED> Loading image.");
+					LOG("<FAILED> Load image.\n");
 					return -1;
 				}
 			}
 			else
 			{
-				m_vecImages[num] = loadAsImg(imgfullname.c_str());
-				m_vecImgSize[num] = size;
-				if (m_vecImages[num] == nullptr) {
-					LOG("<FAILED> Loading image.");
+				m_vecImages[i] = loadAsImg(fileList[i].c_str());
+				m_vecImgSize[i] = size;
+				if (m_vecImages[i] == nullptr) {
+					LOG("<FAILED> Load image.\n");
 					return -1;
 				}
 			}
-			num++;
-
-			int out = _findnext(ff, &data);
-			if (out == -1)
-				break;
 		}
-		_findclose(ff);
-
-
-		if (num_image[_X] * num_image[_Y] != num) {
-			LOG("<FAILED> Not matching image.");
+		if (num_image[_X] * num_image[_Y] != (int)fileList.size()) {
+			LOG("<FAILED> Not matching image.\n");
 		}
 		return 1;
+
 	}
 	else
 	{
-		LOG("<FAILED> Load image.");
+		LOG("<FAILED> Load image : %s\n", sdir.c_str());
 		return -1;
 	}
+#endif
 }
+
 
 void ophLF::generateHologram()
 {
 	resetBuffer();
-
+	LOG("**************************************************\n");
+	LOG("                Generate Hologram                 \n");
 	LOG("1) Algorithm Method : Light Field\n");
 	LOG("2) Generate Hologram with %s\n", m_mode & MODE_GPU ?
 		"GPU" :
@@ -285,8 +320,8 @@ void ophLF::generateHologram()
 		"Single Core CPU"
 #endif
 	);
-	LOG("3) Random Phase Use : %s\n", GetRandomPhase() ? "Y" : "N");
-	LOG("4) Number of Images : %d x %d\n", num_image[_X], num_image[_Y]);
+	LOG("3) Use Random Phase : %s\n", GetRandomPhase() ? "Y" : "N");
+	LOG("**************************************************\n");
 
 	auto begin = CUR_TIME;
 
@@ -298,7 +333,7 @@ void ophLF::generateHologram()
 	{
 		convertLF2ComplexField();
 
-		for (int ch = 0; ch < context_.waveNum; ch++)
+		for (uint ch = 0; ch < context_.waveNum; ch++)
 		{
 			fresnelPropagation(m_vecRSplane[ch], complex_H[ch], distanceRS2Holo, ch);
 		}
@@ -328,7 +363,7 @@ void ophLF::convertLF2ComplexField()
 
 	const uint nX = num_image[_X];
 	const uint nY = num_image[_Y];
-	const uint N = nX * nY; // Image count
+	const long long int N = nX * nY; // Image count
 
 	const uint rX = resolution_image[_X];
 	const uint rY = resolution_image[_Y];
@@ -341,7 +376,7 @@ void ophLF::convertLF2ComplexField()
 	m_vecRSplane.clear();
 	m_vecRSplane.resize(nWave);
 
-	for (int i = 0; i < nWave; i++)
+	for (uint i = 0; i < nWave; i++)
 	{
 		m_vecRSplane[i] = new Complex<Real>[N * R];
 		//memset(m_vecRSplane[i], 0.0, sizeof(Complex<Real>) * N * R);
@@ -349,16 +384,16 @@ void ophLF::convertLF2ComplexField()
 
 	Complex<Real> *tmp = new Complex<Real>[N];
 	Real pi2 = M_PI * 2;
-	for (int ch = 0; ch < nWave; ch++)
+	for (uint ch = 0; ch < nWave; ch++)
 	{
 		int iColor = nWave - ch - 1;
-		for (int r = 0; r < R; r++) // pixel num
+		for (uint r = 0; r < R; r++) // pixel num
 		{
 			int w = r % rX;
 			int h = r / rX;
 			int iWidth = r * nWave;
 
-			for (int n = 0; n < N; n++) // image num
+			for (uint n = 0; n < N; n++) // image num
 			{
 				tmp[n][_RE] = (Real)(m_vecImages[n][iWidth + iColor]);
 				tmp[n][_IM] = 0.0;
@@ -368,10 +403,10 @@ void ophLF::convertLF2ComplexField()
 
 			int base1 = N * rX * h;
 			int base2 = w * nX;
-			for (int n = 0; n < N; n++)
+			for (uint n = 0; n < N; n++)
 			{
-				int j = n % nX;
-				int i = n / nX;
+				uint j = n % nX;
+				uint i = n / nX;
 
 				Real randVal = bRandomPhase ? rand(0.0, 1.0) : 1.0;
 				Complex<Real> phase(0, pi2 * randVal);
@@ -383,7 +418,7 @@ void ophLF::convertLF2ComplexField()
 
 	delete[] tmp;
 	fftFree();
-	LOG("%s => %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
+	LOG("%s : %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
 }
 
 void ophLF::writeIntensity_gray8_bmp(const char* fileName, int nx, int ny, Complex<Real>* complexvalue, int k)
@@ -408,14 +443,14 @@ void ophLF::writeIntensity_gray8_bmp(const char* fileName, int nx, int ny, Compl
 	}
 
 	char fname[100];
-	strcpy_s(fname, fileName);
+	strcpy(fname, fileName);
 	if (k != -1)
 	{
 		char num[30];
-		sprintf_s(num, "_%d", k);
-		strcat_s(fname, num);
+		sprintf(num, "_%d", k);
+		strcat(fname, num);
 	}
-	strcat_s(fname, ".bmp");
+	strcat(fname, ".bmp");
 
 	//LOG("minval %e, max val %e\n", min_val, max_val);
 

@@ -3,17 +3,30 @@
 #include "sys.h"
 #include "tinyxml2.h"
 
-#define for_i(itr, oper) for(int i=0; i<itr; i++){ oper }
+#ifdef _WIN64
+#include <io.h>
+#include <direct.h>
+#else
+#include <dirent.h>
+#include <sys/stat.h>
+#include <algorithm>
+#endif
 
 ophNonHogelLF::ophNonHogelLF(void)
 	: num_image(ivec2(0, 0))
 	, resolution_image(ivec2(0, 0))
 	, distanceRS2Holo(0.0)
+	, fieldLens(0.0)
 	, is_ViewingWindow(false)
+	, nImages(-1)
+	, nBufferX(0)
+	, nBufferY(0)	
 	, LF(nullptr)
 	, FToverUV_LF(nullptr)
 	, WField(nullptr)
 	, Hologram(nullptr)
+	, LF_directory(nullptr)
+	, ext(nullptr)
 {
 	LOG("*** LIGHT FIELD : BUILD DATE: %s %s ***\n\n", __DATE__, __TIME__);
 }
@@ -50,7 +63,7 @@ bool ophNonHogelLF::readConfig(const char* fname)
 	xml_node = xml_doc.FirstChild();
 
 	char szNodeName[32] = { 0, };
-	wsprintfA(szNodeName, "FieldLength");
+	sprintf(szNodeName, "FieldLength");
 	// about viewing window
 	auto next = xml_node->FirstChildElement(szNodeName);
 	if (!next || XML_SUCCESS != next->QueryDoubleText(&fieldLens))
@@ -60,35 +73,35 @@ bool ophNonHogelLF::readConfig(const char* fname)
 	}
 
 	// about image
-	wsprintfA(szNodeName, "Image_NumOfX");
+	sprintf(szNodeName, "Image_NumOfX");
 	next = xml_node->FirstChildElement(szNodeName);
 	if (!next || XML_SUCCESS != next->QueryIntText(&num_image[_X]))
 	{
 		LOG("<FAILED> Not found node : \'%s\' (Integer) \n", szNodeName);
 		bRet = false;
 	}
-	wsprintfA(szNodeName, "Image_NumOfY");
+	sprintf(szNodeName, "Image_NumOfY");
 	next = xml_node->FirstChildElement(szNodeName);
 	if (!next || XML_SUCCESS != next->QueryIntText(&num_image[_Y]))
 	{
 		LOG("<FAILED> Not found node : \'%s\' (Integer) \n", szNodeName);
 		bRet = false;
 	}
-	wsprintfA(szNodeName, "Image_Width");
+	sprintf(szNodeName, "Image_Width");
 	next = xml_node->FirstChildElement(szNodeName);
 	if (!next || XML_SUCCESS != next->QueryIntText(&resolution_image[_X]))
 	{
 		LOG("<FAILED> Not found node : \'%s\' (Integer) \n", szNodeName);
 		bRet = false;
 	}
-	wsprintfA(szNodeName, "Image_Height");
+	sprintf(szNodeName, "Image_Height");
 	next = xml_node->FirstChildElement(szNodeName);
 	if (!next || XML_SUCCESS != next->QueryIntText(&resolution_image[_Y]))
 	{
 		LOG("<FAILED> Not found node : \'%s\' (Integer) \n", szNodeName);
 		bRet = false;
 	}
-	wsprintfA(szNodeName, "Distance");
+	sprintf(szNodeName, "Distance");
 	next = xml_node->FirstChildElement(szNodeName);
 	if (!next || XML_SUCCESS != next->QueryDoubleText(&distanceRS2Holo))
 	{
@@ -96,21 +109,18 @@ bool ophNonHogelLF::readConfig(const char* fname)
 		bRet = false;
 	}
 
-	LOG("%s => %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
+	LOG("%s : %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
 	initialize();
 	return bRet;
 }
 
 int ophNonHogelLF::loadLF(const char* directory, const char* exten)
 {
-	LF_directory = directory;
-	ext = exten;
-
 	initializeLF();
-
+#ifdef _WIN64
 	_finddata_t data;
 
-	string sdir = std::string(LF_directory).append("\\").append("*.").append(ext);
+	string sdir = std::string(LF_directory).append("\\").append("*.").append(exten);
 	intptr_t ff = _findfirst(sdir.c_str(), &data);
 	if (ff != -1)
 	{
@@ -119,10 +129,9 @@ int ophNonHogelLF::loadLF(const char* directory, const char* exten)
 		ivec2 sizeOut;
 		int bytesperpixel;
 
-		while (1)
+		while (true)
 		{
 			string imgfullname = std::string(LF_directory).append("\\").append(data.name);
-
 			getImgSize(sizeOut[_X], sizeOut[_Y], bytesperpixel, imgfullname.c_str());
 
 			rgbOut = loadAsImg(imgfullname.c_str());
@@ -135,63 +144,68 @@ int ophNonHogelLF::loadLF(const char* directory, const char* exten)
 			convertToFormatGray8(rgbOut, *(LF + num), sizeOut[_X], sizeOut[_Y], bytesperpixel);
 			delete[] rgbOut; // solved memory leak.
 			num++;
-
 			int out = _findnext(ff, &data);
 			if (out == -1)
 				break;
 		}
 		_findclose(ff);
-
-		if (num_image[_X] * num_image[_Y] != num) {
-			LOG("<FAILED> Not matching image.");
+#else
+	string sdir;
+	DIR* dir = nullptr;
+	if (directory[0] != '/') {
+		char buf[PATH_MAX] = { 0, };
+		if (getcwd(buf, sizeof(buf)) != nullptr) {
+			sdir = sdir.append(buf).append("/").append(directory);
 		}
-		return 1;
 	}
 	else
-	{
-		LOG("<FAILED> Load image.");
-		return -1;
-	}
-}
+		sdir = string(directory);
+	string ext = string(exten);
 
-int ophNonHogelLF::loadLF()
-{
-	initializeLF();
+	if ((dir = opendir(sdir.c_str())) != nullptr) {
 
-	_finddata_t data;
-
-	string sdir = std::string("./").append(LF_directory).append("/").append("*.").append(ext);
-	intptr_t ff = _findfirst(sdir.c_str(), &data);
-	if (ff != -1)
-	{
 		int num = 0;
-		uchar* rgbOut;
 		ivec2 sizeOut;
 		int bytesperpixel;
+		struct dirent* ent;
 
-		while (1)
+		// Add file
+		int cnt = 0;
+		vector<string> fileList;
+		while ((ent = readdir(dir)) != nullptr) {
+			string filePath;
+			filePath = filePath.append(sdir.c_str()).append("/").append(ent->d_name);
+			if (filePath != "." && filePath != "..") {
+				struct stat fileInfo;
+				if (stat(filePath.c_str(), &fileInfo) == 0 && S_ISREG(fileInfo.st_mode)) {
+					if (filePath.substr(filePath.find_last_of(".") + 1) == ext) {
+						fileList.push_back(filePath);
+						cnt++;
+					}
+				}
+			}
+		}
+		closedir(dir);
+		std::sort(fileList.begin(), fileList.end());
+
+		uchar* rgbOut;
+		for (size_t i = 0; i < fileList.size(); i++)
 		{
-			string imgfullname = std::string(LF_directory).append("/").append(data.name);
+			// to do
+			getImgSize(sizeOut[_X], sizeOut[_Y], bytesperpixel, fileList[i].c_str());
+			int size = (((sizeOut[_X] * bytesperpixel) + 3) & ~3) * sizeOut[_Y];
 
-			getImgSize(sizeOut[_X], sizeOut[_Y], bytesperpixel, imgfullname.c_str());
-			rgbOut = loadAsImg(imgfullname.c_str());
+			rgbOut = loadAsImg(fileList[i].c_str());
 
 			if (rgbOut == 0) {
-				LOG("<FAILED> Loading image.");
+				LOG("<FAILED> Load image.");
 				return -1;
 			}
-
-			convertToFormatGray8(rgbOut, *(LF + num), sizeOut[_X], sizeOut[_Y], bytesperpixel);
-
-			num++;
-
-			int out = _findnext(ff, &data);
-			if (out == -1)
-				break;
+			convertToFormatGray8(rgbOut, LF[i], sizeOut[_X], sizeOut[_Y], bytesperpixel);
+			delete[] rgbOut; // solved memory leak.
 		}
-		_findclose(ff);
-		cout << "LF load was successed." << endl;
 
+#endif
 		if (num_image[_X] * num_image[_Y] != num) {
 			LOG("<FAILED> Not matching image.");
 		}
@@ -298,7 +312,7 @@ void ophNonHogelLF::setBuffer()
 
 void ophNonHogelLF::initializeLF()
 {
-	if (LF) {
+	if (LF != nullptr) {
 		for (int i = 0; i < nImages; i++) {
 			if (LF[i]) {
 				delete[] LF[i];
@@ -329,7 +343,7 @@ void ophNonHogelLF::makeRandomWField()
 	const uint nXY = nX * nY;
 	const uint nXwithBuffer = nX + 2 * nBufferX;
 	const uint nYwithBuffer = nY + 2 * nBufferY;
-	const uint nXYwithBuffer = nXwithBuffer * nYwithBuffer;
+	const long long int nXYwithBuffer = nXwithBuffer * nYwithBuffer;
 
 	if (WField) {
 		delete[] WField;
@@ -340,14 +354,15 @@ void ophNonHogelLF::makeRandomWField()
 
 	Complex<Real> phase(0.0, 0.0);
 	Real randVal;
-	int idxnXY = 0;
-
-	for (idxnXY = 0; idxnXY < nXYwithBuffer; idxnXY++) {
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+	for (int idxnXY = 0; idxnXY < nXYwithBuffer; idxnXY++) {
 		randVal = rand((Real)0, (Real)1, idxnXY);
 		phase(0.0, 2.0 * M_PI * randVal); //randVal
 		WField[idxnXY] = exp(phase);
 	}
-	LOG("%s => %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
+	LOG("%s : %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
 }
 
 void ophNonHogelLF::makePlaneWaveWField(double thetaX, double thetaY)
@@ -359,9 +374,9 @@ void ophNonHogelLF::makePlaneWaveWField(double thetaX, double thetaY)
 	const uint nX = resolution_image[_X];
 	const uint nY = resolution_image[_Y];
 	const uint nXY = nX * nY;
-	const uint nXwithBuffer = nX + 2 * nBufferX;
-	const uint nYwithBuffer = nY + 2 * nBufferY;
-	const uint nXYwithBuffer = nXwithBuffer * nYwithBuffer;
+	const long long int nXwithBuffer = nX + 2 * nBufferX;
+	const long long int nYwithBuffer = nY + 2 * nBufferY;
+	const long long int nXYwithBuffer = nXwithBuffer * nYwithBuffer;
 	const double px = context_.pixel_pitch[_X];
 	const double py = context_.pixel_pitch[_Y];
 
@@ -382,21 +397,21 @@ void ophNonHogelLF::makePlaneWaveWField(double thetaX, double thetaY)
 			WField[idxnX + nXwithBuffer*idxnY] = exp(phase);
 		}
 	}
-	LOG("%s => %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
+	LOG("%s : %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
 }
 
 void ophNonHogelLF::fourierTransformOverUVLF()
 {
 	auto begin = CUR_TIME;
-	const uint nX = resolution_image[_X];	// resolution of each orthographic images = spatial resolution of LF
-	const uint nY = resolution_image[_Y];  
-	const uint nXY = nX * nY;
-	const uint nU = num_image[_X];			// number of orthographic images = angular resolution of LF
-	const uint nV = num_image[_Y];
-	const uint nUV = nU * nV;
-	const uint nXwithBuffer = nX + 2 * nBufferX;
-	const uint nYwithBuffer = nY + 2 * nBufferY;
-	const uint nXYwithBuffer = nXwithBuffer * nYwithBuffer;
+	const int nX = resolution_image[_X];	// resolution of each orthographic images = spatial resolution of LF
+	const int nY = resolution_image[_Y];  
+	const long long int nXY = nX * nY;
+	const int nU = num_image[_X];			// number of orthographic images = angular resolution of LF
+	const int nV = num_image[_Y];
+	const int nUV = nU * nV;
+	const long long int nXwithBuffer = nX + 2 * nBufferX;
+	const long long int  nYwithBuffer = nY + 2 * nBufferY;
+	const long long int nXYwithBuffer = nXwithBuffer * nYwithBuffer;
 
 	
 	// initialize
@@ -439,15 +454,16 @@ void ophNonHogelLF::fourierTransformOverUVLF()
 		
 		// only for debugging
 		if (idxProgress == progressCheckPoint ) {
-			LOG("idxnXY : %1d out of nXY= %1d\n", idxnXY, nXY);
+			LOG("idxnXY : %1d out of nXY= %llu\n", idxnXY, nXY);
 			idxProgress = 0;
 		}
 		else {
 			idxProgress++;
 		}
 	}
-	delete[] LFatXY, FToverUVatXY;
-	LOG("%s => %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
+	delete[] LFatXY;
+	delete[] FToverUVatXY;
+	LOG("%s : %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
 
 }
 
@@ -455,15 +471,15 @@ void ophNonHogelLF::convertLF2ComplexFieldUsingNonHogelMethod()
 {
 	auto begin = CUR_TIME;
 
-	const uint nX = resolution_image[_X];	// resolution of each orthographic images = spatial resolution of LF
-	const uint nY = resolution_image[_Y];
-	const uint nXY = nX * nY;
-	const uint nU = num_image[_X];			// number of orthographic images = angular resolution of LF
-	const uint nV = num_image[_Y];
-	const uint nUV = nU * nV;
-	const uint nXwithBuffer = nX + 2 * nBufferX;
-	const uint nYwithBuffer = nY + 2 * nBufferY;
-	const uint nXYwithBuffer = nXwithBuffer * nYwithBuffer;
+	const int nX = resolution_image[_X];	// resolution of each orthographic images = spatial resolution of LF
+	const int nY = resolution_image[_Y];
+	const long long int nXY = nX * nY;
+	const int nU = num_image[_X];			// number of orthographic images = angular resolution of LF
+	const int nV = num_image[_Y];
+	const int nUV = nU * nV;
+	const long long int nXwithBuffer = nX + 2 * nBufferX;
+	const long long int nYwithBuffer = nY + 2 * nBufferY;
+	const long long int nXYwithBuffer = nXwithBuffer * nYwithBuffer;
 
 	if (Hologram) {
 		delete[] Hologram;
@@ -508,7 +524,7 @@ void ophNonHogelLF::convertLF2ComplexFieldUsingNonHogelMethod()
 		}
 	}
 	delete[] HologramWithBuffer;
-	LOG("%s => %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
+	LOG("%s : %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
 }
 
 void ophNonHogelLF::writeIntensity_gray8_bmp(const char* fileName, int nx, int ny, Complex<Real>* complexvalue, int k)
@@ -533,14 +549,14 @@ void ophNonHogelLF::writeIntensity_gray8_bmp(const char* fileName, int nx, int n
 	}
 
 	char fname[100];
-	strcpy_s(fname, fileName);
+	strcpy(fname, fileName);
 	if (k != -1)
 	{
 		char num[30];
-		sprintf_s(num, "_%d", k);
-		strcat_s(fname, num);
+		sprintf(num, "_%d", k);
+		strcat(fname, num);
 	}
-	strcat_s(fname, ".bmp");
+	strcat(fname, ".bmp");
 
 	//LOG("minval %e, max val %e\n", min_val, max_val);
 

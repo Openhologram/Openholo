@@ -51,60 +51,59 @@ bool ophLUT::loadConfig(const char* filename, CGHEnvironmentData* conf)
 			{
 				char* token = NULL;
 				char* parameter = NULL;
-				char* context = nullptr;
-				token = strtok_s(inputString, "=", &context);
+				token = strtok(inputString, "=");
 
 				// 데이터 받아서 구조체에 저장
 				if (strcmp(token, "CGH width ") == 0) {
-					token = strtok_s(NULL, "=", &context);
+					token = strtok(NULL, "=");
 					conf->CghWidth = atoi(trim(token));
 				}
 				else if (strcmp(token, "CGH height ") == 0) {
-					token = strtok_s(NULL, "=", &context);
+					token = strtok(NULL, "=");
 					conf->CghHeight = atoi(trim(token));
 				}
 				else if (strcmp(token, "Segmentation size ") == 0) {
-					token = strtok_s(NULL, "=", &context);
+					token = strtok(NULL, "=");
 					conf->SegmentationSize = atoi(trim(token));
 				}
 				else if (strcmp(token, "FFT segmentation size ") == 0) {
-					token = strtok_s(NULL, "=", &context);
+					token = strtok(NULL, "=");
 					conf->fftSegmentationSize = atoi(trim(token));
 				}
 				else if (strcmp(token, "Red wavelength ") == 0) {
-					token = strtok_s(NULL, "=", &context);
+					token = strtok(NULL, "=");
 					conf->rWaveLength = atof(trim(token));
 				}
 				else if (strcmp(token, "Tilting angle on x axis ") == 0) {
-					token = strtok_s(NULL, "=", &context);
+					token = strtok(NULL, "=");
 					conf->ThetaX = atof(trim(token));
 				}
 				else if (strcmp(token, "Tilting angle on y axis ") == 0) {
-					token = strtok_s(NULL, "=", &context);
+					token = strtok(NULL, "=");
 					conf->ThetaY = atof(trim(token));
 				}
 				else if (strcmp(token, "Default depth ") == 0) {
-					token = strtok_s(NULL, "=", &context);
+					token = strtok(NULL, "=");
 					conf->DefaultDepth = atof(trim(token));
 				}
 				else if (strcmp(token, "3D point interval on x axis ") == 0) {
-					token = strtok_s(NULL, "=", &context);
+					token = strtok(NULL, "=");
 					conf->xInterval = atof(trim(token));
 				}
 				else if (strcmp(token, "3D point interval on y axis ") == 0) {
-					token = strtok_s(NULL, "=", &context);
+					token = strtok(NULL, "=");
 					conf->yInterval = atof(trim(token));
 				}
 				else if (strcmp(token, "Hologram interval on xi axis ") == 0) {
-					token = strtok_s(NULL, "=", &context);
+					token = strtok(NULL, "=");
 					conf->xiInterval = atof(trim(token));
 				}
 				else if (strcmp(token, "Hologram interval on eta axis ") == 0) {
-					token = strtok_s(NULL, "=", &context);
+					token = strtok(NULL, "=");
 					conf->etaInterval = atof(trim(token));
 				}
 				else if (strcmp(token, "CGH scale ") == 0) {
-					token = strtok_s(NULL, "=", &context);
+					token = strtok(NULL, "=");
 					conf->CGHScale = atof(trim(token));
 				}
 			}
@@ -135,24 +134,23 @@ bool ophLUT::loadPoint(const char* _filename, VoxelStruct* h_vox)
 
 			if (inputString[0] != NULL)
 			{
-				char* token = NULL;
-				char* context;
-				token = strtok_s(inputString, "\t", &context);
+				char* token = nullptr;
+				token = strtok(inputString, "\t");
 				h_vox[no].num = atoi(token);	// 인덱스
 
-				token = strtok_s(NULL, "\t", &context);
+				token = strtok(nullptr, "\t");
 				h_vox[no].x = atof(token);	// x 좌표
 
-				token = strtok_s(NULL, "\t", &context);
+				token = strtok(nullptr, "\t");
 				h_vox[no].y = atof(token);	// y 좌표
 
-				token = strtok_s(NULL, "\t", &context);
+				token = strtok(nullptr, "\t");
 				h_vox[no].z = atof(token);	// z 좌표
 
-				token = strtok_s(NULL, "\t", &context);
+				token = strtok(nullptr, "\t");
 				h_vox[no].ph = atof(token);	// phase
 
-				token = strtok_s(NULL, "\t", &context);
+				token = strtok(nullptr, "\t");
 				h_vox[no].r = atof(token);	// red
 
 				//token = strtok_s(NULL, "\t");
@@ -421,34 +419,33 @@ int ophLUT::saveAsImg(const char * fname, uint8_t bitsperpixel, void * src, int 
 	int _pixelbytesize = _height * _width * bitsperpixel / 8;
 	int _filesize = _pixelbytesize + sizeof(bitmap8bit);
 
-	FILE *fp;
-	fopen_s(&fp, fname, "wb");
+	FILE *fp = fopen(fname, "wb");
 	if (fp == nullptr) return -1;
 
 	bitmap8bit *pbitmap = (bitmap8bit*)calloc(1, sizeof(bitmap8bit));
 	memset(pbitmap, 0x00, sizeof(bitmap8bit));
 
-	pbitmap->fileheader.signature[0] = 'B';
-	pbitmap->fileheader.signature[1] = 'M';
-	pbitmap->fileheader.filesize = _filesize;
-	pbitmap->fileheader.fileoffset_to_pixelarray = sizeof(bitmap8bit);
+	pbitmap->_fileheader.signature[0] = 'B';
+	pbitmap->_fileheader.signature[1] = 'M';
+	pbitmap->_fileheader.filesize = _filesize;
+	pbitmap->_fileheader.fileoffset_to_pixelarray = sizeof(bitmap8bit);
 
 	for (int i = 0; i < 256; i++) {
-		pbitmap->rgbquad[i].rgbBlue = i;
-		pbitmap->rgbquad[i].rgbGreen = i;
-		pbitmap->rgbquad[i].rgbRed = i;
+		pbitmap->_rgbquad[i].rgbBlue = i;
+		pbitmap->_rgbquad[i].rgbGreen = i;
+		pbitmap->_rgbquad[i].rgbRed = i;
 	}
 
-	pbitmap->bitmapinfoheader.dibheadersize = sizeof(bitmapinfoheader);
-	pbitmap->bitmapinfoheader.width = _width;
-	pbitmap->bitmapinfoheader.height = _height;
+	pbitmap->_bitmapinfoheader.dibheadersize = sizeof(bitmapinfoheader);
+	pbitmap->_bitmapinfoheader.width = _width;
+	pbitmap->_bitmapinfoheader.height = _height;
 	//pbitmap->bitmapinfoheader.planes = _planes;
-	pbitmap->bitmapinfoheader.bitsperpixel = bitsperpixel;
+	pbitmap->_bitmapinfoheader.bitsperpixel = bitsperpixel;
 	//pbitmap->bitmapinfoheader.compression = _compression;
-	pbitmap->bitmapinfoheader.imagesize = _pixelbytesize;
+	pbitmap->_bitmapinfoheader.imagesize = _pixelbytesize;
 	//pbitmap->bitmapinfoheader.ypixelpermeter = _ypixelpermeter;
 	//pbitmap->bitmapinfoheader.xpixelpermeter = _xpixelpermeter;
-	pbitmap->bitmapinfoheader.numcolorspallette = 256;
+	pbitmap->_bitmapinfoheader.numcolorspallette = 256;
 	fwrite(pbitmap, 1, sizeof(bitmap8bit), fp);
 
 	fwrite(src, 1, _pixelbytesize, fp);
@@ -473,7 +470,7 @@ char* ophLUT::rtrim(char* s)
 	// Visual C 2003 이하에서는
 	// strcpy(t, s);
 	// 이렇게 해야 함
-	strcpy_s(t, s); // 이것은 Visual C 2005용
+	strcpy(t, s); // 이것은 Visual C 2005용
 	end = t + strlen(t) - 1;
 	while (end != t && isspace(*end))
 		end--;
