@@ -405,13 +405,13 @@ bool Openholo::getImgSize(int & w, int & h, int & bytesperpixel, const char * fn
 	char szExtension[FILENAME_MAX] = { 0, };
 
 	strcpy(szExtension, strrchr(fname, '.') + 1);
-
-	//sprintf(szExtension, "%s", PathFindExtension(fname) + 1);
+	
 #ifdef _MSC_VER
 	if (_stricmp(szExtension, "bmp")) { // not bmp
 #elif __GNUC__
 	if (strcasecmp(szExtension, "bmp")) {
 #endif
+		LOG("<FAILED> Not BMP file.\n");
 		return false;
 	}
 	// BMP

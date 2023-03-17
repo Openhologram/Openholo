@@ -168,7 +168,7 @@ void oph::ImgCodecOhc::releaseCodeBuffer() {
 }
 
 void oph::ImgCodecOhc::releaseFldData() {
-	for (int i = 0; i < field_cmplx.size(); ++i) {
+	for (size_t i = 0; i < field_cmplx.size(); ++i) {
 		this->field_cmplx[i].release();
 	}
 	this->field_cmplx.clear();
@@ -201,12 +201,12 @@ oph::ImgDecoderOhc::~ImgDecoderOhc()
 void oph::ImgDecoderOhc::releaseFldData() {
 	this->ImgCodecOhc::releaseFldData();
 
-	for (int i = 0; i < field_ampli.size(); ++i) {
+	for (size_t i = 0; i < field_ampli.size(); ++i) {
 		this->field_ampli[i].release();
 	}
 	this->field_ampli.clear();
 
-	for (int i = 0; i < field_phase.size(); ++i) {
+	for (size_t i = 0; i < field_phase.size(); ++i) {
 		this->field_phase[i].release();
 	}
 	this->field_phase.clear();
@@ -401,14 +401,14 @@ bool oph::ImgDecoderOhc::load() {
 		//	return false;
 		//	break;
 		//}
-
+		ok = true;
 		this->bLoadFile = true;
 		this->File.close();
-		return true;
+		return ok;
 	}
 	else {
 		LOG("Error : Failed loading OHC file...");
-		return false;
+		return isOpen;
 	}
 }
 

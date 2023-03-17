@@ -145,8 +145,8 @@ bool ImgControl::Rotate(double rotate, unsigned char *src, unsigned char *dst, i
 	double centerY = (double)h / 2.0;
 #ifdef _OPENMP
 #pragma omp parallel for firstprivate(nBytePerLine, ss, cc, centerX, centerY)
-	for (int y = 0; y < h; y++) {
 #endif
+	for (int y = 0; y < h; y++) {
 		int dstY = y * nBytePerLine;
 		for (int x = 0; x < w; x++) {
 			int origX = (int)(centerX + ((double)y - centerY)*ss + ((double)x - centerX)*cc);
@@ -244,8 +244,8 @@ bool ImgControl::Crop(unsigned char *src, unsigned char *dst, int w, int h, int 
 
 #ifdef _OPENMP
 #pragma omp parallel for firstprivate(nBytePerLine, nBytePerLine2, y, ch, neww)
-	for (int i = 0; i < newh; i++) {
 #endif
+	for (int i = 0; i < newh; i++) {
 		int offset = i * nBytePerLine;
 		int offsetY = (y + i) * nBytePerLine2;
 		memcpy(&dst[offset], &src[offsetY + offsetX], sizeof(unsigned char) * ch * neww);

@@ -70,8 +70,8 @@
 #include "typedef.h"
 #include "struct.h"
 
-
-#ifdef _WIN32
+#pragma once
+#if defined(_WIN32) || defined(_WIN64)
 #ifdef OPH_EXPORT
 #define OPH_DLL __declspec(dllexport)
 #else

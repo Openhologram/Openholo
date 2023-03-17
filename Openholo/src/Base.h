@@ -53,7 +53,11 @@
 #define OPH_DLL __attribute__((visibility("default")))
 #endif
 #else
+#ifdef _WIN32 
 #define OPH_DLL __declspec(dllimport)
+#else
+#define OPH_DLL
+#endif
 #endif
 
 class OPH_DLL Base {
