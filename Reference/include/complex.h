@@ -78,7 +78,7 @@ namespace oph {
 	*		 T imag() : imaginary number
 	*/
 
-#if _MSC_VER > 1900
+#if _MSC_VER > 1900 || defined(__GNUC__)
 	template<typename T = double>
 	class OPH_DLL Complex : public std::complex<T>
 	{
