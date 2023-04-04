@@ -590,7 +590,7 @@ public:
 	* @brief Get point cloud vertex data
 	* @param[out] vertex data address
 	*/
-	inline void getPointCloudModel(Vertex* vertex) { pc_data_.vertices = vertex; }
+	inline Vertex* getPointCloudModel() { return pc_data_.vertices; }
 	/**
 	* @brief Directly Get Basic Data
 	* @return int 3D Point Cloud count
