@@ -202,6 +202,9 @@ public:
 	inline uint getNumOfDepth(void) { return dm_config_.num_of_depth; }
 	inline void getRenderDepth(std::vector<int>& renderdepth) { renderdepth = dm_config_.render_depth; }
 
+	inline unsigned char* getRGBImageBuffer(int idx) { return m_vecRGB[idx]; }
+	inline unsigned char* getDepthImageBuffer() { return depth_img; }
+
 	inline const OphDepthMapConfig& getConfig() { return dm_config_; }
 	
 private:

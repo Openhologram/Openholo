@@ -364,12 +364,15 @@ void ophGen::RS_Diffraction(Point src, Complex<Real> *dst, Real lambda, Real dis
 	const Real ssX = pConfig->ss[_X] = pnX * ppX;
 	const Real ssY = pConfig->ss[_Y] = pnY * ppY;
 
+	const int offsetX = pConfig->offset[_X];
+	const int offsetY = pConfig->offset[_Y];
+
 	const Real tx = lambda / (2 * ppX);
 	const Real ty = lambda / (2 * ppY);
 	const Real sqrtX = sqrt(1 - (tx * tx));
 	const Real sqrtY = sqrt(1 - (ty * ty));
-	const Real x = -ssX / 2;
-	const Real y = -ssY / 2;
+	const Real x = -ssX / 2 + (offsetX * ppX);
+	const Real y = -ssY / 2 + (offsetY * ppY);
 	const Real k = (2 * M_PI) / lambda;
 	Real z = src.pos[_Z] + distance;
 	Real zz = z * z;
@@ -444,6 +447,11 @@ void ophGen::Fresnel_Diffraction(Point src, Complex<Real> *dst, Real lambda, Rea
 	const int pnX = pConfig->pixel_number[_X];
 	const int pnY = pConfig->pixel_number[_Y];
 	const int pnXY = pnX * pnY;
+
+
+	const int offsetX = pConfig->offset[_X];
+	const int offsetY = pConfig->offset[_Y];
+
 	const Real ppX = pConfig->pixel_pitch[_X];
 	const Real ppY = pConfig->pixel_pitch[_Y];
 	const Real ssX = pConfig->ss[_X] = pnX * ppX;
@@ -451,8 +459,8 @@ void ophGen::Fresnel_Diffraction(Point src, Complex<Real> *dst, Real lambda, Rea
 	const Real k = (2 * M_PI) / lambda;
 
 	// for performance
-	Real x = -ssX / 2;
-	Real y = -ssY / 2;
+	Real x = -ssX / 2 + (offsetX * ppX);
+	Real y = -ssY / 2 + (offsetY * ppY);
 	Real z = src.pos[_Z] + distance;
 	Real zz = z * z;
 	Real operand = lambda * z;
@@ -1629,6 +1637,8 @@ bool ophGen::Shift(Real x, Real y)
 			}
 		}
 	}
+
+	delete[] waveRatio;
 	return true;
 }
 

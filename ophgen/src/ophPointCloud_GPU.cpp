@@ -257,6 +257,7 @@ void ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 			n_points, n_streams,
 			pc_config_.scale, pc_config_.distance,
 			context_.pixel_number,
+			context_.offset,
 			context_.pixel_pitch,
 			context_.ss,
 			context_.k,
