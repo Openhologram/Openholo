@@ -381,9 +381,9 @@ bool ophDepthMap::readImageDepth(const char* source_folder, const char* img_pref
 
 	for (int i = 0; i < ch; i++)
 	{
-		if (ch == 1) // (R+G+B) / 3
+		if (ch == 1) // rgb img to grayscale
 			convertToFormatGray8(buf, img, w, h, bytesperpixel);
-		else if (ch == bytesperpixel) // RGB888 to each color
+		else if (ch == bytesperpixel) // rgb img to rgb
 		{
 			separateColor(i, w, h, buf, img);
 		}
@@ -398,7 +398,7 @@ bool ophDepthMap::readImageDepth(const char* source_folder, const char* img_pref
 		memset(rgb_img, 0, sizeof(char) * N);
 
 		if (w != pnX || h != pnY)
-			imgScaleBilinear(img, rgb_img, w, h, pnX, pnY);
+			imgScaleBilinear(img, rgb_img, w, h, pnX, pnY, ch);
 		else
 			memcpy(rgb_img, img, sizeof(char) * N);
 

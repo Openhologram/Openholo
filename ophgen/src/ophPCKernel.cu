@@ -66,7 +66,7 @@
 __global__
 void cudaKernel_double_RS_Diffraction(uint channel, Vertex* vertex_data, const GpuConstNERS* config, const int N, cuDoubleComplex* dst)
 {
-	__shared__ int pnX, pnY, loop, schannel, offsetX, offsetY;
+	__shared__ int pnX, pnY, loop, schannel;
 	__shared__ double ppX, ppY, scaleX, scaleY, scaleZ, half_ssX, half_ssY, distance, det_tx, det_ty, k, lambda;
 
 	if (threadIdx.x == 0) {
@@ -75,8 +75,6 @@ void cudaKernel_double_RS_Diffraction(uint channel, Vertex* vertex_data, const G
 		pnY = config->pn_Y;
 		ppX = config->pp_X;
 		ppY = config->pp_Y;
-		offsetX = config->offset_X;
-		offsetY = config->offset_Y;
 		scaleX = config->scale_X;
 		scaleY = config->scale_Y;
 		scaleZ = config->scale_Z;
@@ -96,12 +94,11 @@ void cudaKernel_double_RS_Diffraction(uint channel, Vertex* vertex_data, const G
 	int yytr = tid / pnX;
 	ulonglong idx = xxtr + yytr * pnX;
 
-	double xxx = -half_ssX + (xxtr - 1 + offsetX) * ppX;
-	double yyy = -half_ssY + (pnY - yytr + offsetY) * ppY;
+	double xxx = -half_ssX + (xxtr - 1) * ppX;
+	double yyy = -half_ssY + (pnY - yytr) * ppY;
 
 	for (int j = 0; j < loop; ++j)
-	{ 
-		// Create Fringe Pattern
+	{ // Create Fringe Pattern
 		double pcx = vertex_data[j].point.pos[_X] * scaleX;
 		double pcy = vertex_data[j].point.pos[_Y] * scaleY;
 		double pcz = vertex_data[j].point.pos[_Z] * scaleZ;
@@ -179,7 +176,7 @@ void cudaKernel_double_RS_Diffraction(uint channel, Vertex* vertex_data, const G
 __global__
 void cudaKernel_double_FastMath_RS_Diffraction(uint channel, Vertex* vertex_data, const GpuConstNERS* config, const int N, cuDoubleComplex* dst)
 {
-	__shared__ int pnX, pnY, loop, schannel, offsetX, offsetY;
+	__shared__ int pnX, pnY, loop, schannel;
 	__shared__ double ppX, ppY, scaleX, scaleY, scaleZ, half_ssX, half_ssY, distance, det_tx, det_ty, k, lambda;
 
 	if (threadIdx.x == 0) {
@@ -188,8 +185,6 @@ void cudaKernel_double_FastMath_RS_Diffraction(uint channel, Vertex* vertex_data
 		pnY = config->pn_Y;
 		ppX = config->pp_X;
 		ppY = config->pp_Y;
-		offsetX = config->offset_X;
-		offsetY = config->offset_Y;
 		scaleX = config->scale_X;
 		scaleY = config->scale_Y;
 		scaleZ = config->scale_Z;
@@ -209,8 +204,8 @@ void cudaKernel_double_FastMath_RS_Diffraction(uint channel, Vertex* vertex_data
 	int yytr = tid / pnX;
 	ulonglong idx = xxtr + yytr * pnX;
 
-	double xxx = __dadd_rz(-half_ssX, __dmul_rz(__dadd_rz(__dsub_rz(xxtr, 1), offsetX), ppX));
-	double yyy = __dadd_rz(-half_ssY, __dmul_rz(__dadd_rz(__dsub_rz(pnY, yytr), offsetY), ppY));
+	double xxx = __dadd_rz(-half_ssX, __dmul_rz(xxtr - 1, ppX));
+	double yyy = __dadd_rz(-half_ssY, __dmul_rz(pnY - yytr, ppY));
 
 	for (int j = 0; j < loop; ++j)
 	{ // Create Fringe Pattern
@@ -292,7 +287,7 @@ void cudaKernel_double_FastMath_RS_Diffraction(uint channel, Vertex* vertex_data
 __global__
 void cudaKernel_single_RS_Diffraction(uint channel, Vertex* vertex_data, const GpuConstNERS* config, const int N, cuDoubleComplex* dst)
 {
-	__shared__ int pnX, pnY, loop, schannel, offsetX, offsetY;
+	__shared__ int pnX, pnY, loop, schannel;
 	__shared__ float ppX, ppY, scaleX, scaleY, scaleZ, half_ssX, half_ssY, distance, det_tx, det_ty, k, lambda;
 
 	if (threadIdx.x == 0) {
@@ -301,8 +296,6 @@ void cudaKernel_single_RS_Diffraction(uint channel, Vertex* vertex_data, const G
 		pnY = config->pn_Y;
 		ppX = config->pp_X;
 		ppY = config->pp_Y;
-		offsetX = config->offset_X;
-		offsetY = config->offset_Y;
 		scaleX = config->scale_X;
 		scaleY = config->scale_Y;
 		scaleZ = config->scale_Z;
@@ -322,8 +315,8 @@ void cudaKernel_single_RS_Diffraction(uint channel, Vertex* vertex_data, const G
 	int yytr = tid / pnX;
 	ulonglong idx = xxtr + yytr * pnX;
 
-	float xxx = -half_ssX + (xxtr - 1 + offsetX) * ppX;
-	float yyy = -half_ssY + (pnY - yytr + offsetY) * ppY;
+	float xxx = -half_ssX + (xxtr - 1) * ppX;
+	float yyy = -half_ssY + (pnY - yytr) * ppY;
 
 	for (int j = 0; j < loop; ++j)
 	{ // Create Fringe Pattern
@@ -404,7 +397,7 @@ void cudaKernel_single_RS_Diffraction(uint channel, Vertex* vertex_data, const G
 __global__
 void cudaKernel_single_FastMath_RS_Diffraction(uint channel, Vertex* vertex_data, const GpuConstNERS* config, const int N, cuDoubleComplex* dst)
 {
-	__shared__ int pnX, pnY, loop, schannel, offsetX, offsetY;
+	__shared__ int pnX, pnY, loop, schannel;
 	__shared__ float ppX, ppY, scaleX, scaleY, scaleZ, half_ssX, half_ssY, distance, det_tx, det_ty, k, lambda;
 
 	if (threadIdx.x == 0) {
@@ -413,8 +406,6 @@ void cudaKernel_single_FastMath_RS_Diffraction(uint channel, Vertex* vertex_data
 		pnY = config->pn_Y;
 		ppX = config->pp_X;
 		ppY = config->pp_Y;
-		offsetX = config->offset_X;
-		offsetY = config->offset_Y;
 		scaleX = config->scale_X;
 		scaleY = config->scale_Y;
 		scaleZ = config->scale_Z;
@@ -434,8 +425,8 @@ void cudaKernel_single_FastMath_RS_Diffraction(uint channel, Vertex* vertex_data
 	int yytr = tid / pnX;
 	ulonglong idx = xxtr + yytr * pnX;
 
-	float xxx = __fadd_rz(-half_ssX, __fmul_rz(__fadd_rz(__fsub_rz(xxtr, 1), offsetX), ppX));
-	float yyy = __fadd_rz(-half_ssY, __fmul_rz(__fadd_rz(__fsub_rz(pnY, yytr), offsetY), ppY));
+	float xxx = __fadd_rz(-half_ssX, __fmul_rz(xxtr - 1, ppX));
+	float yyy = __fadd_rz(-half_ssY, __fmul_rz(pnY - yytr, ppY));
 
 	for (int j = 0; j < loop; ++j)
 	{ // Create Fringe Pattern
@@ -517,7 +508,7 @@ void cudaKernel_single_FastMath_RS_Diffraction(uint channel, Vertex* vertex_data
 __global__
 void cudaKernel_double_Fresnel_Diffraction(uint channel, Vertex* vertex_data, const GpuConstNEFR* config, const int N, cuDoubleComplex* dst)
 {
-	__shared__ int pnX, pnY, loop, schannel, offsetX, offsetY;
+	__shared__ int pnX, pnY, loop, schannel;
 	__shared__ double ppX, ppY, scaleX, scaleY, scaleZ, half_ssX, half_ssY, distance, k, tx, ty, lambda;
 
 	if (threadIdx.x == 0) {
@@ -526,8 +517,6 @@ void cudaKernel_double_Fresnel_Diffraction(uint channel, Vertex* vertex_data, co
 		pnY = config->pn_Y;
 		ppX = config->pp_X;
 		ppY = config->pp_Y;
-		offsetX = config->offset_X;
-		offsetY = config->offset_Y;
 		scaleX = config->scale_X;
 		scaleY = config->scale_Y;
 		scaleZ = config->scale_Z;
@@ -547,8 +536,8 @@ void cudaKernel_double_Fresnel_Diffraction(uint channel, Vertex* vertex_data, co
 	int yytr = tid / pnX;
 	ulonglong idx = xxtr + yytr * pnX;
 
-	double xxx = -half_ssX + (xxtr - 1 + offsetX) * ppX;
-	double yyy = -half_ssY + (pnY - yytr + offsetY) * ppY;
+	double xxx = -half_ssX + (xxtr - 1) * ppX;
+	double yyy = -half_ssY + (pnY - yytr) * ppY;
 
 	for (int j = 0; j < loop; ++j)
 	{ //Create Fringe Pattern
@@ -604,7 +593,7 @@ void cudaKernel_double_Fresnel_Diffraction(uint channel, Vertex* vertex_data, co
 __global__
 void cudaKernel_double_FastMath_Fresnel_Diffraction(uint channel, Vertex* vertex_data, const GpuConstNEFR* config, const int N, cuDoubleComplex* dst)
 {
-	__shared__ int pnX, pnY, loop, schannel, offsetX, offsetY;
+	__shared__ int pnX, pnY, loop, schannel;
 	__shared__ double ppX, ppY, scaleX, scaleY, scaleZ, half_ssX, half_ssY, distance, k, tx, ty, lambda;
 
 	if (threadIdx.x == 0) {
@@ -613,8 +602,6 @@ void cudaKernel_double_FastMath_Fresnel_Diffraction(uint channel, Vertex* vertex
 		pnY = config->pn_Y;
 		ppX = config->pp_X;
 		ppY = config->pp_Y;
-		offsetX = config->offset_X;
-		offsetY = config->offset_Y;
 		scaleX = config->scale_X;
 		scaleY = config->scale_Y;
 		scaleZ = config->scale_Z;
@@ -634,8 +621,8 @@ void cudaKernel_double_FastMath_Fresnel_Diffraction(uint channel, Vertex* vertex
 	int yytr = tid / pnX;
 	ulonglong idx = xxtr + yytr * pnX;
 
-	double xxx = __dadd_rz(-half_ssX, __dmul_rz(__dadd_rz(__dsub_rz(xxtr, 1), offsetX), ppX));
-	double yyy = __dadd_rz(-half_ssY, __dmul_rz(__dadd_rz(__dsub_rz(pnY, yytr), offsetY), ppY));
+	double xxx = __dadd_rz(-half_ssX, __dmul_rz(__dsub_rz(xxtr, 1), ppX));
+	double yyy = __dadd_rz(-half_ssY, __dmul_rz(__dsub_rz(pnY, yytr), ppY));
 
 	for (int j = 0; j < loop; ++j)
 	{ //Create Fringe Pattern
@@ -696,7 +683,7 @@ void cudaKernel_double_FastMath_Fresnel_Diffraction(uint channel, Vertex* vertex
 __global__
 void cudaKernel_single_Fresnel_Diffraction(uint channel, Vertex* vertex_data, const GpuConstNEFR* config, const int N, cuDoubleComplex* dst)
 {
-	__shared__ int pnX, pnY, loop, schannel, offsetX, offsetY;
+	__shared__ int pnX, pnY, loop, schannel;
 	__shared__ float ppX, ppY, scaleX, scaleY, scaleZ, half_ssX, half_ssY, distance, k, tx, ty, lambda;
 
 	if (threadIdx.x == 0) {
@@ -705,8 +692,6 @@ void cudaKernel_single_Fresnel_Diffraction(uint channel, Vertex* vertex_data, co
 		pnY = config->pn_Y;
 		ppX = config->pp_X;
 		ppY = config->pp_Y;
-		offsetX = config->offset_X;
-		offsetY = config->offset_Y;
 		scaleX = config->scale_X;
 		scaleY = config->scale_Y;
 		scaleZ = config->scale_Z;
@@ -726,8 +711,8 @@ void cudaKernel_single_Fresnel_Diffraction(uint channel, Vertex* vertex_data, co
 	int yytr = tid / pnX;
 	ulonglong idx = xxtr + yytr * pnX;
 
-	float xxx = -half_ssX + (xxtr - 1 + offsetX) * ppX;
-	float yyy = -half_ssY + (pnY - yytr + offsetY) * ppY;
+	float xxx = -half_ssX + (xxtr - 1) * ppX;
+	float yyy = -half_ssY + (pnY - yytr) * ppY;
 
 	for (int j = 0; j < loop; ++j)
 	{ //Create Fringe Pattern
@@ -783,7 +768,7 @@ void cudaKernel_single_Fresnel_Diffraction(uint channel, Vertex* vertex_data, co
 __global__
 void cudaKernel_single_FastMath_Fresnel_Diffraction(uint channel, Vertex* vertex_data, const GpuConstNEFR* config, const int N, cuDoubleComplex* dst)
 {
-	__shared__ int pnX, pnY, loop, schannel, offsetX, offsetY;
+	__shared__ int pnX, pnY, loop, schannel;
 	__shared__ float ppX, ppY, scaleX, scaleY, scaleZ, half_ssX, half_ssY, distance, k, tx, ty, lambda;
 
 	if (threadIdx.x == 0) {
@@ -792,8 +777,6 @@ void cudaKernel_single_FastMath_Fresnel_Diffraction(uint channel, Vertex* vertex
 		pnY = config->pn_Y;
 		ppX = config->pp_X;
 		ppY = config->pp_Y;
-		offsetX = config->offset_X;
-		offsetY = config->offset_Y;
 		scaleX = config->scale_X;
 		scaleY = config->scale_Y;
 		scaleZ = config->scale_Z;
@@ -813,8 +796,8 @@ void cudaKernel_single_FastMath_Fresnel_Diffraction(uint channel, Vertex* vertex
 	int yytr = tid / pnX;
 	ulonglong idx = xxtr + yytr * pnX;
 
-	float xxx = __fadd_rz(-half_ssX, __fmul_rz(__fadd_rz(__fsub_rz(xxtr, 1), offsetX), ppX));
-	float yyy = __fadd_rz(-half_ssY, __fmul_rz(__fadd_rz(__fsub_rz(pnY, yytr), offsetY), ppY));
+	float xxx = __fadd_rz(-half_ssX, __fmul_rz(__fsub_rz(xxtr, 1), ppX));
+	float yyy = __fadd_rz(-half_ssY, __fmul_rz(__fsub_rz(pnY, yytr), ppY));
 
 	for (int j = 0; j < loop; ++j)
 	{ //Create Fringe Pattern

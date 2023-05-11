@@ -207,7 +207,7 @@ bool ophSimulator::GenerateHologram()
 
 		Real *pVertex = new Real[m_nPoints * 3];
 		Real *pColor = new Real[m_nPoints];
-		//m_pPointCloud->setPointCloudModel(pVertex, pColor, nullptr);
+		m_pPointCloud->setPointCloudModel(pVertex, pColor, nullptr);
 
 		int nSize = (int)m_vecPoints.size();
 		int i = 0;

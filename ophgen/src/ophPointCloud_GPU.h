@@ -98,9 +98,6 @@ typedef struct KernelConst {
 	int pn_X;		/// Number of pixel of SLM in x direction
 	int pn_Y;		/// Number of pixel of SLM in y direction
 
-	int offset_X; // x-axis start offset
-	int offset_Y; // y-axis start offset
-
 	double pp_X; /// Pixel pitch of SLM in x direction
 	double pp_Y; /// Pixel pitch of SLM in y direction
 
@@ -116,7 +113,6 @@ typedef struct KernelConst {
 		const vec3 &scale_factor,	/// Scaling factor of x, y, z coordinate of point cloud
 		const Real &offset_depth,	/// Offset value of point cloud in z direction
 		const ivec2 &pixel_number,	/// Number of pixel of SLM in x, y direction
-		const ivec2 &offset,		/// start offset
 		const vec2 &pixel_pitch,	/// Pixel pitch of SLM in x, y direction
 		const vec2 &ss,				/// (pixel_x * nx), (pixel_y * ny)
 		const Real &k,				/// Wave Number = (2 * PI) / lambda
@@ -133,10 +129,6 @@ typedef struct KernelConst {
 		// Output Image Size
 		this->pn_X = pixel_number[_X];
 		this->pn_Y = pixel_number[_Y];
-
-		// Start offset
-		this->offset_X = offset[_X];
-		this->offset_Y = offset[_Y];
 
 		// Pixel pitch at eyepiece lens plane (by simple magnification) ==> SLM pitch
 		this->pp_X = pixel_pitch[_X];
@@ -163,17 +155,16 @@ typedef struct KernelConst_NotEncodedRS : public KernelConst {
 		const vec3 &scale_factor,	/// Scaling factor of x, y, z coordinate of point cloud
 		const Real &offset_depth,	/// Offset value of point cloud in z direction
 		const ivec2 &pixel_number,	/// Number of pixel of SLM in x, y direction
-		const ivec2 &offset,		/// start offset
 		const vec2 &pixel_pitch,	/// Pixel pitch of SLM in x, y direction
 		const vec2 &ss,				/// (pixel_x * nx), (pixel_y * ny)
 		const Real &k,				/// Wave Number = (2 * PI) / lambda
 		const Real &lambda			/// Wave length = lambda
 	)
-		: KernelConst(n_points, n_streams, scale_factor, offset_depth, pixel_number, offset, pixel_pitch, ss, k, lambda)
+		: KernelConst(n_points, n_streams, scale_factor, offset_depth, pixel_number, pixel_pitch, ss, k, lambda)
 	{
 		double tx = lambda / (2 * pixel_pitch[_X]);
 		double ty = lambda / (2 * pixel_pitch[_Y]);
-		
+
 		this->det_tx = tx / sqrt(1 - tx * tx);
 		this->det_ty = ty / sqrt(1 - ty * ty);
 	}
@@ -201,13 +192,12 @@ typedef struct KernelConst_NotEncodedFrsn : public KernelConst {
 		const vec3 &scale_factor,	/// Scaling factor of x, y, z coordinate of point cloud
 		const Real &offset_depth,	/// Offset value of point cloud in z direction
 		const ivec2 &pixel_number,	/// Number of pixel of SLM in x, y direction
-		const ivec2 &offset,		/// start offset
 		const vec2 &pixel_pitch,	/// Pixel pitch of SLM in x, y direction
 		const vec2 &ss,				/// (pixel_x * nx), (pixel_y * ny)
 		const Real &k,				/// Wave Number = (2 * PI) / lambda
 		const Real &lambda			/// Wave length = lambda
 	)
-		: KernelConst(n_points, n_streams, scale_factor, offset_depth, pixel_number, offset, pixel_pitch, ss, k, lambda)
+		: KernelConst(n_points, n_streams, scale_factor, offset_depth, pixel_number, pixel_pitch, ss, k, lambda)
 	{
 		this->tx = lambda / (2 * pixel_pitch[_X]);
 		this->ty = lambda / (2 * pixel_pitch[_Y]);

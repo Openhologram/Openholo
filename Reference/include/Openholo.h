@@ -60,20 +60,18 @@ using namespace oph;
 struct OPH_DLL OphConfig
 {
 	bool			bUseDP;						// use double precision
-	ivec2			pixel_number;				// SLM_PIXEL_NUMBER_X & SLM_PIXEL_NUMBER_Y
-	ivec2			offset;						// start offset
-	vec2			pixel_pitch;				// SLM_PIXEL_PITCH_X & SLM_PIXEL_PITCH_Y
+	ivec2			pixel_number;				//< SLM_PIXEL_NUMBER_X & SLM_PIXEL_NUMBER_Y
+	vec2			pixel_pitch;				//< SLM_PIXEL_PITCH_X & SLM_PIXEL_PITCH_Y
 	vec3			shift;						// shift
-	Real			k;							// 2 * PI / lambda(wavelength)
-	vec2			ss;							// pn * pp
+	Real			k;							//< 2 * PI / lambda(wavelength)
+	vec2			ss;							//< pn * pp
 	uint			waveNum;					// wave num
-	Real*			wave_length;				// wave length
+	Real*			wave_length;				//< wave length
 
 	//basic constructor
 	OphConfig() {
 		this->bUseDP = true;
 		this->pixel_number = ivec2();
-		this->offset = ivec2();
 		this->pixel_pitch = vec2();
 		this->shift = vec3();
 		this->k = 0;
@@ -203,27 +201,15 @@ public:
 	* @brief Function for setting the output resolution
 	* @param[in] n resolution vector value.
 	*/
-	inline void setPixelNumber(ivec2 n) { 
-		context_.pixel_number[_X] = n[_X]; context_.pixel_number[_Y] = n[_Y];
-		context_.ss = context_.pixel_number * context_.pixel_pitch;
-	}
-	inline void setPixelNumber(int width, int height) { 
-		context_.pixel_number[_X] = width; context_.pixel_number[_Y] = height;
-		context_.ss = context_.pixel_number * context_.pixel_pitch;
-	}
+	inline void setPixelNumber(ivec2 n) { context_.pixel_number[_X] = n[_X]; context_.pixel_number[_Y] = n[_Y]; }
+	inline void setPixelNumber(int width, int height) { context_.pixel_number[_X] = width; context_.pixel_number[_Y] = height; }
 
 	/**
 	* @brief Function for setting the output pixel pitch
 	* @param[in] p pitch vector value.
 	*/
-	inline void setPixelPitch(vec2 p) { 
-		context_.pixel_pitch[_X] = p[_X]; context_.pixel_pitch[_Y] = p[_Y];
-		context_.ss = context_.pixel_number * context_.pixel_pitch;
-	}
-	inline void setPixelPitch(Real pitchX, Real pitchY) { 
-		context_.pixel_pitch[_X] = pitchX; context_.pixel_pitch[_Y] = pitchY;
-		context_.ss = context_.pixel_number * context_.pixel_pitch;
-	}
+	inline void setPixelPitch(vec2 p) { context_.pixel_pitch[_X] = p[_X]; context_.pixel_pitch[_Y] = p[_Y]; }
+	inline void setPixelPitch(Real pitchX, Real pitchY) { context_.pixel_pitch[_X] = pitchX; context_.pixel_pitch[_Y] = pitchY; }
 	
 	/**
 	* @brief Function for setting the wave length
@@ -237,12 +223,6 @@ public:
 	* @param[in] num Number of wave/
 	*/
 	void setWaveNum(int num);
-
-	/**
-	* @brief Function for setting the offset
-	* @param[in] offset spatial domain offset value.
-	*/
-	inline void setOffset(ivec2 offset) { context_.offset[_X] = offset[_X]; context_.offset[_Y] = offset[_Y]; }
 
 	/**
 	* @brief Function for setting the image merge(true or false)
