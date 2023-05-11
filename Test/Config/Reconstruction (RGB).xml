@@ -1,0 +1,30 @@
+<Reconstruct>  
+  <SLM_PixelNumX>1920</SLM_PixelNumX>
+  <SLM_PixelNumY>1080</SLM_PixelNumY>
+  <SLM_PixelPitchX>10e-6</SLM_PixelPitchX> 
+  <SLM_PixelPitchY>10e-6</SLM_PixelPitchY>
+  <SLM_WaveNum>3</SLM_WaveNum>    
+  <SLM_WaveLength_1>638e-9</SLM_WaveLength_1> <!-- MAY: 638e-9 -->
+  <SLM_WaveLength_2>520e-9</SLM_WaveLength_2>
+  <SLM_WaveLength_3>450e-9</SLM_WaveLength_3> <!-- Double Type -->  
+  <EyeLength>50e-3</EyeLength>
+  <EyePupilDiameter>10e-3</EyePupilDiameter>
+  <EyeBoxSizeScaleFactor>1</EyeBoxSizeScaleFactor>
+  <EyeBoxSizeX>1</EyeBoxSizeX>
+  <EyeBoxSizeY>1</EyeBoxSizeY>
+  <EyeBoxUnit>0</EyeBoxUnit>
+  <EyeCenterX>0</EyeCenterX>
+  <EyeCenterY>13e-3</EyeCenterY>
+  <EyeCenterZ>1</EyeCenterZ>
+  <EyeFocusDistance>0.5302</EyeFocusDistance>
+  <ResultSizeScale>1</ResultSizeScale>
+  <SimulationTo>-0.52</SimulationTo>
+  <SimulationFrom>-0.48</SimulationFrom>
+  <SimulationStep>5</SimulationStep>
+  <SimulationMode>0</SimulationMode> <!-- 0: focus distance, 1: eye_position -->
+  <RatioAtRetina>0.2</RatioAtRetina>
+  <RatioAtPupil>0.1</RatioAtPupil>
+  <CreatePupilFieldImg>1</CreatePupilFieldImg>
+  <CenteringRetinalImg>1</CenteringRetinalImg> 
+  <IMG_Merge>1</IMG_Merge> <!-- Valid only if WaveNum is greater than 1 --> 
+</Reconstruct>
