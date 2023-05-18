@@ -73,6 +73,7 @@ ophDepthMap::ophDepthMap()
 	dmap = 0;
 	dstep = 0;
 	dlevel.clear();
+
 	setViewingWindow(false);
 	LOG("*** DEPTH MAP : BUILD DATE: %s %s ***\n\n", __DATE__, __TIME__);
 }
@@ -398,7 +399,7 @@ bool ophDepthMap::readImageDepth(const char* source_folder, const char* img_pref
 		memset(rgb_img, 0, sizeof(char) * N);
 
 		if (w != pnX || h != pnY)
-			imgScaleBilinear(img, rgb_img, w, h, pnX, pnY, ch);
+			imgScaleBilinear(img, rgb_img, w, h, pnX, pnY);
 		else
 			memcpy(rgb_img, img, sizeof(char) * N);
 
@@ -505,6 +506,7 @@ Real ophDepthMap::generateHologram()
 	m_vecEncodeSize = context_.pixel_number;
 	if (m_mode & MODE_GPU)
 	{
+		initGPU();
 		prepareInputdataGPU();
 		getDepthValues();
 		//if (is_ViewingWindow)
@@ -513,6 +515,7 @@ Real ophDepthMap::generateHologram()
 	}
 	else
 	{
+		initCPU();
 		prepareInputdataCPU();
 		getDepthValues();
 		//if (is_ViewingWindow)
@@ -587,16 +590,6 @@ void ophDepthMap::encoding(unsigned int ENCODE_FLAG, unsigned int SSB_PASSBAND)
 	LOG("Elapsed Time: %lf(s)\n", ELAPSED_TIME(begin, end));
 }
 
-void ophDepthMap::initialize()
-{
-	dstep = 0;
-	dlevel.clear();
-
-	ophGen::initialize();
-
-	initCPU();
-	initGPU();
-}
 
 void ophDepthMap::getDepthValues()
 {
@@ -646,6 +639,8 @@ void ophDepthMap::initCPU()
 	const uint pnY = context_.pixel_number[_Y];
 	const uint N = pnX * pnY;
 	const uint nChannel = context_.waveNum;
+
+	dlevel.clear();
 
 	for (vector<Real *>::iterator it = m_vecImgSrc.begin(); it != m_vecImgSrc.end(); it++)
 	{
