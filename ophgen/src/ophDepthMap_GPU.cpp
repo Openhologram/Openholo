@@ -55,6 +55,8 @@ void ophDepthMap::initGPU()
 	const int ny = context_.pixel_number[1];
 	const int N = nx * ny;
 
+	dlevel.clear();
+
 	if (!stream_)
 		cudaStreamCreate(&stream_);
 

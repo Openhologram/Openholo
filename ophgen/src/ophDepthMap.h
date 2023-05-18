@@ -181,6 +181,16 @@ public:
 	ivec2 getRGBImgSize() { return m_vecRGBImg; };
 	ivec2 getDepthImgSize() { return m_vecDepthImg; };
 
+	void setRGBImgSize(ivec2 size) {
+		m_vecRGBImg[_X] = size[_X];
+		m_vecRGBImg[_Y] = size[_Y];
+	};
+
+	void setDepthImgSize(ivec2 size) {
+		m_vecDepthImg[_X] = size[_X];
+		m_vecDepthImg[_Y] = size[_Y];
+	};
+
 	void setConfig(OphDepthMapConfig config) {
 		dm_config_ = config;
 	};
@@ -190,27 +200,58 @@ public:
 
 	void normalize();
 
-public:
 	inline void setFieldLens(Real fieldlens) { dm_config_.fieldLength = fieldlens; }
 	inline void setNearDepth(Real neardepth) { dm_config_.near_depthmap = neardepth; }
 	inline void setFarDepth(Real fardetph) { dm_config_.far_depthmap = fardetph; }
-	inline void setNumOfDepth(uint numofdepth) { dm_config_.num_of_depth = numofdepth; }
+	inline void setNumOfDepth(uint numofdepth) { 
+		dm_config_.num_of_depth = numofdepth;
+		dm_config_.render_depth.clear();
+		dm_config_.change_depth_quantization = true;
+		for(int i = 1; i <= numofdepth; i++)
+			dm_config_.render_depth.push_back(i);
+	}
+	inline void setRGBImageBuffer(int idx, unsigned char* buffer, unsigned long long size)
+	{
+		if (idx < 0 || idx > 2) return;
+		if (m_vecRGB.size() > idx)
+		{
+			if (m_vecRGB[idx] != nullptr)
+			{
+				delete[] m_vecRGB[idx];
+				m_vecRGB[idx] = new uchar[size];
+				memcpy(m_vecRGB[idx], buffer, size);
+			}
+		}
+		else
+		{
+			uchar* pImg = new uchar[size];
+			memcpy(pImg, buffer, size);
+			m_vecRGB.push_back(pImg);
+		}
+	}
+
+	inline void setDepthImageBuffer(unsigned char* buffer, unsigned long long size)
+	{
+		if (depth_img != nullptr)
+		{
+			delete[] depth_img;
+			depth_img = nullptr;
+		}
+		depth_img = new unsigned char[size];
+		memcpy(depth_img, buffer, size);
+	}
 
 	inline Real getFieldLens(void) { return dm_config_.fieldLength; }
 	inline Real getNearDepth(void) { return dm_config_.near_depthmap; }
 	inline Real getFarDepth(void) { return dm_config_.far_depthmap; }
 	inline uint getNumOfDepth(void) { return dm_config_.num_of_depth; }
 	inline void getRenderDepth(std::vector<int>& renderdepth) { renderdepth = dm_config_.render_depth; }
+	inline unsigned char* getRGBImageBuffer(int idx) { return m_vecRGB[idx]; }
+	inline unsigned char* getDepthImageBuffer() { return depth_img; }
 
 	inline const OphDepthMapConfig& getConfig() { return dm_config_; }
 	
 private:
-	/**
-	* @brief Initialize variables for CPU and GPU implementation.
-	* @see initCPU, initGPU
-	*/
-	void initialize();
-
 	/**
 	* @brief Initialize variables for the CPU implementation.
 	* @details Memory allocation for the CPU variables.
