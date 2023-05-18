@@ -363,6 +363,8 @@ void ophGen::RS_Diffraction(Point src, Complex<Real> *dst, Real lambda, Real dis
 	const Real ppY = pConfig->pixel_pitch[_Y];
 	const Real ssX = pConfig->ss[_X] = pnX * ppX;
 	const Real ssY = pConfig->ss[_Y] = pnY * ppY;
+	const int offsetX = pConfig->offset[_X];
+	const int offsetY = pConfig->offset[_Y];
 
 	const Real tx = lambda / (2 * ppX);
 	const Real ty = lambda / (2 * ppY);
@@ -404,7 +406,7 @@ void ophGen::RS_Diffraction(Point src, Complex<Real> *dst, Real lambda, Real dis
 	for (int yytr = Ybound[_Y]; yytr < Ybound[_X]; ++yytr)
 	{
 		int offset = yytr * pnX;
-		Real yyy = y + ((pnY - yytr) * ppY);
+		Real yyy = y + ((pnY - yytr + offsetY) * ppY);
 
 		Real range_x[2] = {
 			src.pos[_X] + abs(tx / sqrtX * sqrt((yyy - src.pos[_Y]) * (yyy - src.pos[_Y]) + zz)),
@@ -413,7 +415,7 @@ void ophGen::RS_Diffraction(Point src, Complex<Real> *dst, Real lambda, Real dis
 
 		for (int xxtr = Xbound[_Y]; xxtr < Xbound[_X]; ++xxtr)
 		{
-			Real xxx = x + ((xxtr - 1) * ppX);
+			Real xxx = x + ((xxtr - 1 + offsetX) * ppX);
 			Real r = sqrt((xxx - src.pos[_X]) * (xxx - src.pos[_X]) + (yyy - src.pos[_Y]) * (yyy - src.pos[_Y]) + zz);
 			Real range_y[2] = {
 				src.pos[_Y] + abs(ty / sqrtY * sqrt((xxx - src.pos[_X]) * (xxx - src.pos[_X]) + zz)),
@@ -448,6 +450,8 @@ void ophGen::Fresnel_Diffraction(Point src, Complex<Real> *dst, Real lambda, Rea
 	const Real ppY = pConfig->pixel_pitch[_Y];
 	const Real ssX = pConfig->ss[_X] = pnX * ppX;
 	const Real ssY = pConfig->ss[_Y] = pnY * ppY;
+	const int offsetX = pConfig->offset[_X];
+	const int offsetY = pConfig->offset[_Y];
 	const Real k = (2 * M_PI) / lambda;
 
 	// for performance
@@ -484,11 +488,11 @@ void ophGen::Fresnel_Diffraction(Point src, Complex<Real> *dst, Real lambda, Rea
 
 	for (int yytr = Ybound[_Y]; yytr < Ybound[_X]; ++yytr)
 	{
-		Real yyy = (y + (pnY - yytr) * ppY) - src.pos[_Y];
+		Real yyy = (y + (pnY - yytr + offsetY) * ppY) - src.pos[_Y];
 		int offset = yytr * pnX;
 		for (int xxtr = Xbound[_Y]; xxtr < Xbound[_X]; ++xxtr)
 		{
-			Real xxx = (x + (xxtr - 1) * ppX) - src.pos[_X];
+			Real xxx = (x + (xxtr - 1 + offsetX) * ppX) - src.pos[_X];
 			Real p = k * (xxx * xxx + yyy * yyy + 2 * zz) / (2 * z);
 
 			Real res_real = amplitude * sin(p) / operand;

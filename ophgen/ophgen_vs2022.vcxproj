@@ -75,16 +75,18 @@
     <PostBuildEvent>
       <Command>xcopy /y "$(TargetDir)$(ProjectName)_d.lib" "$(SolutionDir)Reference\lib\"
 xcopy /y "$(TargetDir)$(ProjectName)_d.dll" "$(SolutionDir)Reference\dll\"
+xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)Reference\include\"
 
-xcopy /y "$(TargetDir)$(ProjectName)_d.dll" "$(SolutionDir)..\OpenholoRefAppGUI\x64\Release\"
+xcopy /y "$(TargetDir)$(ProjectName)_d.dll" "$(SolutionDir)..\OpenholoRefAppGUI\x64\Debug\"
 xcopy /y "$(TargetDir)$(ProjectName)_d.lib" "$(SolutionDir)..\OpenholoRefAppGUI\Reference\lib\"
 xcopy /y "$(TargetDir)$(ProjectName)_d.dll" "$(SolutionDir)..\OpenholoRefAppGUI\Reference\dll\"
 xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)..\OpenholoRefAppGUI\Reference\include\"
 
-xcopy /y "$(TargetDir)$(ProjectName)_d.dll" "$(SolutionDir)..\OpenholoRefApp\bin\x64\Release\"
+xcopy /y "$(TargetDir)$(ProjectName)_d.dll" "$(SolutionDir)..\OpenholoRefApp\bin\x64\Debug\"
 xcopy /y "$(TargetDir)$(ProjectName)_d.lib" "$(SolutionDir)..\OpenholoRefApp\Reference\lib\"
 xcopy /y "$(TargetDir)$(ProjectName)_d.dll" "$(SolutionDir)..\OpenholoRefApp\Reference\dll\"
-xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)..\OpenholoRefApp\Reference\include\"</Command>
+xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)..\OpenholoRefApp\Reference\include\"
+</Command>
     </PostBuildEvent>
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
@@ -122,6 +124,7 @@ xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)..\OpenholoRefApp\Reference\inclu
     <PostBuildEvent>
       <Command>xcopy /y "$(TargetDir)$(ProjectName).lib" "$(SolutionDir)Reference\lib\"
 xcopy /y "$(TargetDir)$(ProjectName).dll" "$(SolutionDir)Reference\dll\"
+xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)Reference\include\"
 
 xcopy /y "$(TargetDir)$(ProjectName).dll" "$(SolutionDir)..\OpenholoRefAppGUI\x64\Release\"
 xcopy /y "$(TargetDir)$(ProjectName).lib" "$(SolutionDir)..\OpenholoRefAppGUI\Reference\lib\"

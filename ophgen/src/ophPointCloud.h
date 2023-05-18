@@ -573,6 +573,15 @@ public:
 	inline void setFilterWidth(Real wx, Real wy) { pc_config_.filter_width.v[0] = wx; pc_config_.filter_width.v[1] = wy; }
 	inline void setFocalLength(Real lens_in, Real lens_out, Real lens_eye_piece) { pc_config_.focal_length_lens_in = lens_in; pc_config_.focal_length_lens_out = lens_out; pc_config_.focal_length_lens_eye_piece = lens_eye_piece; }
 	inline void setTiltAngle(Real ax, Real ay) { pc_config_.tilt_angle.v[0] = ax; pc_config_.tilt_angle.v[1] = ay; }
+	
+	inline void setPointCloudModel(Vertex* vertex)
+	{
+		if (pc_data_.n_points < 1) return;
+		pc_data_.vertices = new Vertex[pc_data_.n_points];
+		memcpy(pc_data_.vertices, vertex, sizeof(Vertex) * pc_data_.n_points);
+	}
+
+	inline void setNumberOfPoints(ulonglong n_points) { pc_data_.n_points = n_points; }
 
 	inline void getScale(vec3& scale) { scale = pc_config_.scale; }
 	inline Real getDistance(void) { return pc_config_.distance; }
@@ -595,7 +604,7 @@ public:
 	* @brief Directly Get Basic Data
 	* @return int 3D Point Cloud count
 	*/
-	inline int getNumberOfPoints() { return pc_data_.n_points; }
+	inline ulonglong getNumberOfPoints() { return pc_data_.n_points; }
 
 public:
 	/**
