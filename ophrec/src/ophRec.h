@@ -48,11 +48,21 @@
 
 #include "Openholo.h"
 
+#ifdef _WIN64
 #ifdef RECON_EXPORT
 #define RECON_DLL __declspec(dllexport)
 #else
 #define RECON_DLL __declspec(dllimport)
 #endif
+#else
+#ifdef RECON_EXPORT
+#define RECON_DLL __attribute__((visibility("default")))
+#else
+#define RECON_DLL
+#endif
+#endif
+
+
 
 
 struct RECON_DLL OphRecConfig

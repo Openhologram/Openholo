@@ -48,6 +48,7 @@
 #include "function.h"
 #include "tinyxml2.h"
 #include "ImgControl.h"
+#include <algorithm>
 //#include "fftw3.h"
 #include <omp.h>
 
@@ -70,10 +71,7 @@ void rotateCCW180(double* src, double* dst, int pnx, int pny, double mulival = 1
 
 bool ophRec::readConfig(const char* fname)
 {
-	LOG("Reading....%s...", fname);
-
-	auto start = CUR_TIME;
-
+	bool bRet = true;
 	using namespace tinyxml2;
 	/*XML parsing*/
 	tinyxml2::XMLDocument xml_doc;
@@ -81,53 +79,76 @@ bool ophRec::readConfig(const char* fname)
 
 	if (!checkExtension(fname, ".xml"))
 	{
-		LOG("file's extension is not 'xml'\n");
-		return false;
-	}
-	if (xml_doc.LoadFile(fname) != XML_SUCCESS)
-	{
-		LOG("Failed to load file \"%s\"\n", fname);
+		LOG("<FAILED> Wrong file ext.\n");
 		return false;
 	}
 
-	xml_node = xml_doc.FirstChild();
-	// about point
 	auto ret = xml_doc.LoadFile(fname);
 	if (ret != XML_SUCCESS)
 	{
-		LOG("Failed to load file \"%s\"\n", fname);
+		LOG("<FAILED> Loading file (%d)\n", ret);
 		return false;
 	}
+
 	xml_node = xml_doc.FirstChild();
 
 	int nWave = 1;
-	auto next = xml_node->FirstChildElement("SLM_WaveNum"); // OffsetInDepth
+	char szNodeName[32] = { 0, };
+	sprintf(szNodeName, "SLM_WaveNum");
+	auto next = xml_node->FirstChildElement(szNodeName); // OffsetInDepth
 	if (!next || XML_SUCCESS != next->QueryIntText(&nWave))
-		return false;
+	{
+		LOG("<FAILED> Not found node : \'%s\' (Integer) \n", szNodeName);
+		bRet = false;
+	}
 
 	context_.waveNum = nWave;
 	if (context_.wave_length) delete[] context_.wave_length;
 	context_.wave_length = new Real[nWave];
 
-	char szNodeName[32] = { 0, };
 	for (int i = 1; i <= nWave; i++) {
-		wsprintfA(szNodeName, "SLM_WaveLength_%d", i);
+		sprintf(szNodeName, "SLM_WaveLength_%d", i);
 		next = xml_node->FirstChildElement(szNodeName);
 		if (!next || XML_SUCCESS != next->QueryDoubleText(&context_.wave_length[i - 1]))
-			return false;
+		{
+			LOG("<FAILED> Not found node : \'%s\' (Double) \n", szNodeName);
+			bRet = false;
+		}
 	}
-	next = xml_node->FirstChildElement("SLM_PixelNumX");
+
+	sprintf(szNodeName, "SLM_PixelNumX");
+	next = xml_node->FirstChildElement(szNodeName);
 	if (!next || XML_SUCCESS != next->QueryIntText(&context_.pixel_number[_X]))
-		return false;
-	next = xml_node->FirstChildElement("SLM_PixelNumY");
+	{
+		LOG("<FAILED> Not found node : \'%s\' (Integer) \n", szNodeName);
+		bRet = false;
+	}
+
+	sprintf(szNodeName, "SLM_PixelNumY");
+	next = xml_node->FirstChildElement(szNodeName);
 	if (!next || XML_SUCCESS != next->QueryIntText(&context_.pixel_number[_Y]))
-		return false;
+	{
+		LOG("<FAILED> Not found node : \'%s\' (Integer) \n", szNodeName);
+		bRet = false;
+	}
+
+	sprintf(szNodeName, "SLM_PixelPitchX");
 	next = xml_node->FirstChildElement("SLM_PixelPitchX");
 	if (!next || XML_SUCCESS != next->QueryDoubleText(&context_.pixel_pitch[_X]))
-		return false;
+	{
+		LOG("<FAILED> Not found node : \'%s\' (Double) \n", szNodeName);
+		bRet = false;
+	}
+
+	sprintf(szNodeName, "SLM_PixelPitchY");
 	next = xml_node->FirstChildElement("SLM_PixelPitchY");
 	if (!next || XML_SUCCESS != next->QueryDoubleText(&context_.pixel_pitch[_Y]))
-		return false;
+	{
+		LOG("<FAILED> Not found node : \'%s\' (Double) \n", szNodeName);
+		bRet = false;
+	}
+
+	// option
 	next = xml_node->FirstChildElement("IMG_Rotation");
 	if (!next || XML_SUCCESS != next->QueryBoolText(&imgCfg.rotate))
 		imgCfg.rotate = false;
@@ -139,69 +160,83 @@ bool ophRec::readConfig(const char* fname)
 		imgCfg.flip = 0;
 	next = xml_node->FirstChildElement("EyeLength");
 	if (!next || XML_SUCCESS != next->QueryDoubleText(&rec_config.EyeLength))
-		return false;
+		bRet = false;
 	next = xml_node->FirstChildElement("EyePupilDiameter");
 	if (!next || XML_SUCCESS != next->QueryDoubleText(&rec_config.EyePupilDiaMeter))
-		return false;
+		bRet = false;
 	next = xml_node->FirstChildElement("EyeBoxSizeScaleFactor");
 	if (!next || XML_SUCCESS != next->QueryDoubleText(&rec_config.EyeBoxSizeScale))
-		return false;
+		bRet = false;
 	next = xml_node->FirstChildElement("EyeBoxSizeX");
 	if (!next || XML_SUCCESS != next->QueryDoubleText(&rec_config.EyeBoxSize[_X]))
-		return false;
+		bRet = false;
 	next = xml_node->FirstChildElement("EyeBoxSizeY");
 	if (!next || XML_SUCCESS != next->QueryDoubleText(&rec_config.EyeBoxSize[_Y]))
-		return false;
+		bRet = false;
 	next = xml_node->FirstChildElement("EyeBoxUnit");
 	if (!next || XML_SUCCESS != next->QueryIntText(&rec_config.EyeBoxUnit))
-		return false;
+		bRet = false;
 	next = xml_node->FirstChildElement("EyeCenterX");
 	if (!next || XML_SUCCESS != next->QueryDoubleText(&rec_config.EyeCenter[_X]))
-		return false;
+		bRet = false;
 	next = xml_node->FirstChildElement("EyeCenterY");
 	if (!next || XML_SUCCESS != next->QueryDoubleText(&rec_config.EyeCenter[_Y]))
-		return false;
+		bRet = false;
 	next = xml_node->FirstChildElement("EyeCenterZ");
 	if (!next || XML_SUCCESS != next->QueryDoubleText(&rec_config.EyeCenter[_Z]))
-		return false;
+		bRet = false;
 	next = xml_node->FirstChildElement("EyeFocusDistance");
 	if (!next || XML_SUCCESS != next->QueryDoubleText(&rec_config.EyeFocusDistance))
-		return false;
+		bRet = false;
 	next = xml_node->FirstChildElement("ResultSizeScale");
 	if (!next || XML_SUCCESS != next->QueryDoubleText(&rec_config.ResultSizeScale))
-		return false;
+		bRet = false;
 	next = xml_node->FirstChildElement("SimulationTo");
 	if (!next || XML_SUCCESS != next->QueryDoubleText(&rec_config.SimulationTo))
-		return false;
+		bRet = false;
 	next = xml_node->FirstChildElement("SimulationFrom");
 	if (!next || XML_SUCCESS != next->QueryDoubleText(&rec_config.SimulationFrom))
-		return false;
+		bRet = false;
 	next = xml_node->FirstChildElement("SimulationStep");
 	if (!next || XML_SUCCESS != next->QueryIntText(&rec_config.SimulationStep))
-		return false;
+		bRet = false;
 	next = xml_node->FirstChildElement("SimulationMode");
 	if (!next || XML_SUCCESS != next->QueryIntText(&rec_config.SimulationMode))
-		return false;
+		bRet = false;
 	next = xml_node->FirstChildElement("RatioAtRetina");
 	if (!next || XML_SUCCESS != next->QueryDoubleText(&rec_config.RatioAtRetina))
-		return false;
+		bRet = false;
 	next = xml_node->FirstChildElement("RatioAtPupil");
 	if (!next || XML_SUCCESS != next->QueryDoubleText(&rec_config.RatioAtPupil))
-		return false;
+		bRet = false;
 	next = xml_node->FirstChildElement("CreatePupilFieldImg");
 	if (!next || XML_SUCCESS != next->QueryBoolText(&rec_config.CreatePupilFieldImg))
-		return false;
+		bRet = false;
 	next = xml_node->FirstChildElement("CenteringRetinalImg");
 	if (!next || XML_SUCCESS != next->QueryBoolText(&rec_config.CenteringRetinaImg))
-		return false;
+		bRet = false;
+
+	context_.ss[_X] = context_.pixel_number[_X] * context_.pixel_pitch[_X];
+	context_.ss[_Y] = context_.pixel_number[_Y] * context_.pixel_pitch[_Y];
 
 	rec_config.EyeBoxSize = rec_config.EyeBoxSizeScale * rec_config.EyePupilDiaMeter * rec_config.EyeBoxSize;
 	Initialize();
-	auto end = CUR_TIME;
-	auto during = ((chrono::duration<Real>)(end - start)).count();
-	LOG("%lf (s)..done\n", during);
 
-	return true;
+	LOG("**************************************************\n");
+	LOG("                Read Config (Common)              \n");
+	LOG("1) SLM Number of Waves : %d\n", context_.waveNum);
+	for (uint i = 0; i < context_.waveNum; i++)
+		LOG(" 1-%d) SLM Wave length : %e\n", i + 1, context_.wave_length[i]);
+	LOG("2) SLM Resolution : %d x %d\n", context_.pixel_number[_X], context_.pixel_number[_Y]);
+	LOG("3) SLM Pixel Pitch : %e x %e\n", context_.pixel_pitch[_X], context_.pixel_pitch[_Y]);
+	LOG("4) Image Rotate : %s\n", imgCfg.rotate ? "Y" : "N");
+	LOG("5) Image Flip : %s\n", (imgCfg.flip == FLIP::NONE) ? "NONE" :
+		(imgCfg.flip == FLIP::VERTICAL) ? "VERTICAL" :
+		(imgCfg.flip == FLIP::HORIZONTAL) ? "HORIZONTAL" : "BOTH");
+	LOG("6) Image Merge : %s\n", imgCfg.merge ? "Y" : "N");
+	LOG("**************************************************\n");
+
+	return bRet;
 }
 
 bool ophRec::readImage(const char* path)
@@ -1059,6 +1094,7 @@ void ophRec::Perform_Simulation()
 		//#pragma omp parallel for private(loopi)	
 		for (loopi = 0; loopi < nChannel; loopi++)
 		{
+			Real lambda = context_.wave_length[loopi];
 			Real* hh_ret_ = new Real[pn_ret_set_[loopi][0] * pn_ret_set_[loopi][1]];
 			memset(hh_ret_, 0.0, sizeof(Real)*pn_ret_set_[loopi][0] * pn_ret_set_[loopi][1]);
 
@@ -1075,9 +1111,10 @@ void ophRec::Perform_Simulation()
 
 			delete[] field_ret_set_[loopi];
 
-			res_set_[loopi] = new Real[pnx_max * pny_max];
-			memset(res_set_[loopi], 0.0, sizeof(Real)*pnx_max*pny_max);
-			ScaleBilnear(hh_ret_, res_set_[loopi], pn_ret_set_[loopi][0], pn_ret_set_[loopi][1], pnx_max, pny_max, lambda*lambda);
+			int size = (int)(pnx_max * pny_max);
+			res_set_[loopi] = new Real[size];
+			memset(res_set_[loopi], 0.0, sizeof(Real) * size);
+			ScaleBilnear(hh_ret_, res_set_[loopi], pn_ret_set_[loopi][0], pn_ret_set_[loopi][1], pnx_max, pny_max, lambda * lambda);
 
 		}
 
@@ -1113,16 +1150,18 @@ void ophRec::Perform_Simulation()
 		Real ret_size_x = pnx_max * resultSizeScale;
 		Real ret_size_y = pny_max * resultSizeScale;
 
+		int size = (int)(ret_size_x * ret_size_y);
+
 		//#pragma omp parallel for private(loopi)			
 		for (loopi = 0; loopi < nChannel; loopi++)
 		{
-			Real* res_set_norm = new Real[ret_size_x * ret_size_y];
-			memset(res_set_norm, 0.0, sizeof(Real)*ret_size_x * ret_size_y);
+			Real* res_set_norm = new Real[size];
+			memset(res_set_norm, 0.0, sizeof(Real) * size);
 
 			ScaleBilnear(res_set_[loopi], res_set_norm, pnx_max, pny_max, ret_size_x, ret_size_y);
 
-			res_set_norm_255_[loopi] = new Real[ret_size_x * ret_size_y];
-			memset(res_set_norm_255_[loopi], 0.0, sizeof(Real)*ret_size_x * ret_size_y);
+			res_set_norm_255_[loopi] = new Real[size];
+			memset(res_set_norm_255_[loopi], 0.0, sizeof(Real) * size);
 
 			rotateCCW180(res_set_norm, res_set_norm_255_[loopi], ret_size_x, ret_size_y, 255.0);
 
@@ -1162,8 +1201,11 @@ void ophRec::Perform_Simulation()
 
 bool ophRec::save(const char * fname, uint8_t bitsperpixel, uchar* src, uint px, uint py)
 {
-	if (fname == nullptr) return false;
+	bool bOK = false;
 
+	if (fname == nullptr) return bOK;
+
+	uchar* source = src;
 	bool bAlloc = false;
 	const uint nChannel = context_.waveNum;
 
@@ -1171,53 +1213,63 @@ bool ophRec::save(const char * fname, uint8_t bitsperpixel, uchar* src, uint px,
 	if (px == 0 && py == 0)
 		p = ivec2(context_.pixel_number[_X], context_.pixel_number[_Y]);
 
-	char path[_MAX_PATH] = { 0, };
-	char drive[_MAX_DRIVE] = { 0, };
-	char dir[_MAX_DIR] = { 0, };
-	char file[_MAX_FNAME] = { 0, };
-	char ext[_MAX_EXT] = { 0, };
-	_splitpath_s(fname, drive, dir, file, ext);
 
-	sprintf_s(path, "%s", fname);
+	std::string file = fname;
+	std::replace(file.begin(), file.end(), '\\', '/');
 
-	if (!strlen(ext)) {
-		sprintf_s(path, "%s.bmp", path);
-		sprintf_s(ext, ".bmp");
-	}
-	if (!strlen(drive)) { // Relative path to Absolute path
-		char curDir[FILENAME_MAX] = { 0, };
-		GetCurrentDirectory(FILENAME_MAX, curDir); // win func
-		sprintf_s(path, "%s\\%s", curDir, fname);
-		for (int i = 0; i < strlen(path); i++) {
-			char ch = path[i];
-			if (ch == '/')
-				path[i] = '\\';
-		}
+	// split path
+	std::vector<std::string> components;
+	std::stringstream ss(file);
+	std::string item;
+	char token = '/';
+
+	while (std::getline(ss, item, token)) {
+		components.push_back(item);
 	}
 
+	std::string dir;
+
+	for (size_t i = 0; i < components.size() - 1; i++)
+	{
+		dir += components[i];
+		dir += "/";
+	}
+
+	std::string filename = components[components.size() - 1];
+
+	// find extension
+	bool hasExt;
+	size_t ext_pos = file.rfind(".");
+	hasExt = (ext_pos == string::npos) ? false : true;
+
+	if (!hasExt)
+		filename.append(".bmp");
+
+	std::string fullpath = dir + filename;
 
 	if (nChannel == 1) {
-		saveAsImg(path, bitsperpixel, src, p[_X], p[_Y]);
+		saveAsImg(fullpath.c_str(), bitsperpixel, src, p[_X], p[_Y]);
 	}
 	else if (nChannel == 3) {
 		if (imgCfg.merge) {
-			uint nSize = (((p[_X] * bitsperpixel / 8) + 3) & ~3) * p[_Y];
+			uint nSize = (((p[_X] * bitsperpixel >> 3) + 3) & ~3) * p[_Y];
 			uchar *source = new uchar[nSize];
 			bAlloc = true;
-			for (int i = 0; i < nChannel; i++) {
+			for (uint i = 0; i < nChannel; i++) {
 				mergeColor(i, p[_X], p[_Y], src, source);
 			}
-			saveAsImg(path, bitsperpixel, source, p[_X], p[_Y]);
+			saveAsImg(fullpath.c_str(), bitsperpixel, source, p[_X], p[_Y]);
 			if (bAlloc) delete[] source;
 		}
 		else {
-			sprintf_s(path, "%s%s%s%s", drive, dir, file, ext);
-			saveAsImg(path, bitsperpixel, src, p[_X], p[_Y]);
+			char path[FILENAME_MAX] = { 0, };
+			sprintf(path, "%s%s", dir.c_str(), filename.c_str());
+			saveAsImg(path, bitsperpixel / nChannel, src, p[_X], p[_Y]);
 		}
 	}
 	else return false;
 
-	return true;
+	return bOK;
 }
 
 void ophRec::SaveImage(const char *path, const char *ext)
@@ -1227,7 +1279,7 @@ void ophRec::SaveImage(const char *path, const char *ext)
 	bool bCreatePupilImg = rec_config.CreatePupilFieldImg;
 	Real simTo = rec_config.SimulationTo;
 	Real simFrom = rec_config.SimulationFrom;
-	Real step;
+	Real step = 0.0;
 
 	int pnX;
 	int pnY;
@@ -1254,7 +1306,8 @@ void ophRec::SaveImage(const char *path, const char *ext)
 
 	for (int i = 0; i < nSimStep; i++)
 	{
-		sprintf(tmpPath, "%s\\FOCUS_%.4f.%s", path, bMultiStep ? simFrom + step * i : (simFrom + simTo) / 2, ext);
+		sprintf(tmpPath, "%s\\FOCUS_%.4f.%s", path, bMultiStep ?
+			simFrom + (int)(step * i) : (simFrom + simTo) / 2, ext);
 
 		if (nChannel == 3)
 		{
@@ -1444,7 +1497,7 @@ void ophRec::Initialize()
 
 	// Memory Location for Result Image
 	if (complex_H != nullptr) {
-		for (uint i = 0; i < m_nOldChannel; i++) {
+		for (int i = 0; i < m_nOldChannel; i++) {
 			if (complex_H[i] != nullptr) {
 				delete[] complex_H[i];
 				complex_H[i] = nullptr;
@@ -1454,7 +1507,7 @@ void ophRec::Initialize()
 		complex_H = nullptr;
 	}
 	complex_H = new Complex<Real>*[nChannel];
-	for (uint i = 0; i < nChannel; i++) {
+	for (int i = 0; i < nChannel; i++) {
 		complex_H[i] = new Complex<Real>[N];
 		memset(complex_H[i], 0, sizeof(Complex<Real>) * N);
 	}
@@ -1523,8 +1576,8 @@ vec3 image_sample(float xx, float yy, int c, size_t w, size_t h, double* in)
 	int y1 = (int)floor(yy);
 	int y2 = (int)ceil(yy);
 
-	if (x1 < 0 || x1 >= w || x2 < 0 || x2 >= w) return vec3(0);
-	if (y1 < 0 || y1 >= h || y2 < 0 || y2 >= h) return vec3(0);
+	if (x1 < 0 || x1 >= (int)w || x2 < 0 || x2 >= (int)w) return vec3(0);
+	if (y1 < 0 || y1 >= (int)h || y2 < 0 || y2 >= (int)h) return vec3(0);
 
 	vec3 ret(0);
 	double v1, v2, v3, v4, tvx, tvy;

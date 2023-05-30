@@ -20,4 +20,5 @@ find_package(FFTW3 REQUIRED)
 
 add_subdirectory(Openholo)
 add_subdirectory(ophgen)
-message("123")
+add_subdirectory(ophrec)
+add_subdirectory(ophsig)

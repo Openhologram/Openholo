@@ -137,7 +137,7 @@ double** ophWaveAberration::calculateZernikePolynomial(double n, double m, vecto
 		}
 	}
 	// End : Calculate Zernike polynomial
-	for (int i=0; i < x_max; i++)
+	for (size_t i=0; i < x_max; i++)
 	{
 		delete[] A[i];
 	}
@@ -238,7 +238,7 @@ void ophWaveAberration::accumulateZernikePolynomial()
 
 
 	// Start : Wavefront Aberration Generation
-	for (int i = 0; i <z_max; i++)
+	for (int i = 0; i < z_max; i++)
 	{
 		if (ZC[i] != 0)
 		{
@@ -247,9 +247,9 @@ void ophWaveAberration::accumulateZernikePolynomial()
 
 			Temp_W = calculateZernikePolynomial(n, m, xn, yn, d);
 
-			for(int ii = 0; ii < length_xn; ii++)
+			for(size_t ii = 0; ii < length_xn; ii++)
 			{
-				for (int jj = 0; jj < length_yn; jj++) 
+				for (size_t jj = 0; jj < length_yn; jj++)
 				{
 					W[ii][jj] = W[ii][jj] + ZC[i] * Temp_W[ii][jj];
 				}
@@ -338,8 +338,8 @@ void ophWaveAberration::accumulateZernikePolynomial()
 
 	complex_W = WD;
 
-	for (int x = 0; x < xr; x++) {
-		for (int y = 0; y < yr; y++) {
+	for (unsigned int x = 0; x < xr; x++) {
+		for (unsigned int y = 0; y < yr; y++) {
 			complex_H[0][x + y * xr] = complex_W[x][y];
 		}
 	}

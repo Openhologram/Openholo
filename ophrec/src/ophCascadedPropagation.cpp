@@ -47,6 +47,7 @@
 #include "sys.h"
 #include "tinyxml2.h"
 #include <string>
+#include <cfloat>
 
 
 
