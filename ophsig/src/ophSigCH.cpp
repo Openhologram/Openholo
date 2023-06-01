@@ -52,7 +52,7 @@ bool ophSigCH::saveNumRec(const char *fname) {
 				intensityData[i*_cfgSig.cols + j] = (uchar)(pow(intensityVal / maxIntensity,gamma)*255.0);
 			}
 		}
-		sprintf_s(str, "_%.2u", k);
+		sprintf(str, "_%.2u", k);
 		fnamestr.insert(checktype, str);
 		saveAsImg(fnamestr.c_str(), 8, intensityData, _cfgSig.cols, _cfgSig.rows);
 	}
@@ -219,8 +219,8 @@ void ophSigCH::c2ri(matrix<Complex<Real>>& complexinput, matrix<Real>& realimago
 	{
 		for (int j = 0; j < complexinput.size[_Y]; j++)
 		{
-			realimagoutput(i, j) = complexinput(i, j)._Val[_RE];
-			realimagoutput(i + complexinput.size[_X], j) = complexinput(i, j)._Val[_IM];
+			realimagoutput(i, j) = complexinput(i, j)[_RE];
+			realimagoutput(i + complexinput.size[_X], j) = complexinput(i, j)[_IM];
 		}
 	}
 	
@@ -232,8 +232,8 @@ void ophSigCH::ri2c(matrix<Real>& realimaginput, matrix<Complex<Real>>& complexo
 	{
 		for (int j = 0; j < complexoutput.size[_Y]; j++)
 		{
-			complexoutput(i, j)._Val[_RE] = realimaginput(i, j);
-			complexoutput(i, j)._Val[_IM] = realimaginput(i + complexoutput.size[_X], j);
+			complexoutput(i, j)[_RE] = realimaginput(i, j);
+			complexoutput(i, j)[_IM] = realimaginput(i + complexoutput.size[_X], j);
 		}
 	}
 }
@@ -241,7 +241,7 @@ void ophSigCH::ri2c(matrix<Real>& realimaginput, matrix<Complex<Real>>& complexo
 void ophSigCH::volume2plane(matrix<Real>& realimagvolumeinput, vector<Real> z, matrix<Real>& realimagplaneoutput)
 {
 	int nz = z.size();
-	int nr = realimagvolumeinput.size(_X) / 2;	// real imag
+	int nr = realimagvolumeinput.size(_X) >> 1;	// real imag
 	int nc = realimagvolumeinput.size(_Y) / nz;
 
 	matrix<Complex<Real>> complexTemp(nr,nc);
@@ -250,15 +250,17 @@ void ophSigCH::volume2plane(matrix<Real>& realimagvolumeinput, vector<Real> z, m
 
 	for (int k = 0; k < nz; k++)
 	{
+		int temp = k * nc;
 		for (int i = 0; i < nr; i++)
 		{
 			for (int j = 0; j < nc; j++)
 			{
-				complexTemp(i, j)._Val[_RE] = realimagvolumeinput(i, j + k*nc);
-				complexTemp(i, j)._Val[_IM] = realimagvolumeinput(i + nr, j + k*nc);
+				complexTemp(i, j)[_RE] = realimagvolumeinput(i, j + temp);
+				complexTemp(i, j)[_IM] = realimagvolumeinput(i + nr, j + temp);
 			}
 		}
-		complexAccum = complexAccum + propagationHoloAS(complexTemp, static_cast<float>(z.at(k)));
+		OphComplexField result = propagationHoloAS(complexTemp, static_cast<float>(z.at(k)));
+		complexAccum = complexAccum + result;
 	}
 	c2ri(complexAccum, realimagplaneoutput);
 }
@@ -275,8 +277,8 @@ void ophSigCH::plane2volume(matrix<Real>& realimagplaneinput, vector<Real> z, ma
 	{
 		for (int j = 0; j < nc; j++)
 		{
-			complexplaneinput(i, j)._Val[_RE] = realimagplaneinput(i, j);
-			complexplaneinput(i, j)._Val[_IM] = realimagplaneinput(i + nr, j);
+			complexplaneinput(i, j)[_RE] = realimagplaneinput(i, j);
+			complexplaneinput(i, j)[_IM] = realimagplaneinput(i + nr, j);
 		}
 	}
 
@@ -289,8 +291,8 @@ void ophSigCH::plane2volume(matrix<Real>& realimagplaneinput, vector<Real> z, ma
 		{
 			for (int j = 0; j < nc; j++)
 			{
-				realimagplaneoutput(i, j + k*nc) = temp(i, j)._Val[_RE];
-				realimagplaneoutput(i + nr, j + k*nc) = temp(i, j)._Val[_IM];
+				realimagplaneoutput(i, j + k*nc) = temp(i, j)[_RE];
+				realimagplaneoutput(i + nr, j + k*nc) = temp(i, j)[_IM];
 			}
 		}
 	}
@@ -616,6 +618,7 @@ bool ophSigCH::loadCHtemp(const char * real, const char * imag, uint8_t bitpixel
 
 	std::string realtype = realname.substr(checktype + 1, realname.size());
 	std::string imgtype = imagname.substr(checktype + 1, realname.size());
+	size_t nRead;
 
 	if (realtype != imgtype) {
 		LOG("failed : The data type between real and imaginary is different!\n");
@@ -626,7 +629,8 @@ bool ophSigCH::loadCHtemp(const char * real, const char * imag, uint8_t bitpixel
 		FILE *freal, *fimag;
 		fileheader hf;
 		bitmapinfoheader hInfo;
-		fopen_s(&freal, realname.c_str(), "rb"); fopen_s(&fimag, imagname.c_str(), "rb");
+		freal = fopen(realname.c_str(), "rb");
+		fimag = fopen(imagname.c_str(), "rb");
 		if (!freal)
 		{
 			LOG("real bmp file open fail!\n");
@@ -637,10 +641,10 @@ bool ophSigCH::loadCHtemp(const char * real, const char * imag, uint8_t bitpixel
 			LOG("imaginary bmp file open fail!\n");
 			return false;
 		}
-		fread(&hf, sizeof(fileheader), 1, freal);
-		fread(&hInfo, sizeof(bitmapinfoheader), 1, freal);
-		fread(&hf, sizeof(fileheader), 1, fimag);
-		fread(&hInfo, sizeof(bitmapinfoheader), 1, fimag);
+		nRead = fread(&hf, sizeof(fileheader), 1, freal);
+		nRead = fread(&hInfo, sizeof(bitmapinfoheader), 1, freal);
+		nRead = fread(&hf, sizeof(fileheader), 1, fimag);
+		nRead = fread(&hInfo, sizeof(bitmapinfoheader), 1, fimag);
 
 		if (hf.signature[0] != 'B' || hf.signature[1] != 'M') { LOG("Not BMP File!\n"); }
 		if ((hInfo.height == 0) || (hInfo.width == 0))
@@ -654,7 +658,7 @@ bool ophSigCH::loadCHtemp(const char * real, const char * imag, uint8_t bitpixel
 				return false;
 			}
 		}
-		if ((_cfgSig.rows != hInfo.height) || (_cfgSig.cols != hInfo.width)) {
+		if ((_cfgSig.rows != (int)hInfo.height) || (_cfgSig.cols != (int)hInfo.width)) {
 			LOG("image size is different!\n");
 			_cfgSig.rows = hInfo.height;
 			_cfgSig.cols = hInfo.width;
@@ -665,8 +669,8 @@ bool ophSigCH::loadCHtemp(const char * real, const char * imag, uint8_t bitpixel
 		{
 			rgbquad palette[256];
 			ComplexH = new OphComplexField;
-			fread(palette, sizeof(rgbquad), 256, freal);
-			fread(palette, sizeof(rgbquad), 256, fimag);
+			nRead = fread(palette, sizeof(rgbquad), 256, freal);
+			nRead = fread(palette, sizeof(rgbquad), 256, fimag);
 
 			realMat[0].resize(hInfo.height, hInfo.width);
 			imagMat[0].resize(hInfo.height, hInfo.width);
@@ -687,12 +691,11 @@ bool ophSigCH::loadCHtemp(const char * real, const char * imag, uint8_t bitpixel
 			imagMat[2].resize(hInfo.height, hInfo.width);
 			ComplexH[2].resize(hInfo.height, hInfo.width);
 		}
-
-		uchar* realdata = (uchar*)malloc(sizeof(uchar)*hInfo.width*hInfo.height*(hInfo.bitsperpixel / 8));
-		uchar* imagdata = (uchar*)malloc(sizeof(uchar)*hInfo.width*hInfo.height*(hInfo.bitsperpixel / 8));
-
-		fread(realdata, sizeof(uchar), hInfo.width*hInfo.height*(hInfo.bitsperpixel / 8), freal);
-		fread(imagdata, sizeof(uchar), hInfo.width*hInfo.height*(hInfo.bitsperpixel / 8), fimag);
+		size_t size = hInfo.width * hInfo.height * (hInfo.bitsperpixel >> 3);
+		uchar* realdata = (uchar*)malloc(sizeof(uchar) * size);
+		uchar* imagdata = (uchar*)malloc(sizeof(uchar) * size);
+		nRead = fread(realdata, sizeof(uchar), size, freal);
+		nRead = fread(imagdata, sizeof(uchar), size, fimag);
 
 		fclose(freal);
 		fclose(fimag);
@@ -767,8 +770,8 @@ bool ophSigCH::loadCHtemp(const char * real, const char * imag, uint8_t bitpixel
 
 			for (int z = 0; z < (bitpixel / 8); z++)
 			{
-				ifstream freal(strtok_s((char*)realname.c_str(), ".", &context) + RGB_name[z] + "bin", ifstream::binary);
-				ifstream fimag(strtok_s((char*)imagname.c_str(), ".", &context) + RGB_name[z] + "bin", ifstream::binary);
+				ifstream freal(strtok((char*)realname.c_str(), ".") + RGB_name[z] + "bin", ifstream::binary);
+				ifstream fimag(strtok((char*)imagname.c_str(), ".") + RGB_name[z] + "bin", ifstream::binary);
 
 				freal.read(reinterpret_cast<char*>(realdata), sizeof(double) * total);
 				fimag.read(reinterpret_cast<char*>(imagdata), sizeof(double) * total);
@@ -803,8 +806,8 @@ bool ophSigCH::loadCHtemp(const char * real, const char * imag, uint8_t bitpixel
 		{
 			for (int j = 0; j < _cfgSig.cols; j++)
 			{
-				ComplexH[z](i, j)._Val[_RE] = realMat[z](i, j)/255.0*2.0-1.0;
-				ComplexH[z](i, j)._Val[_IM] = imagMat[z](i, j)/255.0*2.0-1.0;
+				ComplexH[z](i, j)[_RE] = realMat[z](i, j)/255.0*2.0-1.0;
+				ComplexH[z](i, j)[_IM] = imagMat[z](i, j)/255.0*2.0-1.0;
 
 			}
 		}
@@ -833,8 +836,8 @@ matrix<Complex<Real>> ophSigCH::propagationHoloAS(matrix<Complex<Real>> complexH
 	{
 		for (int j = 0; j < nc; j++)
 		{
-			src2(i+iStart, j+jStart)._Val[_RE] = complexH(i, j)._Val[_RE];
-			src2(i+iStart, j+jStart)._Val[_IM] = complexH(i, j)._Val[_IM];
+			src2(i+iStart, j+jStart)[_RE] = complexH(i, j)[_RE];
+			src2(i+iStart, j+jStart)[_IM] = complexH(i, j)[_IM];
 
 		}
 	}
@@ -849,8 +852,8 @@ matrix<Complex<Real>> ophSigCH::propagationHoloAS(matrix<Complex<Real>> complexH
 		for (int j = 0; j < nc2; j++)
 		{
 			fz = sqrt(pow(1.0 / _cfgSig.wavelength[0], 2) - pow((i - nr2 / 2.0 + 1.0)*dfr, 2) - pow((j - nc2 / 2.0 + 1.0)*dfc, 2));
-			propKernel(i, j)._Val[_RE] = cos(2 * M_PI*depth*fz);
-			propKernel(i, j)._Val[_IM] = sin(2 * M_PI*depth*fz);
+			propKernel(i, j)[_RE] = cos(2 * M_PI*depth*fz);
+			propKernel(i, j)[_IM] = sin(2 * M_PI*depth*fz);
 		}
 	}
 
@@ -871,8 +874,8 @@ matrix<Complex<Real>> ophSigCH::propagationHoloAS(matrix<Complex<Real>> complexH
 	{
 		for (int j = 0; j < nc; j++)
 		{
-			dst(i,j)._Val[_RE] = src2(i + iStart , j + jStart)._Val[_RE];
-			dst(i,j)._Val[_IM] = src2(i + iStart , j + jStart)._Val[_IM];
+			dst(i,j)[_RE] = src2(i + iStart , j + jStart)[_RE];
+			dst(i,j)[_IM] = src2(i + iStart , j + jStart)[_IM];
 		}
 	}
 	return dst;

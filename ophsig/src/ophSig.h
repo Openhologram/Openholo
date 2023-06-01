@@ -51,12 +51,18 @@
 #include "Openholo.h"
 #include "sys.h"
 
-
-
+#ifdef _WIN64
 #ifdef SIG_EXPORT
 #define SIG_DLL __declspec(dllexport)
 #else
 #define SIG_DLL __declspec(dllimport)
+#endif
+#else
+#ifdef SIG_EXPORT
+#define SIG_DLL __attribute__((visibility("default")))
+#else
+#define SIG_DLL
+#endif
 #endif
 
 struct SIG_DLL ophSigConfig {
@@ -656,7 +662,7 @@ public:
 		{
 			for (int j = 0; j < src.size[_Y]; j++)
 			{
-				dst.mat[i][j] = sqrt(src.mat[i][j]._Val[_RE] * src.mat[i][j]._Val[_RE] + src.mat[i][j]._Val[_IM] * src.mat[i][j]._Val[_IM]);
+				dst.mat[i][j] = sqrt(src.mat[i][j][_RE] * src.mat[i][j][_RE] + src.mat[i][j][_IM] * src.mat[i][j][_IM]);
 			}
 		}
 	}
@@ -729,8 +735,8 @@ public:
 		{
 			for (int j = 0; j < src.size[_Y]; j++)
 			{
-				dst.mat[i][j]._Val[_RE] = exp(src.mat[i][j]._Val[_RE]) * cos(src.mat[i][j]._Val[_IM]);
-				dst.mat[i][j]._Val[_IM] = exp(src.mat[i][j]._Val[_RE]) * sin(src.mat[i][j]._Val[_IM]);
+				dst.mat[i][j][_RE] = exp(src.mat[i][j][_RE]) * cos(src.mat[i][j][_IM]);
+				dst.mat[i][j][_IM] = exp(src.mat[i][j][_RE]) * sin(src.mat[i][j][_IM]);
 			}
 		}
 	}
@@ -790,14 +796,15 @@ public:
 	* @param src     Input data
 	* @return        Output data
 	*/
-	Complex<Real> maxOfMat(matrix<Complex<Real>>& src) {
+	Complex<Real> maxOfMat(matrix<Complex<Real>>& src)
+	{
 		Real max = MIN_REAL;
 		for (int i = 0; i < src.size[_X]; i++)
 		{
 			for (int j = 0; j < src.size[_Y]; j++)
 			{
-				if (src(i, j)._Val[_RE] > max) max = src(i, j)._Val[_RE];
-				//if (src(i, j)._Val[_IM] > max) max = src(i, j)._Val[_IM];
+				if (src(i, j)[_RE] > max) max = src(i, j)[_RE];
+				//if (src(i, j)[_IM] > max) max = src(i, j)[_IM];
 			}
 		}
 		return max;
@@ -828,7 +835,7 @@ public:
 		{
 			for (int j = 0; j < src.size[_Y]; j++)
 			{
-				if (src(i, j)._Val[_RE] < min) min = src(i, j)._Val[_RE];
+				if (src(i, j)[_RE] < min) min = src(i, j)[_RE];
 			}
 		}
 		return min;
@@ -839,7 +846,7 @@ public:
 	* @param src     Input data
 	* @param dst     Output data
 	*/
-	void ophSig::fftShift(matrix<Complex<Real>> &src, matrix<Complex<Real>> &dst)
+	void fftShift(matrix<Complex<Real>> &src, matrix<Complex<Real>> &dst)
 	{
 		if (src.size != dst.size) {
 			dst.resize(src.size[_X], src.size[_Y]);
@@ -852,8 +859,8 @@ public:
 			for (int j = 0; j < src.size[_Y]; j++)
 			{
 				int jj = (j + yshift) % src.size[_Y];
-				dst.mat[ii][jj]._Val[_RE] = src.mat[i][j].real();
-				dst.mat[ii][jj]._Val[_IM] = src.mat[i][j].imag();
+				dst.mat[ii][jj][_RE] = src.mat[i][j].real();
+				dst.mat[ii][jj][_IM] = src.mat[i][j].imag();
 			}
 		}
 	}

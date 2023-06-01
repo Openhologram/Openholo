@@ -23,7 +23,7 @@ bool ophSigPU::loadPhaseOriginal(const char * fname, int bitpixel)
 		FILE *fphase;
 		fileheader hf;
 		bitmapinfoheader hInfo;
-		fopen_s(&fphase, fnamestr.c_str(), "rb"); 
+		fphase = fopen(fnamestr.c_str(), "rb"); 
 		if (!fphase)
 		{
 			LOG("real bmp file open fail!\n");

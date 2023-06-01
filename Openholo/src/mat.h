@@ -309,13 +309,13 @@ namespace oph
 			return mat[x][y];
 		}
 
-		inline void operator =(matrix<T>& p) {
+		inline void operator =(const matrix<T>& p) {
 			if (size != p.size)
 				return;
 
 			for (int x = 0; x < size[_X]; x++) {
 				for (int y = 0; y < size[_Y]; y++) {
-					mat[x][y] = p[x][y];
+					mat[x][y] = p.mat[x][y];
 				}
 			}
 		}

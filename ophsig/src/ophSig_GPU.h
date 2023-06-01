@@ -58,21 +58,21 @@ cudaStream_t streamLF;
 
 extern "C"
 {
-	void cudaCvtFieldToCuFFT(Complex<Real> *src_data, cufftDoubleComplex *dst_data, int nx, int ny);
-	void cudaCvtCuFFTToField(cufftDoubleComplex *src_data, Complex<Real> *dst_data, int nx, int ny);
+	//void cudaCvtFieldToCuFFT(cuDoubleComplex *src_data, cufftDoubleComplex *dst_data, int nx, int ny);
+	//void cudaCvtCuFFTToField(cufftDoubleComplex *src_data, cuDoubleComplex *dst_data, int nx, int ny);
 	void cudaCuFFT(cufftHandle* plan, cufftDoubleComplex *src_data, cufftDoubleComplex *dst_data, int nx, int ny, int direction);
 	
 	void cudaCuIFFT(cufftHandle* plan, cufftDoubleComplex *src_data, cufftDoubleComplex *dst_data, int nx, int ny, int direction);
 	
 	
-	void cudaCvtOFF( Complex<Real> *src_data, Real *dst_data, ophSigConfig *device_config,  int nx, int ny, Real wl,Complex<Real> *F, Real *angle);
-	void cudaCvtHPO(CUstream_st* stream, cufftDoubleComplex *src_data, cufftDoubleComplex *dst_data, ophSigConfig *device_config, Complex<Real> *F,int nx, int ny, Real Rephase, Real Imphase);
-	void cudaCvtCAC(cufftDoubleComplex *src_data, cufftDoubleComplex *dst_data,  Complex<Real> *FFZP, ophSigConfig *device_config, int nx, int ny,Real sigmaf, Real radius);
+	void cudaCvtOFF( cuDoubleComplex *src_data, Real *dst_data, ophSigConfig *device_config,  int nx, int ny, Real wl,cuDoubleComplex *F, Real *angle);
+	void cudaCvtHPO(CUstream_st* stream, cufftDoubleComplex *src_data, cufftDoubleComplex *dst_data, ophSigConfig *device_config, cuDoubleComplex *F,int nx, int ny, Real Rephase, Real Imphase);
+	void cudaCvtCAC(cufftDoubleComplex *src_data, cufftDoubleComplex *dst_data,  cuDoubleComplex *FFZP, ophSigConfig *device_config, int nx, int ny,Real sigmaf, Real radius);
 
-	void cudaPropagation(cufftDoubleComplex *src_data, cufftDoubleComplex *dst_data, Complex<Real> *FH, ophSigConfig *device_config, int nx, int ny, Real sigmaf);
-	double cudaGetParamSF(cufftHandle *fftplan, cufftDoubleComplex *src_data,  cufftDoubleComplex *temp_data, cufftDoubleComplex *dst_data, Real *f, Complex<Real> *FH, ophSigConfig *device_config, int nx, int ny, float zMax, float zMin, int sampN, float th, Real wl);
-	void cudaGetParamAT1(Complex<Real> *src_data, Complex<Real> *Flr, Complex<Real> *Fli, Complex<Real> *G, ophSigConfig *device_config, int nx, int ny, Real_t NA_g, Real wl);
-	void cudaGetParamAT2(Complex<Real> *Flr, Complex<Real> *Fli, Complex<Real> *G, Complex<Real> *temp_data, int nx, int ny);
+	void cudaPropagation(cufftDoubleComplex *src_data, cufftDoubleComplex *dst_data, cuDoubleComplex *FH, ophSigConfig *device_config, int nx, int ny, Real sigmaf);
+	double cudaGetParamSF(cufftHandle *fftplan, cufftDoubleComplex *src_data,  cufftDoubleComplex *temp_data, cufftDoubleComplex *dst_data, Real *f, cuDoubleComplex *FH, ophSigConfig *device_config, int nx, int ny, float zMax, float zMin, int sampN, float th, Real wl);
+	void cudaGetParamAT1(cuDoubleComplex *src_data, cuDoubleComplex *Flr, cuDoubleComplex *Fli, cuDoubleComplex *G, ophSigConfig *device_config, int nx, int ny, Real_t NA_g, Real wl);
+	void cudaGetParamAT2(cuDoubleComplex *Flr, cuDoubleComplex *Fli, cuDoubleComplex *G, cuDoubleComplex *temp_data, int nx, int ny);
 
 }
 #endif
