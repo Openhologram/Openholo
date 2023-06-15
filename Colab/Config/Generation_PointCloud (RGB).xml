@@ -1,0 +1,27 @@
+<PointCloud>  
+  <!-- About points -->
+  <FieldLength>1000e-3</FieldLength> <!-- Double Type -->
+  <ScaleX>0.01</ScaleX> <!-- Double Type -->
+  <ScaleY>0.01</ScaleY> <!-- Double Type -->
+  <ScaleZ>0.01</ScaleZ> <!-- Double Type -->
+  <Distance>0.5</Distance> <!-- Double Type -->
+  
+  <!-- H/W -->
+  <IMG_Rotation>1</IMG_Rotation> <!-- Default 0 -->
+  <IMG_Merge>1</IMG_Merge> <!-- Valid only if WaveNum is greater than 1 -->
+  <IMG_Flip>0</IMG_Flip>
+  
+  <DoublePrecision>1</DoublePrecision> <!-- Default 1 -->
+  
+  <SLM_PixelPitchX>10e-6</SLM_PixelPitchX> <!-- Double Type -->
+  <SLM_PixelPitchY>10e-6</SLM_PixelPitchY> <!-- Double Type -->
+  <SLM_PixelNumX>1920</SLM_PixelNumX> <!-- Integer Type -->
+  <SLM_PixelNumY>1080</SLM_PixelNumY> <!-- Integer Type -->
+  <SLM_WaveNum>3</SLM_WaveNum> <!-- Integer Type -->
+  <SLM_WaveLength_1>638e-9</SLM_WaveLength_1> <!-- Double Type -->
+  <SLM_WaveLength_2>520e-9</SLM_WaveLength_2> <!-- Double Type -->
+  <SLM_WaveLength_3>450e-9</SLM_WaveLength_3> <!-- Double Type -->
+  
+  <!-- GPU -->
+  <NumOfStream>0</NumOfStream>
+</PointCloud>
