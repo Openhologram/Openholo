@@ -343,7 +343,7 @@ uchar* Openholo::loadAsImg(const char * fname)
 
 	uint size = hInfo.imagesize != 0 ? hInfo.imagesize : (((hInfo.width * hInfo.bitsperpixel >> 3) + 3) & ~3) * hInfo.height;
 
-	oph::uchar *img_tmp = new uchar[size];
+	oph::uchar* img_tmp = new uchar[size];
 	nRead = fread(img_tmp, sizeof(uchar), size, infile);
 	fclose(infile);
 
@@ -386,14 +386,13 @@ bool Openholo::loadAsImgUpSideDown(const char * fname, uchar* dst)
 
 	// data upside down
 	int bytesperpixel = hInfo.bitsperpixel >> 3;
-	//int rowsz = bytesperpixel * hInfo.width;
+	int cRow = ((hInfo.width * bytesperpixel) + 3) & ~3;
+	int cImg = hInfo.height * cRow;
 
-	int rowsz = ((hInfo.width * bytesperpixel) + 3) & ~3;
-
-	for (oph::uint k = 0; k < hInfo.height*rowsz; k++) {
-		int r = k / rowsz;
-		int c = k % rowsz;
-		((oph::uchar*)dst)[(hInfo.height - r - 1)*rowsz + c] = img_tmp[r*rowsz + c];
+	for (oph::uint k = 0; k < cImg; k++) {
+		int r = k / cRow;
+		int c = k % cRow;
+		((oph::uchar*)dst)[(hInfo.height - r - 1) * cRow + c] = img_tmp[r * cRow + c];
 	}
 
 	delete[] img_tmp;

@@ -100,20 +100,18 @@ III. Modified Algorithm
 */
 //! @} depthmap
 
-
-
 /**
 * @ingroup depthmap
 * @brief This class generates CGH based on depth map.
 * @author
 */
 class GEN_DLL ophDepthMap : public ophGen {
-
 public:
 	enum IMAGE_TYPE {
-		RGB = 0,
+		COLOR = 0,
 		DEPTH = 1
 	};
+
 	/**
 	* @brief Constructor
 	* @details Initialize variables.
@@ -142,7 +140,7 @@ public:
 	* @return true if image data are sucessfully read, flase otherwise.
 	* @see loadAsImg, convertToFormatGray8, imgScaleBilinear
 	*/
-	bool readImage(const char* fname, IMAGE_TYPE type = RGB);
+	bool readImage(const char* fname, IMAGE_TYPE type = COLOR);
 
 	/**
 	* @brief Read image and depth map.
@@ -204,6 +202,8 @@ public:
 	inline void setNearDepth(Real neardepth) { dm_config_.near_depthmap = neardepth; }
 	inline void setFarDepth(Real fardetph) { dm_config_.far_depthmap = fardetph; }
 	inline void setNumOfDepth(uint numofdepth) { 
+		dm_config_.default_depth_quantization = numofdepth;
+		dm_config_.num_of_depth_quantization = numofdepth;
 		dm_config_.num_of_depth = numofdepth;
 		dm_config_.render_depth.clear();
 		dm_config_.change_depth_quantization = true;
@@ -334,6 +334,11 @@ private:
 	* @see calc_Holo_by_Depth
 	*/
 	void calcHoloGPU();
+
+	/**
+	* @brief Method for checking input images.
+	*/
+	bool convertImage();
 
 protected:
 	void free_gpu(void);

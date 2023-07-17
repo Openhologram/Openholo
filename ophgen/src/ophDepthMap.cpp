@@ -221,27 +221,31 @@ bool ophDepthMap::readConfig(const char * fname)
 
 bool ophDepthMap::readImage(const char* fname, IMAGE_TYPE type)
 {
+	auto begin = CUR_TIME;
 	const int pnX = context_.pixel_number[_X];
 	const int pnY = context_.pixel_number[_Y];
 	const int N = pnX * pnY;
-	const int ch = context_.waveNum;
+	const uint ch = context_.waveNum;
 
 	int w, h, bytesperpixel;
+	// get image information
 	bool ret = getImgSize(w, h, bytesperpixel, fname);
-
-	uchar *pSrc = loadAsImg(fname);
+	// load image
+	uchar* pSrc = loadAsImg(fname);
 
 	if (pSrc == nullptr) {
 		LOG("<FAILED> Load image: %s\n", fname);
 		return false;
 	}
 
-	if (type == RGB)
+	if (type == IMAGE_TYPE::COLOR)
 	{
-		for (vector<uchar *>::iterator it = m_vecRGB.begin(); it != m_vecRGB.end(); it++) delete[](*it);
+		for (vector<uchar*>::iterator it = m_vecRGB.begin(); it != m_vecRGB.end(); it++)
+			delete[](*it);
 		m_vecRGB.clear();
 
-		uchar* pBuf = new uchar[w * h];
+		int nSize = ((w * bytesperpixel + 3) & ~3) * h;
+		uchar* pBuf = new uchar[nSize];
 
 		for (int i = 0; i < ch; i++)
 		{
@@ -251,26 +255,26 @@ bool ophDepthMap::readImage(const char* fname, IMAGE_TYPE type)
 				if (bytesperpixel != 1)
 					convertToFormatGray8(pSrc, pBuf, w, h, bytesperpixel);
 				else
-					memcpy(pBuf, pSrc, w * h);
+					memcpy(pBuf, pSrc, nSize);
 			}
 			else if (ch == bytesperpixel)
 			{
 				// [B0,G0,R0,B1,G1,R1...] -> [R0,R1...] [G0,G1...] [B0,B1...]
-				if (separateColor(i, w, h, pSrc, pBuf))
+				if (!separateColor(i, w, h, pSrc, pBuf))
 				{
-
+					LOG("<FAILED> separateColor: %d", i);
 				}
 			}
 			else
 			{
-				memcpy(pBuf, pSrc, w * h);
+				memcpy(pBuf, pSrc, nSize);
 			}
 
 			uchar* pDst = new uchar[N];
 
 			if (w != pnX || h != pnY)
 			{
-				imgScaleBilinear(pBuf, pDst, w, h, pnX, pnY, ch);
+				imgScaleBilinear(pBuf, pDst, w, h, pnX, pnY);
 			}
 			else
 			{
@@ -285,33 +289,83 @@ bool ophDepthMap::readImage(const char* fname, IMAGE_TYPE type)
 		m_vecRGBImg[_X] = pnX;
 		m_vecRGBImg[_Y] = pnY;
 	}
-	else if (type == DEPTH)
+	else if (type == IMAGE_TYPE::DEPTH)
 	{
-		uchar* pBuf = new uchar[w * h];
 		if (depth_img) delete[] depth_img;
 
 		depth_img = new uchar[N];
-		memset(depth_img, 0, sizeof(char) * N);
+		memset(depth_img, 0, N);
+
+		uchar* pBuf = new uchar[((w + 3) & ~3) * h];
+		convertToFormatGray8(pSrc, pBuf, w, h, bytesperpixel);
 
 		if (w != pnX || h != pnY)
-			imgScaleBilinear(pSrc, depth_img, w, h, pnX, pnY);
+			imgScaleBilinear(pBuf, depth_img, w, h, pnX, pnY);
 		else
-			memcpy(depth_img, pSrc, sizeof(char) * N);
+			memcpy(depth_img, pBuf, N);
 
+		delete[] pSrc;
+		delete[] pBuf;
 		// 2019-10-14 mwnam
 		m_vecDepthImg[_X] = pnX;
 		m_vecDepthImg[_Y] = pnY;
 	}
-	else
-	{
-		LOG("<FAILED> Unknown image type: %s\n", fname);
-		return false;
-	}
-	LOG(" <SUCCEEDED> Load image: %s\n", fname);
+	LOG("Load Image(%s)\n Path: %d\nResolution: %dx%d\nBytePerPixel: %d",
+		type == IMAGE_TYPE::COLOR ? "Color" : "Depth", fname, w, h, bytesperpixel);
+
 	return true;
 }
 
-bool ophDepthMap::readImageDepth(const char* source_folder, const char* img_prefix, const char* depth_img_prefix)
+bool ophDepthMap::convertImage()
+{
+	auto begin = CUR_TIME;
+	const int pnX = context_.pixel_number[_X];
+	const int pnY = context_.pixel_number[_Y];
+	const int N = pnX * pnY;
+	const uint ch = context_.waveNum;
+
+	// process color image.
+	for (int i = 0; i < ch; i++)
+	{
+		uchar* pSrc = m_vecRGB[i];
+		if (m_vecRGBImg != context_.pixel_number)
+		{
+			int nOldSize = ((m_vecRGBImg[_X] + 3) & ~3) * m_vecRGBImg[_Y];
+			int nNewSize = ((pnX + 3) & ~3) * pnY;
+
+			uchar* pOrg = new uchar[nOldSize];
+			memcpy(pOrg, pSrc, sizeof(uchar) * nOldSize);
+			delete[] pSrc;
+			
+			m_vecRGB[i] = new uchar[nNewSize];
+			imgScaleBilinear(pOrg, m_vecRGB[i], m_vecRGBImg[_X], m_vecRGBImg[_Y], pnX, pnY);
+			delete[] pOrg;
+			LOG("Resized Image: (%dx%d) to (%dx%d)", m_vecRGBImg[_X], m_vecRGBImg[_Y], pnX, pnY);
+		}
+	}
+
+	uchar* pSrc = depth_img;
+	if (m_vecDepthImg != context_.pixel_number)
+	{
+		int nOldSize = ((m_vecDepthImg[_X] + 3) & ~3) * m_vecDepthImg[_Y];
+		int nNewSize = ((pnX + 3) & ~3) * pnY;
+
+		uchar* pOrg = new uchar[nOldSize];
+		memcpy(pOrg, pSrc, sizeof(uchar) * nOldSize);
+		delete[] pSrc;
+
+		depth_img = new uchar[nNewSize];
+		imgScaleBilinear(pOrg, depth_img, m_vecDepthImg[_X], m_vecDepthImg[_Y], pnX, pnY);
+		delete[] pOrg;
+		LOG("Resized Image: (%dx%d) to (%dx%d)", m_vecDepthImg[_X], m_vecDepthImg[_Y], pnX, pnY);
+	}
+
+	m_vecDepthImg = m_vecRGBImg = context_.pixel_number;
+
+	return true;
+}
+
+bool ophDepthMap::readImageDepth(const char* source_folder, const char* img_name, const char* depth_img_name)
 {
 	auto begin = CUR_TIME;
 	const int pnX = context_.pixel_number[_X];
@@ -325,57 +379,21 @@ bool ophDepthMap::readImageDepth(const char* source_folder, const char* img_pref
 	m_vecRGB.clear();
 
 	// RGB Image
-
-#ifdef _WIN64
-	std::string sdir = source_folder;
-	sdir = sdir.append("\\").append(img_prefix).append("*.bmp");
-	_finddatai64_t fd;
-	intptr_t handle;
-	handle = _findfirst64(sdir.c_str(), &fd);
-	if (handle == -1)
-	{
-		LOG("<FAILED> Source image does not exist: %s.\n", sdir.c_str());
-		LOG("%.5lf (sec)\n.", ELAPSED_TIME(begin, CUR_TIME));
-		return false;
-	}
-	std::string imgfullname;
-	imgfullname = std::string(source_folder).append("\\").append(fd.name);
-#else
-	std::string sdir = source_folder;
-	std::string file = std::string(img_prefix) + ".bmp";
-
-	DIR* dir = nullptr;
-	struct dirent* ent;
-	if ((dir = opendir(sdir.c_str())) != nullptr) {
-		while ((ent = readdir(dir)) != nullptr) {
-			if (!strcmp(file.c_str(), ent->d_name))	break;
-		}
-		closedir(dir);
-	}
-	else
-	{
-		LOG("<FAILED> Source image does not exist: %s.\n", sdir.c_str());
-		LOG("%.5lf (sec)\n.", ELAPSED_TIME(begin, CUR_TIME));
-		return false;
-	}
-
-	std::string imgfullname;
-	imgfullname = std::string(source_folder).append("/").append(file);
-
-#endif
+	char imgPath[FILENAME_MAX] = { 0, };
+	sprintf(imgPath, "%s\\%s.bmp", source_folder, img_name);
 
 	int w, h, bytesperpixel;
-	bool ret = getImgSize(w, h, bytesperpixel, imgfullname.c_str());
+	bool ret = getImgSize(w, h, bytesperpixel, imgPath);
 
 	// RGB Image
 	oph::uchar* buf = new uchar[w * h * bytesperpixel]; // 1-Dimension left top
-	ret = loadAsImgUpSideDown(imgfullname.c_str(), buf);
+	ret = loadAsImgUpSideDown(imgPath, buf);
 	if (!ret) {
-		LOG("<FAILED> Image Load: %s\n", imgfullname.c_str());
+		LOG("<FAILED> Image Load: %s\n", imgPath);
 		LOG("%s : %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
 		return false;
 	}
-	LOG(" <SUCCEEDED> Image Load: %s\n", imgfullname.c_str());
+	LOG(" <SUCCEEDED> Image Load: %s\n", imgPath);
 
 	int ch = context_.waveNum;
 	uchar* img = new uchar[w * h];
@@ -406,6 +424,7 @@ bool ophDepthMap::readImageDepth(const char* source_folder, const char* img_pref
 		m_vecRGB.push_back(rgb_img);
 	}
 	delete[] buf;
+	delete[] img;
 
 	// 2019-10-14 mwnam
 	m_vecRGBImg[_X] = pnX;
@@ -413,55 +432,26 @@ bool ophDepthMap::readImageDepth(const char* source_folder, const char* img_pref
 
 	// Depth Image
 	//=================================================================================
-#ifdef _WIN64
-	std::string sddir = std::string(source_folder).append("\\").append(depth_img_prefix).append("*.bmp");
-	handle = _findfirst64(sddir.c_str(), &fd);
-	if (handle == -1)
-	{
-		LOG("<FAILED> Source depthmap does not exist: %s.\n", sddir.c_str());
-		LOG("%s : %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
-		return false;
-	}
-
-	std::string dimgfullname = std::string(source_folder).append("\\").append(fd.name);
-#else
-	std::string sddir = std::string(source_folder);
-	std::string file2 = std::string(depth_img_prefix) + ".bmp";
-
-	if ((dir = opendir(sddir.c_str())) != nullptr) {
-		while ((ent = readdir(dir)) != nullptr) {
-			if (!strcmp(file.c_str(), ent->d_name)) break;
-		}
-		closedir(dir);
-	}
-	else
-	{
-		LOG("<FAILED> Source depthmap does not exist: %s.\n", sddir.c_str());
-		LOG("%.5lf (sec)\n.", ELAPSED_TIME(begin, CUR_TIME));
-		return false;
-	}
-	std::string dimgfullname = std::string(source_folder).append("/").append(file2);
-
-#endif
-	int dw, dh, dbytesperpixel;
-	ret = getImgSize(dw, dh, dbytesperpixel, dimgfullname.c_str());
+	char dimgPath[FILENAME_MAX] = { 0, };
+	sprintf(dimgPath, "%s\\%s.bmp", source_folder, depth_img_name);
+	ret = getImgSize(w, h, bytesperpixel, dimgPath);
 	
 	// Depth Image
-	uchar* dbuf = new uchar[dw * dh * dbytesperpixel];
-	ret = loadAsImgUpSideDown(dimgfullname.c_str(), dbuf);
+	uchar* dbuf = new uchar[w * h * bytesperpixel];
+	ret = loadAsImgUpSideDown(dimgPath, dbuf);
 	if (!ret) {
-		LOG("<FAILED> Image Load: %s\n", dimgfullname.c_str());
+		LOG("<FAILED> Image Load: %s\n", dimgPath);
 		LOG("%s : %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
 		return false;
 	}
-	LOG(" <SUCCEEDED> Image Load: %s\n", dimgfullname.c_str());
+	LOG(" <SUCCEEDED> Image Load: %s\n", dimgPath);
 
 	// 2019-10-14 mwnam
-	m_vecDepthImg[_X] = dw;
-	m_vecDepthImg[_Y] = dh;
+	m_vecDepthImg[_X] = w;
+	m_vecDepthImg[_Y] = h;
 
-	uchar* dimg = new uchar[dw * dh];
-	convertToFormatGray8(dbuf, dimg, dw, dh, dbytesperpixel);
+	uchar* dimg = new uchar[w * h];
+	convertToFormatGray8(dbuf, dimg, w, h, bytesperpixel);
 
 	delete[] dbuf;
 
@@ -470,8 +460,8 @@ bool ophDepthMap::readImageDepth(const char* source_folder, const char* img_pref
 	depth_img = new uchar[N];
 	memset(depth_img, 0, sizeof(char) * N);
 
-	if (dw != pnX || dh != pnY)
-		imgScaleBilinear(dimg, depth_img, dw, dh, pnX, pnY);
+	if (w != pnX || h != pnY)
+		imgScaleBilinear(dimg, depth_img, w, h, pnX, pnY);
 	else
 		memcpy(depth_img, dimg, sizeof(char) * N);
 
@@ -479,7 +469,6 @@ bool ophDepthMap::readImageDepth(const char* source_folder, const char* img_pref
 	m_vecDepthImg[_X] = pnX;
 	m_vecDepthImg[_Y] = pnY;
 
-	delete[] img;
 	delete[] dimg;
 
 	LOG("%s : %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
@@ -502,7 +491,9 @@ Real ophDepthMap::generateHologram()
 		);
 	LOG("**************************************************\n");
 
+
 	resetBuffer();
+	convertImage();
 	m_vecEncodeSize = context_.pixel_number;
 	if (m_mode & MODE_GPU)
 	{
@@ -522,7 +513,6 @@ Real ophDepthMap::generateHologram()
 		//	transVW();
 		calcHoloCPU();
 	}
-	
 	Real elapsed_time = ELAPSED_TIME(begin, CUR_TIME);
 	LOG("Total Elapsed Time: %lf (s)\n", elapsed_time);
 	m_nProgress = 0;
@@ -531,6 +521,7 @@ Real ophDepthMap::generateHologram()
 
 void ophDepthMap::encoding(unsigned int ENCODE_FLAG)
 {
+	//ophGen::encoding(ENCODE_FLAG);
 	const uint pnX = context_.pixel_number[_X];
 	const uint pnY = context_.pixel_number[_Y];
 	const uint nChannel = context_.waveNum;
@@ -796,6 +787,7 @@ void ophDepthMap::calcHoloCPU()
 			}
 			m_nProgress = (int)((Real)(ch * depth_sz + i) * 100 / (depth_sz * nChannel));
 		}
+		//fft2(complex_H[ch], complex_H[ch], pnX, pnY, OPH_BACKWARD, true);
 	}
 	delete[] input;
 	fftFree();

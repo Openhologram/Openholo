@@ -76,6 +76,46 @@ static void HandleError(cudaError_t err,
                             printf( "Host memory failed in %s at line %d\n", \
                                     __FILE__, __LINE__ ); \
                             exit( EXIT_FAILURE );}} 
+
+typedef struct DMKernelConfig {
+	int pn_X;		/// Number of pixel of SLM in x direction
+	int pn_Y;		/// Number of pixel of SLM in y direction
+	double pp_X; /// Pixel pitch of SLM in x direction
+	double pp_Y; /// Pixel pitch of SLM in y direction
+
+	double ss_X; /// (pixel_x * nx) / 2
+	double ss_Y; /// (pixel_y * ny) / 2
+
+	double k;		  /// Wave Number = (2 * PI) / lambda;
+	double lambda;
+
+	DMKernelConfig(
+		const ivec2& pixel_number,	/// Number of pixel of SLM in x, y direction
+		const vec2& pixel_pitch,	/// Pixel pitch of SLM in x, y direction
+		const vec2& ss,				/// (pixel_x * nx), (pixel_y * ny)
+		const Real& k,				/// Wave Number = (2 * PI) / lambda
+		const Real& lambda			/// Wave length
+	)
+	{
+		// Output Image Size
+		this->pn_X = pixel_number[_X];
+		this->pn_Y = pixel_number[_Y];
+
+		// Pixel pitch at eyepiece lens plane (by simple magnification) ==> SLM pitch
+		this->pp_X = pixel_pitch[_X];
+		this->pp_Y = pixel_pitch[_Y];
+
+		// Length (Width) of complex field at eyepiece plane (by simple magnification)
+		this->ss_X = ss[_X];
+		this->ss_Y = ss[_Y];
+
+		// Wave Number
+		this->k = k;
+
+		this->lambda = lambda;
+	}
+} DMKernelConfig;
+
 cufftDoubleComplex *u_o_gpu_;
 cufftDoubleComplex *u_complex_gpu_;
 cufftDoubleComplex *k_temp_d_;
@@ -95,10 +135,7 @@ extern "C"
 	* @param direction : If direction == -1, forward FFT, if type == 1, inverse FFT.
 	* @see propagation_AngularSpectrum_GPU, encoding_GPU
 	*/
-	void cudaFFT(CUstream_st* stream, int nx, int ny, cufftDoubleComplex* in_filed, cufftDoubleComplex* output_field, int direction);
-
-
-	//void cudaCropFringe(CUstream_st* stream, int nx, int ny, cufftDoubleComplex* in_field, cufftDoubleComplex* out_field, int cropx1, int cropx2, int cropy1, int cropy2);
+	//void cudaFFT(CUstream_st* stream, int nx, int ny, cufftDoubleComplex* in_filed, cufftDoubleComplex* output_field, int direction);
 
 	/**
 	* @brief Find each depth plane of the input image and apply carrier phase delay to it on GPU.
@@ -111,20 +148,21 @@ extern "C"
 	* @param dimg_src_gpu : input depth map data
 	* @param depth_index_gpu : input quantized depth map data
 	* @param dtr : current working depth level
-	* @param rand_phase_val_a : the Real part of the random phase value
-	* @param rand_phase_val_b : the imaginary part of the random phase value
-	* @param carrier_phase_delay_a : the Real part of the carrier phase delay
-	* @param carrier_phase_delay_b : the imaginary part of the carrier phase delay
+	* @param rand_phase_val : the random phase value
+	* @param carrier_phase_delay : the carrier phase delay
 	* @param flag_change_depth_quan : if true, change the depth quantization from the default value.
 	* @param default_depth_quan : default value of the depth quantization - 256
+	* @param mode : float/double precision, use fastmath 
 	* @see calc_Holo_GPU
 	*/
 	void cudaDepthHoloKernel(CUstream_st* stream, int nx, int ny, cufftDoubleComplex* u_o_gpu_, unsigned char* img_src_gpu, unsigned char* dimg_src_gpu, Real* depth_index_gpu,
-		int dtr, Real rand_phase_val_a, Real rand_phase_val_b, Real carrier_phase_delay_a, Real carrier_phase_delay_b, int flag_change_depth_quan, unsigned int default_depth_quan);
+		int dtr, cuDoubleComplex rand_phase_val, cuDoubleComplex carrier_phase_delay, int flag_change_depth_quan, unsigned int default_depth_quan, const unsigned int& mode);
 
 	/**
 	* @brief Angular spectrum propagation method for GPU implementation.
 	* @details The propagation results of all depth levels are accumulated in the variable 'u_complex_gpu_'.
+	* @param nBlcoks : the number of blocks
+	* @param nThreads : the number of threads per block
 	* @param stream : CUDA Stream
 	* @param nx : the number of column of the input data
 	* @param ny : the number of row of the input data
@@ -139,8 +177,9 @@ extern "C"
 	* @param propagation_dist : the distance from the object to the hologram plane
 	* @see propagation_AngularSpectrum_GPU
 	*/
-	void cudaPropagation_AngularSpKernel(CUstream_st* stream_, int nx, int ny, cufftDoubleComplex* input_d, cufftDoubleComplex* u_complex,
-		Real ppx, Real ppy, Real ssx, Real ssy, Real lambda, Real params_k, Real propagation_dist);
+	void cudaPropagation_AngularSpKernel(
+		const int& nBlocks, const int& nThreads, CUstream_st* stream_, cufftDoubleComplex* input_d, cufftDoubleComplex* u_complex,
+		const DMKernelConfig* cuda_config, Real propagation_dist);
 
 	//void cudaGetFringe(CUstream_st* stream, int pnx, int pny, cufftDoubleComplex* in_field, cufftDoubleComplex* out_field, int sig_locationx, int sig_locationy,
 	//	Real ssx, Real ssy, Real ppx, Real ppy, Real PI);

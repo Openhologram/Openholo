@@ -45,15 +45,34 @@
 
 #include	"ophDepthMap.h"
 #include	"ophDepthMap_GPU.h"
-#include	<sys.h> 
+#include	<cuComplex.h>
+#include	<sys.h>
+#include	"CUDA.h"
+
+extern "C"
+{
+	/**
+	* @brief Convert data from the spatial domain to the frequency domain using 2D FFT on GPU.
+	* @details call CUDA Kernel - fftShift and CUFFT Library.
+	* @param stream : CUDA Stream
+	* @param nx : the number of column of the input data
+	* @param ny : the number of row of the input data
+	* @param in_field : input complex data variable
+	* @param output_field : output complex data variable
+	* @param direction : If direction == -1, forward FFT, if type == 1, inverse FFT.
+	* @param bNormalized : use normalize
+	* @see propagation_AngularSpectrum_GPU, encoding_GPU
+	*/
+	void cudaFFT(CUstream_st* stream, int nx, int ny, cufftDoubleComplex* in_filed, cufftDoubleComplex* output_field, int direction, bool bNormalized);
+}
 
 using namespace oph;
 
 void ophDepthMap::initGPU()
 {
-	const int nx = context_.pixel_number[0];
-	const int ny = context_.pixel_number[1];
-	const int N = nx * ny;
+	const int pnX = context_.pixel_number[_X];
+	const int pnY = context_.pixel_number[_Y];
+	const int N = pnX * pnY;
 
 	dlevel.clear();
 
@@ -135,6 +154,12 @@ void ophDepthMap::calcHoloGPU()
 	size_t depth_sz = dm_config_.render_depth.size();
 
 	const bool bRandomPhase = GetRandomPhase();
+	DMKernelConfig* device_config = nullptr;
+	HANDLE_ERROR(cudaMalloc((void**)&device_config, sizeof(DMKernelConfig)));
+
+
+	int blockSize = CUDA::getInstance()->getMaxThreads() >> 1; //n_threads // blockSize < devProp.maxThreadsPerBlock
+	ulonglong gridSize = (N + blockSize - 1) / blockSize; //n_blocks
 
 	for (uint ch = 0; ch < nChannel; ch++)
 	{
@@ -143,34 +168,53 @@ void ophDepthMap::calcHoloGPU()
 		Real lambda = context_.wave_length[ch];
 		Real k = context_.k = (2 * M_PI / lambda);
 
+		DMKernelConfig* host_config = new DMKernelConfig(
+			context_.pixel_number,
+			context_.pixel_pitch,
+			context_.ss,
+			context_.k,
+			context_.wave_length[ch]
+		);
+
+		HANDLE_ERROR(cudaMemcpyAsync(device_config, host_config, sizeof(DMKernelConfig), cudaMemcpyHostToDevice));
+
+
 		for (size_t p = 0; p < depth_sz; ++p)
 		{
-			Complex<Real> rand_phase_val;
-			GetRandomPhaseValue(rand_phase_val, bRandomPhase);
+			Complex<Real> randPhase;
+			cuDoubleComplex rand_phase, carrier_phase_delay;
+			GetRandomPhaseValue(randPhase, bRandomPhase);
+			memcpy(&rand_phase, &randPhase, sizeof(Complex<Real>));
 
 			int dtr = dm_config_.render_depth[p];
 			Real temp_depth = (is_ViewingWindow) ? dlevel_transform[dtr - 1] : dlevel[dtr - 1];
-			Complex<Real> carrier_phase_delay(0, k * -temp_depth);
-			carrier_phase_delay.exp();
+
+			Complex<Real> carrierPhaseDelay(0, k * -temp_depth);
+			carrierPhaseDelay.exp();
+			memcpy(&carrier_phase_delay, &carrierPhaseDelay, sizeof(Complex<Real>));
 
 			HANDLE_ERROR(cudaMemsetAsync(u_o_gpu_, 0, sizeof(cufftDoubleComplex) * N, stream_));
 
 			cudaDepthHoloKernel(stream_, pnX, pnY, u_o_gpu_, img_src_gpu, dimg_src_gpu, depth_index_gpu,
-				dtr, rand_phase_val[_RE], rand_phase_val[_IM], carrier_phase_delay[_RE], carrier_phase_delay[_IM], dm_config_.change_depth_quantization, dm_config_.default_depth_quantization);
+				dtr, rand_phase, carrier_phase_delay,
+				dm_config_.change_depth_quantization, dm_config_.default_depth_quantization, m_mode);
 
 			HANDLE_ERROR(cudaMemsetAsync(k_temp_d_, 0, sizeof(cufftDoubleComplex) * N, stream_));
 
-			cudaFFT(stream_, pnX, pnY, u_o_gpu_, k_temp_d_, -1);
+			cudaFFT(stream_, pnX, pnY, u_o_gpu_, k_temp_d_, -1, false);
 
-
-			cudaPropagation_AngularSpKernel(stream_, pnX, pnY, k_temp_d_, u_complex_gpu_,
-				ppX, ppY, ssX, ssY, lambda, context_.k, temp_depth);
+			cudaPropagation_AngularSpKernel(gridSize, blockSize, stream_,k_temp_d_, u_complex_gpu_, device_config, temp_depth);
 
 			m_nProgress = (int)((Real)(ch * depth_sz + p + 1) * 100 / ((Real)depth_sz * nChannel));
 		}
-		//cudaFFT(stream_, pnX, pnY, u_complex_gpu_, k_temp_d_, 1);
-		cudaMemcpy(complex_H[ch], u_complex_gpu_, sizeof(cufftDoubleComplex) * N, cudaMemcpyDeviceToHost);
+		cudaMemcpy(complex_H[ch], u_complex_gpu_, sizeof(cufftDoubleComplex)* N, cudaMemcpyDeviceToHost);
+
+		//cudaFFT(stream_, pnX, pnY, u_complex_gpu_, k_temp_d_, 1, true);
+		//cudaMemcpy(complex_H[ch], k_temp_d_, sizeof(cufftDoubleComplex) * N, cudaMemcpyDeviceToHost);
+
+		delete host_config;
 	}
+	HANDLE_ERROR(cudaFree(device_config));
 	LOG("%s : %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
 }
 

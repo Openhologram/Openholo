@@ -168,6 +168,7 @@ public:
 	void normalize(T* src, uchar* dst, int x, int y);
 	template<typename T>
 	void normalize(T* src, uchar* dst, int x, int y, T max, T min);
+	vector<uchar*>& getNormalizedBuffer() { return m_vecNormalized; };
 
 };
 

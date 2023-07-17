@@ -45,11 +45,15 @@
 #ifndef ophDMKernel_cu__
 #define ophDMKernel_cu__
 
+#include "ophDepthMap_GPU.h"
 #include "ophKernel.cuh"
+#include "typedef.h"
+#include <define.h>
 
 
-__global__ void depth_sources_kernel(cufftDoubleComplex* u_o_gpu, unsigned char* img_src_gpu, unsigned char* dimg_src_gpu, double* depth_index_gpu,
-	int dtr, double rand_phase_val_a, double rand_phase_val_b, double carrier_phase_delay_a, double carrier_phase_delay_b, int pnx, int pny,
+__global__
+void cudaKernel_double_get_kernel(cufftDoubleComplex* u_o_gpu, unsigned char* img_src_gpu, unsigned char* dimg_src_gpu, double* depth_index_gpu,
+	int dtr, cuDoubleComplex rand_phase, cuDoubleComplex carrier_phase_delay, int pnx, int pny,
 	int change_depth_quantization, unsigned int default_depth_quantization)
 {
 	int tid = threadIdx.x + blockIdx.x * blockDim.x;
@@ -67,32 +71,77 @@ __global__ void depth_sources_kernel(cufftDoubleComplex* u_o_gpu, unsigned char*
 
 		u_o_gpu[tid].x = img * alpha_map * (depth_idx == (double)dtr ? 1.0 : 0.0);
 
-		cuDoubleComplex tmp1 = cuCmul(make_cuDoubleComplex(rand_phase_val_a, rand_phase_val_b), make_cuDoubleComplex(carrier_phase_delay_a, carrier_phase_delay_b));
+		cuDoubleComplex tmp1 = cuCmul(rand_phase, carrier_phase_delay);
 		u_o_gpu[tid] = cuCmul(u_o_gpu[tid], tmp1);
 	}
 }
 
 
-__global__ void propagation_angularsp_kernel(cufftDoubleComplex* input_d, cufftDoubleComplex* u_complex, int pnx, int pny,
-	double ppx, double ppy, double ssx, double ssy, double lambda, double params_k, double propagation_dist)
+__global__
+void cudaKernel_single_get_kernel(cufftDoubleComplex* u_o_gpu, unsigned char* img_src_gpu, unsigned char* dimg_src_gpu, double* depth_index_gpu,
+	int dtr, cuComplex rand_phase, cuComplex carrier_phase_delay, int pnx, int pny,
+	int change_depth_quantization, unsigned int default_depth_quantization)
 {
-	int tid = threadIdx.x + blockIdx.x*blockDim.x;
+	int tid = threadIdx.x + blockIdx.x * blockDim.x;
 
-	if (tid < pnx*pny) {
+	if (tid < pnx * pny) {
 
-		int x = tid % pnx;
-		int y = tid / pnx;
+		float img = ((float)img_src_gpu[tid]) / 255.0f;
+		float depth_idx;
+		if (change_depth_quantization == 1)
+			depth_idx = depth_index_gpu[tid];
+		else
+			depth_idx = (float)default_depth_quantization - (float)dimg_src_gpu[tid];
 
-		double fxx = (-1.0 / (2.0*ppx)) + (1.0 / ssx) * (double)x;
-		double fyy = (1.0 / (2.0*ppy)) - (1.0 / ssy) - (1.0 / ssy) * (double)y;
+		float alpha_map = ((float)img_src_gpu[tid] > 0.0f ? 1.0f : 0.0f);
 
-		double sval = sqrt(1 - (lambda*fxx)*(lambda*fxx) - (lambda*fyy)*(lambda*fyy));
-		sval *= params_k * propagation_dist;
+		u_o_gpu[tid].x = img * alpha_map * (depth_idx == (float)dtr ? 1.0f : 0.0f);
+
+		cuComplex tmp1 = cuCmulf(rand_phase, carrier_phase_delay);
+
+		u_o_gpu[tid].x = (u_o_gpu[tid].x * tmp1.x) - (u_o_gpu[tid].y * tmp1.y);
+		u_o_gpu[tid].y = (u_o_gpu[tid].x * tmp1.y) + (u_o_gpu[tid].y * tmp1.x);
+	}
+}
+
+
+__global__
+void propagation_angularsp_kernel(cufftDoubleComplex* input_d, cufftDoubleComplex* u_complex, const DMKernelConfig* config, double propagation_dist)
+{
+#if 0
+	__shared__ int s_pnX, s_pnY;
+	__shared__ double s_k, s_ssX, s_ssY, s_ppX, s_ppY, s_lambda, s_distance;
+
+	int tid = threadIdx.x + blockIdx.x * blockDim.x;
+	if (threadIdx.x == 0)
+	{
+		s_pnX = config->pn_X;
+		s_pnY = config->pn_Y;
+		s_ppX = -1.0 / (config->pp_X * 2.0);
+		s_ppY = 1.0 / (config->pp_Y * 2.0);
+		s_ssX = 1.0 / config->ss_X;
+		s_ssY = 1.0 / config->ss_Y;
+		s_lambda = config->lambda;
+		s_k = config->k * config->k;
+		s_distance = propagation_dist;
+	}
+	__syncthreads();
+
+	if (tid < s_pnX * s_pnY) {
+
+		int x = tid % s_pnX;
+		int y = tid / s_pnY;
+
+		double fxx = s_ppX + s_ssX * (double)x;
+		double fyy = s_ppY - s_ssY - s_ssY * (double)y;
+
+		double sval = sqrt(1 - (s_lambda * fxx) * (s_lambda * fxx) - (s_lambda * fyy) * (s_lambda * fyy));
+		sval *= s_k * s_distance;
 
 		cuDoubleComplex kernel = make_cuDoubleComplex(0, sval);
 		exponent_complex(&kernel);
 
-		int prop_mask = ((fxx * fxx + fyy * fyy) < (params_k *params_k)) ? 1 : 0;
+		int prop_mask = ((fxx * fxx + fyy * fyy) < s_k) ? 1 : 0;
 
 		cuDoubleComplex u_frequency = make_cuDoubleComplex(0, 0);
 		if (prop_mask == 1)
@@ -100,25 +149,69 @@ __global__ void propagation_angularsp_kernel(cufftDoubleComplex* input_d, cufftD
 
 		u_complex[tid] = cuCadd(u_complex[tid], u_frequency);
 	}
+#else
+	int tid = threadIdx.x + blockIdx.x * blockDim.x;
+	if (tid < config->pn_X * config->pn_Y)
+	{
+		int x = tid % config->pn_X;
+		int y = tid / config->pn_X;
+
+		double fxx = (-1.0 / (2.0 * config->pp_X)) + (1.0 / config->ss_X) * (double)x;
+		double fyy = (1.0 / (2.0 * config->pp_Y)) - (1.0 / config->ss_Y) - (1.0 / config->ss_Y) * (double)y;
+
+
+		double sval = sqrt(1 - (config->lambda * fxx) * (config->lambda * fxx) -
+			(config->lambda * fyy) * (config->lambda * fyy));
+		sval *= config->k * propagation_dist;
+
+		int prop_mask = ((fxx * fxx + fyy * fyy) < (config->k * config->k)) ? 1 : 0;
+
+		cuDoubleComplex kernel = make_cuDoubleComplex(0, sval);
+		exponent_complex(&kernel);
+
+		cuDoubleComplex u_frequency = make_cuDoubleComplex(0, 0);
+		if (prop_mask == 1)
+			u_frequency = cuCmul(kernel, input_d[tid]);
+
+		u_complex[tid] = cuCadd(u_complex[tid], u_frequency);
+
+	}
+
+#endif
 }
 
 
-__global__ void cropFringe(int nx, int ny, cufftDoubleComplex* in_filed, cufftDoubleComplex* out_filed, int cropx1, int cropx2, int cropy1, int cropy2)
+__global__ 
+void cropFringe(int nx, int ny, cufftDoubleComplex* in_filed, cufftDoubleComplex* out_filed, int cropx1, int cropx2, int cropy1, int cropy2)
 {
-	int tid = threadIdx.x + blockIdx.x*blockDim.x;
+	__shared__ int s_pnX, s_pnY, s_cropx1, s_cropx2, s_cropy1, s_cropy2;
 
-	if (tid < nx*ny)
+	if (threadIdx.x == 0)
 	{
-		int x = tid % nx;
-		int y = tid / nx;
+		s_pnX = nx;
+		s_pnY = ny;
+		s_cropx1 = cropx1;
+		s_cropx2 = cropx2;
+		s_cropy1 = cropy1;
+		s_cropy2 = cropy2;
+	}
+	__syncthreads();
 
-		if (x >= cropx1 && x <= cropx2 && y >= cropy1 && y <= cropy2)
+	int tid = threadIdx.x + blockIdx.x * blockDim.x;
+
+	if (tid < s_pnX * s_pnY)
+	{
+		int x = tid % s_pnX;
+		int y = tid / s_pnX;
+
+		if (x >= s_cropx1 && x <= s_cropx2 && y >= s_cropy1 && y <= s_cropy2)
 			out_filed[tid] = in_filed[tid];
 	}
 }
 
 
-__global__ void getFringe(int nx, int ny, cufftDoubleComplex* in_filed, cufftDoubleComplex* out_filed, int sig_locationx, int sig_locationy,
+__global__ 
+void getFringe(int nx, int ny, cufftDoubleComplex* in_filed, cufftDoubleComplex* out_filed, int sig_locationx, int sig_locationy,
 	double ssx, double ssy, double ppx, double ppy, double pi)
 {
 	int tid = threadIdx.x + blockIdx.x*blockDim.x;
@@ -163,10 +256,10 @@ __global__ void getFringe(int nx, int ny, cufftDoubleComplex* in_filed, cufftDou
 
 }
 
-__global__ void change_depth_quan_kernel(double* depth_index_gpu, unsigned char* dimg_src_gpu, int pnx, int pny,
+__global__
+void change_depth_quan_kernel(double* depth_index_gpu, unsigned char* dimg_src_gpu, int pnx, int pny,
 	int dtr, double d1, double d2, double num_depth, double far_depth, double near_depth)
 {
-
 	int tid = threadIdx.x + blockIdx.x * blockDim.x;
 
 	if (tid < pnx * pny) {
@@ -187,19 +280,37 @@ __global__ void change_depth_quan_kernel(double* depth_index_gpu, unsigned char*
 extern "C"
 {
 	void cudaDepthHoloKernel(CUstream_st* stream, int pnx, int pny, cufftDoubleComplex* u_o_gpu, unsigned char* img_src_gpu, unsigned char* dimg_src_gpu, double* depth_index_gpu,
-		int dtr, double rand_phase_val_a, double rand_phase_val_b, double carrier_phase_delay_a, double carrier_phase_delay_b, int flag_change_depth_quan, unsigned int default_depth_quan)
+		int dtr, cuDoubleComplex rand_phase_val, cuDoubleComplex carrier_phase_delay, int flag_change_depth_quan, unsigned int default_depth_quan, const unsigned int& mode)
 	{
 		dim3 grid((pnx * pny + kBlockThreads - 1) / kBlockThreads, 1, 1);
-		depth_sources_kernel << <grid, kBlockThreads, 0, stream >> > (u_o_gpu, img_src_gpu, dimg_src_gpu, depth_index_gpu,
-			dtr, rand_phase_val_a, rand_phase_val_b, carrier_phase_delay_a, carrier_phase_delay_b, pnx, pny, flag_change_depth_quan, default_depth_quan);
+
+		if (mode & MODE_FLOAT)
+		{
+			//if (mode & MODE_FASTMATH)
+			//	//cudaKernel_single_FastMath_RS_Diffraction << < nBlocks, nThreads >> > (iChannel, cuda_vertex_data, cuda_config, n_pts_per_stream, cuda_dst);
+			//else
+				cudaKernel_single_get_kernel << <grid, kBlockThreads, 0, stream >> > (u_o_gpu, img_src_gpu, dimg_src_gpu, depth_index_gpu,
+					dtr, make_cuComplex((float)rand_phase_val.x, (float)rand_phase_val.y),
+					make_cuComplex((float)carrier_phase_delay.x, (float)carrier_phase_delay.y), pnx, pny, flag_change_depth_quan, default_depth_quan);
+		}
+		else
+		{
+			//if (mode & MODE_FASTMATH)
+			//	//cudaKernel_double_FastMath_RS_Diffraction << < nBlocks, nThreads >> > (iChannel, cuda_vertex_data, cuda_config, n_pts_per_stream, cuda_dst);
+			//else
+				cudaKernel_double_get_kernel << <grid, kBlockThreads, 0, stream >> > (u_o_gpu, img_src_gpu, dimg_src_gpu, depth_index_gpu,
+					dtr, rand_phase_val, carrier_phase_delay, pnx, pny, flag_change_depth_quan, default_depth_quan);
+		}
+
 	}
 
 
-	void cudaPropagation_AngularSpKernel(CUstream_st* stream, int pnx, int pny, cufftDoubleComplex* input_d, cufftDoubleComplex* u_complex,
-		double ppx, double ppy, double ssx, double ssy, double lambda, double params_k, double propagation_dist)
+	void cudaPropagation_AngularSpKernel(
+		const int& nBlocks, const int& nThreads,
+		CUstream_st* stream, cufftDoubleComplex* input_d, cufftDoubleComplex* u_complex, 
+		const DMKernelConfig*cuda_config, double propagation_dist)
 	{
-		dim3 grid((pnx * pny + kBlockThreads - 1) / kBlockThreads, 1, 1);
-		propagation_angularsp_kernel << <grid, kBlockThreads, 0, stream >> > (input_d, u_complex, pnx, pny, ppx, ppy, ssx, ssy, lambda, params_k, propagation_dist);
+		propagation_angularsp_kernel << <nBlocks, nThreads >> > (input_d, u_complex, cuda_config, propagation_dist);
 	}
 
 	void cudaCropFringe(CUstream_st* stream, int nx, int ny, cufftDoubleComplex* in_field, cufftDoubleComplex* out_field, int cropx1, int cropx2, int cropy1, int cropy2)
