@@ -55,6 +55,7 @@
 ophRec::ophRec(void)
 	: Openholo()
 	, m_oldSimStep(0)
+	, m_idx(0)
 {
 }
 
@@ -1307,7 +1308,7 @@ void ophRec::SaveImage(const char *path, const char *ext)
 	for (int i = 0; i < nSimStep; i++)
 	{
 		sprintf(tmpPath, "%s\\FOCUS_%.4f.%s", path, bMultiStep ?
-			simFrom + (int)(step * i) : (simFrom + simTo) / 2, ext);
+			simFrom + (step * i) : (simFrom + simTo) / 2, ext);
 
 		if (nChannel == 3)
 		{
