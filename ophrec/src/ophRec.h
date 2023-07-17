@@ -165,9 +165,46 @@ public:
 	void Initialize();
 	bool save(const char * fname, uint8_t bitsperpixel, uchar* src, uint px, uint py);
 	template<typename T>
-	void normalize(T* src, uchar* dst, int x, int y);
+	void normalize(T* src, uchar* dst, int x, int y)
+	{
+		T maxVal = src[0];
+		T minVal = src[0];
+		int size = x * y;
+
+		for (int i = 0; i < size; i++)
+		{
+			if (src[i] < minVal)
+				minVal = src[i];
+			if (src[i] > maxVal)
+				maxVal = src[i];
+		}
+		T gap = maxVal - minVal;
+
+		for (int i = 0; i < y; i++)
+		{
+			int base = i * x;
+			//int base2 = (y - 1 - i) * x;
+
+			for (int j = 0; j < x; j++)
+			{
+				dst[base + j] = (uchar)((src[base + j] - minVal) / gap * 255.0);
+			}
+		}
+	}
 	template<typename T>
-	void normalize(T* src, uchar* dst, int x, int y, T max, T min);
+	void normalize(T* src, uchar* dst, int x, int y, T max, T min)
+	{
+		T gap = max - min;
+
+		for (int i = 0; i < y; i++)
+		{
+			int base = i * x;
+			for (int j = 0; j < x; j++)
+			{
+				dst[base + j] = (uchar)((src[base + j] - min) / gap * 255.0);
+			}
+		}
+	}
 	vector<uchar*>& getNormalizedBuffer() { return m_vecNormalized; };
 
 };
