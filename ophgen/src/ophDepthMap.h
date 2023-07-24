@@ -368,6 +368,11 @@ private:
 
 	OphDepthMapConfig		dm_config_;							///< structure variable for depthmap hologram configuration.
 
+	cufftDoubleComplex* u_o_gpu_;
+	cufftDoubleComplex* u_complex_gpu_;
+	cufftDoubleComplex* k_temp_d_;
+
+	cudaStream_t	stream_;
 
 	uint m_nProgress;
 };

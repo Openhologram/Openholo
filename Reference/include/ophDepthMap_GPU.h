@@ -116,11 +116,6 @@ typedef struct DMKernelConfig {
 	}
 } DMKernelConfig;
 
-cufftDoubleComplex *u_o_gpu_;
-cufftDoubleComplex *u_complex_gpu_;
-cufftDoubleComplex *k_temp_d_;
-
-cudaStream_t	stream_;
 
 extern "C"
 {
