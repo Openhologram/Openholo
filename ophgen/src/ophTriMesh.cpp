@@ -46,6 +46,7 @@
 #include "ophTriMesh.h"
 #include "tinyxml2.h"
 #include "PLYparser.h"
+#include "sys.h"
 
 #define _X1 0
 #define _Y1 1
@@ -546,7 +547,7 @@ bool ophTri::generateAS(uint SHADING_FLAG)
 			
 			if (!checkValidity(no[j])) // don't care
 				continue;
-			if (!findGeometricalRelations(scaledMeshData[j], no[j], geom))
+			if (!findGeometricalRelations(mesh, no[j], geom))
 				continue;
 			if (!calFrequencyTerm(freq, fl, freqTermX, freqTermY, geom, context_.wave_length[ch]))
 				continue;
@@ -611,7 +612,6 @@ void ophTri::calGlobalFrequency(Point* frequency, Real lambda)
 	auto begin = CUR_TIME;
 	const int pnX = context_.pixel_number[_X];
 	const int pnY = context_.pixel_number[_Y];
-	const long long int pnXY = pnX * pnY;
 	const Real ppX = context_.pixel_pitch[_X];
 	const Real ppY = context_.pixel_pitch[_Y];
 

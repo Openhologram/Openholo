@@ -47,7 +47,6 @@
 #define __ophTriMesh_h
 
 #include "ophGen.h"
-#include "sys.h"
 
 //Build Option : Multi Core Processing (OpenMP)
 #ifdef _OPENMP
@@ -246,7 +245,7 @@ private:
 
 	void initialize_GPU();
 	void generateAS_GPU(uint SHADING_FLAG);
-	void refAS_GPU(int idx, Real lambda, uint SHADING_FLAG);
+	void refAS_GPU(int idx, Real lambda, geometric &geometric,uint SHADING_FLAG);
 
 	// correct the output scale of the  ophGen::conv_fft2 
 	void conv_fft2_scale(Complex<Real>* src1, Complex<Real>* src2, Complex<Real>* dst, ivec2 size);
@@ -274,11 +273,6 @@ private:
 	OphMeshData* meshData;					/// OphMeshData type data structure pointer
 	Real* tempFreqTermX;
 	Real* tempFreqTermY;
-
-	//	Inner local parameters
-	///	do not need to consider to users
-
-	geometric geom;
 
 	// calGlobalFrequency()
 	Real dfx, dfy;

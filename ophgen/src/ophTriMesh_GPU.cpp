@@ -122,11 +122,19 @@ void ophTri::generateAS_GPU(uint SHADING_FLAG)
 			if (!findGeometricalRelations(scaledMeshData[j], no[j], geom))
 				continue;
 
-			refAS_GPU(j, context_.wave_length[ch], SHADING_FLAG);
+			refAS_GPU(j, context_.wave_length[ch], geom, SHADING_FLAG);
 
 			m_nProgress = (int)((Real)(ch * N + j + 1) * 50 / ((Real)N * nChannel));
 		}
+#if 1// GPU Memory -> CPU Memory
+		HANDLE_ERROR(cudaMemcpyAsync(output, angularSpectrum_GPU, sizeof(cufftDoubleComplex) * pnXY, cudaMemcpyDeviceToHost, streamTriMesh));
 
+		for (int i = 0; i < pnXY; ++i)
+		{
+			complex_H[ch][i][_RE] = output[i].x;
+			complex_H[ch][i][_IM] = output[i].y;
+		}
+#else
 		HANDLE_ERROR(cudaMemsetAsync(ffttemp, 0, sizeof(cufftDoubleComplex) * pnXY, streamTriMesh));
 		call_fftGPU(pnX, pnY, angularSpectrum_GPU, ffttemp, streamTriMesh);
 
@@ -139,18 +147,39 @@ void ophTri::generateAS_GPU(uint SHADING_FLAG)
 			complex_H[ch][i][_RE] = output[i].x;
 			complex_H[ch][i][_IM] = output[i].y;
 		}
+#endif
 	}
 
 	m_nProgress = 100;
-	if (output != nullptr) delete[] output;
-	if (scaledMeshData != nullptr) delete[] scaledMeshData;
-	if (no != nullptr) delete[] no;
-	if (na != nullptr) delete[] na;
-	if (nv != nullptr) delete[] nv;
+	if (output != nullptr)
+	{
+		delete[] output;
+		output = nullptr;
+	}
+	if (scaledMeshData != nullptr)
+	{
+		delete[] scaledMeshData;
+		scaledMeshData = nullptr;
+	}
+	if (no != nullptr)
+	{
+		delete[] no;
+		no = nullptr;
+	}
+	if (na != nullptr)
+	{
+		delete[] na;
+		na = nullptr;
+	}
+	if (nv != nullptr)
+	{
+		delete[] nv;
+		nv = nullptr;
+	}
 }
 
 
-void ophTri::refAS_GPU(int idx, Real lambda, uint SHADING_FLAG)
+void ophTri::refAS_GPU(int idx, Real lambda, geometric& geom,uint SHADING_FLAG)
 {
 	int nx = context_.pixel_number[_X];
 	int ny = context_.pixel_number[_Y];
