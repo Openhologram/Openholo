@@ -380,7 +380,11 @@ bool ophDepthMap::readImageDepth(const char* source_folder, const char* img_name
 
 	// RGB Image
 	char imgPath[FILENAME_MAX] = { 0, };
+#ifdef _WIN64
 	sprintf(imgPath, "%s\\%s.bmp", source_folder, img_name);
+#else
+	sprintf(imgPath, "%s/%s.bmp", source_folder, img_name);
+#endif
 
 	int w, h, bytesperpixel;
 	bool ret = getImgSize(w, h, bytesperpixel, imgPath);
@@ -433,7 +437,11 @@ bool ophDepthMap::readImageDepth(const char* source_folder, const char* img_name
 	// Depth Image
 	//=================================================================================
 	char dimgPath[FILENAME_MAX] = { 0, };
+#ifdef _WIN64
 	sprintf(dimgPath, "%s\\%s.bmp", source_folder, depth_img_name);
+#else
+	sprintf(dimgPath, "%s/%s.bmp", source_folder, depth_img_name);
+#endif
 	ret = getImgSize(w, h, bytesperpixel, dimgPath);
 	
 	// Depth Image
