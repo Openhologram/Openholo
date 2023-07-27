@@ -47,6 +47,7 @@
 #define __ophTriMesh_h
 
 #include "ophGen.h"
+#include <cufft.h>
 
 //Build Option : Multi Core Processing (OpenMP)
 #ifdef _OPENMP
@@ -245,7 +246,7 @@ private:
 
 	void initialize_GPU();
 	void generateAS_GPU(uint SHADING_FLAG);
-	void refAS_GPU(int idx, Real lambda, geometric &geometric,uint SHADING_FLAG);
+	//void refAS_GPU(int idx, MeshKernelConfig* config, geometric &geometric);
 
 	// correct the output scale of the  ophGen::conv_fft2 
 	void conv_fft2_scale(Complex<Real>* src1, Complex<Real>* src2, Complex<Real>* dst, ivec2 size);
@@ -330,6 +331,10 @@ private:
 	TextMap texture;
 	bool TM = false;
 	int idxCarr, idxCarrFx, idxCarrFy;
+	cufftDoubleComplex* angularSpectrum_GPU;
+	cufftDoubleComplex* ffttemp;
+
+	cudaStream_t	streamTriMesh;
 
 };
 

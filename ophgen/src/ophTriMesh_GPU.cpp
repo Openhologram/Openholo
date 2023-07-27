@@ -44,6 +44,7 @@
 //M*/
 
 #include "ophTriMesh_GPU.h"
+#include "CUDA.h"
 
 using namespace oph;
 
@@ -108,11 +109,27 @@ void ophTri::generateAS_GPU(uint SHADING_FLAG)
 
 	findNormals(SHADING_FLAG);
 
+	MeshKernelConfig* device_config = nullptr;
+	cudaMalloc((void**)&device_config, sizeof(MeshKernelConfig));
+	geometric* device_geom = nullptr;
+	cudaMalloc((void**)&device_geom, sizeof(geometric));
+
+	int nBlockThreads = CUDA::getInstance()->getMaxThreads() >> 1;
+	int nBlocks = (pnX * pnY + nBlockThreads - 1) / nBlockThreads;
+
 	for (uint ch = 0; ch < nChannel; ch++) {	
 
 		HANDLE_ERROR(cudaMemsetAsync(angularSpectrum_GPU, 0, sizeof(cufftDoubleComplex) * pnXY, streamTriMesh));
-
 		geometric geom;
+
+		MeshKernelConfig* host_config = new MeshKernelConfig(
+			context_.pixel_number,
+			context_.pixel_pitch,
+			context_.wave_length[ch],
+			SHADING_FLAG
+		);
+
+		cudaMemcpy(device_config, host_config, sizeof(MeshKernelConfig), cudaMemcpyHostToDevice);
 
 		for (int j = 0; j < N; j++)
 		{
@@ -122,11 +139,39 @@ void ophTri::generateAS_GPU(uint SHADING_FLAG)
 			if (!findGeometricalRelations(scaledMeshData[j], no[j], geom))
 				continue;
 
-			refAS_GPU(j, context_.wave_length[ch], geom, SHADING_FLAG);
+			cudaMemcpy(device_geom, (void*)&geom, sizeof(geometric), cudaMemcpyHostToDevice);
 
+			Real shadingFactor = 0;
+			vec3 av(0, 0, 0);
+
+			if (SHADING_FLAG == SHADING_FLAT)
+			{
+				vec3 no_ = no[j];
+				vec3 n = no_ / norm(no_);
+				if (illumination[_X] == 0 && illumination[_Y] == 0 && illumination[_Z] == 0) {
+					shadingFactor = 1;
+				}
+				else {
+					vec3 normIllu = illumination / norm(illumination);
+					shadingFactor = 2 * (n[_X] * normIllu[_X] + n[_Y] * normIllu[_Y] + n[_Z] * normIllu[_Z]) + 0.3;
+					if (shadingFactor < 0) shadingFactor = 0;
+				}
+
+				cudaMesh_Flat(nBlocks, nBlockThreads, angularSpectrum_GPU, device_config, shadingFactor,
+					device_geom, carrierWave[_X], carrierWave[_Y], carrierWave[_Z], streamTriMesh);
+			}
+			else if (SHADING_FLAG == SHADING_CONTINUOUS)
+			{
+				av[0] = nv[3 * j + 0][0] * illumination[0] + nv[3 * j + 0][1] * illumination[1] + nv[3 * j + 0][2] * illumination[2] + 0.1;
+				av[2] = nv[3 * j + 1][0] * illumination[0] + nv[3 * j + 1][1] * illumination[1] + nv[3 * j + 1][2] * illumination[2] + 0.1;
+				av[1] = nv[3 * j + 2][0] * illumination[0] + nv[3 * j + 2][1] * illumination[1] + nv[3 * j + 2][2] * illumination[2] + 0.1;
+
+				cudaMesh_Continuous(nBlocks, nBlockThreads, angularSpectrum_GPU, device_config,
+					device_geom, av[0], av[1], av[2], carrierWave[_X], carrierWave[_Y], carrierWave[_Z], streamTriMesh);
+			}
 			m_nProgress = (int)((Real)(ch * N + j + 1) * 50 / ((Real)N * nChannel));
 		}
-#if 1// GPU Memory -> CPU Memory
+
 		HANDLE_ERROR(cudaMemcpyAsync(output, angularSpectrum_GPU, sizeof(cufftDoubleComplex) * pnXY, cudaMemcpyDeviceToHost, streamTriMesh));
 
 		for (int i = 0; i < pnXY; ++i)
@@ -134,21 +179,17 @@ void ophTri::generateAS_GPU(uint SHADING_FLAG)
 			complex_H[ch][i][_RE] = output[i].x;
 			complex_H[ch][i][_IM] = output[i].y;
 		}
-#else
-		HANDLE_ERROR(cudaMemsetAsync(ffttemp, 0, sizeof(cufftDoubleComplex) * pnXY, streamTriMesh));
-		call_fftGPU(pnX, pnY, angularSpectrum_GPU, ffttemp, streamTriMesh);
 
-
-		// GPU Memory -> CPU Memory
-		HANDLE_ERROR(cudaMemcpyAsync(output, ffttemp, sizeof(cufftDoubleComplex) * pnXY, cudaMemcpyDeviceToHost, streamTriMesh));
-
-		for (int i = 0; i < pnXY; ++i)
-		{
-			complex_H[ch][i][_RE] = output[i].x;
-			complex_H[ch][i][_IM] = output[i].y;
-		}
-#endif
+		delete host_config;
 	}
+
+	cudaFree(device_geom);
+	cudaFree(device_config);
+	cudaFree(angularSpectrum_GPU);
+	cudaFree(fftTemp);
+
+	cudaStreamDestroy(streamTriMesh);
+	streamTriMesh = nullptr;
 
 	m_nProgress = 100;
 	if (output != nullptr)
@@ -176,48 +217,4 @@ void ophTri::generateAS_GPU(uint SHADING_FLAG)
 		delete[] nv;
 		nv = nullptr;
 	}
-}
-
-
-void ophTri::refAS_GPU(int idx, Real lambda, geometric& geom,uint SHADING_FLAG)
-{
-	int nx = context_.pixel_number[_X];
-	int ny = context_.pixel_number[_Y];
-	double px = context_.pixel_pitch[_X];
-	double py = context_.pixel_pitch[_Y];
-	double waveLength = lambda;
-
-	Real shadingFactor = 0;
-	vec3 av(0, 0, 0);
-
-	if (SHADING_FLAG == SHADING_FLAT) {
-		vec3 no_ = no[idx];
-		vec3 n = no_ / norm(no_);
-		if (illumination[_X] == 0 && illumination[_Y] == 0 && illumination[_Z] == 0) {
-			shadingFactor = 1;
-		}
-		else {
-			vec3 normIllu = illumination / norm(illumination);
-			shadingFactor = 2 * (n[_X] * normIllu[_X] + n[_Y] * normIllu[_Y] + n[_Z] * normIllu[_Z]) + 0.3;
-			if (shadingFactor < 0)
-				shadingFactor = 0;
-		}
-	}
-	else if (SHADING_FLAG == SHADING_CONTINUOUS) {
-
-		av[0] = nv[3 * idx + 0][0] * illumination[0] + nv[3 * idx + 0][1] * illumination[1] + nv[3 * idx + 0][2] * illumination[2] + 0.1;
-		av[2] = nv[3 * idx + 1][0] * illumination[0] + nv[3 * idx + 1][1] * illumination[1] + nv[3 * idx + 1][2] * illumination[2] + 0.1;
-		av[1] = nv[3 * idx + 2][0] * illumination[0] + nv[3 * idx + 2][1] * illumination[1] + nv[3 * idx + 2][2] * illumination[2] + 0.1;
-
-
-	}
-
-	double min_double = (double)2.2250738585072014e-308;
-	double tolerence = 1e-12;
-
-	call_cudaKernel_refAS(angularSpectrum_GPU, nx, ny, px, py, SHADING_FLAG, idx, waveLength, M_PI, shadingFactor, av[0], av[1], av[2],
-		geom.glRot[0], geom.glRot[1], geom.glRot[2], geom.glRot[3], geom.glRot[4], geom.glRot[5], geom.glRot[6], geom.glRot[7], geom.glRot[8],
-		geom.loRot[0], geom.loRot[1], geom.loRot[2], geom.loRot[3], geom.glShift[_X], geom.glShift[_Y], geom.glShift[_Z],
-		carrierWave[_X], carrierWave[_Y], carrierWave[_Z], min_double, tolerence, streamTriMesh);
-
 }

@@ -73,6 +73,9 @@ ophTri::ophTri(void)
 	, meshData(nullptr)
 	, tempFreqTermX(nullptr)
 	, tempFreqTermY(nullptr)
+	, streamTriMesh(nullptr)
+	, angularSpectrum_GPU(nullptr)
+	, ffttemp(nullptr)
 {
 	LOG("*** TRI MESH : BUILD DATE: %s %s ***\n\n", __DATE__, __TIME__);
 }

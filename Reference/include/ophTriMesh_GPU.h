@@ -79,24 +79,68 @@ static void HandleError(cudaError_t err,
     printf("Error at %s:%d\n",__FILE__,__LINE__);\
 	exit( EXIT_FAILURE ); }}
 
-cufftDoubleComplex *angularSpectrum_GPU;
-cufftDoubleComplex *ffttemp;
 
-cudaStream_t	streamTriMesh;
+typedef struct MeshKernelConfig {
+	int pn_X;		/// Number of pixel of SLM in x direction
+	int pn_Y;		/// Number of pixel of SLM in y direction
+	double pp_X; /// Pixel pitch of SLM in x direction
+	double pp_Y; /// Pixel pitch of SLM in y direction
+	unsigned int shading_flag; // flat or continuous
+	double dfx;
+	double dfy;
+	double lambda;
+	double min_double;
+	double tolerence;
+	double pi;
+	double pi2;
+	double square_pi2;
+	double cube_pi2;
+
+	MeshKernelConfig(
+		const ivec2& pixel_number,	/// Number of pixel of SLM in x, y direction
+		const vec2& pixel_pitch,	/// Pixel pitch of SLM in x, y direction
+		const Real& lambda,			/// Wave length
+		const uint& shading_flag
+	)
+	{
+		// Output Image Size
+		this->pn_X = pixel_number[_X];
+		this->pn_Y = pixel_number[_Y];
+
+		// Pixel pitch at eyepiece lens plane (by simple magnification) ==> SLM pitch
+		this->pp_X = pixel_pitch[_X];
+		this->pp_Y = pixel_pitch[_Y];
+
+		this->lambda = lambda;
+
+		this->dfx = (1.0 / this->pp_X) / this->pn_X;
+		this->dfy = (1.0 / this->pp_Y) / this->pn_Y;
+
+		this->shading_flag = shading_flag;
+
+		min_double = (double)2.2250738585072014e-308;
+		tolerence = 1e-12;
+		pi = M_PI;
+		pi2 = pi * 2;
+		square_pi2 = pi2 * pi2;
+		cube_pi2 = square_pi2 * pi2;
+	}
+} MeshKernelConfig;
+
 
 extern "C"
 {
-	void call_cudaKernel_refAS(cufftDoubleComplex* output, int nx, int ny, double px, double py, unsigned int SHADING_FLAG, int idx, 
-		double waveLength, double pi, double shadingFactor, double av0, double av1, double av2,
-		double glRot0, double glRot1, double glRot2, double glRot3, double glRot4, double glRot5, double glRot6, double glRot7, double glRot8,
-		double loRot0, double loRot1, double loRot2, double loRot3, double glShiftX, double glShiftY, double glShiftZ,
-		double carrierWaveX, double carrierWaveY, double carrierWaveZ, double min_double, double tolerence, CUstream_st* streamTriMesh);
-	
-	void call_cudaKernel_refASf(cuFloatComplex* output, int nx, int ny, float px, float py, unsigned int sflag, int idx, float waveLength,
-		float pi, float shadingFactor, float av0, float av1, float av2,
-		float glRot0, float glRot1, float glRot2, float glRot3, float glRot4, float glRot5, float glRot6, float glRot7, float glRot8,
-		float loRot0, float loRot1, float loRot2, float loRot3, float glShiftX, float glShiftY, float glShiftZ,
-		float carrierWaveX, float carrierWaveY, float carrierWaveZ, float min_double, float tolerence, CUstream_st* streamTriMesh);
+	void cudaMesh_Flat(
+		const int& nBlocks, const int& nThreads, cufftDoubleComplex* output,
+		const MeshKernelConfig* config, double shading_factor, const geometric* geom,
+		double carrierWaveX, double carrierWaveY, double carrierWaveZ, CUstream_st* stream
+	);
+
+	void cudaMesh_Continuous(
+		const int& nBlocks, const int& nThreads, cufftDoubleComplex* output,
+		const MeshKernelConfig* config, const geometric* geom, double av0, double av1, double av2,
+		double carrierWaveX, double carrierWaveY, double carrierWaveZ, CUstream_st* stream
+	);
 
 	void call_fftGPU(int nx, int ny, cufftDoubleComplex* input, cufftDoubleComplex* output, CUstream_st* streamTriMesh);
 	void call_fftGPUf(int nx, int ny, cuFloatComplex* input, cuFloatComplex* output, CUstream_st* streamTriMesh);
