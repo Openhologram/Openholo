@@ -20,6 +20,7 @@ Link: https://developer.nvidia.com/cuda-toolkit-archive
 
 ***
 ### 3. Set the environment variable 'CUDA_PATH'. 
+
 ![image](https://github.com/Openhologram/Openholo/assets/54168276/e4a32054-ea03-441f-989b-3765285408db)
 
 ***
@@ -33,6 +34,7 @@ Minor Version: B
 
 ex) Cuda 11.6 toolkit
 CUDA 11.6.props and ...
+
 ![image](https://github.com/Openhologram/Openholo/assets/54168276/375d7d27-28fe-4307-914a-548c7ccf5188)
 
 ***
