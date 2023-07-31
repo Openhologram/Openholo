@@ -5,7 +5,9 @@ C/C++ Based Openholo library solution
 
 ### 1. Select and download the required version of the CUDA toolkit.
 Link: [https://developer.nvidia.com/cuda-toolkit-archive]
+
 ![image](https://github.com/Openhologram/Openholo/assets/54168276/3e78a0e7-f244-4018-8e2e-ec7059ceeebb)
+
 ![image](https://github.com/Openhologram/Openholo/assets/54168276/d5c54e88-a0bc-469d-8d88-b66ed786b65a)
 
 ### 2. Install the CUDA toolkit. (Visual Studio should be shut down)
@@ -29,4 +31,5 @@ CUDA 11.6.props and ...
 
 ### 6. Open the project file, and check the build dependencies.
 ![image](https://github.com/Openhologram/Openholo/assets/54168276/2131656e-7f66-41bf-83e1-56b19d0faf83)
+
 ![image](https://github.com/Openhologram/Openholo/assets/54168276/d6507e1e-1651-415a-821d-17a23112ee61)
