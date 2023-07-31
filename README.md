@@ -1,5 +1,10 @@
 # Openholo
 C/C++ Based Openholo library solution
+
+***
+## Check GPUs supported
+https://en.wikipedia.org/wiki/CUDA
+
 ***
 ## Setting up a CUDA environment
 
