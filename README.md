@@ -4,7 +4,7 @@ C/C++ Based Openholo library solution
 ## Setting up a CUDA environment
 
 ### 1. Select and download the required version of the CUDA toolkit.
-Link: [https://developer.nvidia.com/cuda-toolkit-archive]
+Link: https://developer.nvidia.com/cuda-toolkit-archive
 
 ![image](https://github.com/Openhologram/Openholo/assets/54168276/3e78a0e7-f244-4018-8e2e-ec7059ceeebb)
 
