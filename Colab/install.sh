@@ -28,7 +28,7 @@ function compile_openholo_library(){
 	cd $ROOT_PATH
 	mkdir -p build
 	cd build
-	cmake ../../
+	cmake ..
 	make
 }
 
@@ -36,8 +36,8 @@ function compile_openholo_library(){
 # execute_openholo_test
 ##############################################
 function execute_openholo_test(){
-	cd $ROOT_PATH
-  	echo $ROOT_PATH
+	cd $ROOT_PATH/Colab
+  	echo $ROOT_PATH/Colab
 
 	FILE_NAME=OpenholoGeneration
 	SOURCE_NAME=OpenholoGeneration.cpp
