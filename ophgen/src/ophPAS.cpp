@@ -13,12 +13,14 @@
 ophPAS::ophPAS(void)
 	: ophGen()
 	, n_points(-1)
+	, m_pHologram(nullptr)
 {
 }
 
 ophPAS::~ophPAS()
 {
-	
+	if (m_pHologram != nullptr)
+		delete[] m_pHologram;	
 }
 
 bool ophPAS::readConfig(const char* fname)
@@ -27,7 +29,6 @@ bool ophPAS::readConfig(const char* fname)
 		return false;
 
 	bool bRet = true;
-	auto begin = CUR_TIME;
 
 	using namespace tinyxml2;
 	/*XML parsing*/
@@ -78,8 +79,14 @@ bool ophPAS::readConfig(const char* fname)
 		bRet = false;
 	}
 	
-	LOG("%s : %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
 	initialize();
+
+	LOG("**************************************************\n");
+	LOG("       Read Config (Phase-Added Stereogram)       \n");
+	LOG("1) Focal Length : %.5lf\n", pc_config.distance);
+	LOG("2) Object Scale : %.5lf / %.5lf / %.5lf\n", pc_config.scale[_X], pc_config.scale[_Y], pc_config.scale[_Z]);
+	LOG("**************************************************\n");
+
 	return bRet;
 }
 
@@ -91,7 +98,8 @@ int ophPAS::loadPoint(const char* _filename)
 
 void ophPAS::init()
 {
-	m_pHologram = new double[getContext().pixel_number[_X] * getContext().pixel_number[_Y]];
+	if (m_pHologram == nullptr)
+		m_pHologram = new double[getContext().pixel_number[_X] * getContext().pixel_number[_Y]];
 	memset(m_pHologram, 0x00, sizeof(double)*getContext().pixel_number[_X] * getContext().pixel_number[_Y]);
 	
 	
@@ -101,7 +109,6 @@ void ophPAS::init()
 		m_SINtbl[i] = (float)sin(theta);
 		
 	}// -> gpu 
-	
 	
 }
 

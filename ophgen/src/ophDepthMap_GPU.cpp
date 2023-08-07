@@ -161,6 +161,8 @@ void ophDepthMap::calcHoloGPU()
 	int blockSize = CUDA::getInstance()->getMaxThreads() >> 1; //n_threads // blockSize < devProp.maxThreadsPerBlock
 	ulonglong gridSize = (N + blockSize - 1) / blockSize; //n_blocks
 
+	vector<double>* pSrc = is_ViewingWindow ? &dlevel_transform : &dlevel;
+
 	for (uint ch = 0; ch < nChannel; ch++)
 	{
 		HANDLE_ERROR(cudaMemsetAsync(u_complex_gpu_, 0, sizeof(cufftDoubleComplex) * N, stream_));
@@ -187,7 +189,7 @@ void ophDepthMap::calcHoloGPU()
 			memcpy(&rand_phase, &randPhase, sizeof(Complex<Real>));
 
 			int dtr = dm_config_.render_depth[p];
-			Real temp_depth = (is_ViewingWindow) ? dlevel_transform[dtr - 1] : dlevel[dtr - 1];
+			Real temp_depth = pSrc->at(dtr - 1);
 
 			Complex<Real> carrierPhaseDelay(0, k * -temp_depth);
 			carrierPhaseDelay.exp();

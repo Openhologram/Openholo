@@ -57,6 +57,7 @@
 
 ophDepthMap::ophDepthMap()
 	: ophGen()
+	, stream_(nullptr)
 	, m_nProgress(0)
 {
 	// GPU Variables

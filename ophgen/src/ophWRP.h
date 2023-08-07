@@ -192,6 +192,18 @@ public:
 	*/
 	void setViewingWindow(bool is_ViewingWindow);
 	uint* getProgress() { return &m_nProgress; }
+
+
+	/**
+	* @brief Get point cloud vertex data
+	* @return vertex data address
+	*/
+	inline Vertex* getPointCloudModel() { return obj_.vertices; }
+	/**
+	* @brief Directly Get Basic Data
+	* @return ulonglong 3D Point Cloud count
+	*/
+	inline ulonglong getNumberOfPoints() { return obj_.n_points; }
 	
 protected:
 

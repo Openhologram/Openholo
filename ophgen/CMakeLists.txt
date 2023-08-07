@@ -83,7 +83,6 @@ set(SRC_FILES
     src/ophDepthMap_GPU.h
     src/ophGen.h
     src/ophIFTA.h
-    src/ophLUT.h
     src/ophLightField.h
     src/ophLightField_GPU.h
     src/ophNonHogelLF.h
@@ -105,7 +104,6 @@ set(SRC_FILES
     src/ophDepthMap_GPU.cpp
     src/ophGen.cpp
     src/ophIFTA.cpp
-    src/ophLUT.cpp
     src/ophLightField.cpp
     src/ophLightField_GPU.cpp
     src/ophNonHogelLF.cpp

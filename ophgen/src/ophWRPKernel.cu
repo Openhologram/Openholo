@@ -207,8 +207,8 @@ void cudaKernel_GenWRP(Vertex* pc_dst, const WRPGpuConst* config, const int n_po
 		double z = pc_dst[tid].point.pos[_Z];
 		double amp = pc_dst[tid].color.color[_R + config->iAmplitude];
 
-		int hpnX = pnX / 2;
-		int hpnY = pnY / 2;
+		int hpnX = pnX >> 1;
+		int hpnY = pnY >> 1;
 		double ppXX = ppX * ppX * 2;
 		//double dz = config->wrp_d - config->zmax;
 		double tw = fabs(lambda * dz / ppXX) * 2;

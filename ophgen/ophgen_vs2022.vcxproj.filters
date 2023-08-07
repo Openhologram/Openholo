@@ -25,9 +25,6 @@
     <Filter Include="_1_Generation\_ophPAS">
       <UniqueIdentifier>{e0beee0b-affd-43cb-8369-f48760dc5000}</UniqueIdentifier>
     </Filter>
-    <Filter Include="_1_Generation\_ophLUT">
-      <UniqueIdentifier>{312a3ecb-f0ce-411f-aec4-782229318ebd}</UniqueIdentifier>
-    </Filter>
     <Filter Include="_1_Generation\_ophTriangleMesh">
       <UniqueIdentifier>{f7251fc7-2938-44bb-80cf-9066fa9a62b9}</UniqueIdentifier>
     </Filter>
@@ -78,9 +75,6 @@
     </ClInclude>
     <ClInclude Include="src\ophACPAS.h">
       <Filter>_1_Generation\_ophACPAS</Filter>
-    </ClInclude>
-    <ClInclude Include="src\ophLUT.h">
-      <Filter>_1_Generation\_ophLUT</Filter>
     </ClInclude>
     <ClInclude Include="src\ophPAS.h">
       <Filter>_1_Generation\_ophPAS</Filter>
@@ -148,9 +142,6 @@
     </ClCompile>
     <ClCompile Include="src\ophACPAS.cpp">
       <Filter>_1_Generation\_ophACPAS</Filter>
-    </ClCompile>
-    <ClCompile Include="src\ophLUT.cpp">
-      <Filter>_1_Generation\_ophLUT</Filter>
     </ClCompile>
     <ClCompile Include="src\ophPAS.cpp">
       <Filter>_1_Generation\_ophPAS</Filter>

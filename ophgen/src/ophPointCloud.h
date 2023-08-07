@@ -597,12 +597,12 @@ public:
 
 	/**
 	* @brief Get point cloud vertex data
-	* @param[out] vertex data address
+	* @return vertex data address
 	*/
 	inline Vertex* getPointCloudModel() { return pc_data_.vertices; }
 	/**
 	* @brief Directly Get Basic Data
-	* @return int 3D Point Cloud count
+	* @return ulonglong 3D Point Cloud count
 	*/
 	inline ulonglong getNumberOfPoints() { return pc_data_.n_points; }
 

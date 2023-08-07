@@ -46,6 +46,8 @@
 #ifndef __ophSimulator_h
 #define __ophSimulator_h
 
+#define _USE_MATH_DEFINES
+
 #include "ophGen.h"
 #include "ophPointCloud.h"
 #include <vector>

@@ -171,12 +171,12 @@ void cudaKernel_double_RefAS_flat(cufftDoubleComplex* output, const MeshKernelCo
 		if (det == 0)
 			return;
 
-
+		double a = 1 / det;
 		double invLoRot[4];
-		invLoRot[0] = (1 / det) * geom->loRot[3];
-		invLoRot[1] = -(1 / det) * geom->loRot[2];
-		invLoRot[2] = -(1 / det) * geom->loRot[1];
-		invLoRot[3] = (1 / det) * geom->loRot[0];
+		invLoRot[0] = a * geom->loRot[3];
+		invLoRot[1] = -a * geom->loRot[2];
+		invLoRot[2] = -a * geom->loRot[1];
+		invLoRot[3] = a * geom->loRot[0];
 
 		cuDoubleComplex refTerm1 = make_cuDoubleComplex(0, 0);
 		cuDoubleComplex refTerm2 = make_cuDoubleComplex(0, 0);
@@ -326,8 +326,8 @@ void cudaKernel_double_RefAS_flat(cufftDoubleComplex* output, const MeshKernelCo
 		//cuDoubleComplex addtmp = output[col + row * config->pn_X];
 		//output[col+row*config->pn_X] = cuCadd(addtmp,temp);
 
-		output[col + row * config->pn_X].x = output[col + row * config->pn_X].x + temp.x;
-		output[col + row * config->pn_X].y = output[col + row * config->pn_X].y + temp.y;
+		output[tid].x += temp.x;
+		output[tid].y += temp.y;
 	}
 }
 
@@ -348,12 +348,12 @@ void cudaKernel_double_RefAS_continuous(cufftDoubleComplex* output, const MeshKe
 		if (det == 0)
 			return;
 
-
+		double a = 1 / det;
 		double invLoRot[4];
-		invLoRot[0] = (1 / det) * geom->loRot[3];
-		invLoRot[1] = -(1 / det) * geom->loRot[2];
-		invLoRot[2] = -(1 / det) * geom->loRot[1];
-		invLoRot[3] = (1 / det) * geom->loRot[0];
+		invLoRot[0] = a * geom->loRot[3];
+		invLoRot[1] = -a * geom->loRot[2];
+		invLoRot[2] = -a * geom->loRot[1];
+		invLoRot[3] = a * geom->loRot[0];
 
 		cuDoubleComplex refTerm1 = make_cuDoubleComplex(0, 0);
 		cuDoubleComplex refTerm2 = make_cuDoubleComplex(0, 0);
@@ -642,8 +642,8 @@ void cudaKernel_double_RefAS_continuous(cufftDoubleComplex* output, const MeshKe
 		//cuDoubleComplex addtmp = output[col + row * config->pn_X];
 		//output[col+row*config->pn_X] = cuCadd(addtmp,temp);
 
-		output[col + row * config->pn_X].x = output[col + row * config->pn_X].x + temp.x;
-		output[col + row * config->pn_X].y = output[col + row * config->pn_X].y + temp.y;
+		output[tid].x += temp.x;
+		output[tid].y += temp.y;
 	}
 }
 

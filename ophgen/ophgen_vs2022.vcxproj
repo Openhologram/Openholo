@@ -85,8 +85,7 @@ xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)..\OpenholoRefAppGUI\Reference\in
 xcopy /y "$(TargetDir)$(ProjectName)_d.dll" "$(SolutionDir)..\OpenholoRefApp\bin\x64\Debug\"
 xcopy /y "$(TargetDir)$(ProjectName)_d.lib" "$(SolutionDir)..\OpenholoRefApp\Reference\lib\"
 xcopy /y "$(TargetDir)$(ProjectName)_d.dll" "$(SolutionDir)..\OpenholoRefApp\Reference\dll\"
-xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)..\OpenholoRefApp\Reference\include\"
-</Command>
+xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)..\OpenholoRefApp\Reference\include\"</Command>
     </PostBuildEvent>
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
@@ -163,7 +162,6 @@ xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)..\OpenholoRefApp\Reference\inclu
     <ClInclude Include="src\ophIFTA.h" />
     <ClInclude Include="src\ophLightField.h" />
     <ClInclude Include="src\ophLightField_GPU.h" />
-    <ClInclude Include="src\ophLUT.h" />
     <ClInclude Include="src\ophNonHogelLF.h" />
     <ClInclude Include="src\ophPAS.h" />
     <ClInclude Include="src\ophPAS_GPU.h" />
@@ -191,7 +189,6 @@ xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)..\OpenholoRefApp\Reference\inclu
     <ClCompile Include="src\ophIFTA.cpp" />
     <ClCompile Include="src\ophLightField.cpp" />
     <ClCompile Include="src\ophLightField_GPU.cpp" />
-    <ClCompile Include="src\ophLUT.cpp" />
     <ClCompile Include="src\ophNonHogelLF.cpp" />
     <ClCompile Include="src\ophPAS.cpp" />
     <CudaCompile Include="src\ophPASKernel.cu" />

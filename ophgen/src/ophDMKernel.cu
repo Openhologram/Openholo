@@ -106,42 +106,26 @@ void cudaKernel_single_get_kernel(cufftDoubleComplex* u_o_gpu, unsigned char* im
 
 
 __global__
-void propagation_angularsp_kernel(cufftDoubleComplex* input_d, cufftDoubleComplex* u_complex, const DMKernelConfig* config, double propagation_dist)
+void cudaKernel_single_ASM_Propagation(cufftDoubleComplex* input_d, cufftDoubleComplex* u_complex, const DMKernelConfig* config, double propagation_dist)
 {
-#if 0
-	__shared__ int s_pnX, s_pnY;
-	__shared__ double s_k, s_ssX, s_ssY, s_ppX, s_ppY, s_lambda, s_distance;
-
 	int tid = threadIdx.x + blockIdx.x * blockDim.x;
-	if (threadIdx.x == 0)
+	if (tid < config->pn_X * config->pn_Y)
 	{
-		s_pnX = config->pn_X;
-		s_pnY = config->pn_Y;
-		s_ppX = -1.0 / (config->pp_X * 2.0);
-		s_ppY = 1.0 / (config->pp_Y * 2.0);
-		s_ssX = 1.0 / config->ss_X;
-		s_ssY = 1.0 / config->ss_Y;
-		s_lambda = config->lambda;
-		s_k = config->k * config->k;
-		s_distance = propagation_dist;
-	}
-	__syncthreads();
+		int x = tid % config->pn_X;
+		int y = tid / config->pn_X;
 
-	if (tid < s_pnX * s_pnY) {
+		float fxx = (-1.0f / (2.0f * config->pp_X)) + (1.0f / config->ss_X) * (float)x;
+		float fyy = (1.0f / (2.0f * config->pp_Y)) - (1.0f / config->ss_Y) - (1.0f / config->ss_Y) * (float)y;
 
-		int x = tid % s_pnX;
-		int y = tid / s_pnY;
 
-		double fxx = s_ppX + s_ssX * (double)x;
-		double fyy = s_ppY - s_ssY - s_ssY * (double)y;
+		float sval = sqrtf(1 - (config->lambda * fxx) * (config->lambda * fxx) -
+			(config->lambda * fyy) * (config->lambda * fyy));
+		sval *= config->k * propagation_dist;
 
-		double sval = sqrt(1 - (s_lambda * fxx) * (s_lambda * fxx) - (s_lambda * fyy) * (s_lambda * fyy));
-		sval *= s_k * s_distance;
+		int prop_mask = ((fxx * fxx + fyy * fyy) < (config->k * config->k)) ? 1 : 0;
 
 		cuDoubleComplex kernel = make_cuDoubleComplex(0, sval);
 		exponent_complex(&kernel);
-
-		int prop_mask = ((fxx * fxx + fyy * fyy) < s_k) ? 1 : 0;
 
 		cuDoubleComplex u_frequency = make_cuDoubleComplex(0, 0);
 		if (prop_mask == 1)
@@ -149,7 +133,12 @@ void propagation_angularsp_kernel(cufftDoubleComplex* input_d, cufftDoubleComple
 
 		u_complex[tid] = cuCadd(u_complex[tid], u_frequency);
 	}
-#else
+}
+
+
+__global__
+void cudaKernel_double_ASM_Propagation(cufftDoubleComplex* input_d, cufftDoubleComplex* u_complex, const DMKernelConfig* config, double propagation_dist)
+{
 	int tid = threadIdx.x + blockIdx.x * blockDim.x;
 	if (tid < config->pn_X * config->pn_Y)
 	{
@@ -174,10 +163,7 @@ void propagation_angularsp_kernel(cufftDoubleComplex* input_d, cufftDoubleComple
 			u_frequency = cuCmul(kernel, input_d[tid]);
 
 		u_complex[tid] = cuCadd(u_complex[tid], u_frequency);
-
 	}
-
-#endif
 }
 
 
@@ -310,7 +296,7 @@ extern "C"
 		CUstream_st* stream, cufftDoubleComplex* input_d, cufftDoubleComplex* u_complex, 
 		const DMKernelConfig*cuda_config, double propagation_dist)
 	{
-		propagation_angularsp_kernel << <nBlocks, nThreads >> > (input_d, u_complex, cuda_config, propagation_dist);
+		cudaKernel_double_ASM_Propagation << <nBlocks, nThreads >> > (input_d, u_complex, cuda_config, propagation_dist);
 	}
 
 	void cudaCropFringe(CUstream_st* stream, int nx, int ny, cufftDoubleComplex* in_field, cufftDoubleComplex* out_field, int cropx1, int cropx2, int cropy1, int cropy2)
