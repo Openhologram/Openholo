@@ -11,15 +11,16 @@
 void ex_Openholo(const char* conf, const char* input, const char* encod, const char* mode, const char* pro)
 {
 	printf("====== ex_Openholo START ======\n");
-	ophPointCloud *Hologram = new ophPointCloud();
-  unsigned int encoding = -1;
+	ophPointCloud* Hologram = new ophPointCloud();
+	unsigned int encoding = -1;
 	string openholo_enc = "";
 
 	if (0 == strcmp(pro, "0")) {   // pro = 0 --> cpu
 		printf("mode is CPU \n");
 		bool is_CPU = true;
 		Hologram->SetMode(is_CPU);
-	} else if (0 == strcmp(pro, "1")) { // pro = 1 --> gpu
+	}
+	else if (0 == strcmp(pro, "1")) { // pro = 1 --> gpu
 		if (0 == strcmp(mode, "0")) {  // mode = 0 --> single
 			printf("mode is GPU and single \n");
 			uint mode;
@@ -27,7 +28,8 @@ void ex_Openholo(const char* conf, const char* input, const char* encod, const c
 			mode |= MODE_FLOAT;
 			mode |= MODE_FASTMATH;
 			Hologram->SetMode(mode);
-		} else if(0 == strcmp(mode, "1")) {  // mode = 1 --> double
+		}
+		else if (0 == strcmp(mode, "1")) {  // mode = 1 --> double
 			printf("mode is GPU and double \n");
 			bool is_GPU = true;
 			Hologram->SetMode(is_GPU);
@@ -68,8 +70,8 @@ void ex_Openholo(const char* conf, const char* input, const char* encod, const c
 	Hologram->encoding(encoding);
 	Hologram->normalize();
 
-	char buf[512] = {0,};
-	sprintf(buf, "%s%s%s","Result/PointCloud_", openholo_enc.c_str() ,".bmp");
+	char buf[512] = { 0, };
+	sprintf(buf, "%s%s%s", "Result/PointCloud_", openholo_enc.c_str(), ".bmp");
 	Hologram->save(buf, 24);
 	Hologram->release();
 
@@ -79,7 +81,7 @@ void ex_Openholo(const char* conf, const char* input, const char* encod, const c
 void ex_DepthMap(const char* conf, char* p[3], const char* encod, const char* mode, const char* pro)
 {
 	printf("====== ex_DepthMap START ======\n");
-	ophDepthMap *Hologram = new ophDepthMap();
+	ophDepthMap* Hologram = new ophDepthMap();
 	unsigned int encoding = -1;
 	string depthmap_enc = "";
 
@@ -87,7 +89,8 @@ void ex_DepthMap(const char* conf, char* p[3], const char* encod, const char* mo
 		printf("mode is CPU \n");
 		bool is_CPU = true;
 		Hologram->SetMode(is_CPU);
-	} else if (0 == strcmp(pro, "1")) {   // pro = 1 --> gpu
+	}
+	else if (0 == strcmp(pro, "1")) {   // pro = 1 --> gpu
 		if (0 == strcmp(mode, "0")) {  // mode = 0 --> single
 			printf("mode is GPU and single \n");
 			uint mode;
@@ -96,7 +99,8 @@ void ex_DepthMap(const char* conf, char* p[3], const char* encod, const char* mo
 			mode |= MODE_FASTMATH;
 
 			Hologram->SetMode(mode);
-		} else if(0 == strcmp(mode, "1")) { // mode = 1 --> double
+		}
+		else if (0 == strcmp(mode, "1")) { // mode = 1 --> double
 			printf("mode is GPU and double \n");
 			bool is_GPU = true;
 
@@ -136,8 +140,8 @@ void ex_DepthMap(const char* conf, char* p[3], const char* encod, const char* mo
 	Hologram->encoding(encoding);
 	Hologram->normalize();
 
-	char buf[512] = {0,};
-	sprintf(buf, "%s%s%s","Result/DepthMap_", depthmap_enc.c_str() , ".bmp");
+	char buf[512] = { 0, };
+	sprintf(buf, "%s%s%s", "Result/DepthMap_", depthmap_enc.c_str(), ".bmp");
 	Hologram->save(buf, nChannel * 8);
 
 	Hologram->release();
@@ -148,15 +152,16 @@ void ex_DepthMap(const char* conf, char* p[3], const char* encod, const char* mo
 void ex_LightField(const char* conf, const char* input, const char* encod, const char* mode, const char* pro)
 {
 	printf("====== ex_LightField START ======\n");
-	ophLF *Hologram = new ophLF();
-  unsigned int encoding = -1;
+	ophLF* Hologram = new ophLF();
+	unsigned int encoding = -1;
 	string lightfield_enc = "";
 
 	if (0 == strcmp(pro, "0")) {   // pro = 0 --> cpu
 		printf("mode is CPU \n");
 		bool is_CPU = true;
 		Hologram->SetMode(is_CPU);
-	} else if (0 == strcmp(pro, "1")) { // pro = 1 --> gpu
+	}
+	else if (0 == strcmp(pro, "1")) { // pro = 1 --> gpu
 		if (0 == strcmp(mode, "0")) {  // mode = 0 --> single
 			printf("mode is GPU and single \n");
 			uint mode;
@@ -164,7 +169,8 @@ void ex_LightField(const char* conf, const char* input, const char* encod, const
 			mode |= MODE_FLOAT;
 			mode |= MODE_FASTMATH;
 			Hologram->SetMode(mode);
-		} else if(0 == strcmp(mode, "1")) {  // mode = 1 --> double
+		}
+		else if (0 == strcmp(mode, "1")) {  // mode = 1 --> double
 			printf("mode is GPU and double \n");
 			bool is_GPU = true;
 			Hologram->SetMode(is_GPU);
@@ -205,8 +211,8 @@ void ex_LightField(const char* conf, const char* input, const char* encod, const
 	((ophGen*)Hologram)->encoding(encoding);
 	Hologram->normalize();
 	ivec2 encode_size = Hologram->getEncodeSize();
-	char buf[512] = {0,};
-	sprintf(buf, "%s%s%s","Result/LightField_", lightfield_enc.c_str() , ".bmp");
+	char buf[512] = { 0, };
+	sprintf(buf, "%s%s%s", "Result/LightField_", lightfield_enc.c_str(), ".bmp");
 	Hologram->save(buf, 8 * Hologram->getContext().waveNum, nullptr, encode_size[_X], encode_size[_Y]);
 	Hologram->release();
 
@@ -216,15 +222,16 @@ void ex_LightField(const char* conf, const char* input, const char* encod, const
 void ex_TriMesh(const char* conf, const char* input, const char* encod, const char* mode, const char* pro)
 {
 	printf("====== ex_TriMesh START ======\n");
-	ophTri *Hologram = new ophTri();
-  unsigned int encoding = -1;
-  string trimesh_enc = "";
+	ophTri* Hologram = new ophTri();
+	unsigned int encoding = -1;
+	string trimesh_enc = "";
 
 	if (0 == strcmp(pro, "0")) {   // pro = 0 --> cpu
 		printf("mode is CPU \n");
 		bool is_CPU = true;
 		Hologram->SetMode(is_CPU);
-	} else if (0 == strcmp(pro, "1")) { // pro = 1 --> gpu
+	}
+	else if (0 == strcmp(pro, "1")) { // pro = 1 --> gpu
 		if (0 == strcmp(mode, "0")) {  // mode = 0 --> single
 			printf("mode is GPU and single \n");
 			uint mode;
@@ -232,7 +239,8 @@ void ex_TriMesh(const char* conf, const char* input, const char* encod, const ch
 			mode |= MODE_FLOAT;
 			mode |= MODE_FASTMATH;
 			Hologram->SetMode(mode);
-		} else if(0 == strcmp(mode, "1")) {  // mode = 1 --> double
+		}
+		else if (0 == strcmp(mode, "1")) {  // mode = 1 --> double
 			printf("mode is GPU and double \n");
 			bool is_GPU = true;
 			Hologram->SetMode(is_GPU);
@@ -274,8 +282,8 @@ void ex_TriMesh(const char* conf, const char* input, const char* encod, const ch
 	Hologram->normalize();
 	ivec2 encode_size = Hologram->getEncodeSize();
 
-	char buf[512] = {0,};
-	sprintf(buf, "%s%s%s","Result/TriMesh_", trimesh_enc.c_str() , ".bmp");
+	char buf[512] = { 0, };
+	sprintf(buf, "%s%s%s", "Result/TriMesh_", trimesh_enc.c_str(), ".bmp");
 	Hologram->save(buf, 8 * Hologram->getContext().waveNum, nullptr, encode_size[_X], encode_size[_Y]);
 	Hologram->release();
 
@@ -285,15 +293,16 @@ void ex_TriMesh(const char* conf, const char* input, const char* encod, const ch
 void ex_WRP(const char* conf, const char* input, const char* encod, const char* mode, const char* pro)
 {
 	printf("====== ex_WRP START ======\n");
-	ophWRP *Hologram = new ophWRP();
-  unsigned int encoding = -1;
+	ophWRP* Hologram = new ophWRP();
+	unsigned int encoding = -1;
 	string wrp_enc = "";
 
 	if (0 == strcmp(pro, "0")) {   // pro = 0 --> cpu
 		printf("mode is CPU \n");
 		bool is_CPU = true;
 		Hologram->SetMode(is_CPU);
-	} else if (0 == strcmp(pro, "1")) { // pro = 1 --> gpu
+	}
+	else if (0 == strcmp(pro, "1")) { // pro = 1 --> gpu
 		if (0 == strcmp(mode, "0")) {  // mode = 0 --> single
 			printf("mode is GPU and single \n");
 			uint mode;
@@ -301,7 +310,8 @@ void ex_WRP(const char* conf, const char* input, const char* encod, const char* 
 			mode |= MODE_FLOAT;
 			mode |= MODE_FASTMATH;
 			Hologram->SetMode(mode);
-		} else if(0 == strcmp(mode, "1")) {  // mode = 1 --> double
+		}
+		else if (0 == strcmp(mode, "1")) {  // mode = 1 --> double
 			printf("mode is GPU and double \n");
 			bool is_GPU = true;
 			Hologram->SetMode(is_GPU);
@@ -339,13 +349,13 @@ void ex_WRP(const char* conf, const char* input, const char* encod, const char* 
 	Hologram->readConfig(conf); // "Config/Generation_PointCloud (RGB).xml"
 	Hologram->loadPointCloud(input); // "PointCloud & WRP/pointcloud_1470.ply"
 	Hologram->generateHologram();
-	((ophGen *)Hologram)->encoding(encoding);
+	((ophGen*)Hologram)->encoding(encoding);
 	Hologram->normalize();
 
-	char buf[512] = {0,};
+	char buf[512] = { 0, };
 	ivec2 encode_size = Hologram->getEncodeSize();
-	sprintf(buf, "%s%s%s","Result/WRP_", wrp_enc.c_str() , ".bmp");
-	Hologram->save(buf, 8* Hologram->getContext().waveNum, nullptr, encode_size[_X], encode_size[_Y]);
+	sprintf(buf, "%s%s%s", "Result/WRP_", wrp_enc.c_str(), ".bmp");
+	Hologram->save(buf, 8 * Hologram->getContext().waveNum, nullptr, encode_size[_X], encode_size[_Y]);
 	Hologram->release();
 
 	printf("====== ex_WRP END ======\n");
@@ -361,8 +371,8 @@ int main(int argc, char* argv[])
 	string str5 = "-m";
 	string str6 = "-p";
 
-	char config[128] = {0,};
-	char input[128] = {0,};
+	char config[128] = { 0, };
+	char input[128] = { 0, };
 	const char* alg = "";
 	char* p[3];
 	const char* encod = "";
@@ -370,43 +380,52 @@ int main(int argc, char* argv[])
 	const char* pro = "";
 
 
-  printf("argc :  %d ", argc);
+	printf("argc :  %d ", argc);
 
 	for (int i = 1; i < argc; i++) {
-		if (0 == strcmp(str1.c_str(), argv[i])){
-			alg = argv[i+1];
+		if (0 == strcmp(str1.c_str(), argv[i])) {
+			alg = argv[i + 1];
 			printf("alg = %s \n", alg);
-		} else if (0 == strcmp(str2.c_str(), argv[i])) {
+		}
+		else if (0 == strcmp(str2.c_str(), argv[i])) {
 			strcpy(config, argv[i + 1]);
 			printf("config = %s \n", config);
-		} else if (0 == strcmp(str3.c_str(), argv[i])) {
-			if (0 == strcmp(alg, "1")){
+		}
+		else if (0 == strcmp(str3.c_str(), argv[i])) {
+			if (0 == strcmp(alg, "1")) {
 				for (int j = 0; j < 3; j++) {
 					p[j] = new char[12 * sizeof(argv[i + 1])];
 					printf("p = %s \n", argv[i + j + 1]);
 					strcpy(p[j], argv[i + j + 1]);
 				}
-			} else if (0 == strcmp(alg, "0")){
+			}
+			else if (0 == strcmp(alg, "0")) {
 				strcpy(input, argv[i + 1]);
 				printf("PointCloud_input = %s \n", input);
-			} else if (0 == strcmp(alg, "2")){
+			}
+			else if (0 == strcmp(alg, "2")) {
 				strcpy(input, argv[i + 1]);
 				printf("LightField_input = %s \n", input);
-			} else if (0 == strcmp(alg, "3")){
+			}
+			else if (0 == strcmp(alg, "3")) {
 				strcpy(input, argv[i + 1]);
 				printf("TriMesh_input = %s \n", input);
-			} else {   // alg == 4
+			}
+			else {   // alg == 4
 				strcpy(input, argv[i + 1]);
 				printf("WRP_input = %s \n", input);
 			}
-		} else if (0 == strcmp(str4.c_str(), argv[i])) {
-			encod = argv[i+1];
+		}
+		else if (0 == strcmp(str4.c_str(), argv[i])) {
+			encod = argv[i + 1];
 			printf("encod = %s \n", encod);
-		} else if (0 == strcmp(str5.c_str(), argv[i])) {
-			mode = argv[i+1];
+		}
+		else if (0 == strcmp(str5.c_str(), argv[i])) {
+			mode = argv[i + 1];
 			printf("mode = %s \n", mode);
-		} else if (0 == strcmp(str6.c_str(), argv[i])) {
-			pro = argv[i+1];
+		}
+		else if (0 == strcmp(str6.c_str(), argv[i])) {
+			pro = argv[i + 1];
 			printf("pro = %s \n", pro);
 		}
 	}
@@ -414,21 +433,26 @@ int main(int argc, char* argv[])
 	unsigned int select = atoi(alg);
 	if (select == 0) {
 		ex_Openholo(config, input, encod, mode, pro);
-	} else if (select == 1) {
+	}
+	else if (select == 1) {
 		ex_DepthMap(config, p, encod, mode, pro);
 		for (int i = 0; i < 3; i++)
-	{
-		delete[] p[i];
+		{
+			delete[] p[i];
+		}
 	}
-} else if (select == 2) {
+	else if (select == 2) {
 		ex_LightField(config, input, encod, mode, pro);
-} else if (select == 3) {
+	}
+	else if (select == 3) {
 		ex_TriMesh(config, input, encod, mode, pro);
-} else if (select == 4) {
+	}
+	else if (select == 4) {
 		ex_WRP(config, input, encod, mode, pro);
-} else {
-	printf("Invalid algorithm selected. \n");
-}
+	}
+	else {
+		printf("Invalid algorithm selected. \n");
+	}
 
 	printf("====== Openholo Test main V0.1 END ======\n");
 }
