@@ -175,7 +175,7 @@ int main(int argc, char* argv[])
 				mode |= MODE_GPU;
 			printf("mode = %d\n", atoi(argv[i + 1]));
 		}
-		else if (!strcmp("-f", argv[1])) { // check flag
+		else if (!strcmp("-f", argv[i])) { // check flag
 			flag = atoi(argv[i + 1]);
 			printf("flag = %d\n", flag);
 		}
