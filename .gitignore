@@ -13,6 +13,18 @@
 *.userprefs
 
 # Build results
+build/*.*
+build/CMakeFiles/*.*
+build/Openholo/*.*
+build/Openholo/CMakeFiles/*.*
+build/ophgen/*.*
+build/ophgen/CMakeFiles/*.*
+build/ophrec/*.*
+build/ophrec/CMakeFiles/*.*
+build/ophsig/*.*
+build/ophsig/CMakeFiles/*.*
+
+
 [Dd]ebug/
 [Dd]ebugPublic/
 [Rr]elease/
