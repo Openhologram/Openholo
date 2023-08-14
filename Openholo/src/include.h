@@ -71,6 +71,7 @@
 #include "struct.h"
 
 #pragma once
+#undef OPH_DLL
 #if defined(_WIN32) || defined(_WIN64)
 #ifdef OPH_EXPORT
 #define OPH_DLL __declspec(dllexport)

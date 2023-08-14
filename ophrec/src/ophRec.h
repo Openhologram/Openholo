@@ -85,6 +85,15 @@ struct RECON_DLL OphRecConfig
 	bool CenteringRetinaImg;
 	bool ViewingWindow;
 	bool SimulationPos[3];
+
+	OphRecConfig()
+		: EyeLength(0.0), EyePupilDiaMeter(0.0), EyeBoxSizeScale(0.0), EyeBoxSize(0.0, 0.0), EyeBoxUnit(0),
+		EyeCenter(0.0, 0.0, 0.0), EyeFocusDistance(0.0), ResultSizeScale(0.0), SimulationTo(0.0), SimulationFrom(0.0),
+		SimulationStep(0), SimulationMode(0), RatioAtRetina(0.0), RatioAtPupil(0.0), CreatePupilFieldImg(false),
+		CenteringRetinaImg(false), ViewingWindow(false)
+	{
+		SimulationPos[0] = SimulationPos[1] = SimulationPos[2] = false;
+	}
 };
 
 /**

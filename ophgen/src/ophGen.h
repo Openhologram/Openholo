@@ -61,6 +61,7 @@
 #define GEN_DLL
 #endif
 #endif
+
 struct OphPointCloudConfig;
 struct OphPointCloudData;
 struct OphDepthMapConfig;
@@ -664,6 +665,13 @@ struct GEN_DLL OphWRPConfig {
 	/// Distance of Hologram plane
 	Real propagation_distance;
 
+	OphWRPConfig()
+		: fieldLength(0.0), scale(0.0, 0.0, 0.0), num_wrp(0), wrp_location(0.0), propagation_distance(0.0)
+	{ }
+
+	OphWRPConfig(Real _fieldLength, vec3 _scale, int _num_wrp, Real _wrp_location, Real _propagation_distance)
+		: fieldLength(_fieldLength), scale(_scale), num_wrp(_num_wrp), wrp_location(_wrp_location), propagation_distance(_propagation_distance)
+	{ }
 };
 
 /**
@@ -680,6 +688,8 @@ struct GEN_DLL OphIFTAConfig {
 	int					num_of_iteration;
 
 	OphIFTAConfig() :near_depthmap(0), far_depthmap(0), num_of_depth(0), num_of_iteration(0) {}
+	OphIFTAConfig(Real _near_depthmap, Real _far_depthmap, int _num_of_depth, int _num_of_iteration)
+		:near_depthmap(_near_depthmap), far_depthmap(_far_depthmap), num_of_depth(_num_of_depth), num_of_iteration(_num_of_iteration) {}
 };
 
 

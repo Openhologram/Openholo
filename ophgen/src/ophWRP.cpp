@@ -359,7 +359,7 @@ void ophWRP::calculateWRPCPU()
 		int iColor = ch;
 		int sum = 0;
 #ifdef _OPENMP
-#pragma omp parallel for firstprivate(iColor, ppXX, pnX, pnY, ppX, ppY, hpnX, hpnY, wrp_d, k, pi2)
+#pragma omp parallel for firstprivate(iColor, ppXX, pnX, pnY, ppX, ppY, hpnX, hpnY, wrp_d, k, pi2, dz, dzz)
 #endif
 		for (int i = 0; i < n_points; ++i)
 		{

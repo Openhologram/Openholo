@@ -59,6 +59,7 @@
 #endif
 
 #pragma once
+#undef OPH_DLL
 #ifdef OPH_EXPORT
 #ifdef _WIN32
 #define OPH_DLL __declspec(dllexport)

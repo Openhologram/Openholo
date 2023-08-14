@@ -48,12 +48,6 @@
 
 #include "ophGen.h"
 
-#ifdef RECON_EXPORT
-#define RECON_DLL __declspec(dllexport)
-#else
-#define RECON_DLL __declspec(dllimport)
-#endif
-
 //Build Option : Multi Core Processing (OpenMP)
 #ifdef _OPENMP
 #include <omp.h>

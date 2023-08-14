@@ -207,7 +207,7 @@ public:
 		dm_config_.num_of_depth = numofdepth;
 		dm_config_.render_depth.clear();
 		dm_config_.change_depth_quantization = true;
-		for(int i = 1; i <= numofdepth; i++)
+		for(int i = 1; i <= (int)numofdepth; i++)
 			dm_config_.render_depth.push_back(i);
 	}
 	inline void setRGBImageBuffer(int idx, unsigned char* buffer, unsigned long long size)

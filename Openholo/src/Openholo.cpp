@@ -385,13 +385,13 @@ bool Openholo::loadAsImgUpSideDown(const char * fname, uchar* dst)
 	fclose(infile);
 
 	// data upside down
-	int bytesperpixel = hInfo.bitsperpixel >> 3;
-	int cRow = ((hInfo.width * bytesperpixel) + 3) & ~3;
-	int cImg = hInfo.height * cRow;
+	uint bytesperpixel = hInfo.bitsperpixel >> 3;
+	uint cRow = ((hInfo.width * bytesperpixel) + 3) & ~3;
+	uint cImg = hInfo.height * cRow;
 
 	for (oph::uint k = 0; k < cImg; k++) {
-		int r = k / cRow;
-		int c = k % cRow;
+		uint r = k / cRow;
+		uint c = k % cRow;
 		((oph::uchar*)dst)[(hInfo.height - r - 1) * cRow + c] = img_tmp[r * cRow + c];
 	}
 
