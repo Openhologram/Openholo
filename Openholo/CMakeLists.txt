@@ -1,78 +1,9 @@
 cmake_minimum_required(VERSION ${CMAKE_VERSION})
-
-message("CMAKE_CXX_COMPILER: ${CMAKE_CXX_COMPILER}")
-message("LIBRARY_OUTPUT_PATH: ${LIBRARY_OUTPUT_PATH}")
-
 set(CMAKE_PROJECT_NAME "openholo")
 
-message("*** ${CMAKE_PROJECT_NAME} begin ***")
+message("\n*** ${CMAKE_PROJECT_NAME} begin ***\n")
 
-
-#add_custom_target(clean-all
-#	COMMAND ${CMAKE_BUILD_TOOL} clean
-#	COMMAND ${CMAKE_COMMAND} -E remove ./build/CMakeCache.txt
-#	COMMAND ${CMAKE_COMMAND} -E remove ./build/Makefile
-#	COMMAND ${CMAKE_COMMAND} -E remove ./build/cmake_install.cmake
-#	COMMAND ${CMAKE_COMMAND} -E -rf remove_drectory ./build/CMakeFiles
-#)
-
-# 빌드 타입 설정 *추가시 링크 오류*
-#if(NOT CMAKE_BUILD_TYPE)
-#	set(CMAKE_BUILD_TYPE Debug)
-#	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLGAS} -g")
-#endif()
-
-
-# Set CUDA architectures
-set(CUDA_ARCH "52")
-
-# Set CUDA flags
-set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -gencode arch=compute_${CUDA_ARCH}, code=sm_${CUDA_ARCH}")
-
-
-
-# 바이너리 디렉토리 설정
-set(CMAKE_PROJECT_ROOT_DIR ${CMAKE_SOURCE_DIR})
-set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/bin)
-set(CMAKE_CURRENT_BINARY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/bin)
-set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR})
-set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR})
-
-
-if (CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
-	add_definitions(-D_LINUX)
-	include_directories(usr/include)
-elseif (CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
-	add_definitions(-D_WIN32)
-	add_definitions(-D_WIN64)
-endif()
-
-add_definitions(-DOPH_EXPORT)
-add_definitions(-DFFTW3_THREADS)
-
-
-include_directories(${CMAKE_SOURCE_DIR}../Reference/include)
-include_directories(${CUDA_TOOLKIT_INCLUDE})
-
-link_directories(${CMAKE_SOURCE_DIR}../Reference/lib)
-link_directories(${CUDA_TOOLKIT_ROOT_DIR}/lib64)
-link_directories(usr/local/lib/fftw3)
-
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fpermissive")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-omit-frame-pointer")
-set(CUDA_SEPARABLE_COMPILATION ON)
-
-if (CMAKE_COMPILER_IS_GNUCC)
-	message("GNUCC COMPILER")
-	# remove warning
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
-endif()
-if (MSVC)
-	message("MSVC COMPILER")
-endif()
-
+# build file list
 set(HEADER_FILES
     src/AngularC_data.h
     src/AngularC_types.h
@@ -122,62 +53,110 @@ set(SRC_FILES
     src/vec.cpp
 )
 
-add_library(${CMAKE_SOLUTION_NAME}_static STATIC ${SRC_FILES})
-add_library(${CMAKE_SOLUTION_NAME} SHARED ${SRC_FILES})
-set_target_properties(
-	${CMAKE_SOLUTION_NAME}_static
-	PROPERTIES
-	OUTPUT_NAME
-	${CMAKE_SOLUTION_NAME}
-)
+add_library(${CMAKE_PROJECT_NAME} OBJECT ${SRC_FILES})
 
+# check compiler
+if(MSVC)
+	target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE _CRT_SECURE_NO_WARNINGS)
+	message("MSVC Compiler")
+elseif(${CMAKE_CXX_COMPILER_ID} MATCHES GNU)
+	message("GNU Compiler")
+endif()
 
-add_compile_options(/Od)
-target_compile_options(${CMAKE_SOLUTION_NAME}_static PRIVATE -Wno-include-guard)
-target_compile_options(${CMAKE_SOLUTION_NAME} PRIVATE -Wno-include-guard)
+target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE OPH_EXPORT)
+# check build type
+if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
+	target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE _DEBUG)
+	target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE -g -Wall)
+elseif(${CMAKE_BUILD_TYPE} STREQUAL "Release")
+	target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE _NDEBUG)
+	# 최적화 옵션 -O0: 최적화x / -O1: 적은 최적화 수준 / -O2: 일반적인 최적화 수준 / -O3: 최대한 최적화 수준
+	target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE -w -O3)
+endif()
+target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE -fPIC)
+
+# 전역 변수의 중복 정의를 허용
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fcommon")
+# C++ 언어 규칙을 완전히 준수하지 않는 코드일때, 오류를 경고로 출력
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fpermissive")
+# OpenMP를 사용하도록 함. 사용 시 _OPENMP 가 정의됨
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
+# Position Independent Code 컴파일러가 생성하는 코드가 다른 위치에 링크될 때도 정상동작하도록 작동
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
+
+target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE -w)
 
 # 라이브러리 링크
-target_link_libraries(${CMAKE_SOLUTION_NAME} cudart)
-target_link_libraries(${CMAKE_SOLUTION_NAME} cufft)
-target_link_libraries(${CMAKE_SOLUTION_NAME} ${FFTW3_LIBRARIES}_threads)
+target_link_libraries(${CMAKE_PROJECT_NAME} cudart)
+target_link_libraries(${CMAKE_PROJECT_NAME} cufft)
+target_link_libraries(${CMAKE_PROJECT_NAME} ${FFTW3_LIBRARIES}_threads)
+add_definitions(-DFFTW3_THREADS)
+include_directories(${CMAKE_SOURCE_DIR}../Reference/include)
+include_directories(${CUDA_TOOLKIT_INCLUDE})
+link_directories(${CMAKE_SOURCE_DIR}../Reference/lib)
+link_directories(${CUDA_TOOLKIT_ROOT_DIR}/lib64)
+link_directories(usr/local/lib/fftw3)
 
 
-message("*************** ENV LIST ***************")
-message("CMAKE_PROJECT_NAME			= ${CMAKE_PROJECT_NAME}")
-message("CMAKE_HOST_SYSTEM_NAME			= ${CMAKE_HOST_SYSTEM_NAME}")
-message("CMAKE_BUILD_TYPE			= ${CMAKE_BUILD_TYPE}")
-message("CMAKE_SOURCE_DIR			= ${CMAKE_SOURCE_DIR}")
-message("CMAKE_BINARY_DIR			= ${CMAKE_BINARY_DIR}")
-message("CMAKE_CURRENT_SOURCE_DIR		= ${CMAKE_CURRENT_SOURCE_DIR}")
-message("CMAKE_CURRENT_BINARY_DIR		= ${CMAKE_CURRENT_BINARY_DIR}")
-message("CMAKE_CXX_COMPILER_ID			= ${CMAKE_CXX_COMPILER_ID}")
-message("CMAKE_CXX_COMPILER_VERSION		= ${CMAKE_CXX_COMPILER_VERSION}")
-message("CMAKE_CXX_COMPILER			= ${CMAKE_CXX_COMPILER}")
-message("CMAKE_CXX_FLAGS				= ${CMAKE_CXX_FLAGS}")
-message("CMAKE_CUDA_HOST_COMPILER_ID		= ${CMAKE_CUDA_HOST_COMPILER_ID}")
-message("CMAKE_CUDA_HOST_COMPILER_VERSION	= ${CMAKE_CUDA_HOST_COMPILER_VERSION}")
-message("CMAKE_CUDA_HOST_COMPILER		= ${CMAKE_CUDA_HOST_COMPILER}")
-message("CMAKE_INSTALL_PREFIX			= ${CMAKE_INSTALL_PREFIX}")
-message("CUDA_TOOLKIT_INCLUDE			= ${CUDA_TOOLKIT_INCLUDE}")
-message("CUDA_TOOLKIT_ROOT_DIR			= ${CUDA_TOOLKIT_ROOT_DIR}")
-message("CUDA_INCLUDE_DIRS			= ${CUDA_INCLUDE_DIRS}")
-message("CUDA_LIBRARY_DIRS			= ${CUDA_LIBRARY_DIRS}")
-message("FFTW3_ROOT				= ${FFTW3_ROOT}")
-message("FFTW3_INCLUDE_DIRS			= ${FFTW3_INCLUDE_DIRS}")
-message("FFTW3_LIBRARIES				= ${FFTW3_LIBRARIES}")
-message("****************************************")
+
+add_library(${CMAKE_PROJECT_NAME}_static STATIC $<TARGET_OBJECTS:${CMAKE_PROJECT_NAME}>)
+add_library(${CMAKE_PROJECT_NAME}_shared SHARED $<TARGET_OBJECTS:${CMAKE_PROJECT_NAME}>)
+
+
+#add_custom_target(clean-all
+#	COMMAND ${CMAKE_BUILD_TOOL} clean
+#	COMMAND ${CMAKE_COMMAND} -E remove ./build/CMakeCache.txt
+#	COMMAND ${CMAKE_COMMAND} -E remove ./build/Makefile
+#	COMMAND ${CMAKE_COMMAND} -E remove ./build/cmake_install.cmake
+#	COMMAND ${CMAKE_COMMAND} -E -rf remove_drectory ./build/CMakeFiles
+#)
+
+# Set CUDA architectures
+set(CUDA_ARCH "52")
+
+# Set CUDA flags
+set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -gencode arch=compute_${CUDA_ARCH}, code=sm_${CUDA_ARCH}")
+
+
+
+# 바이너리 디렉토리 설정
+set(CMAKE_PROJECT_ROOT_DIR ${CMAKE_SOURCE_DIR})
+set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/bin)
+set(CMAKE_CURRENT_BINARY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/bin)
+set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR})
+set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR})
+set(CUDA_SEPARABLE_COMPILATION ON)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
+
+
+
+# set output name
+if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
+	set_target_properties(${CMAKE_PROJECT_NAME}_shared PROPERTIES OUTPUT_NAME ${CMAKE_PROJECT_NAME}_d)
+	set_target_properties(${CMAKE_PROJECT_NAME}_static PROPERTIES OUTPUT_NAME ${CMAKE_PROJECT_NAME}_d)
+elseif(${CMAKE_BUILD_TYPE} STREQUAL "Release")
+	set_target_properties(${CMAKE_PROJECT_NAME}_shared PROPERTIES OUTPUT_NAME ${CMAKE_PROJECT_NAME})
+	set_target_properties(${CMAKE_PROJECT_NAME}_static PROPERTIES OUTPUT_NAME ${CMAKE_PROJECT_NAME})
+endif()
+
+
+if(OPH_EXPORT)
+	message("OPH_EXPORT is definied")
+else()
+	message("OPH_EXPORT is not defined")
+endif()
 
 # 인스톨 명령
-install(TARGETS ${CMAKE_SOLUTION_NAME} DESTINATION ${CMAKE_PROJECT_ROOT_DIR}/Reference/lib/)
+install(TARGETS ${CMAKE_PROJECT_NAME}_static DESTINATION ${CMAKE_PROJECT_ROOT_DIR}/Reference/lib/)
+install(TARGETS ${CMAKE_PROJECT_NAME}_shared DESTINATION ${CMAKE_PROJECT_ROOT_DIR}/Reference/lib/)
 
 # 파일 복사
 file(GLOB CXX_HEADER_FORMAT "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h")
 file(GLOB CUDA_HEADER_FORMAT "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cuh")
 file(COPY ${CXX_HEADER_FORMAT} DESTINATION ${CMAKE_SOURCE_DIR}/Reference/include)
 file(COPY ${CUDA_HEADER_FORMAT} DESTINATION ${CMAKE_SOURCE_DIR}/Reference/include)
-message("File Copied: ${CXX_HEADER_FORMAT} to ${CMAKE_SOURCE_DIR}/Reference/include")
-message("File Copied: ${CUDA_HEADER_FORMAT} to ${CMAKE_SOURCE_DIR}/Reference/include")
-
+#message("File Copied: ${CXX_HEADER_FORMAT} to ${CMAKE_SOURCE_DIR}/Reference/include")
+#message("File Copied: ${CUDA_HEADER_FORMAT} to ${CMAKE_SOURCE_DIR}/Reference/include")
 #add_custom_command(
 #	TARGET ${CMAKE_SOLUTION_NAME}_static
 #	POST_BUILD

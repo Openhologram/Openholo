@@ -1,23 +1,25 @@
 #!/bin/sh
-if [ -d "/build" ]; then
+
+DIR_NAME="build"
+
+if [ -d "$DIR_NAME" ]; then
 	echo "build exist"
 else
 	echo "make directory"
-	mkdir build
+	mkdir $DIR_NAME
 fi
 
-cmake -B ./build
+if [ "$1" = "-d" ] || [ "$1" = "-D" ]; then
+	echo "Debug build"
+	cmake -B ./$DIR_NAME -DCMAKE_BUILD_TYPE=Debug
+else
+	echo "Release build"
+	cmake -B ./$DIR_NAME -DCMAKE_BUILD_TYPE=Release
+fi
+
 cd build
+
+echo "Build begin"
 make
 make install
-#cd ..
-#cp -p ./bin/libopenholo.so ../Reference/lib/
-# for file in ./src/*.h
-# do
-	# cp -p "$file" "../Reference/include/"
-# done
 
-# for file in ./src/*.cuh
-# do
-	# cp -p "$file" "../Reference/include/"
-# done
