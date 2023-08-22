@@ -60,9 +60,9 @@ Openholo::Openholo(void)
 	, pny(1)
 	, pnz(1)
 	, fft_sign(OPH_FORWARD)
-	, complex_H(nullptr)
 	, OHC_encoder(nullptr)
 	, OHC_decoder(nullptr)
+	, complex_H(nullptr)
 {
 	fftw_init_threads();
 	fftw_plan_with_nthreads(omp_get_max_threads());
@@ -296,7 +296,7 @@ bool Openholo::loadAsOhc(const char * fname)
 
 	vector<Real> wavelengthArray;
 	OHC_decoder->getWavelength(wavelengthArray);
-	int nWave = (int)wavelengthArray.size();
+	size_t nWave = wavelengthArray.size();
 	if (nWave < 1)
 	{
 		LOG("<FAILED> Do not load wavelength size.\n");
@@ -330,7 +330,7 @@ uchar* Openholo::loadAsImg(const char * fname)
 	// BMP Header Information
 	fileheader hf;
 	bitmapinfoheader hInfo;
-	fread(&hf, sizeof(fileheader), 1, infile);
+	size_t nRead = fread(&hf, sizeof(fileheader), 1, infile);
 	if (hf.signature[0] != 'B' || hf.signature[1] != 'M')
 	{
 		LOG("<FAILED> Not BMP file.\n");
@@ -338,13 +338,13 @@ uchar* Openholo::loadAsImg(const char * fname)
 		return nullptr;
 	}
 
-	fread(&hInfo, sizeof(bitmapinfoheader), 1, infile);
+	nRead = fread(&hInfo, sizeof(bitmapinfoheader), 1, infile);
 	fseek(infile, hf.fileoffset_to_pixelarray, SEEK_SET);
 
 	uint size = hInfo.imagesize != 0 ? hInfo.imagesize : (((hInfo.width * hInfo.bitsperpixel >> 3) + 3) & ~3) * hInfo.height;
 
 	oph::uchar* img_tmp = new uchar[size];
-	fread(img_tmp, sizeof(uchar), size, infile);
+	nRead = fread(img_tmp, sizeof(uchar), size, infile);
 	fclose(infile);
 
 	return img_tmp;
@@ -363,24 +363,24 @@ bool Openholo::loadAsImgUpSideDown(const char * fname, uchar* dst)
 	// BMP Header Information
 	fileheader hf;
 	bitmapinfoheader hInfo;
-	fread(&hf, sizeof(fileheader), 1, infile);
+	size_t nRead = fread(&hf, sizeof(fileheader), 1, infile);
 	if (hf.signature[0] != 'B' || hf.signature[1] != 'M')
 	{
 		LOG("<FAILED> Not BMP file.\n");
 		return false; 
 	}
 
-	fread(&hInfo, sizeof(bitmapinfoheader), 1, infile);
+	nRead = fread(&hInfo, sizeof(bitmapinfoheader), 1, infile);
 	fseek(infile, hf.fileoffset_to_pixelarray, SEEK_SET);
 	
 	oph::uchar* img_tmp;
 	if (hInfo.imagesize == 0) {
 		img_tmp = new oph::uchar[hInfo.width*hInfo.height*(hInfo.bitsperpixel >> 3)];
-		fread(img_tmp, sizeof(oph::uchar), hInfo.width*hInfo.height*(hInfo.bitsperpixel >> 3), infile);
+		nRead = fread(img_tmp, sizeof(oph::uchar), hInfo.width*hInfo.height*(hInfo.bitsperpixel >> 3), infile);
 	}
 	else {
 		img_tmp = new oph::uchar[hInfo.imagesize];
-		fread(img_tmp, sizeof(oph::uchar), hInfo.imagesize, infile);
+		nRead = fread(img_tmp, sizeof(oph::uchar), hInfo.imagesize, infile);
 	}
 	fclose(infile);
 
@@ -421,9 +421,9 @@ bool Openholo::getImgSize(int & w, int & h, int & bytesperpixel, const char * fn
 	// BMP Header Information
 	fileheader hf;
 	bitmapinfoheader hInfo;
-	fread(&hf, sizeof(fileheader), 1, infile);
+	size_t nRead = fread(&hf, sizeof(fileheader), 1, infile);
 	if (hf.signature[0] != 'B' || hf.signature[1] != 'M') return false;
-	fread(&hInfo, sizeof(bitmapinfoheader), 1, infile);
+	nRead = fread(&hInfo, sizeof(bitmapinfoheader), 1, infile);
 	//if (hInfo.bitsperpixel != 8) { printf("Bad File Format!!"); return 0; }
 
 	w = hInfo.width;
@@ -511,6 +511,7 @@ void Openholo::imgScaleBilinear(uchar* src, uchar* dst, int w, int h, int neww, 
 void Openholo::convertToFormatGray8(unsigned char * src, unsigned char * dst, int w, int h, int bytesperpixel)
 {
 	int idx = 0;
+	unsigned int r = 0, g = 0, b = 0;
 	int N = (((w * bytesperpixel) + 3) & ~3) * h;
 
 	for (int i = 0; i < N; i++)

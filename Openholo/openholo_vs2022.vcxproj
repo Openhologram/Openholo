@@ -11,10 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\AngularC_data.h" />
-    <ClInclude Include="src\AngularC_types.h" />
     <ClInclude Include="src\Base.h" />
-    <ClInclude Include="src\coder_array.h" />
     <ClInclude Include="src\comment.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -23,7 +20,6 @@
     <ClInclude Include="src\define.h" />
     <ClInclude Include="src\enumerator.h" />
     <ClInclude Include="src\epsilon.h" />
-    <ClInclude Include="src\FFTImplementationCallback.h" />
     <ClInclude Include="src\fftw3.h" />
     <ClInclude Include="src\function.h" />
     <ClInclude Include="src\ImgCodecDefine.h" />
@@ -38,27 +34,17 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="src\PLYparser.h" />
-    <ClInclude Include="src\rtGetInf.h" />
-    <ClInclude Include="src\rtGetNaN.h" />
-    <ClInclude Include="src\rtwtypes.h" />
-    <ClInclude Include="src\rt_nonfinite.h" />
     <ClInclude Include="src\struct.h" />
     <ClInclude Include="src\sys.h" />
-    <ClInclude Include="src\tmwtypes.h" />
     <ClInclude Include="src\typedef.h" />
     <ClInclude Include="src\vec.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\AngularC_data.cpp" />
     <ClCompile Include="src\epsilon.cpp" />
-    <ClCompile Include="src\FFTImplementationCallback.cpp" />
     <ClCompile Include="src\ImgCodecOhc.cpp" />
     <ClCompile Include="src\ImgControl.cpp" />
     <ClCompile Include="src\Openholo.cpp" />
     <ClCompile Include="src\PLYparser.cpp" />
-    <ClCompile Include="src\rtGetInf.cpp" />
-    <ClCompile Include="src\rtGetNaN.cpp" />
-    <ClCompile Include="src\rt_nonfinite.cpp" />
     <ClCompile Include="src\sys.cpp" />
     <ClCompile Include="src\vec.cpp" />
   </ItemGroup>

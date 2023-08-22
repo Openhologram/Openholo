@@ -446,11 +446,6 @@ bool oph::ImgDecoderOhc::decodeFieldData()
 	int n_cmplxChnl = 0; // Is a data value Dual data(2) or Single data(1) ?
 
 	switch (FldInfo.fldCodeType) {
-	case FldCodeType::Null:
-	{
-		LOG("FldCodeType is null.");
-		return false;
-	}
 	case FldCodeType::RI: {
 		n_cmplxChnl = 2;
 		for (int w = 0; w < n_wavlens; ++w) {
@@ -515,10 +510,6 @@ bool oph::ImgDecoderOhc::decodeFieldData()
 
 					if (FldInfo.clrArrange == ColorArran::SeqtChanl) {
 						switch (FldInfo.fldCodeType) {
-						case FldCodeType::Null: {
-							LOG("FldCodeType is null.");
-							return false;
-						}
 						case FldCodeType::RI: {
 							if (FldInfo.cmplxFldType == DataType::Float32) {
 								this->field_cmplx[clrChnl][x][y][_RE] = *(this->buf_f32 + idx_sqtlChnl + 0 * n_fields);
@@ -553,11 +544,6 @@ bool oph::ImgDecoderOhc::decodeFieldData()
 								this->field_phase[clrChnl][x][y] = *(this->buf_f32 + idx_sqtlChnl + 0 * n_fields);
 							else if (FldInfo.cmplxFldType == DataType::Float64)
 								this->field_phase[clrChnl][x][y] = *(this->buf_f64 + idx_sqtlChnl + 0 * n_fields);
-							break;
-						}
-						default:
-						{
-							LOG("Error : Invalid Complex Field Encoding Type...\n");
 							break;
 						}
 						}
@@ -600,11 +586,6 @@ bool oph::ImgDecoderOhc::decodeFieldData()
 								this->field_phase[clrChnl][x][y] = *(this->buf_f32 + idx_eachChnl + 0 * n_fields);
 							else if (FldInfo.cmplxFldType == DataType::Float64)
 								this->field_phase[clrChnl][x][y] = *(this->buf_f64 + idx_eachChnl + 0 * n_fields);
-							break;
-						}
-						default: {
-
-							LOG("Error : Invalid Complex Field Encoding Type...\n");
 							break;
 						}
 						}
@@ -1257,10 +1238,6 @@ uint64_t oph::ImgEncoderOhc::encodeFieldData()
 
 					if (FldInfo.clrArrange == ColorArran::SeqtChanl) {
 						switch (FldInfo.fldCodeType) {
-						case FldCodeType::Null: {
-							LOG("FldCodeType is null.");
-							return false;
-						}
 						case FldCodeType::RI: {
 							if (FldInfo.cmplxFldType == DataType::Float32) {
 								setPhaseEncoding(BPhaseCode::NotEncoded, -1.0, 1.0);
@@ -1315,10 +1292,6 @@ uint64_t oph::ImgEncoderOhc::encodeFieldData()
 						ulonglong idx_eachChnl = idx + clrChnl * n_pixels;
 
 						switch (FldInfo.fldCodeType) {
-						case FldCodeType::Null: {
-							LOG("FldCodeType is null.");
-							return false;
-						}
 						case FldCodeType::RI: {
 							if (FldInfo.cmplxFldType == DataType::Float32) {
 								setPhaseEncoding(BPhaseCode::NotEncoded, -1.0, 1.0);

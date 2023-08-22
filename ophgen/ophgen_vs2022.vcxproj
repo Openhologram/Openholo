@@ -58,7 +58,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>_USE_MATH_DEFINES;_CRT_SECURE_NO_WARNINGS;_DEBUG;_CONSOLE;GEN_EXPORT;FAST_MATH_WITH_FLOAT;_WIN32;_WIN64;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_DEBUG;_CONSOLE;GEN_EXPORT;_WIN32;_WIN64;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir)Reference\include\;$(CudaToolkitIncludeDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <OpenMPSupport>true</OpenMPSupport>
       <WholeProgramOptimization>false</WholeProgramOptimization>
@@ -104,7 +104,7 @@ xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)..\OpenholoRefApp\Reference\inclu
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>_USE_MATH_DEFINES;_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;GEN_EXPORT;FAST_MATH_WITH_FLOAT;_WIN32;_WIN64;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;GEN_EXPORT;_WIN32;_WIN64;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir)Reference\include\;$(CudaToolkitIncludeDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <OpenMPSupport>true</OpenMPSupport>
       <DisableSpecificWarnings>4819;4002;4244;4251;4018</DisableSpecificWarnings>
@@ -154,8 +154,6 @@ xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)..\OpenholoRefApp\Reference\inclu
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="src\ophACPAS.h" />
-    <ClInclude Include="src\ophAS.h" />
-    <ClInclude Include="src\ophAS_GPU.h" />
     <ClInclude Include="src\ophDepthMap.h" />
     <ClInclude Include="src\ophDepthMap_GPU.h" />
     <ClInclude Include="src\ophGen.h" />
@@ -180,9 +178,6 @@ xcopy /y "$(ProjectDir)src\*.h" "$(SolutionDir)..\OpenholoRefApp\Reference\inclu
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="src\ophACPAS.cpp" />
-    <ClCompile Include="src\ophAS.cpp" />
-    <CudaCompile Include="src\ophASKernel.cu" />
-    <ClCompile Include="src\ophAS_GPU.cpp" />
     <ClCompile Include="src\ophDepthMap.cpp" />
     <ClCompile Include="src\ophDepthMap_GPU.cpp" />
     <ClCompile Include="src\ophGen.cpp" />

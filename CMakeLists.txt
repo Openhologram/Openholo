@@ -1,27 +1,22 @@
-cmake_minimum_required(VERSION ${CMAKE_VERSION})
+cmake_minimum_required(VERSION 3.17)
 
-set(ENV{CUDA_HOME} "/usr/local/cuda-11.6") #input installed cuda path
 set(ENV{LD_LIBRARY_PATH} $ENV{LD_LIBRARY_PATH}:/usr/local/lib)
-set(ENV{LD_LIBRARY_PATH} $ENV{LD_LIBRARY_PATH}:$ENV{CUDA_HOME}/lib64)
-set(ENV{LD_LIBRARY_PATH} $ENV{LD_LIBRARY_PATH}:$ENV{CUDA_HOME}/extras/CUPTI/lib64)
 set(ENV{LD_LIBRARY_PATH} $ENV{LD_LIBRARY_PATH}:/usr/lib/x86_64-linux-gnu)
 set(ENV{PATH} $ENV{PATH}:$ENV{CUDA_HOME}/bin)
-message("PATH: $ENV{PATH}")
-message("LD_LIBRARY_PATH: $ENV{LD_LIBRARY_PATH}")
 set(CMAKE_SOLUTION_NAME "Openholo")
 set(CMAKE_CXX_COMPILER "g++")
 set(LIBRARY_OUTPUT_PATH lib)
 
-project(${CMAKE_SOLUTION_NAME} CXX CUDA)
-find_package(OpenMP REQUIRED) 
-find_package(CUDA REQUIRED)
+project(${CMAKE_SOLUTION_NAME} LANGUAGES CXX CUDA)
+find_package(OpenMP REQUIRED)
+find_package(CUDAToolkit REQUIRED)	
+if(CUDAToolkit_FOUND)
+	message("Found CUDAToolkit")
+endif()
 find_package(FFTW3 REQUIRED)
 
-
-#set(CMAKE_BUILD_TYPE "Release")
-#set(CMAKE_BUILD_TYPE "Debug")
-
 message("*************** ENV LIST ***************")
+message("CMAKE_VERSION			= ${CMAKE_VERSION}")
 message("CMAKE_SOLUTION_NAME		= ${CMAKE_SOLUTION_NAME}")
 message("CMAKE_HOST_SYSTEM_NAME		= ${CMAKE_HOST_SYSTEM_NAME}")
 message("CMAKE_BUILD_TYPE		= ${CMAKE_BUILD_TYPE}")
@@ -32,28 +27,68 @@ message("CMAKE_CURRENT_BINARY_DIR	= ${CMAKE_CURRENT_BINARY_DIR}")
 message("CMAKE_CXX_COMPILER_ID		= ${CMAKE_CXX_COMPILER_ID}")
 message("CMAKE_CXX_COMPILER_VERSION	= ${CMAKE_CXX_COMPILER_VERSION}")
 message("CMAKE_CXX_COMPILER		= ${CMAKE_CXX_COMPILER}")
-message("CMAKE_CXX_FLAGS		= ${CMAKE_CXX_FLAGS}")
-message("CMAKE_CUDA_HOST_COMPILER_ID	= ${CMAKE_CUDA_HOST_COMPILER_ID}")
-message("CMAKE_CUDA_HOST_COMPILER_VERSION	= ${CMAKE_CUDA_HOST_COMPILER_VERSION}")
-message("CMAKE_CUDA_HOST_COMPILER	= ${CMAKE_CUDA_HOST_COMPILER}")
 message("CMAKE_INSTALL_PREFIX		= ${CMAKE_INSTALL_PREFIX}")
-message("CUDA_TOOLKIT_INCLUDE		= ${CUDA_TOOLKIT_INCLUDE}")
-message("CUDA_TOOLKIT_ROOT_DIR		= ${CUDA_TOOLKIT_ROOT_DIR}")
-message("CUDA_INCLUDE_DIRS		= ${CUDA_INCLUDE_DIRS}")
-message("CUDA_LIBRARY_DIRS		= ${CUDA_LIBRARY_DIRS}")
-message("FFTW3_ROOT			= ${FFTW3_ROOT}")
+message("CUDAToolkit_VERSION		= ${CUDAToolkit_VERSION}")
+message("CUDAToolkit_BIN_DIR		= ${CUDAToolkit_BIN_DIR}")
+message("CUDAToolkit_INCLUDE_DIR		= ${CUDAToolkit_INCLUDE_DIR}")
+message("CUDAToolkit_LIBRARY_DIR		= ${CUDAToolkit_LIBRARY_DIR}")
+message("CUDAToolkit_TARGET_DIR		= ${CUDAToolkit_TARGET_DIR}")
+message("CUDAToolkit_NVCC_EXECUTABLE	= ${CUDAToolkit_NVCC_EXECUTABLE}")
+message("FFTW3_LIBRARIES			= ${FFTW3_LIBRARIES}")
 message("FFTW3_INCLUDE_DIRS		= ${FFTW3_INCLUDE_DIRS}")
-message("FFTW3_LIBRARIES		= ${FFTW3_LIBRARIES}")
+message("FFTW3_LIBRARY_DIRS		= ${FFTW3_LIBRARY_DIRS}")
+message("PATH 				= $ENV{PATH}")
+message("LD_LIBRARY_PATH		= $ENV{LD_LIBRARY_PATH}")
 
 if (CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
 	add_definitions(-D_LINUX)
-	include_directories(usr/include)
+	include_directories(/usr/include)
 elseif (CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
 	add_definitions(-D_WIN32)
 	add_definitions(-D_WIN64)
+endif()
+
+# check build type
+if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
+	add_definitions(-D_DEBUG)
+	add_compile_options(-g -Wall)
+elseif(${CMAKE_BUILD_TYPE} STREQUAL "Release")
+	add_definitions(-D_NDEBUG)
+	# 최적화 옵션 -O0: 최적화x / -O1: 적은 최적화 수준 / -O2: 일반적인 최적화 수준 / -O3: 최대한 최적화 수준
+	add_compile_options(-w -O3)
+endif()
+
+# Position Independent Code 컴파일러가 생성하는 코드가 다른 위치에 링크될 때도 정상동작하도록 작동
+add_compile_options(-fPIC)
+
+
+# check compiler
+if(MSVC)
+	add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 endif()
 
 add_subdirectory(Openholo)
 add_subdirectory(ophgen)
 add_subdirectory(ophrec)
 add_subdirectory(ophsig)
+
+
+#add_custom_target(clean-all
+#	COMMAND ${CMAKE_BUILD_TOOL} clean
+#	COMMAND ${CMAKE_COMMAND} -E remove ./build/CMakeCache.txt
+#	COMMAND ${CMAKE_COMMAND} -E remove ./build/Makefile
+#	COMMAND ${CMAKE_COMMAND} -E remove ./build/cmake_install.cmake
+#	COMMAND ${CMAKE_COMMAND} -E -rf remove_drectory ./build/CMakeFiles
+#)
+
+
+#message("File Copied: ${CXX_HEADER_FORMAT} to ${CMAKE_SOURCE_DIR}/Reference/include")
+#message("File Copied: ${CUDA_HEADER_FORMAT} to ${CMAKE_SOURCE_DIR}/Reference/include")
+#add_custom_command(
+#	TARGET ${CMAKE_SOLUTION_NAME}_static
+#	POST_BUILD
+#	COMMAND ${CMAKE_COMMAND} -E rename 
+#	${CMAKE_BINARY_DIR}/lib${CMAKE_SOLUTION_NAME}_static.a 
+#	${CMAKE_BINARY_DIR}/lib${CMAKE_SOLUTION_NAME}.a
+#)
+

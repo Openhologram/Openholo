@@ -14,7 +14,7 @@
 
 # Build results
 build/*.*
-build/CMakeFiles/*.*
+build/CMakeFiles/**/*.*
 build/Openholo/*.*
 build/Openholo/CMakeFiles/*.*
 build/ophgen/*.*

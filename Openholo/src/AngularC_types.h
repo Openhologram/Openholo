@@ -22,13 +22,13 @@
 class FFTImplementationCallback;
 class AngularSpectrum;
 
-#if defined(_MSC_VER) && defined(_WIN64)
+#if defined(_WIN32) || defined(_WIN64)
 #ifdef OPH_EXPORT
 #define OPH_DLL __declspec(dllexport)
 #else
 #define OPH_DLL __declspec(dllimport)
 #endif
-#elif defined(__GNUC__) && defined(__unix__)
+#else
 #ifdef OPH_EXPORT
 #define OPH_DLL __attribute__((visibility("default")))
 #else
