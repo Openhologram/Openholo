@@ -48,11 +48,16 @@ elseif (CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
 	add_definitions(-D_WIN64)
 endif()
 
+if(NOT CMAKE_BUILD_TYPE)
+	set(CMAKE_BUILD_TYPE Release)
+	message("Add defined CMAKE_BUILD_TYPE=Release") 
+endif()
+
 # check build type
-if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
+if(${CMAKE_BUILD_TYPE} MATCHES Debug)
 	add_definitions(-D_DEBUG)
 	add_compile_options(-g -Wall)
-elseif(${CMAKE_BUILD_TYPE} STREQUAL "Release")
+elseif(${CMAKE_BUILD_TYPE} MATCHES Release)
 	add_definitions(-D_NDEBUG)
 	# 최적화 옵션 -O0: 최적화x / -O1: 적은 최적화 수준 / -O2: 일반적인 최적화 수준 / -O3: 최대한 최적화 수준
 	add_compile_options(-w -O3)
@@ -66,6 +71,8 @@ add_compile_options(-fPIC)
 if(MSVC)
 	add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 endif()
+
+
 
 add_subdirectory(Openholo)
 add_subdirectory(ophgen)
