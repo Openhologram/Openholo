@@ -68,14 +68,9 @@ else()
 	message(FATAL_ERROR "${CUFFT_LIB} library not found.")
 endif()
 
-find_library(CUDA_LIB NAMES cuda PATHS ${CUDAToolkit_LIBRARY_DIR})
-if(CUDA_LIB)
-	message("${CUDA_LIB} library found.")
-	target_link_libraries(${CMAKE_PROJECT_NAME}_static PRIVATE cuda)
-	target_link_libraries(${CMAKE_PROJECT_NAME}_shared PRIVATE cuda)
-else()
-	message(FATAL_ERROR "${CUDA_LIB} library not found.")
-endif()
+target_link_libraries(${CMAKE_PROJECT_NAME}_static PRIVATE cuda)
+target_link_libraries(${CMAKE_PROJECT_NAME}_shared PRIVATE cuda)
+
 
 find_library(NPPS_LIB NAMES npps PATHS ${CUDAToolkit_LIBRARY_DIR})
 if(NPPS_LIB)
