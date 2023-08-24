@@ -1,5 +1,11 @@
 ROOT_PATH=$(pwd)
 
+##############################################
+# get global variable
+##############################################
+source CMakeCache.txt
+echo "CUDA_HOME: ${CUDA_HOME}"
+echo "FFTW3_LIB_DIR: ${FFTW3_LIB_DIR}"
 
 ##############################################
 # install fftw library
