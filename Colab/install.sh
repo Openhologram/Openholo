@@ -9,9 +9,9 @@ function install_fftw_library(){
 	FFTW_LIBRARY="fftw-3.3.10"
 
 	if [ -f $FFTW_LIBRARY.tar.gz ]; then
-			echo "exist $FFTW_LIBRARY.tar.gz"
+		echo "exist $FFTW_LIBRARY.tar.gz"
 	else
-			wget https://www.fftw.org/$FFTW_LIBRARY.tar.gz
+		wget https://www.fftw.org/$FFTW_LIBRARY.tar.gz
 	fi
 	tar xzvf $FFTW_LIBRARY.tar.gz
 	cd $ROOT_PATH/$FFTW_LIBRARY
@@ -27,13 +27,13 @@ function install_fftw_library(){
 function compile_openholo_library(){
 	cd $ROOT_PATH
 	mkdir -p build
- if [ "$1" = "-d" ] || [ "$1" == "-D" ]; then
- 	echo "Debug Build"
- 	cmake -B ./build -DCMAKE_BUILD_TYPE=Debug
- else
- 	echo "Release Build"
- 	cmake -B ./build -DCMAKE_BUILD_TYPE=Release
- fi
+ 	if [ "$1" = "-d" ] || [ "$1" == "-D" ]; then
+ 		echo "Debug Build"
+ 		cmake -B ./build -DCMAKE_BUILD_TYPE=Debug
+ 	else
+ 		echo "Release Build"
+ 		cmake -B ./build -DCMAKE_BUILD_TYPE=Release
+ 	fi
 	make
  	make install
 }
@@ -65,34 +65,28 @@ function execute_openholo_test(){
 	python OpenholoGeneration.py
 }
 
-echo
-echo "Select Command Type...."
-PS3="Input Number = "
+if [ "$1" = "-auto" ]; then
+	install_fftw_library
+	compile_openholo_library
+else
+	echo
+	echo "Select Command Type...."
+	PS3="Input Number = "
 
-
-select GEN_TYPE in \
-	Installer \
-	Compile \
-	Execute
-
+	select GEN_TYPE in \
+		ReBuild \
+		Execute
 do
-  case $GEN_TYPE in
-	Installer)
-	echo " Install and Compile and execute "
-	install_fftw_library
-	compile_openholo_library
-	execute_openholo_test
-	break;;
+ 	 case $GEN_TYPE in
+		ReBuild)
+		echo " Openholo library rebuild "
+		compile_openholo_library
+		break;;
 
-	Compile)
-	echo " Openholo library compile "
-	install_fftw_library
-	compile_openholo_library
-	break;;
-
-	Execute)
-	echo " example execute "
-	execute_openholo_test
-	exit 1;;
-  esac
-done
+		Execute)
+		echo " example execute "
+		execute_openholo_test
+		exit 1;;
+  	esac
+	done
+fi
