@@ -27,9 +27,15 @@ function install_fftw_library(){
 function compile_openholo_library(){
 	cd $ROOT_PATH
 	mkdir -p build
-	cd build
-	cmake ..
+ if [ "$1" = "-d" ] || [ "$1" == "-D" ]; then
+ 	echo "Debug Build"
+ 	cmake -B ./build -DCMAKE_BUILD_TYPE=Debug
+ else
+ 	echo "Release Build"
+ 	cmake -B ./build -DCMAKE_BUILD_TYPE=Release
+ fi
 	make
+ 	make install
 }
 
 ##############################################
