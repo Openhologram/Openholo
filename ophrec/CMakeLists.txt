@@ -33,9 +33,15 @@ add_library(${CMAKE_PROJECT_NAME}_static STATIC $<TARGET_OBJECTS:${CMAKE_PROJECT
 add_library(${CMAKE_PROJECT_NAME}_shared SHARED $<TARGET_OBJECTS:${CMAKE_PROJECT_NAME}>)
 
 # 추가 링크 디렉터
-link_directories(${FFTW3_LIBRARY_DIRS})
-link_directories(${CMAKE_SOURCE_DIR}/Reference/lib)
-link_directories(${CUDAToolkit_LIBRARY_DIR})
+target_link_directories(${CMAKE_PROJECT_NAME}_static PRIVATE ${FFTW3_LIBRARY_DIRS})
+target_link_directories(${CMAKE_PROJECT_NAME}_shared PRIVATE ${FFTW3_LIBRARY_DIRS})
+target_link_directories(${CMAKE_PROJECT_NAME}_static PRIVATE ${CMAKE_SOURCE_DIR}/Reference/lib)
+target_link_directories(${CMAKE_PROJECT_NAME}_shared PRIVATE ${CMAKE_SOURCE_DIR}/Reference/lib)
+target_link_directories(${CMAKE_PROJECT_NAME}_static PRIVATE ${CUDAToolkit_LIBRARY_DIR})
+target_link_directories(${CMAKE_PROJECT_NAME}_shared PRIVATE ${CUDAToolkit_LIBRARY_DIR})
+
+target_link_libraries(${CMAKE_PROJECT_NAME}_static PRIVATE openholo)
+target_link_libraries(${CMAKE_PROJECT_NAME}_shared PRIVATE openholo)
 
 find_library(FFTW3_LIB NAMES ${FFTW3_LIBRARIES}_threads PATHS ${FFTW3_LIBRARY_DIRS})
 if(FFTW3_LIB)
@@ -78,7 +84,6 @@ endif()
 
 add_dependencies(${CMAKE_PROJECT_NAME}_static openholo_static)
 add_dependencies(${CMAKE_PROJECT_NAME}_shared openholo_shared)
-add_dependencies(${CMAKE_PROJECT_NAME} openholo)
 
 # 바이너리 디렉토리 설정
 set(CMAKE_PROJECT_ROOT_DIR ${CMAKE_SOURCE_DIR})
