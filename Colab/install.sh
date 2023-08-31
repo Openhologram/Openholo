@@ -3,9 +3,11 @@ ROOT_PATH=$(pwd)
 ##############################################
 # get global variable
 ##############################################
-source CMakeCache.txt
-echo "CUDA_HOME: ${CUDA_HOME}"
-echo "FFTW3_LIB_DIR: ${FFTW3_LIB_DIR}"
+function print_external_variable(){
+  source ${ROOT_PATH}/Colab/build.env
+  echo "CUDA_HOME: ${CUDA_HOME}"
+  echo "FFTW3_LIB_DIR: ${FFTW3_LIB_DIR}"
+}
 
 ##############################################
 # install fftw library
@@ -31,16 +33,15 @@ function install_fftw_library(){
 # Compile openholo library
 ##############################################
 function compile_openholo_library(){
+  DIR_NAME="build"
 	cd $ROOT_PATH
-	mkdir -p build
- 	cd build
- 	if [ "$1" = "-d" ] || [ "$1" == "-D" ]; then
- 		echo "Debug Build"
- 		cmake .. -DCMAKE_BUILD_TYPE=Debug
- 	else
- 		echo "Release Build"
- 		cmake .. -DCMAKE_BUILD_TYPE=Release
- 	fi
+  if [ "$1" = "-d" ] || [ "$1" = "-D" ]; then
+	  cmake -B ./$DIR_NAME/Debug -DCMAKE_BUILD_TYPE=Debug
+	  cd $DIR_NAME/Debug
+  else
+	  cmake -B ./$DIR_NAME/Release -DCMAKE_BUILD_TYPE=Release
+	  cd $DIR_NAME/Release
+  fi
 	make
  	make install
 }
@@ -49,6 +50,7 @@ function compile_openholo_library(){
 # execute_openholo_test
 ##############################################
 function execute_openholo_test(){
+  source ${ROOT_PATH}/Colab/build.env
 	cd $ROOT_PATH/Colab
   	echo $ROOT_PATH/Colab
 
@@ -56,17 +58,16 @@ function execute_openholo_test(){
 	SOURCE_NAME=OpenholoGeneration.cpp
 	OPENHOLO_INCLUDE_DIR=$ROOT_PATH/Reference/include
 	OPENHOLO_LIB_PATH=$ROOT_PATH/bin
-	FFTW_LIB_PATH=/usr/local/lib
-	CUDA_LIB_PATH=/usr/local/cuda/lib64
-    CUDA_INCLUDE_PATH=/usr/local/cuda-11.1/targets/x86_64-linux/include/
-	CUDA_INCLUDE_PATH_COLAB=/usr/local/cuda-11.8/targets/x86_64-linux/include/
+  
+  CUDA_INCLUDE_PATH=$CUDA_HOME/targets/x86_64-linux/include/
+	CUDA_INCLUDE_PATH_COLAB=$CUDA_HOME/targets/x86_64-linux/include/
 	LIB_NAME=ophgen
 
 	g++ -fpermissive -fopenmp -g -o $FILE_NAME $SOURCE_NAME -I$OPENHOLO_INCLUDE_DIR -I$CUDA_INCLUDE_PATH -I$CUDA_INCLUDE_PATH_COLAB -l$LIB_NAME -L$OPENHOLO_LIB_PATH
 
 	LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$OPENHOLO_LIB_PATH
-	LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$FFTW_LIB_PATH
-	LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CUDA_LIB_PATH
+	LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$FFTW3_LIB_DIR
+	LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CUDA_HOME/lib64
 	mkdir -p Result
 
 	python OpenholoGeneration.py
@@ -81,13 +82,14 @@ else
 	PS3="Input Number = "
 
 	select GEN_TYPE in \
-		ReBuild \
+		Build \
 		Execute
 do
  	 case $GEN_TYPE in
-		ReBuild)
-		echo " Openholo library rebuild "
+		Build)
+		echo " Openholo library build "
 		compile_openholo_library
+    print_external_variable
 		break;;
 
 		Execute)
@@ -97,3 +99,4 @@ do
   	esac
 	done
 fi
+

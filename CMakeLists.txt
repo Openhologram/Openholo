@@ -49,10 +49,9 @@ message("PATH 				= $ENV{PATH}")
 message("LD_LIBRARY_PATH		= $ENV{LD_LIBRARY_PATH}")
 message("****************************************")
 
-#set(CUDA_HOME "${CUDAToolkit_TARGET_DIR}" CACHE INTERNAL "")
-#set(FFTW3_LIB_DIR "${FFTW3_LIBRARY_DIRS}" CACHE INTERNAL "")
-#export(PACKAGE CUDAToolkit)
-#export(PACKAGE FFTW3)
+file(WRITE ./Colab/build.env "export CUDA_HOME=${CUDAToolkit_TARGET_DIR}\n")
+file(APPEND ./Colab/build.env "export FFTW3_LIB_DIR=${FFTW3_LIBRARY_DIRS}")
+
 
 if (CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
 	add_definitions(-D_LINUX)
