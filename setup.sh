@@ -2,22 +2,20 @@
 
 DIR_NAME="build"
 
-if [ -d "$DIR_NAME" ]; then
-	echo "build exist"
-else
-	echo "make directory"
-	mkdir $DIR_NAME
-fi
+#if [ -d "$DIR_NAME" ]; then
+#	echo "build exist"
+#else
+#	echo "make directory"
+#	mkdir $DIR_NAME
+#fi
 
 if [ "$1" = "-d" ] || [ "$1" = "-D" ]; then
-	echo "Debug build"
-	cmake -B ./$DIR_NAME -DCMAKE_BUILD_TYPE=Debug
+	cmake -B ./$DIR_NAME/Debug -DCMAKE_BUILD_TYPE=Debug
+	cd $DIR_NAME/Debug
 else
-	echo "Release build"
-	cmake -B ./$DIR_NAME -DCMAKE_BUILD_TYPE=Release
+	cmake -B ./$DIR_NAME/Release -DCMAKE_BUILD_TYPE=Release
+	cd $DIR_NAME/Release
 fi
-
-cd build
 
 echo "Build begin"
 make

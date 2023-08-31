@@ -8,6 +8,13 @@ set(CMAKE_SOLUTION_NAME "Openholo")
 set(CMAKE_CXX_COMPILER "g++")
 set(LIBRARY_OUTPUT_PATH lib)
 
+# 바이너리 디렉토리 설정
+set(CMAKE_PROJECT_ROOT_DIR ${CMAKE_SOURCE_DIR})
+set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/bin)
+set(CMAKE_CURRENT_BINARY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/bin)
+set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR})
+set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR})
+
 project(${CMAKE_SOLUTION_NAME} LANGUAGES CXX CUDA)
 find_package(OpenMP REQUIRED)
 find_package(CUDAToolkit REQUIRED)	
@@ -40,18 +47,25 @@ message("FFTW3_INCLUDE_DIRS		= ${FFTW3_INCLUDE_DIRS}")
 message("FFTW3_LIBRARY_DIRS		= ${FFTW3_LIBRARY_DIRS}")
 message("PATH 				= $ENV{PATH}")
 message("LD_LIBRARY_PATH		= $ENV{LD_LIBRARY_PATH}")
+message("****************************************")
 
-set(CUDA_HOME "${CUDAToolkit_TARGET_DIR}" CACHE INTERNAL "")
-set(FFTW3_LIB_DIR "${FFTW3_LIBRARY_DIRS}" CACHE INTERNAL "")
-export(PACKAGE CUDAToolkit)
-export(PACKAGE FFTW3)
+#set(CUDA_HOME "${CUDAToolkit_TARGET_DIR}" CACHE INTERNAL "")
+#set(FFTW3_LIB_DIR "${FFTW3_LIBRARY_DIRS}" CACHE INTERNAL "")
+#export(PACKAGE CUDAToolkit)
+#export(PACKAGE FFTW3)
 
 if (CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
 	add_definitions(-D_LINUX)
 	include_directories(/usr/include)
+# Position Independent Code 컴파일러가 생성하는 코드가 다른 위치에 링크될 때도 정상동작하도록 작동
+	add_compile_options(-fPIC)
 elseif (CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
 	add_definitions(-D_WIN32)
 	add_definitions(-D_WIN64)
+# check compiler
+if(MSVC)
+	add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+endif()
 endif()
 
 if(NOT CMAKE_BUILD_TYPE)
@@ -61,24 +75,15 @@ endif()
 
 # check build type
 if(${CMAKE_BUILD_TYPE} MATCHES Debug)
+	message("Configuring for Debug build")
 	add_definitions(-D_DEBUG)
-	add_compile_options(-g -Wall)
+	add_compile_options(-Wall)
 elseif(${CMAKE_BUILD_TYPE} MATCHES Release)
+	set(CMAKE_CUDA_FLAGS_RELEASE "")
+	message("Configuring for Release build")
 	add_definitions(-D_NDEBUG)
-	# 최적화 옵션 -O0: 최적화x / -O1: 적은 최적화 수준 / -O2: 일반적인 최적화 수준 / -O3: 최대한 최적화 수준
-	add_compile_options(-w -O3)
+	add_compile_options(-w)
 endif()
-
-# Position Independent Code 컴파일러가 생성하는 코드가 다른 위치에 링크될 때도 정상동작하도록 작동
-add_compile_options(-fPIC)
-
-
-# check compiler
-if(MSVC)
-	add_definitions(-D_CRT_SECURE_NO_WARNINGS)
-endif()
-
-
 
 add_subdirectory(Openholo)
 add_subdirectory(ophgen)

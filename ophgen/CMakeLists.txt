@@ -51,8 +51,20 @@ set(SRC_FILES
     src/ophPASKernel.cu
 )
 
+# *** 컴파일 관련 ***
 add_library(${CMAKE_PROJECT_NAME} OBJECT ${SRC_FILES})
 set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES CUDA_ARCHITECTURES OFF)
+#set(CMAKE_CUDA_SEPARABLE_COMPILATION ON)
+
+# CUDA 컴파일러 옵션
+if(${CMAKE_BUILD_TYPE} MATCHES Debug)
+	target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CUDA>: -G>)
+endif()
+target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CUDA>: -lineinfo>)
+target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CUDA>: -use_fast_math>)
+target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CUDA>: -maxrregcount=0>)
+target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CUDA>: --machine 64>)
+target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CUDA>: --compile -cudart static>)
 
 # 추가 포함 디렉터리
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/Reference/include)
@@ -61,20 +73,26 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE ${CUDAToolkit_INCLUDE_D
 # 추가 정의
 target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE "-DGEN_EXPORT")
 
-
+# *** 링크 관련 ***
 add_library(${CMAKE_PROJECT_NAME}_static STATIC $<TARGET_OBJECTS:${CMAKE_PROJECT_NAME}>)
 add_library(${CMAKE_PROJECT_NAME}_shared SHARED $<TARGET_OBJECTS:${CMAKE_PROJECT_NAME}>)
 
 # 추가 링크 디렉터
 target_link_directories(${CMAKE_PROJECT_NAME}_static PRIVATE ${FFTW3_LIBRARY_DIRS})
 target_link_directories(${CMAKE_PROJECT_NAME}_shared PRIVATE ${FFTW3_LIBRARY_DIRS})
-target_link_directories(${CMAKE_PROJECT_NAME}_static PRIVATE ${CMAKE_SOURCE_DIR}/Reference/lib)
-target_link_directories(${CMAKE_PROJECT_NAME}_shared PRIVATE ${CMAKE_SOURCE_DIR}/Reference/lib)
+target_link_directories(${CMAKE_PROJECT_NAME}_static PRIVATE ${LIBRARY_OUTPUT_PATH})
+target_link_directories(${CMAKE_PROJECT_NAME}_shared PRIVATE ${LIBRARY_OUTPUT_PATH})
 target_link_directories(${CMAKE_PROJECT_NAME}_static PRIVATE ${CUDAToolkit_LIBRARY_DIR})
 target_link_directories(${CMAKE_PROJECT_NAME}_shared PRIVATE ${CUDAToolkit_LIBRARY_DIR})
 
-target_link_libraries(${CMAKE_PROJECT_NAME}_static PRIVATE openholo)
-target_link_libraries(${CMAKE_PROJECT_NAME}_shared PRIVATE openholo)
+find_library(OPENHOLO_LIB NAMES openholo PATHS ${LIBRARY_OUTPUT_PATH})
+#if(OPENHOLO_LIB)
+#	message("${OPENHOLO_LIB} library found.")
+	target_link_libraries(${CMAKE_PROJECT_NAME}_static PRIVATE openholo)
+	target_link_libraries(${CMAKE_PROJECT_NAME}_shared PRIVATE openholo)
+#else()
+#	message(FATAL_ERROR "${OPENHOLO_LIB} library not found.")
+#endif()
 
 find_library(FFTW3_LIB NAMES ${FFTW3_LIBRARIES}_threads PATHS ${FFTW3_LIBRARY_DIRS})
 if(FFTW3_LIB)
@@ -106,21 +124,9 @@ endif()
 target_link_libraries(${CMAKE_PROJECT_NAME}_static PRIVATE cuda)
 target_link_libraries(${CMAKE_PROJECT_NAME}_shared PRIVATE cuda)
 
-#target_link_libraries(${CMAKE_PROJECT_NAME} ${FFTW3_LIBRARIES}_threads)
-#target_link_libraries(${CMAKE_PROJECT_NAME} openholo)
-#target_link_libraries(${CMAKE_PROJECT_NAME} cudart)
-#target_link_libraries(${CMAKE_PROJECT_NAME} cufft)
-#target_link_libraries(${CMAKE_PROJECT_NAME} cuda)
-
 add_dependencies(${CMAKE_PROJECT_NAME}_static openholo_static)
 add_dependencies(${CMAKE_PROJECT_NAME}_shared openholo_shared)
 
-# 바이너리 디렉토리 설정
-set(CMAKE_PROJECT_ROOT_DIR ${CMAKE_SOURCE_DIR})
-set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/bin)
-set(CMAKE_CURRENT_BINARY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/bin)
-set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR})
-set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR})
 
 # set output name
 if(${CMAKE_BUILD_TYPE} MATCHES Debug)
