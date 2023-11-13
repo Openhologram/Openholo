@@ -55,6 +55,7 @@
 ophRec::ophRec(void)
 	: Openholo()
 	, m_oldSimStep(0)
+	, m_nOldChannel(0)
 	, m_idx(0)
 {
 }

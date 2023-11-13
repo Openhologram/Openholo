@@ -478,7 +478,7 @@ Complex<Real>** ophWRP::calculateMWRP(void)
 
 	//OphPointCloudData pc = obj_;
 
-	for (int i = 0; i<wrp_num; i++)
+	for (int i = 0; i < wrp_num; i++)
 	{
 //		wrp = calSubWRP(wrp_d, wrp, &pc);
 		wrp_list[i] = wrp;

@@ -24,12 +24,14 @@ CUDA* CUDA::instance = nullptr;
 CUDA::CUDA()
 {
 	printDevInfo();
+	m_nThread = 512;
 }
 
 
 CUDA::~CUDA()
 {
 }
+
 
 bool CUDA::printDevInfo()
 {

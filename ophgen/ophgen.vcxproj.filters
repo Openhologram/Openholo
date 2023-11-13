@@ -25,9 +25,6 @@
     <Filter Include="_1_Generation\_ophPAS">
       <UniqueIdentifier>{e0beee0b-affd-43cb-8369-f48760dc5000}</UniqueIdentifier>
     </Filter>
-    <Filter Include="_1_Generation\_ophLUT">
-      <UniqueIdentifier>{312a3ecb-f0ce-411f-aec4-782229318ebd}</UniqueIdentifier>
-    </Filter>
     <Filter Include="_1_Generation\_ophTriangleMesh">
       <UniqueIdentifier>{f7251fc7-2938-44bb-80cf-9066fa9a62b9}</UniqueIdentifier>
     </Filter>
@@ -42,9 +39,6 @@
     </Filter>
     <Filter Include="_1_Generation\_ophIFTA">
       <UniqueIdentifier>{eb90f59e-0839-4452-91f4-077e185a6739}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="_1_Generation\_ophAS">
-      <UniqueIdentifier>{50e1103f-5e35-45f7-a02c-9d634f4e783c}</UniqueIdentifier>
     </Filter>
     <Filter Include="_1_Generation\_ophNonHogelLF">
       <UniqueIdentifier>{a53757f2-50af-4c81-a3b1-d2ca7c69286e}</UniqueIdentifier>
@@ -79,9 +73,6 @@
     <ClInclude Include="src\ophACPAS.h">
       <Filter>_1_Generation\_ophACPAS</Filter>
     </ClInclude>
-    <ClInclude Include="src\ophLUT.h">
-      <Filter>_1_Generation\_ophLUT</Filter>
-    </ClInclude>
     <ClInclude Include="src\ophPAS.h">
       <Filter>_1_Generation\_ophPAS</Filter>
     </ClInclude>
@@ -106,9 +97,6 @@
     </ClInclude>
     <ClInclude Include="src\ophIFTA.h">
       <Filter>_1_Generation\_ophIFTA</Filter>
-    </ClInclude>
-    <ClInclude Include="src\ophAS.h">
-      <Filter>_1_Generation\_ophAS</Filter>
     </ClInclude>
     <ClInclude Include="src\ophNonHogelLF.h">
       <Filter>_1_Generation\_ophNonHogelLF</Filter>
@@ -143,9 +131,6 @@
     <ClCompile Include="src\ophACPAS.cpp">
       <Filter>_1_Generation\_ophACPAS</Filter>
     </ClCompile>
-    <ClCompile Include="src\ophLUT.cpp">
-      <Filter>_1_Generation\_ophLUT</Filter>
-    </ClCompile>
     <ClCompile Include="src\ophPAS.cpp">
       <Filter>_1_Generation\_ophPAS</Filter>
     </ClCompile>
@@ -167,9 +152,6 @@
     <ClCompile Include="src\ophIFTA.cpp">
       <Filter>_1_Generation\_ophIFTA</Filter>
     </ClCompile>
-    <ClCompile Include="src\ophAS.cpp">
-      <Filter>_1_Generation\_ophAS</Filter>
-    </ClCompile>
     <ClCompile Include="src\ophNonHogelLF.cpp">
       <Filter>_1_Generation\_ophNonHogelLF</Filter>
     </ClCompile>
@@ -190,14 +172,8 @@
     <CudaCompile Include="src\ophTriMeshKernel.cu">
       <Filter>_1_Generation\_ophTriangleMesh</Filter>
     </CudaCompile>
-    <CudaCompile Include="src\ophAS_GPU.cpp">
-      <Filter>_1_Generation\_ophAS</Filter>
-    </CudaCompile>
     <CudaCompile Include="src\ophPAS_GPU.cpp">
       <Filter>_1_Generation\_ophPAS</Filter>
-    </CudaCompile>
-    <CudaCompile Include="src\ophASKernel.cu">
-      <Filter>_1_Generation\_ophAS</Filter>
     </CudaCompile>
     <CudaCompile Include="src\ophPASKernel.cu">
       <Filter>_1_Generation\_ophPAS</Filter>
@@ -209,9 +185,6 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="src\ophAS_GPU.h">
-      <Filter>_1_Generation\_ophAS</Filter>
-    </CustomBuild>
     <CustomBuild Include="src\ophPAS_GPU.h">
       <Filter>_1_Generation\_ophPAS</Filter>
     </CustomBuild>

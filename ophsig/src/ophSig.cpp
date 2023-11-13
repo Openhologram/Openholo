@@ -48,13 +48,11 @@
 
 
 ophSig::ophSig(void)
-	//:_angleX(0)
-	//, _angleY(0)
-	//, _redRate(0)
-	//, _radius(0)
+	: is_CPU(true)
 {
-	_foc = new Real_t[3];
+	_foc[0] = _foc[1] = _foc[2] = 0.0f;
 }
+
 void ophSig::cField2Buffer(matrix<Complex<Real>>& src, Complex<Real> **dst,int nx,int ny) {
 	ivec2 bufferSize(nx, ny); //= src.getSize();
 
@@ -1728,7 +1726,10 @@ bool ophSig::getComplexHFromPSDH(const char * fname0, const char * fname90, cons
 	return true;
 }
 
-bool ophSig::getComplexHFrom3ArbStepPSDH(const char* fname0, const char* fname1, const char* fname2, const char* fnameOI, const char* fnameRI, int nIter)
+bool ophSig::getComplexHFrom3ArbStepPSDH(
+	const char* fname0, const char* fname1, 
+	const char* fname2, const char* fnameOI, 
+	const char* fnameRI, int nIter)
 {
 	auto start_time = CUR_TIME;
 	string fname0str = fname0;

@@ -9,7 +9,8 @@ ophSigCH::ophSigCH(void)
 {
 }
 
-bool ophSigCH::saveNumRec(const char *fname) {
+bool ophSigCH::saveNumRec(const char *fname)
+{
 	double gamma = 0.5;
 
 	oph::uchar* intensityData;
@@ -52,7 +53,7 @@ bool ophSigCH::saveNumRec(const char *fname) {
 				intensityData[i*_cfgSig.cols + j] = (uchar)(pow(intensityVal / maxIntensity,gamma)*255.0);
 			}
 		}
-		sprintf(str, "_%.2u", k);
+		sprintf(str, "_%.2d", k);
 		fnamestr.insert(checktype, str);
 		saveAsImg(fnamestr.c_str(), 8, intensityData, _cfgSig.cols, _cfgSig.rows);
 	}
@@ -626,17 +627,18 @@ bool ophSigCH::loadCHtemp(const char * real, const char * imag, uint8_t bitpixel
 	}
 	if (realtype == "bmp")
 	{
-		FILE *freal, *fimag;
+		FILE* freal = nullptr;
+		FILE* fimag = nullptr;
 		fileheader hf;
 		bitmapinfoheader hInfo;
 		freal = fopen(realname.c_str(), "rb");
 		fimag = fopen(imagname.c_str(), "rb");
-		if (!freal)
+		if (freal == nullptr)
 		{
 			LOG("real bmp file open fail!\n");
 			return false;
 		}
-		if (!fimag)
+		if (fimag == nullptr)
 		{
 			LOG("imaginary bmp file open fail!\n");
 			return false;

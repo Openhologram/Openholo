@@ -182,7 +182,7 @@ xcopy /y "$(ProjectDir)src\*.h" "$(USERPROFILE)\source\repos\OpenholoRefApp\Refe
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;WIN64;_DEBUG;_CONSOLE;GEN_EXPORT;FAST_MATH_WITH_FLOAT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;WIN64;_DEBUG;_CONSOLE;GEN_EXPORT;FAST_MATH_WITH_FLOAT;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir)Reference\include\;$(CudaToolkitIncludeDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <OpenMPSupport>true</OpenMPSupport>
       <WholeProgramOptimization>false</WholeProgramOptimization>
@@ -284,15 +284,12 @@ xcopy /y "$(ProjectDir)src\*.h" "$(USERPROFILE)\source\repos\OpenholoRefApp\Refe
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="src\ophACPAS.h" />
-    <ClInclude Include="src\ophAS.h" />
-    <CustomBuild Include="src\ophAS_GPU.h" />
     <ClInclude Include="src\ophDepthMap.h" />
     <ClInclude Include="src\ophDepthMap_GPU.h" />
     <ClInclude Include="src\ophGen.h" />
     <ClInclude Include="src\ophIFTA.h" />
     <ClInclude Include="src\ophLightField.h" />
     <ClInclude Include="src\ophLightField_GPU.h" />
-    <ClInclude Include="src\ophLUT.h" />
     <ClInclude Include="src\ophNonHogelLF.h" />
     <ClInclude Include="src\ophPAS.h" />
     <CustomBuild Include="src\ophPAS_GPU.h" />
@@ -313,16 +310,12 @@ xcopy /y "$(ProjectDir)src\*.h" "$(USERPROFILE)\source\repos\OpenholoRefApp\Refe
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="src\ophACPAS.cpp" />
-    <ClCompile Include="src\ophAS.cpp" />
-    <CudaCompile Include="src\ophASKernel.cu" />
-    <CudaCompile Include="src\ophAS_GPU.cpp" />
     <ClCompile Include="src\ophDepthMap.cpp" />
     <ClCompile Include="src\ophDepthMap_GPU.cpp" />
     <ClCompile Include="src\ophGen.cpp" />
     <ClCompile Include="src\ophIFTA.cpp" />
     <ClCompile Include="src\ophLightField.cpp" />
     <ClCompile Include="src\ophLightField_GPU.cpp" />
-    <ClCompile Include="src\ophLUT.cpp" />
     <ClCompile Include="src\ophNonHogelLF.cpp" />
     <ClCompile Include="src\ophPAS.cpp" />
     <CudaCompile Include="src\ophPASKernel.cu" />

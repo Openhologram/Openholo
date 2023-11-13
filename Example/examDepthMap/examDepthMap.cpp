@@ -86,13 +86,13 @@ int main() {
 	}
 
 	//
-	time_t curr_time = time(nullptr);
+	time_t cur_time = time(nullptr);
 
 	struct tm local;
 #ifdef _MSC_VER
-	localtime_s(&local, &curr_time);
+	localtime_s(&local, &cur_time);
 #else
-	localtime_r(&curr_time, plocal);
+	localtime_r(&cur_time, &local);
 #endif
 
 	char buff[32];

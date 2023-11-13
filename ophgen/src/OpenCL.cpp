@@ -15,6 +15,8 @@ OpenCL::OpenCL()
 	platform = nullptr;
 	item = nullptr;
 	kernel_source = nullptr;
+	program = nullptr;
+	kernel = nullptr;
 	init();
 }
 

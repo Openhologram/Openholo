@@ -2,6 +2,7 @@
 
 ophSigPU::ophSigPU(void)
 {
+	MaxBoxRadius = Nc = Nr = 0;
 }
 
 bool ophSigPU::setPUparam(int maxBoxRadius)

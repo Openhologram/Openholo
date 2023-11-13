@@ -94,80 +94,80 @@ void ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 		memset(host_dst, 0., bufferSize * 2);
 
 		current_kernel = diff_flag == PC_DIFF_RS ? &kernel[0] : &kernel[1];
-	}
 
-	device_pc_data = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(Real) * n_points * 3, nullptr, &nErr);
-	device_amp_data = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(Real) * n_points * n_colors, nullptr, &nErr);
-	nErr = clEnqueueWriteBuffer(commands, device_pc_data, CL_TRUE, 0, sizeof(Real) * n_points * 3, host_pc_data, 0, nullptr, nullptr);
-	nErr = clEnqueueWriteBuffer(commands, device_amp_data, CL_TRUE, 0, sizeof(Real) * n_points * n_colors, host_amp_data, 0, nullptr, nullptr);
+		device_pc_data = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(Real) * n_points * 3, nullptr, &nErr);
+		device_amp_data = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(Real) * n_points * n_colors, nullptr, &nErr);
+		nErr = clEnqueueWriteBuffer(commands, device_pc_data, CL_TRUE, 0, sizeof(Real) * n_points * 3, host_pc_data, 0, nullptr, nullptr);
+		nErr = clEnqueueWriteBuffer(commands, device_amp_data, CL_TRUE, 0, sizeof(Real) * n_points * n_colors, host_amp_data, 0, nullptr, nullptr);
 
-	device_result = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sizeof(Real) * pnXY * 2, nullptr, &nErr);
+		device_result = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sizeof(Real) * pnXY * 2, nullptr, &nErr);
 
 
-	size_t global[2] = { context_.pixel_number[_X], context_.pixel_number[_Y] };
-	size_t local[2] = { 32, 32 };
+		size_t global[2] = { context_.pixel_number[_X], context_.pixel_number[_Y] };
+		size_t local[2] = { 32, 32 };
 
-	clSetKernelArg(*current_kernel, 1, sizeof(cl_mem), &device_pc_data);
-	clSetKernelArg(*current_kernel, 2, sizeof(cl_mem), &device_amp_data);
-	clSetKernelArg(*current_kernel, 4, sizeof(uint), &n_points);
-	for (uint ch = 0; ch < nChannel; ch++)
-	{
-		uint nAdd = bIsGrayScale ? 0 : ch;
-		context_.k = (2 * M_PI) / context_.wave_length[ch];
-		Real ratio = 1.0; //context_.wave_length[nChannel - 1] / context_.wave_length[ch];
-
-		GpuConst* host_config = new GpuConst(
-			n_points, n_colors, 1,
-			pc_config_.scale, pc_config_.distance,
-			context_.pixel_number,
-			context_.pixel_pitch,
-			context_.ss,
-			context_.k,
-			context_.wave_length[ch],
-			ratio
-		);
-
-		if (diff_flag == PC_DIFF_RS)
+		clSetKernelArg(*current_kernel, 1, sizeof(cl_mem), &device_pc_data);
+		clSetKernelArg(*current_kernel, 2, sizeof(cl_mem), &device_amp_data);
+		clSetKernelArg(*current_kernel, 4, sizeof(uint), &n_points);
+		for (uint ch = 0; ch < nChannel; ch++)
 		{
-			host_config = new GpuConstNERS(*host_config);
-			device_config = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(GpuConstNERS), nullptr, &nErr);
+			uint nAdd = bIsGrayScale ? 0 : ch;
+			context_.k = (2 * M_PI) / context_.wave_length[ch];
+			Real ratio = 1.0; //context_.wave_length[nChannel - 1] / context_.wave_length[ch];
 
-			nErr = clEnqueueWriteBuffer(commands, device_result, CL_TRUE, 0, sizeof(Real) * pnXY * 2, host_dst, 0, nullptr, nullptr);
-			nErr = clEnqueueWriteBuffer(commands, device_config, CL_TRUE, 0, sizeof(GpuConstNERS), host_config, 0, nullptr, nullptr);
+			GpuConst* host_config = new GpuConst(
+				n_points, n_colors, 1,
+				pc_config_.scale, pc_config_.distance,
+				context_.pixel_number,
+				context_.pixel_pitch,
+				context_.ss,
+				context_.k,
+				context_.wave_length[ch],
+				ratio
+			);
+
+			if (diff_flag == PC_DIFF_RS)
+			{
+				host_config = new GpuConstNERS(*host_config);
+				device_config = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(GpuConstNERS), nullptr, &nErr);
+
+				nErr = clEnqueueWriteBuffer(commands, device_result, CL_TRUE, 0, sizeof(Real) * pnXY * 2, host_dst, 0, nullptr, nullptr);
+				nErr = clEnqueueWriteBuffer(commands, device_config, CL_TRUE, 0, sizeof(GpuConstNERS), host_config, 0, nullptr, nullptr);
+			}
+			else if (diff_flag == PC_DIFF_FRESNEL)
+			{
+				host_config = new GpuConstNEFR(*host_config);
+				device_config = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(GpuConstNEFR), nullptr, &nErr);
+
+				nErr = clEnqueueWriteBuffer(commands, device_result, CL_TRUE, 0, sizeof(Real) * pnXY * 2, host_dst, 0, nullptr, nullptr);
+				nErr = clEnqueueWriteBuffer(commands, device_config, CL_TRUE, 0, sizeof(GpuConstNEFR), host_config, 0, nullptr, nullptr);
+			}
+
+			clSetKernelArg(*current_kernel, 0, sizeof(cl_mem), &device_result);
+			clSetKernelArg(*current_kernel, 3, sizeof(cl_mem), &device_config);
+			clSetKernelArg(*current_kernel, 5, sizeof(uint), &ch);
+
+			nErr = clEnqueueNDRangeKernel(commands, *current_kernel, 2, nullptr, global, nullptr/*local*/, 0, nullptr, nullptr);
+
+
+			//nErr = clFlush(commands);
+			nErr = clFinish(commands);
+
+			if (nErr != CL_SUCCESS) cl->errorCheck(nErr, "Check", __FILE__, __LINE__);
+
+			nErr = clEnqueueReadBuffer(commands, device_result, CL_TRUE, 0, sizeof(Real) * pnXY * 2, complex_H[ch], 0, nullptr, nullptr);
+
+			delete host_config;
+
+			m_nProgress = (ch + 1) * 100 / nChannel;
 		}
-		else if (diff_flag == PC_DIFF_FRESNEL)
-		{
-			host_config = new GpuConstNEFR(*host_config);
-			device_config = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(GpuConstNEFR), nullptr, &nErr);
 
-			nErr = clEnqueueWriteBuffer(commands, device_result, CL_TRUE, 0, sizeof(Real) * pnXY * 2, host_dst, 0, nullptr, nullptr);
-			nErr = clEnqueueWriteBuffer(commands, device_config, CL_TRUE, 0, sizeof(GpuConstNEFR), host_config, 0, nullptr, nullptr);
-		}
-
-		clSetKernelArg(*current_kernel, 0, sizeof(cl_mem), &device_result);
-		clSetKernelArg(*current_kernel, 3, sizeof(cl_mem), &device_config);
-		clSetKernelArg(*current_kernel, 5, sizeof(uint), &ch);
-
-		nErr = clEnqueueNDRangeKernel(commands, *current_kernel, 2, nullptr, global, nullptr/*local*/, 0, nullptr, nullptr);
-
-
-		//nErr = clFlush(commands);
-		nErr = clFinish(commands);
-
-		if (nErr != CL_SUCCESS) cl->errorCheck(nErr, "Check", __FILE__, __LINE__);
-
-		nErr = clEnqueueReadBuffer(commands, device_result, CL_TRUE, 0, sizeof(Real) * pnXY * 2, complex_H[ch], 0, nullptr, nullptr);
-
-		delete host_config;
-
-		m_nProgress = (ch + 1) * 100 / nChannel;
+		clReleaseMemObject(device_result);
+		clReleaseMemObject(device_amp_data);
+		clReleaseMemObject(device_pc_data);
+		if (host_dst)	delete[] host_dst;
+		if (is_ViewingWindow && host_pc_data)	delete[] host_pc_data;
 	}
-
-	clReleaseMemObject(device_result);
-	clReleaseMemObject(device_amp_data);
-	clReleaseMemObject(device_pc_data);
-	if (host_dst)	delete[] host_dst;
-	if (is_ViewingWindow && host_pc_data)	delete[] host_pc_data;
 
 	LOG("%s : %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
 }

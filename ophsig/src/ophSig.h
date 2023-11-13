@@ -489,7 +489,7 @@ protected:
 
 	int _wavelength_num;
 	Real_t _radius;
-	Real_t* _foc;
+	Real_t _foc[3];
 
 
 

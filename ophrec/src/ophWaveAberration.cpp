@@ -56,7 +56,10 @@ inline double ophWaveAberration::factorial(double x)
 }
 
 
-ophWaveAberration::ophWaveAberration() : nOrder(0), mFrequency(0)
+ophWaveAberration::ophWaveAberration()
+	: nOrder(0)
+	, mFrequency(0)
+	, complex_W(nullptr)
 {
 	
 	cout << "ophWaveAberration Constructor" << endl;
