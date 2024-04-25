@@ -1,5 +1,8 @@
 #include "CUDA.h"
 #include "define.h"
+#include <iostream>
+#include <string>
+#include <iomanip>
 
 static void HandleError(cudaError_t err,
 	const char *file,
@@ -70,4 +73,10 @@ bool CUDA::printDevInfo()
 
 
 	return true;
+}
+
+void CUDA::printMemoryInfo(uint64_t total, uint64_t free)
+{
+	uint64_t gb = 1024 * 1024 * 1024;
+	LOG("CUDA Memory: %.1f/%.1fGB\n", static_cast<double>(total - free) / gb, static_cast<double>(total) / gb);
 }

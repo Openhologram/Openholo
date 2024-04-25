@@ -181,43 +181,17 @@ void ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 		LOG("<FAILED> Wrong parameters.");
 		return;
 	}
+	CUDA* pCuda = CUDA::getInstance();
 
 	//cudaStream_t* streams = nullptr;
 	auto begin = CUR_TIME;
 	const ulonglong pnXY = context_.pixel_number[_X] * context_.pixel_number[_Y];
-	int blockSize = CUDA::getInstance()->getMaxThreads(); //n_threads // blockSize < devProp.maxThreadsPerBlock
+	int blockSize = pCuda->getMaxThreads(); //n_threads // blockSize < devProp.maxThreadsPerBlock
 	ulonglong gridSize = (pnXY + blockSize - 1) / blockSize; //n_blocks
 
 	cout << ">>> All " << blockSize * gridSize << " threads in CUDA" << endl;
 	cout << ">>> " << blockSize << " threads/block, " << gridSize << " blocks/grid" << endl;
 
-	//const int n_streams = OPH_CUDA_N_STREAM;
-	int n_streams;
-	if (getStream() == 0)
-		n_streams = pc_data_.n_points / 300 + 1;
-	else if (getStream() < 0)
-	{
-		LOG("<FAILED> Wrong parameters.");
-		return;
-	}
-	else
-		n_streams = getStream();
-
-
-
-	// Keep original buffer
-	//if (is_ViewingWindow) {
-	//	host_pc_data = new Vertex[pc_data_.n_points];
-	//	transVW(pc_data_.n_points, host_pc_data, pc_data_.vertices);
-	//}
-	//else {
-	//	host_pc_data = pc_data_.vertices;
-
-	//}
-
-	//threads number
-	const ulonglong bufferSize = pnXY * sizeof(cuDoubleComplex);
-	int n_points = pc_data_.n_points;
 
 	//Host Memory Location
 	Vertex* host_vertex_data = nullptr;
@@ -225,17 +199,15 @@ void ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 		host_vertex_data = pc_data_.vertices;
 	else
 	{
-		host_vertex_data = new Vertex[n_points];
-		std::memcpy(host_vertex_data, pc_data_.vertices, sizeof(Vertex) * n_points);
-		transVW(n_points, host_vertex_data, host_vertex_data);
+		host_vertex_data = new Vertex[pc_data_.n_points];
+		std::memcpy(host_vertex_data, pc_data_.vertices, sizeof(Vertex) * pc_data_.n_points);
+		transVW(pc_data_.n_points, host_vertex_data, host_vertex_data);
 	}
-	cuDoubleComplex* host_dst = nullptr;
-	host_dst = new cuDoubleComplex[pnXY];
-	memset(host_dst, 0, bufferSize);
-
 	Vertex* device_vertex_data;
-	HANDLE_ERROR(cudaMalloc((void**)&device_vertex_data, n_points * sizeof(Vertex)));
+	HANDLE_ERROR(cudaMalloc((void**)&device_vertex_data, pc_data_.n_points * sizeof(Vertex)));
 
+	//threads number
+	const ulonglong bufferSize = pnXY * sizeof(cuDoubleComplex);
 	cuDoubleComplex* device_dst = nullptr;
 	HANDLE_ERROR(cudaMalloc((void**)&device_dst, bufferSize));
 	HANDLE_ERROR(cudaMemsetAsync(device_dst, 0., bufferSize));
@@ -243,98 +215,68 @@ void ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 	uint nChannel = context_.waveNum;
 	size_t free, total;
 	cudaMemGetInfo(&free, &total);
+	pCuda->printMemoryInfo(total, free);
 
-#ifdef _WIN64
-	LOG("CUDA Memory Total: %llu (byte) / Free: %llu (byte)\n", total, free);
-#else
-	LOG("CUDA Memory Total: %zu (byte) / Free: %zu (byte)\n", total, free);
-#endif
+	CudaPointCloudConfig* host_config = new CudaPointCloudConfig(
+		pc_data_.n_points,
+		pc_config_.scale,
+		pc_config_.distance,
+		context_.pixel_number,
+		context_.offset,
+		context_.pixel_pitch,
+		context_.ss,
+		context_.k,
+		context_.wave_length[0]
+	);
+
+
+	HANDLE_ERROR(cudaMemcpyAsync(device_vertex_data, host_vertex_data, pc_data_.n_points * sizeof(Vertex), cudaMemcpyHostToDevice));
+
 	for (uint ch = 0; ch < nChannel; ch++)
 	{
-		context_.k = (2 * M_PI) / context_.wave_length[ch];
+		host_config->k = context_.k = (2 * M_PI) / context_.wave_length[ch];
+		host_config->lambda = context_.wave_length[ch];
 
-		GpuConst* host_config = new GpuConst(
-			n_points, n_streams,
-			pc_config_.scale, pc_config_.distance,
-			context_.pixel_number,
-			context_.offset,
-			context_.pixel_pitch,
-			context_.ss,
-			context_.k,
-			context_.wave_length[ch]
-		);
-
-
-		GpuConst* device_config = nullptr;
+		CudaPointCloudConfig* device_config = nullptr;
 		switch (diff_flag) {
 		case PC_DIFF_RS: {
-			host_config = new GpuConstNERS(*host_config);
-			HANDLE_ERROR(cudaMalloc((void**)&device_config, sizeof(GpuConstNERS)));
-			HANDLE_ERROR(cudaMemcpyAsync(device_config, host_config, sizeof(GpuConstNERS), cudaMemcpyHostToDevice));
+			host_config = new CudaPointCloudConfigRS(*host_config);
+			HANDLE_ERROR(cudaMalloc((void**)&device_config, sizeof(CudaPointCloudConfigRS)));
+			HANDLE_ERROR(cudaMemcpyAsync(device_config, host_config, sizeof(CudaPointCloudConfigRS), cudaMemcpyHostToDevice));
+			cudaPointCloud_RS(gridSize, blockSize, device_vertex_data, device_dst, (CudaPointCloudConfigRS*)device_config, ch, m_mode);
+			//HANDLE_ERROR(cudaMemsetAsync(device_config, 0., sizeof(CudaPointCloudConfigRS)));
 			break;
 		}
 		case PC_DIFF_FRESNEL: {
-			host_config = new GpuConstNEFR(*host_config);
-			HANDLE_ERROR(cudaMalloc((void**)&device_config, sizeof(GpuConstNEFR)));
-			HANDLE_ERROR(cudaMemcpyAsync(device_config, host_config, sizeof(GpuConstNEFR), cudaMemcpyHostToDevice));
+			host_config = new CudaPointCloudConfigFresnel(*host_config);
+			HANDLE_ERROR(cudaMalloc((void**)&device_config, sizeof(CudaPointCloudConfigFresnel)));
+			HANDLE_ERROR(cudaMemcpyAsync(device_config, host_config, sizeof(CudaPointCloudConfigFresnel), cudaMemcpyHostToDevice));
+			cudaPointCloud_Fresnel(gridSize, blockSize, device_vertex_data, device_dst, (CudaPointCloudConfigFresnel*)device_config, ch, m_mode);
+			//HANDLE_ERROR(cudaMemsetAsync(device_config, 0., sizeof(CudaPointCloudConfigFresnel)));
 			break;
 		}
 		}
 
-		int stream_points = n_points / n_streams;
-		int remainder = n_points % n_streams;
-
-
-		int offset = 0;
-		for (int i = 0; i < n_streams; ++i) {
-			offset = i * stream_points;
-			if (i == n_streams - 1) { // 마지막 스트림 연산 시,
-				stream_points += remainder;
+		cudaError error = cudaGetLastError();
+		if (error != cudaSuccess) {
+			LOG("cudaGetLastError(): %s\n", cudaGetErrorName(error));
+			if (error == cudaErrorLaunchOutOfResources) {
+				ch--;
+				blockSize /= 2;
+				gridSize *= 2;
+				continue;
 			}
+		}
+		HANDLE_ERROR(cudaMemcpyAsync(complex_H[ch], device_dst, bufferSize, cudaMemcpyDeviceToHost));
+		HANDLE_ERROR(cudaMemsetAsync(device_dst, 0., bufferSize));
+		m_nProgress = (ch + 1) * 100 / nChannel;
 
-			HANDLE_ERROR(cudaMemcpyAsync(device_vertex_data + offset, host_vertex_data + offset, stream_points * sizeof(Vertex), cudaMemcpyHostToDevice));
-
-			switch (diff_flag) {
-			case PC_DIFF_RS: {
-				cudaPointCloud_RS(gridSize, blockSize, stream_points, device_vertex_data + offset, device_dst, (GpuConstNERS*)device_config, ch, m_mode);
-				break;
-			}
-			case PC_DIFF_FRESNEL: {
-				cudaPointCloud_Fresnel(gridSize, blockSize, stream_points, device_vertex_data + offset, device_dst, (GpuConstNEFR*)device_config, ch, m_mode);
-				break;
-			} // case
-			} // switch
-
-			cudaError error = cudaGetLastError();
-			if (error != cudaSuccess) {
-				LOG("cudaGetLastError(): %s\n", cudaGetErrorName(error));
-				if (error == cudaErrorLaunchOutOfResources) {
-					i--;
-					blockSize /= 2;
-					gridSize *= 2;
-					continue;
-				}
-			}
-			HANDLE_ERROR(cudaMemcpyAsync(host_dst, device_dst, bufferSize, cudaMemcpyDeviceToHost));
-			HANDLE_ERROR(cudaMemsetAsync(device_dst, 0., bufferSize));
-
-			for (ulonglong n = 0; n < pnXY; ++n) {
-				complex_H[ch][n][_RE] += host_dst[n].x;
-				complex_H[ch][n][_IM] += host_dst[n].y;
-			}
-
-			m_nProgress = (int)((Real)(ch*n_streams + i + 1) * 100 / ((Real)n_streams * nChannel));
-		} // for
-
-		////free memory
 		HANDLE_ERROR(cudaFree(device_config));
-		
-		delete host_config;
-	}
 
+	}
+	delete host_config;
 	HANDLE_ERROR(cudaFree(device_vertex_data));
 	HANDLE_ERROR(cudaFree(device_dst));
-	delete[] host_dst;
 
 	if (is_ViewingWindow) {
 		delete[] host_vertex_data;

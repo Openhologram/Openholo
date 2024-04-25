@@ -64,7 +64,7 @@
 #include "ophPointCloud_GPU.h"
 
 __global__
-void cudaKernel_double_RS_Diffraction(uint channel, Vertex* vertex_data, const GpuConstNERS* config, const int N, cuDoubleComplex* dst)
+void cudaKernel_double_RS_Diffraction(uint channel, Vertex* vertex_data, const CudaPointCloudConfigRS* config, cuDoubleComplex* dst)
 {
 	__shared__ int pnX, pnY, loop, schannel, offsetX, offsetY;
 	__shared__ double ppX, ppY, scaleX, scaleY, scaleZ, half_ssX, half_ssY, distance, det_tx, det_ty, k, lambda;
@@ -87,7 +87,7 @@ void cudaKernel_double_RS_Diffraction(uint channel, Vertex* vertex_data, const G
 		det_ty = config->det_ty;
 		k = config->k;
 		lambda = config->lambda;
-		loop = N;
+		loop = config->n_points;
 	}
 	__syncthreads();
 
@@ -176,7 +176,7 @@ void cudaKernel_double_RS_Diffraction(uint channel, Vertex* vertex_data, const G
 }
 
 __global__
-void cudaKernel_double_FastMath_RS_Diffraction(uint channel, Vertex* vertex_data, const GpuConstNERS* config, const int N, cuDoubleComplex* dst)
+void cudaKernel_double_FastMath_RS_Diffraction(uint channel, Vertex* vertex_data, const CudaPointCloudConfigRS* config, cuDoubleComplex* dst)
 {
 	__shared__ int pnX, pnY, loop, schannel, offsetX, offsetY;
 	__shared__ double ppX, ppY, scaleX, scaleY, scaleZ, half_ssX, half_ssY, distance, det_tx, det_ty, k, lambda;
@@ -199,7 +199,7 @@ void cudaKernel_double_FastMath_RS_Diffraction(uint channel, Vertex* vertex_data
 		det_ty = config->det_ty;
 		k = config->k;
 		lambda = config->lambda;
-		loop = N;
+		loop = config->n_points;
 	}
 	__syncthreads();
 
@@ -289,7 +289,7 @@ void cudaKernel_double_FastMath_RS_Diffraction(uint channel, Vertex* vertex_data
 }
 
 __global__
-void cudaKernel_single_RS_Diffraction(uint channel, Vertex* vertex_data, const GpuConstNERS* config, const int N, cuDoubleComplex* dst)
+void cudaKernel_single_RS_Diffraction(uint channel, Vertex* vertex_data, const CudaPointCloudConfigRS* config, cuDoubleComplex* dst)
 {
 	__shared__ int pnX, pnY, loop, schannel, offsetX, offsetY;
 	__shared__ float ppX, ppY, scaleX, scaleY, scaleZ, half_ssX, half_ssY, distance, det_tx, det_ty, k, lambda;
@@ -312,7 +312,7 @@ void cudaKernel_single_RS_Diffraction(uint channel, Vertex* vertex_data, const G
 		det_ty = config->det_ty;
 		k = config->k;
 		lambda = config->lambda;
-		loop = N;
+		loop = config->n_points;
 	}
 	__syncthreads();
 
@@ -401,7 +401,7 @@ void cudaKernel_single_RS_Diffraction(uint channel, Vertex* vertex_data, const G
 }
 
 __global__
-void cudaKernel_single_FastMath_RS_Diffraction(uint channel, Vertex* vertex_data, const GpuConstNERS* config, const int N, cuDoubleComplex* dst)
+void cudaKernel_single_FastMath_RS_Diffraction(uint channel, Vertex* vertex_data, const CudaPointCloudConfigRS* config, cuDoubleComplex* dst)
 {
 	__shared__ int pnX, pnY, loop, schannel, offsetX, offsetY;
 	__shared__ float ppX, ppY, scaleX, scaleY, scaleZ, half_ssX, half_ssY, distance, det_tx, det_ty, k, lambda;
@@ -424,7 +424,7 @@ void cudaKernel_single_FastMath_RS_Diffraction(uint channel, Vertex* vertex_data
 		det_ty = config->det_ty;
 		k = config->k;
 		lambda = config->lambda;
-		loop = N;
+		loop = config->n_points;
 	}
 	__syncthreads();
 
@@ -514,7 +514,7 @@ void cudaKernel_single_FastMath_RS_Diffraction(uint channel, Vertex* vertex_data
 }
 
 __global__
-void cudaKernel_double_Fresnel_Diffraction(uint channel, Vertex* vertex_data, const GpuConstNEFR* config, const int N, cuDoubleComplex* dst)
+void cudaKernel_double_Fresnel_Diffraction(uint channel, Vertex* vertex_data, const CudaPointCloudConfigFresnel* config, cuDoubleComplex* dst)
 {
 	__shared__ int pnX, pnY, loop, schannel, offsetX, offsetY;
 	__shared__ double ppX, ppY, scaleX, scaleY, scaleZ, half_ssX, half_ssY, distance, k, tx, ty, lambda;
@@ -537,7 +537,7 @@ void cudaKernel_double_Fresnel_Diffraction(uint channel, Vertex* vertex_data, co
 		tx = config->tx;
 		ty = config->ty;
 		lambda = config->lambda;
-		loop = N;
+		loop = config->n_points;
 	}
 	__syncthreads();
 
@@ -601,7 +601,7 @@ void cudaKernel_double_Fresnel_Diffraction(uint channel, Vertex* vertex_data, co
 }
 
 __global__
-void cudaKernel_double_FastMath_Fresnel_Diffraction(uint channel, Vertex* vertex_data, const GpuConstNEFR* config, const int N, cuDoubleComplex* dst)
+void cudaKernel_double_FastMath_Fresnel_Diffraction(uint channel, Vertex* vertex_data, const CudaPointCloudConfigFresnel* config, cuDoubleComplex* dst)
 {
 	__shared__ int pnX, pnY, loop, schannel, offsetX, offsetY;
 	__shared__ double ppX, ppY, scaleX, scaleY, scaleZ, half_ssX, half_ssY, distance, k, tx, ty, lambda;
@@ -624,7 +624,7 @@ void cudaKernel_double_FastMath_Fresnel_Diffraction(uint channel, Vertex* vertex
 		tx = config->tx;
 		ty = config->ty;
 		lambda = config->lambda;
-		loop = N;
+		loop = config->n_points;
 	}
 	__syncthreads();
 
@@ -693,7 +693,7 @@ void cudaKernel_double_FastMath_Fresnel_Diffraction(uint channel, Vertex* vertex
 }
 
 __global__
-void cudaKernel_single_Fresnel_Diffraction(uint channel, Vertex* vertex_data, const GpuConstNEFR* config, const int N, cuDoubleComplex* dst)
+void cudaKernel_single_Fresnel_Diffraction(uint channel, Vertex* vertex_data, const CudaPointCloudConfigFresnel* config, cuDoubleComplex* dst)
 {
 	__shared__ int pnX, pnY, loop, schannel, offsetX, offsetY;
 	__shared__ float ppX, ppY, scaleX, scaleY, scaleZ, half_ssX, half_ssY, distance, k, tx, ty, lambda;
@@ -716,7 +716,7 @@ void cudaKernel_single_Fresnel_Diffraction(uint channel, Vertex* vertex_data, co
 		tx = config->tx;
 		ty = config->ty;
 		lambda = config->lambda;
-		loop = N;
+		loop = config->n_points;
 	}
 	__syncthreads();
 
@@ -780,7 +780,7 @@ void cudaKernel_single_Fresnel_Diffraction(uint channel, Vertex* vertex_data, co
 }
 
 __global__
-void cudaKernel_single_FastMath_Fresnel_Diffraction(uint channel, Vertex* vertex_data, const GpuConstNEFR* config, const int N, cuDoubleComplex* dst)
+void cudaKernel_single_FastMath_Fresnel_Diffraction(uint channel, Vertex* vertex_data, const CudaPointCloudConfigFresnel* config, cuDoubleComplex* dst)
 {
 	__shared__ int pnX, pnY, loop, schannel, offsetX, offsetY;
 	__shared__ float ppX, ppY, scaleX, scaleY, scaleZ, half_ssX, half_ssY, distance, k, tx, ty, lambda;
@@ -803,7 +803,7 @@ void cudaKernel_single_FastMath_Fresnel_Diffraction(uint channel, Vertex* vertex
 		tx = config->tx;
 		ty = config->ty;
 		lambda = config->lambda;
-		loop = N;
+		loop = config->n_points;
 	}
 	__syncthreads();
 
@@ -871,52 +871,47 @@ void cudaKernel_single_FastMath_Fresnel_Diffraction(uint channel, Vertex* vertex
 	}
 }
 
-
 extern "C"
 {
 	void cudaPointCloud_RS(
-		const int& nBlocks, const int& nThreads, const int& n_pts_per_stream,
-		Vertex* cuda_vertex_data,
-		cuDoubleComplex* cuda_dst,
-		const GpuConstNERS* cuda_config, const uint& iChannel, const uint& mode
+		const int& nBlocks, const int& nThreads, Vertex* cuda_vertex_data, cuDoubleComplex* cuda_dst,
+		const CudaPointCloudConfigRS* cuda_config, const uint& iColor, const uint& mode
 	)
 	{
 		if (mode & MODE_FLOAT)
 		{
 			if (mode & MODE_FASTMATH)
-				cudaKernel_single_FastMath_RS_Diffraction << < nBlocks, nThreads >> > (iChannel, cuda_vertex_data, cuda_config, n_pts_per_stream, cuda_dst);
+				cudaKernel_single_FastMath_RS_Diffraction << < nBlocks, nThreads >> > (iColor, cuda_vertex_data, cuda_config, cuda_dst);
 			else
-				cudaKernel_single_RS_Diffraction << < nBlocks, nThreads >> > (iChannel, cuda_vertex_data, cuda_config, n_pts_per_stream, cuda_dst);
+				cudaKernel_single_RS_Diffraction << < nBlocks, nThreads >> > (iColor, cuda_vertex_data, cuda_config, cuda_dst);
 		}
 		else
 		{
 			if (mode & MODE_FASTMATH)
-				cudaKernel_double_FastMath_RS_Diffraction << < nBlocks, nThreads >> > (iChannel, cuda_vertex_data, cuda_config, n_pts_per_stream, cuda_dst);
+				cudaKernel_double_FastMath_RS_Diffraction << < nBlocks, nThreads >> > (iColor, cuda_vertex_data, cuda_config, cuda_dst);
 			else
-				cudaKernel_double_RS_Diffraction << < nBlocks, nThreads >> > (iChannel, cuda_vertex_data, cuda_config, n_pts_per_stream, cuda_dst);
+				cudaKernel_double_RS_Diffraction << < nBlocks, nThreads >> > (iColor, cuda_vertex_data, cuda_config, cuda_dst);
 		}
 	}
 
 	void cudaPointCloud_Fresnel(
-		const int& nBlocks, const int& nThreads, const int& n_pts_per_stream,
-		Vertex* cuda_vertex_data,
-		cuDoubleComplex* cuda_dst,
-		const GpuConstNEFR* cuda_config, const uint& iChannel, const uint& mode
+		const int& nBlocks, const int& nThreads, Vertex* cuda_vertex_data, cuDoubleComplex* cuda_dst,
+		const CudaPointCloudConfigFresnel* cuda_config, const uint& iColor, const uint& mode
 	)
 	{
 		if (mode & MODE_FLOAT)
 		{
 			if (mode & MODE_FASTMATH)
-				cudaKernel_single_FastMath_Fresnel_Diffraction << < nBlocks, nThreads >> > (iChannel, cuda_vertex_data, cuda_config, n_pts_per_stream, cuda_dst);
+				cudaKernel_single_FastMath_Fresnel_Diffraction << < nBlocks, nThreads >> > (iColor, cuda_vertex_data, cuda_config, cuda_dst);
 			else
-				cudaKernel_single_Fresnel_Diffraction << < nBlocks, nThreads >> > (iChannel, cuda_vertex_data, cuda_config, n_pts_per_stream, cuda_dst);
+				cudaKernel_single_Fresnel_Diffraction << < nBlocks, nThreads >> > (iColor, cuda_vertex_data, cuda_config, cuda_dst);
 		}
 		else
 		{
 			if (mode & MODE_FASTMATH)
-				cudaKernel_double_FastMath_Fresnel_Diffraction << < nBlocks, nThreads >> > (iChannel, cuda_vertex_data, cuda_config, n_pts_per_stream, cuda_dst);
+				cudaKernel_double_FastMath_Fresnel_Diffraction << < nBlocks, nThreads >> > (iColor, cuda_vertex_data, cuda_config, cuda_dst);
 			else
-				cudaKernel_double_Fresnel_Diffraction << < nBlocks, nThreads >> > (iChannel, cuda_vertex_data, cuda_config, n_pts_per_stream, cuda_dst);
+				cudaKernel_double_Fresnel_Diffraction << < nBlocks, nThreads >> > (iColor, cuda_vertex_data, cuda_config, cuda_dst);
 		}
 	}
 }
