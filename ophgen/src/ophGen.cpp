@@ -145,7 +145,7 @@ ophGen::~ophGen(void)
 void ophGen::initialize(void)
 {
 	// Output Image Size
-	const long long int pnXY = context_.pixel_number[_X] * context_.pixel_number[_Y];
+	ResolutionConfig rc = resCfg;
 	const uint nChannel = context_.waveNum;
 
 	// Memory Location for Result Image
@@ -162,8 +162,8 @@ void ophGen::initialize(void)
 
 	complex_H = new Complex<Real>*[nChannel];
 	for (uint i = 0; i < nChannel; i++) {
-		complex_H[i] = new Complex<Real>[pnXY];
-		memset(complex_H[i], 0, sizeof(Complex<Real>) * pnXY);
+		complex_H[i] = new Complex<Real>[rc.size];
+		memset(complex_H[i], 0, sizeof(Complex<Real>) * rc.size);
 	}
 
 	if (m_lpEncoded != nullptr) {
@@ -178,8 +178,8 @@ void ophGen::initialize(void)
 	}
 	m_lpEncoded = new Real*[nChannel];
 	for (uint i = 0; i < nChannel; i++) {
-		m_lpEncoded[i] = new Real[pnXY];
-		memset(m_lpEncoded[i], 0, sizeof(Real) * pnXY);
+		m_lpEncoded[i] = new Real[rc.size];
+		memset(m_lpEncoded[i], 0, sizeof(Real) * rc.size);
 	}
 
 	if (m_lpNormalized != nullptr) {
@@ -194,8 +194,8 @@ void ophGen::initialize(void)
 	}
 	m_lpNormalized = new uchar*[nChannel];
 	for (uint i = 0; i < nChannel; i++) {
-		m_lpNormalized[i] = new uchar[pnXY];
-		memset(m_lpNormalized[i], 0, sizeof(uchar) * pnXY);
+		m_lpNormalized[i] = new uchar[rc.size];
+		memset(m_lpNormalized[i], 0, sizeof(uchar) * rc.size);
 	}
 
 	m_nOldChannel = nChannel;
@@ -335,6 +335,10 @@ bool ophGen::readConfig(const char* fname)
 	for (int i = 0; i < nWave; i++)
 		Openholo::setWavelengthOHC(context_.wave_length[i], LenUnit::m);
 
+	// 2024.04.23. mwnam
+	// set variable for resolution
+	resCfg = context_.pixel_number;
+
 	LOG("**************************************************\n");
 	LOG("                Read Config (Common)              \n");
 	LOG("1) SLM Number of Waves : %d\n", context_.waveNum);
@@ -358,7 +362,6 @@ void ophGen::RS_Diffraction(Point src, Complex<Real> *dst, Real lambda, Real dis
 	OphConfig *pConfig = &context_;
 	const int pnX = pConfig->pixel_number[_X];
 	const int pnY = pConfig->pixel_number[_Y];
-	const int pnXY = pnX * pnY;
 	const Real ppX = pConfig->pixel_pitch[_X];
 	const Real ppY = pConfig->pixel_pitch[_Y];
 	const Real ssX = pConfig->ss[_X] = pnX * ppX;
@@ -445,7 +448,6 @@ void ophGen::Fresnel_Diffraction(Point src, Complex<Real> *dst, Real lambda, Rea
 	OphConfig *pConfig = &context_;
 	const int pnX = pConfig->pixel_number[_X];
 	const int pnY = pConfig->pixel_number[_Y];
-	const int pnXY = pnX * pnY;
 	const Real ppX = pConfig->pixel_pitch[_X];
 	const Real ppY = pConfig->pixel_pitch[_Y];
 	const Real ssX = pConfig->ss[_X] = pnX * ppX;
@@ -513,9 +515,9 @@ void ophGen::Fresnel_Diffraction(Point src, Complex<Real> *dst, Real lambda, Rea
 void ophGen::Fresnel_FFT(Complex<Real> *src, Complex<Real> *dst, Real lambda, Real waveRatio, Real distance)
 {
 	OphConfig *pConfig = &context_;
+	const ResolutionConfig* rc = &resCfg;
 	const int pnX = pConfig->pixel_number[_X];
 	const int pnY = pConfig->pixel_number[_Y];
-	const int pnXY = pnX * pnY;
 	const Real ppX = pConfig->pixel_pitch[_X];
 	const Real ppY = pConfig->pixel_pitch[_Y];
 	const Real ssX = pConfig->ss[_X] = pnX * ppX;
@@ -524,64 +526,71 @@ void ophGen::Fresnel_FFT(Complex<Real> *src, Complex<Real> *dst, Real lambda, Re
 	const Real ssY2 = ssY * 2;
 	const Real k = (2 * M_PI) / lambda;
 
-	int newSize = pnXY * 4;// *waveRatio;
-	Complex<Real>* in2x = new Complex<Real>[newSize];
-	memset(in2x, 0, sizeof(Complex<Real>) * newSize);
+	Complex<Real>* in2x = new Complex<Real>[rc->double_size];
+	memset(in2x, 0, sizeof(Complex<Real>) * rc->double_size);
 
 	uint idxIn = 0;
-	int half_pnX = pnX >> 1;
-	int half_pnY = pnY >> 1;
-	int pnX2 = pnX * 2;
-	int pnY2 = pnY * 2;
-
 	for (int i = 0; i < pnY; i++) {
 		for (int j = 0; j < pnX; j++) {
-			in2x[(i + half_pnY) * pnX2 + (j + half_pnX)] = src[idxIn++];
+			in2x[(i + rc->half_pnY) * rc->double_pnX+ (j + rc->half_pnX)] = src[idxIn++];
 		}
 	}
 
-	Complex<Real>* temp1 = new Complex<Real>[newSize];
+	Complex<Real>* temp1 = new Complex<Real>[rc->double_size];
 
-	fft2({ pnX2, pnY2 }, in2x, OPH_FORWARD, OPH_ESTIMATE); // fft spatial domain 
-	fft2(in2x, temp1, pnX2, pnY2, OPH_FORWARD, false); // 
+	fft2({ rc->double_pnX, rc->double_pnY}, in2x, OPH_FORWARD, OPH_ESTIMATE); // fft spatial domain 
+	fft2(in2x, temp1, rc->double_pnX, rc->double_pnY, OPH_FORWARD, false); // 
 
-	Real* fx = new Real[newSize];
-	Real* fy = new Real[newSize];
+	Real* fx = new Real[rc->double_size];
+	Real* fy = new Real[rc->double_size];
 
+	/*
+	for (int i = 0; i < rc->double_pnY; i++) {
+		uint k = i * rc->double_pnX;
+		Real val = (-rc->pnY + i) / ssY2;
+		memset(&fy[k], val, rc->double_pnX);
+		for (int j = 0; j < rc->double_pnX; j++) {
+			fx[k + j] = (-rc->pnX + j) / ssX2;
+		}
+	}
+	*/
+	
 	uint i = 0;
 
 	for (int idxFy = -pnY; idxFy < pnY; idxFy++) {
+		//fy[i] = idxFy / ssY2;
+		memset(&fy[i], idxFy / ssY2, rc->double_pnX);
+
 		for (int idxFx = -pnX; idxFx < pnX; idxFx++) {
 			fx[i] = idxFx / ssX2;
-			fy[i] = idxFy / ssY2;
 			i++;
 		}
 	}
 
-	Complex<Real>* prop = new Complex<Real>[newSize];
-	memset(prop, 0, sizeof(Complex<Real>) * newSize);
+	Complex<Real>* prop = new Complex<Real>[rc->double_size];
+	memset(prop, 0, sizeof(Complex<Real>) * rc->double_size);
 
 	Real sqrtPart;
 
-	Complex<Real>* temp2 = new Complex<Real>[newSize];
+	Complex<Real>* temp2 = new Complex<Real>[rc->double_size];
 	Real lambda_square = lambda * lambda;
 	Real tmp = 2 * M_PI * distance;
 
-	for (int i = 0; i < newSize; i++) {
+	for (int i = 0; i < rc->double_size; i++) {
 		sqrtPart = sqrt(1 / lambda_square - fx[i] * fx[i] - fy[i] * fy[i]);
 		prop[i][_IM] = tmp;
 		prop[i][_IM] *= sqrtPart;
 		temp2[i] = temp1[i] * exp(prop[i]);
 	}
 
-	Complex<Real>* temp3 = new Complex<Real>[newSize];
-	fft2({ pnX2, pnY2 }, temp2, OPH_BACKWARD, OPH_ESTIMATE);
-	fft2(temp2, temp3, pnX2, pnY2, OPH_BACKWARD, false);
+	Complex<Real>* temp3 = new Complex<Real>[rc->double_size];
+	fft2({ rc->double_pnX, rc->double_pnY}, temp2, OPH_BACKWARD, OPH_ESTIMATE);
+	fft2(temp2, temp3, rc->double_pnX, rc->double_pnY, OPH_BACKWARD, false);
 
 	uint idxOut = 0;
 	for (int i = 0; i < pnY; i++) {
 		for (int j = 0; j < pnX; j++) {
-			dst[idxOut++] = temp3[(i + half_pnY) * pnX2 + (j + half_pnX)];
+			dst[idxOut++] = temp3[(i + rc->half_pnY) * rc->double_pnX+ (j + rc->half_pnX)];
 		}
 	}
 
@@ -665,13 +674,6 @@ void ophGen::conv_fft2(Complex<Real>* src1, Complex<Real>* src2, Complex<Real>* 
 	delete[] dstFT;
 }
 
-void ophGen::normalize(uint ch)
-{
-	const uint pnX = context_.pixel_number[_X];
-	const uint pnY = context_.pixel_number[_Y];
-	oph::normalize((Real *)m_lpEncoded[ch], m_lpNormalized[ch], pnX, pnY);
-}
-
 void ophGen::normalize(void)
 {
 	const int pnX = context_.pixel_number[_X];
@@ -679,28 +681,29 @@ void ophGen::normalize(void)
 	const uint nWave = context_.waveNum;
 	const long long int N = pnX * pnY;
 	
-	Real min = MAX_DOUBLE, max = MIN_DOUBLE, gap = 0;
+	Real minVal = MAX_DOUBLE, maxVal = MIN_DOUBLE, gap = 0;
 	for (uint ch = 0; ch < nWave; ch++)
 	{
 		Real minTmp = minOfArr(m_lpEncoded[ch], N);
 		Real maxTmp = maxOfArr(m_lpEncoded[ch], N);
 
-		if (min > minTmp)
-			min = minTmp;
-		if (max < maxTmp)
-			max = maxTmp;
+		if (minVal > minTmp)
+			minVal = minTmp;
+		if (maxVal < maxTmp)
+			maxVal = maxTmp;
 	}
 
-	gap = max - min;
+	gap = maxVal - minVal;
 	for (uint ch = 0; ch < nWave; ch++)
 	{
 #ifdef _OPENMP
-#pragma omp parallel for firstprivate(min, gap, pnX)
+#pragma omp parallel for firstprivate(minVal, gap, pnX)
 #endif
 		for (int j = 0; j < pnY; j++) {
+			int start = j * pnX;
 			for (int i = 0; i < pnX; i++) {
-				int idx = j * pnX + i;
-				m_lpNormalized[ch][idx] = (((m_lpEncoded[ch][idx] - min) / gap) * 255 + 0.5);
+				int idx = start + i;
+				m_lpNormalized[ch][idx] = (((m_lpEncoded[ch][idx] - minVal) / gap) * 255 + 0.5);
 			}
 		}
 	}
@@ -1442,11 +1445,14 @@ void ophGen::fresnelPropagation(OphConfig context, Complex<Real>* in, Complex<Re
 {
 	const int pnX = context.pixel_number[_X];
 	const int pnY = context.pixel_number[_Y];
+	const int pnX2 = pnX << 1;
+	const int pnY2 = pnY << 1;
 	const long long int pnXY = pnX * pnY;
+	const long long int size = pnXY << 2;
 
-	Complex<Real>* in2x = new Complex<Real>[pnXY * 4];
+	Complex<Real>* in2x = new Complex<Real>[size];
 	Complex<Real> zero(0, 0);
-	memset(in2x, 0, sizeof(Complex<Real>) * pnXY * 4);
+	memset(in2x, 0, sizeof(Complex<Real>) * size);
 
 	uint idxIn = 0;
 	int beginY = pnY >> 1;
@@ -1456,46 +1462,45 @@ void ophGen::fresnelPropagation(OphConfig context, Complex<Real>* in, Complex<Re
 	
 	for (int idxnY = beginY; idxnY < endY; idxnY++) {
 		for (int idxnX = beginX; idxnX < endX; idxnX++) {
-			in2x[idxnY * pnX * 2 + idxnX] = in[idxIn++];
+			in2x[idxnY * pnX2 + idxnX] = in[idxIn++];
 		}
 	}
 
 
-	Complex<Real>* temp1 = new Complex<Real>[pnXY * 4];
+	Complex<Real>* temp1 = new Complex<Real>[size];
 
-	fft2({ pnX * 2, pnY * 2 }, in2x, OPH_FORWARD, OPH_ESTIMATE);
-	fft2(in2x, temp1, pnX * 2, pnY * 2, OPH_FORWARD);
+	fft2({ pnX2, pnY2 }, in2x, OPH_FORWARD, OPH_ESTIMATE);
+	fft2(in2x, temp1, pnX2, pnY2, OPH_FORWARD);
 	//fftExecute(temp1);
-	Real* fx = new Real[pnXY * 4];
-	Real* fy = new Real[pnXY * 4];
+	Real* fx = new Real[size];
+	Real* fy = new Real[size];
 
 	uint i = 0;
 	for (int idxFy = -pnY; idxFy < pnY; idxFy++) {
 		for (int idxFx = -pnX; idxFx < pnX; idxFx++) {
-			fx[i] = idxFx / (2 * pnX * context.pixel_pitch[_X]);
-			fy[i] = idxFy / (2 * pnY * context.pixel_pitch[_Y]);
+			fx[i] = idxFx / (pnX2 * context.pixel_pitch[_X]);
+			fy[i] = idxFy / (pnY2 * context.pixel_pitch[_Y]);
 			i++;
 		}
 	}
 
-	Complex<Real>* prop = new Complex<Real>[pnXY * 4];
-	memsetArr<Complex<Real>>(prop, zero, 0, pnXY * 4 - 1);
+	Complex<Real>* prop = new Complex<Real>[size];
+	memsetArr<Complex<Real>>(prop, zero, 0, size - 1);
 
 	Real sqrtPart;
 
-	Complex<Real>* temp2 = new Complex<Real>[pnXY * 4];
+	Complex<Real>* temp2 = new Complex<Real>[size];
 
-	for (int i = 0; i < pnXY * 4; i++) {
+	for (int i = 0; i < size; i++) {
 		sqrtPart = sqrt(1 / (context.wave_length[0] * context.wave_length[0]) - fx[i] * fx[i] - fy[i] * fy[i]);
 		prop[i][_IM] = 2 * M_PI * distance;
 		prop[i][_IM] *= sqrtPart;
 		temp2[i] = temp1[i] * exp(prop[i]);
 	}
 
-	Complex<Real>* temp3 = new Complex<Real>[pnXY * 4];
-	fft2({ pnX * 2, pnY * 2 }, temp2, OPH_BACKWARD, OPH_ESTIMATE);
-	fft2(temp2, temp3, pnX * 2, pnY * 2, OPH_BACKWARD);
-	//fftExecute(temp3);
+	Complex<Real>* temp3 = new Complex<Real>[size];
+	fft2({ pnX2, pnY2 }, temp2, OPH_BACKWARD, OPH_ESTIMATE);
+	fft2(temp2, temp3, pnX2, pnY2, OPH_BACKWARD);
 
 	uint idxOut = 0;
 
