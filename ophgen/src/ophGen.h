@@ -202,7 +202,6 @@ public:
 	* @brief Normalization function to save as image file after hologram creation
 	*/
 	void normalize(void);
-	void normalize(uint ch);
 
 	/**
 	* @brief Function for saving image files

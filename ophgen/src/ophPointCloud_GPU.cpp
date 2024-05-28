@@ -46,6 +46,7 @@
 #include "ophPointCloud.h"
 #include "ophPointCloud_GPU.h"
 #include "CUDA.h"
+
 #ifdef _USE_OPENCL
 #include "OpenCL.h"
 
@@ -53,7 +54,7 @@ void ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 {
 	int nErr;
 	auto begin = CUR_TIME;
-	OpenCL *cl = OpenCL::getInstance();
+	OpenCL* cl = OpenCL::getInstance();
 
 	cl_context context = cl->getContext();
 	cl_command_queue commands = cl->getCommand();
@@ -171,7 +172,7 @@ void ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 
 	LOG("%s : %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
 }
-#else
+#endif
 
 using namespace oph;
 void ophPointCloud::genCghPointCloudGPU(uint diff_flag)
@@ -183,7 +184,6 @@ void ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 	}
 	CUDA* pCuda = CUDA::getInstance();
 
-	//cudaStream_t* streams = nullptr;
 	auto begin = CUR_TIME;
 	const ulonglong pnXY = context_.pixel_number[_X] * context_.pixel_number[_Y];
 	int blockSize = pCuda->getMaxThreads(); //n_threads // blockSize < devProp.maxThreadsPerBlock
@@ -203,6 +203,7 @@ void ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 		std::memcpy(host_vertex_data, pc_data_.vertices, sizeof(Vertex) * pc_data_.n_points);
 		transVW(pc_data_.n_points, host_vertex_data, host_vertex_data);
 	}
+
 	Vertex* device_vertex_data;
 	HANDLE_ERROR(cudaMalloc((void**)&device_vertex_data, pc_data_.n_points * sizeof(Vertex)));
 
@@ -229,8 +230,7 @@ void ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 		context_.wave_length[0]
 	);
 
-
-	HANDLE_ERROR(cudaMemcpyAsync(device_vertex_data, host_vertex_data, pc_data_.n_points * sizeof(Vertex), cudaMemcpyHostToDevice));
+	HANDLE_ERROR(cudaMemcpy(device_vertex_data, host_vertex_data, pc_data_.n_points * sizeof(Vertex), cudaMemcpyHostToDevice));
 
 	for (uint ch = 0; ch < nChannel; ch++)
 	{
@@ -242,20 +242,18 @@ void ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 		case PC_DIFF_RS: {
 			host_config = new CudaPointCloudConfigRS(*host_config);
 			HANDLE_ERROR(cudaMalloc((void**)&device_config, sizeof(CudaPointCloudConfigRS)));
-			HANDLE_ERROR(cudaMemcpyAsync(device_config, host_config, sizeof(CudaPointCloudConfigRS), cudaMemcpyHostToDevice));
+			HANDLE_ERROR(cudaMemcpy(device_config, host_config, sizeof(CudaPointCloudConfigRS), cudaMemcpyHostToDevice));
 			cudaPointCloud_RS(gridSize, blockSize, device_vertex_data, device_dst, (CudaPointCloudConfigRS*)device_config, ch, m_mode);
-			//HANDLE_ERROR(cudaMemsetAsync(device_config, 0., sizeof(CudaPointCloudConfigRS)));
 			break;
 		}
 		case PC_DIFF_FRESNEL: {
 			host_config = new CudaPointCloudConfigFresnel(*host_config);
 			HANDLE_ERROR(cudaMalloc((void**)&device_config, sizeof(CudaPointCloudConfigFresnel)));
-			HANDLE_ERROR(cudaMemcpyAsync(device_config, host_config, sizeof(CudaPointCloudConfigFresnel), cudaMemcpyHostToDevice));
+			HANDLE_ERROR(cudaMemcpy(device_config, host_config, sizeof(CudaPointCloudConfigFresnel), cudaMemcpyHostToDevice));
 			cudaPointCloud_Fresnel(gridSize, blockSize, device_vertex_data, device_dst, (CudaPointCloudConfigFresnel*)device_config, ch, m_mode);
-			//HANDLE_ERROR(cudaMemsetAsync(device_config, 0., sizeof(CudaPointCloudConfigFresnel)));
 			break;
 		}
-		}
+}
 
 		cudaError error = cudaGetLastError();
 		if (error != cudaSuccess) {
@@ -267,12 +265,11 @@ void ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 				continue;
 			}
 		}
-		HANDLE_ERROR(cudaMemcpyAsync(complex_H[ch], device_dst, bufferSize, cudaMemcpyDeviceToHost));
-		HANDLE_ERROR(cudaMemsetAsync(device_dst, 0., bufferSize));
+		HANDLE_ERROR(cudaMemcpy(complex_H[ch], device_dst, bufferSize, cudaMemcpyDeviceToHost));
+		HANDLE_ERROR(cudaMemset(device_dst, 0., bufferSize));
 		m_nProgress = (ch + 1) * 100 / nChannel;
 
 		HANDLE_ERROR(cudaFree(device_config));
-
 	}
 	delete host_config;
 	HANDLE_ERROR(cudaFree(device_vertex_data));
@@ -284,4 +281,3 @@ void ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 
 	LOG("%s : %.5lf (sec)\n", __FUNCTION__, ELAPSED_TIME(begin, CUR_TIME));
 }
-#endif

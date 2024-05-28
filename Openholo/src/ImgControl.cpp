@@ -1,6 +1,5 @@
 #include "ImgControl.h"
 #include <string.h>
-#include <omp.h>
 #include "sys.h"
 #include "function.h"
 
