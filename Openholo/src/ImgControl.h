@@ -2,6 +2,7 @@
 #ifndef __ImgControl_h
 #define __ImgControl_h
 #include <stdlib.h>
+#include <stdint.h>
 
 #ifdef _WIN32
 #ifdef OPH_EXPORT
@@ -54,18 +55,24 @@ namespace oph
 			return instance;
 		}
 
-		//bool Save(const char *path, BYTE *pBuf, UINT len, int quality = 100);
-		//int CalcBitmapSize(int w, int h, int ch) { return (((w * ch) + 3) & ~3) * h; }
-		bool GetSize(const char* path, unsigned int *size);
-		void Resize(unsigned char* src, unsigned char* dst, int w, int h, int neww, int newh, int ch);
-		bool Rotate(double rotate, unsigned char *src, unsigned char *dst, int w, int h, int neww, int newh, int ch);
-		bool Flip(FLIP mode, unsigned char *src, unsigned char *dst, int w, int h, int ch);
-		bool Crop(unsigned char *src, unsigned char *dst, int w, int h, int ch, int x, int y, int neww, int newh);
-
+		// Get file size
+		bool GetSize(const char* path, uint32_t *size);
+		// Resize the bitmap
+		bool Resize(const uint8_t* src, uint8_t* dst, const uint32_t w, const uint32_t h,
+			const uint32_t neww, const uint32_t newh, const uint8_t ch);
+		// Rotate the bitmap
+		bool Rotate(const double rotate, const uint8_t* src, uint8_t* dst, const uint32_t w, const uint32_t h, 
+			const uint32_t neww, const uint32_t newh, const uint8_t ch);
+		// Flip the bitmap
+		bool Flip(FLIP mode, const uint8_t* src, uint8_t* dst, const uint32_t w, const uint32_t h, 
+			const uint8_t ch);
+		// Crop the bitmap
+		bool Crop(const uint8_t* src, uint8_t* dst, const uint32_t w, const uint32_t h, const uint8_t ch,
+			const uint32_t start_x, const uint32_t start_y, const uint32_t end_x, const uint32_t end_y);
 
 	private:
-		//int GetEncoderClsid(const WCHAR *format, CLSID *pClsid);
-		unsigned long long GetBitmapSize(int width, int height, int channel);
+		// Get bitmap pixel size.
+		uint64_t GetPixelSize(const uint32_t width, const uint32_t height, const uint8_t channel);
 	};
 }
 #endif
