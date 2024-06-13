@@ -56,6 +56,42 @@
 
 using namespace oph;
 
+struct OPH_DLL ResolutionConfig
+{
+	int double_pnX;
+	int double_pnY;
+	int pnX;
+	int pnY;
+	int half_pnX;
+	int half_pnY;
+	long long int size;
+	long long int half_size;
+	long long int double_size;
+
+	ResolutionConfig() {
+		this->pnX = 0;
+		this->pnY = 0;
+		this->half_pnX = 0;
+		this->half_pnY = 0;
+		this->double_pnX = 01;
+		this->double_pnY = 01;
+		this->size = 0;
+		this->half_size = 0;
+		this->double_size = 0;
+	}
+
+	ResolutionConfig(const ivec2& pixel_number) {
+		this->pnX = pixel_number[_X];
+		this->pnY = pixel_number[_Y];
+		this->half_pnX = pnX >> 1;
+		this->half_pnY = pnY >> 1;
+		this->double_pnX = pnX << 1;
+		this->double_pnY = pnY << 1;
+		this->size = pnX * pnY;
+		this->half_size = size >> 2;
+		this->double_size = size << 2;
+	}
+};
 
 struct OPH_DLL OphConfig
 {
@@ -447,6 +483,7 @@ private:
 	int fft_sign;
 protected:
 	OphConfig context_;
+	ResolutionConfig resCfg;
 	ImageConfig imgCfg;
 
 	Complex<Real>** complex_H;

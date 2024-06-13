@@ -33,6 +33,7 @@ public:
 	int getCurThreads() { return m_nThread; }
 	int getMaxThreads() { return devProp.maxThreadsPerBlock; }
 	int getWarpSize() { return devProp.warpSize; }
+	void printMemoryInfo(uint64_t total, uint64_t free);
 
 private:
 	bool printDevInfo();

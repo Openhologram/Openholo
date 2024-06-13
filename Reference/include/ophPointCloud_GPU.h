@@ -85,10 +85,8 @@ static void HandleError(cudaError_t err,
                                     __FILE__, __LINE__ ); \
                             exit( EXIT_FAILURE );}} 
 // for PointCloud only GPU
-typedef struct KernelConst {
+typedef struct _CudaPointCloudConfig {
 	int n_points;	/// number of point cloud
-	int n_streams;	/// number of streams
-
 	double scale_X;		/// Scaling factor of x coordinate of point cloud
 	double scale_Y;		/// Scaling factor of y coordinate of point cloud
 	double scale_Z;		/// Scaling factor of z coordinate of point cloud
@@ -110,9 +108,8 @@ typedef struct KernelConst {
 	double k;		  /// Wave Number = (2 * PI) / lambda;
 	double lambda;
 
-	KernelConst(
+	_CudaPointCloudConfig(
 		const int &n_points,		/// number of point cloud
-		const int &n_streams,		/// number of streams
 		const vec3 &scale_factor,	/// Scaling factor of x, y, z coordinate of point cloud
 		const Real &offset_depth,	/// Offset value of point cloud in z direction
 		const ivec2 &pixel_number,	/// Number of pixel of SLM in x, y direction
@@ -124,7 +121,6 @@ typedef struct KernelConst {
 	)
 	{
 		this->n_points = n_points;
-		this->n_streams = n_streams;
 		this->scale_X = scale_factor[_X];
 		this->scale_Y = scale_factor[_Y];
 		this->scale_Z = scale_factor[_Z];
@@ -151,15 +147,14 @@ typedef struct KernelConst {
 
 		this->lambda = lambda;
 	}
-} GpuConst;
+} CudaPointCloudConfig;
 
-typedef struct KernelConst_NotEncodedRS : public KernelConst {
+typedef struct _CudaPointCloudConfigRS : public _CudaPointCloudConfig {
 	double det_tx;  /// tx / sqrt(1 - tx^2), tx = lambda / (2 * pp_X)
 	double det_ty;  /// ty / sqrt(1 - ty^2), ty = lambda / (2 * pp_Y)
 
-	KernelConst_NotEncodedRS(
+	_CudaPointCloudConfigRS(
 		const int &n_points,		/// number of point cloud
-		const int &n_streams,
 		const vec3 &scale_factor,	/// Scaling factor of x, y, z coordinate of point cloud
 		const Real &offset_depth,	/// Offset value of point cloud in z direction
 		const ivec2 &pixel_number,	/// Number of pixel of SLM in x, y direction
@@ -169,7 +164,7 @@ typedef struct KernelConst_NotEncodedRS : public KernelConst {
 		const Real &k,				/// Wave Number = (2 * PI) / lambda
 		const Real &lambda			/// Wave length = lambda
 	)
-		: KernelConst(n_points, n_streams, scale_factor, offset_depth, pixel_number, offset, pixel_pitch, ss, k, lambda)
+		: _CudaPointCloudConfig(n_points, scale_factor, offset_depth, pixel_number, offset, pixel_pitch, ss, k, lambda)
 	{
 		double tx = lambda / (2 * pixel_pitch[_X]);
 		double ty = lambda / (2 * pixel_pitch[_Y]);
@@ -178,8 +173,8 @@ typedef struct KernelConst_NotEncodedRS : public KernelConst {
 		this->det_ty = ty / sqrt(1 - ty * ty);
 	}
 
-	KernelConst_NotEncodedRS(GpuConst &cuda_config)
-		: KernelConst(cuda_config)
+	_CudaPointCloudConfigRS(_CudaPointCloudConfig &cuda_config)
+		: _CudaPointCloudConfig(cuda_config)
 	{
 		double tx = lambda / (2 * cuda_config.pp_X);
 		double ty = lambda / (2 * cuda_config.pp_Y);
@@ -187,17 +182,16 @@ typedef struct KernelConst_NotEncodedRS : public KernelConst {
 		this->det_tx = tx / sqrt(1 - tx * tx);
 		this->det_ty = ty / sqrt(1 - ty * ty);
 	}
-} GpuConstNERS;
+} CudaPointCloudConfigRS;
 
 
-typedef struct KernelConst_NotEncodedFrsn : public KernelConst {
+typedef struct _CudaPointCloudConfigFresnel : public _CudaPointCloudConfig {
 
 	double tx;	/// tx = lambda / (2 * pp_X)
 	double ty;	/// ty = lambda / (2 * pp_Y)
 
-	KernelConst_NotEncodedFrsn(
+	_CudaPointCloudConfigFresnel(
 		const int &n_points,		/// number of point cloud
-		const int &n_streams,
 		const vec3 &scale_factor,	/// Scaling factor of x, y, z coordinate of point cloud
 		const Real &offset_depth,	/// Offset value of point cloud in z direction
 		const ivec2 &pixel_number,	/// Number of pixel of SLM in x, y direction
@@ -207,35 +201,31 @@ typedef struct KernelConst_NotEncodedFrsn : public KernelConst {
 		const Real &k,				/// Wave Number = (2 * PI) / lambda
 		const Real &lambda			/// Wave length = lambda
 	)
-		: KernelConst(n_points, n_streams, scale_factor, offset_depth, pixel_number, offset, pixel_pitch, ss, k, lambda)
+		: _CudaPointCloudConfig(n_points, scale_factor, offset_depth, pixel_number, offset, pixel_pitch, ss, k, lambda)
 	{
 		this->tx = lambda / (2 * pixel_pitch[_X]);
 		this->ty = lambda / (2 * pixel_pitch[_Y]);
 	}
 
-	KernelConst_NotEncodedFrsn(GpuConst &cuda_config)
-		: KernelConst(cuda_config)
+	_CudaPointCloudConfigFresnel(_CudaPointCloudConfig& cuda_config)
+		: _CudaPointCloudConfig(cuda_config)
 	{
 		this->tx = lambda / (2 * cuda_config.pp_X);
 		this->ty = lambda / (2 * cuda_config.pp_Y);
 	}
-} GpuConstNEFR;
+} CudaPointCloudConfigFresnel;
 
 
 extern "C"
 {	
 	void cudaPointCloud_RS(
-		const int& nBlocks, const int& nThreads, const int& n_pts_per_stream,
-		Vertex* cuda_vertex_data,
-		cuDoubleComplex* cuda_dst,
-		const GpuConstNERS* cuda_config, const uint& iChannel, const uint& mode
+		const int& nBlocks, const int& nThreads, Vertex* cuda_vertex_data, cuDoubleComplex* cuda_dst,
+		const CudaPointCloudConfigRS* cuda_config, const uint& iColor, const uint& mode
 	);
 
 	void cudaPointCloud_Fresnel(
-		const int& nBlocks, const int& nThreads, const int& n_pts_per_stream,
-		Vertex* cuda_vertex_data,
-		cuDoubleComplex* cuda_dst,
-		const GpuConstNEFR* cuda_config, const uint& iChannel, const uint& mode
+		const int& nBlocks, const int& nThreads, Vertex* cuda_vertex_data, cuDoubleComplex* cuda_dst,
+		const CudaPointCloudConfigFresnel* cuda_config, const uint& iColor, const uint& mode
 	);
 }
 
