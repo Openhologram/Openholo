@@ -222,6 +222,11 @@ bool ophRec::readConfig(const char* fname)
 	context_.ss[_Y] = context_.pixel_number[_Y] * context_.pixel_pitch[_Y];
 
 	rec_config.EyeBoxSize = rec_config.EyeBoxSizeScale * rec_config.EyePupilDiaMeter * rec_config.EyeBoxSize;
+
+	// 2024.04.23. mwnam
+// set variable for resolution
+	resCfg = context_.pixel_number;
+
 	Initialize();
 
 	LOG("**************************************************\n");

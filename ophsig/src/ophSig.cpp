@@ -1299,6 +1299,9 @@ bool ophSig::readConfig(const char* fname)
 	(xml_node->FirstChildElement("focal_length_R"))->QueryFloatText(&_foc[2]);
 	(xml_node->FirstChildElement("focal_length_G"))->QueryFloatText(&_foc[1]);
 	(xml_node->FirstChildElement("focal_length_B"))->QueryFloatText(&_foc[0]);
+	// 2024.04.23. mwnam
+// set variable for resolution
+	resCfg = context_.pixel_number;
 
 	return true;
 }

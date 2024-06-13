@@ -221,8 +221,7 @@ int ophACPAS::save(const char * fname, uint8_t bitsperpixel, uchar* src, uint px
 		if (checkExtension(fname, ".bmp")) 	// when the extension is bmp
 			return Openholo::saveAsImg(fname, bitsperpixel, source, p[_X], p[_Y]) ? 1 : -1;
 		else {									// when extension is not .ohf, .bmp - force bmp
-			char buf[256];
-			memset(buf, 0x00, sizeof(char) * 256);
+			char buf[256] = { 0, };
 			sprintf(buf, "%s.bmp", fname);
 
 			return Openholo::saveAsImg(buf, bitsperpixel, source, p[_X], p[_Y]) ? 1 : -1;

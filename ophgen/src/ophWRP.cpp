@@ -50,6 +50,8 @@
 ophWRP::ophWRP(void)
 	: ophGen()
 	, scaledVertex(nullptr)
+	, m_nProgress(0)
+	, zmax_(0.0)
 {
 	n_points = -1;
 	p_wrp_ = nullptr;

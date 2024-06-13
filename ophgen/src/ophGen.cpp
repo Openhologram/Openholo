@@ -1906,6 +1906,10 @@ void ophGen::GetRandomPhaseValue(Complex<Real>& rand_phase_val, bool rand_phase)
 
 void ophGen::setResolution(ivec2 resolution)
 {
+	// 2024.04.23. mwnam
+	// set variable for resolution
+	resCfg = resolution;
+
 	// 기존 해상도와 다르면 버퍼를 다시 생성.
 	if (context_.pixel_number != resolution) {
 		setPixelNumber(resolution);

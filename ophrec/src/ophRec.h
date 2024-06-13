@@ -158,7 +158,7 @@ protected:
 	void Propagation_Fresnel_FFT(int chnum);
 	void ASM_Propagation();
 	void ASM_Propagation_GPU();
-	void GetPupilFieldImage(Complex<Real>* src, double* dst, int pnx, int pny, double ppx, double ppy, double scaleX, double scaleY);
+	void GetPupilFieldImage(Complex<Real>* src, Real* dst, int pnx, int pny, Real ppx, Real ppy, Real scaleX, Real scaleY);
 	void getVarname(int vtr, vec3& var_vals, std::string& varname2);
 public:
 	void SaveImage(const char* path, const char* ext = "bmp");
