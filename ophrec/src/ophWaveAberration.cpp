@@ -440,7 +440,9 @@ bool ophWaveAberration::readConfig(const char* fname)
 	Openholo::setPixelPitchOHC(vec2(context_.pixel_pitch[_X], context_.pixel_pitch[_Y]));
 	Openholo::setPixelNumberOHC(ivec2(context_.pixel_number[_X], context_.pixel_number[_Y]));
 	Openholo::setWavelengthOHC(context_.wave_length[0], oph::LenUnit::m);
-	
+	// 2024.04.23. mwnam
+// set variable for resolution
+	resCfg = context_.pixel_number;
 	cout << "Wavelength:             " << context_.wave_length[0] << endl;
 	cout << "PixelPitch(Horizontal): " << context_.pixel_pitch[_X] << endl;
 	cout << "PixelPitch(Vertical):   " << context_.pixel_pitch[_Y] << endl;

@@ -373,6 +373,10 @@ bool ophCascadedPropagation::readConfig(const wchar_t* fname)
 	for (oph::uint i = 0; i < getNumColors(); i++)
 		addWaveLengthOHC(context_.wave_length[i]);
 
+	// 2024.04.23. mwnam
+// set variable for resolution
+	resCfg = context_.pixel_number;
+
 	next = xml_node->FirstChildElement("FieldLensFocalLength");
 	if (!next || tinyxml2::XML_SUCCESS != next->QueryDoubleText(&config_.field_lens_focal_length))
 		return false;

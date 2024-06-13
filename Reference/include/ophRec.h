@@ -48,11 +48,21 @@
 
 #include "Openholo.h"
 
+#ifdef _WIN64
 #ifdef RECON_EXPORT
 #define RECON_DLL __declspec(dllexport)
 #else
 #define RECON_DLL __declspec(dllimport)
 #endif
+#else
+#ifdef RECON_EXPORT
+#define RECON_DLL __attribute__((visibility("default")))
+#else
+#define RECON_DLL
+#endif
+#endif
+
+
 
 
 struct RECON_DLL OphRecConfig
@@ -75,6 +85,15 @@ struct RECON_DLL OphRecConfig
 	bool CenteringRetinaImg;
 	bool ViewingWindow;
 	bool SimulationPos[3];
+
+	OphRecConfig()
+		: EyeLength(0.0), EyePupilDiaMeter(0.0), EyeBoxSizeScale(0.0), EyeBoxSize(0.0, 0.0), EyeBoxUnit(0),
+		EyeCenter(0.0, 0.0, 0.0), EyeFocusDistance(0.0), ResultSizeScale(0.0), SimulationTo(0.0), SimulationFrom(0.0),
+		SimulationStep(0), SimulationMode(0), RatioAtRetina(0.0), RatioAtPupil(0.0), CreatePupilFieldImg(false),
+		CenteringRetinaImg(false), ViewingWindow(false)
+	{
+		SimulationPos[0] = SimulationPos[1] = SimulationPos[2] = false;
+	}
 };
 
 /**
@@ -139,7 +158,7 @@ protected:
 	void Propagation_Fresnel_FFT(int chnum);
 	void ASM_Propagation();
 	void ASM_Propagation_GPU();
-	void GetPupilFieldImage(Complex<Real>* src, double* dst, int pnx, int pny, double ppx, double ppy, double scaleX, double scaleY);
+	void GetPupilFieldImage(Complex<Real>* src, Real* dst, int pnx, int pny, Real ppx, Real ppy, Real scaleX, Real scaleY);
 	void getVarname(int vtr, vec3& var_vals, std::string& varname2);
 public:
 	void SaveImage(const char* path, const char* ext = "bmp");
@@ -155,9 +174,47 @@ public:
 	void Initialize();
 	bool save(const char * fname, uint8_t bitsperpixel, uchar* src, uint px, uint py);
 	template<typename T>
-	void normalize(T* src, uchar* dst, int x, int y);
+	void normalize(T* src, uchar* dst, int x, int y)
+	{
+		T maxVal = src[0];
+		T minVal = src[0];
+		int size = x * y;
+
+		for (int i = 0; i < size; i++)
+		{
+			if (src[i] < minVal)
+				minVal = src[i];
+			if (src[i] > maxVal)
+				maxVal = src[i];
+		}
+		T gap = maxVal - minVal;
+
+		for (int i = 0; i < y; i++)
+		{
+			int base = i * x;
+			//int base2 = (y - 1 - i) * x;
+
+			for (int j = 0; j < x; j++)
+			{
+				dst[base + j] = (uchar)((src[base + j] - minVal) / gap * 255.0);
+			}
+		}
+	}
 	template<typename T>
-	void normalize(T* src, uchar* dst, int x, int y, T max, T min);
+	void normalize(T* src, uchar* dst, int x, int y, T max, T min)
+	{
+		T gap = max - min;
+
+		for (int i = 0; i < y; i++)
+		{
+			int base = i * x;
+			for (int j = 0; j < x; j++)
+			{
+				dst[base + j] = (uchar)((src[base + j] - min) / gap * 255.0);
+			}
+		}
+	}
+	vector<uchar*>& getNormalizedBuffer() { return m_vecNormalized; };
 
 };
 
