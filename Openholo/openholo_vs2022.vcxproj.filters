@@ -82,6 +82,7 @@
     <ClInclude Include="src\ImgControl.h">
       <Filter>__utilities\header</Filter>
     </ClInclude>
+    <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Openholo.cpp">
@@ -105,5 +106,8 @@
     <ClCompile Include="src\ImgControl.cpp">
       <Filter>__utilities\cpp</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Resource.rc" />
   </ItemGroup>
 </Project>

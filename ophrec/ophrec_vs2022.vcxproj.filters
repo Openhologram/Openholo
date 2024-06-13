@@ -55,10 +55,14 @@
     <ClInclude Include="src\ophRec_GPU.h">
       <Filter>__ophRec</Filter>
     </ClInclude>
+    <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="src\ophRecKernel.cu">
       <Filter>__ophRec</Filter>
     </CudaCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Resource.rc" />
   </ItemGroup>
 </Project>

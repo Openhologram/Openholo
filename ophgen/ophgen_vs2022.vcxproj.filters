@@ -91,7 +91,6 @@
     <ClInclude Include="src\OpenCL.h">
       <Filter>_2_Common\_opencl</Filter>
     </ClInclude>
-    <ClInclude Include="resource.h" />
     <ClInclude Include="src\CUDA.h">
       <Filter>_2_Common\_cuda</Filter>
     </ClInclude>
@@ -104,6 +103,7 @@
     <ClInclude Include="src\ophPAS_GPU.h">
       <Filter>_1_Generation\_ophPAS</Filter>
     </ClInclude>
+    <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\ophDepthMap_GPU.cpp">
@@ -186,5 +186,8 @@
     <None Include="src\ophPCKernel.cl">
       <Filter>_1_Generation\_ophPointCloud</Filter>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Resource.rc" />
   </ItemGroup>
 </Project>

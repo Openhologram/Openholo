@@ -11,6 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="resource.h" />
     <ClInclude Include="src\Base.h" />
     <ClInclude Include="src\comment.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
@@ -47,6 +48,9 @@
     <ClCompile Include="src\PLYparser.cpp" />
     <ClCompile Include="src\sys.cpp" />
     <ClCompile Include="src\vec.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Resource.rc" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{F87DA845-513D-4F3B-9F72-16BB2C18A782}</ProjectGuid>

@@ -50,10 +50,14 @@
     <ClInclude Include="src\tinyxml2.h">
       <Filter>__Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="src\ophSigKernel.cu">
       <Filter>__ophSig</Filter>
     </CudaCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Resource.rc" />
   </ItemGroup>
 </Project>
