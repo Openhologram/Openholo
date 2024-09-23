@@ -74,6 +74,7 @@ static void HandleError(cudaError_t err,
 	if (err != cudaSuccess) {
 		printf("%s in %s at line %d\n", cudaGetErrorString(err),
 			file, line);
+		system("pause");
 		exit(EXIT_FAILURE);
 	}
 }
@@ -218,6 +219,9 @@ typedef struct _CudaPointCloudConfigFresnel : public _CudaPointCloudConfig {
 
 extern "C"
 {	
+	void sum_Kernel(
+		const int& nBlocks, const int& nThreads, cuDoubleComplex* dst, cuDoubleComplex* src, int size
+	);
 	void cudaPointCloud_RS(
 		const int& nBlocks, const int& nThreads, Vertex* cuda_vertex_data, cuDoubleComplex* cuda_dst,
 		const CudaPointCloudConfigRS* cuda_config, const uint& iColor, const uint& mode

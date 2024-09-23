@@ -158,7 +158,7 @@ void ophDepthMap::calcHoloGPU()
 	HANDLE_ERROR(cudaMalloc((void**)&device_config, sizeof(DMKernelConfig)));
 
 
-	int blockSize = CUDA::getInstance()->getMaxThreads() >> 1; //n_threads // blockSize < devProp.maxThreadsPerBlock
+	int blockSize = CUDA::getInstance()->getMaxThreads(0) >> 1; //n_threads // blockSize < devProp.maxThreadsPerBlock
 	ulonglong gridSize = (N + blockSize - 1) / blockSize; //n_blocks
 
 	vector<double>* pSrc = is_ViewingWindow ? &dlevel_transform : &dlevel;

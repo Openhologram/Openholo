@@ -12,7 +12,7 @@
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 
-# Build results
+# Build results (Linux)
 build/*.*
 build/CMakeFiles/**/*.*
 build/Openholo/*.*
@@ -23,7 +23,6 @@ build/ophrec/*.*
 build/ophrec/CMakeFiles/*.*
 build/ophsig/*.*
 build/ophsig/CMakeFiles/*.*
-
 
 [Dd]ebug/
 [Dd]ebugPublic/
@@ -298,5 +297,7 @@ __pycache__/
 *.btm.cs
 *.odx.cs
 *.xsd.cs
-ophgen/src/ophSimulator.h
-ophgen/src/ophSimulator.cpp
+
+Reference/dll/*
+Reference/lib/*
+Reference/include/*

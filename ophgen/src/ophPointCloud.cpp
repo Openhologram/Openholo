@@ -330,6 +330,7 @@ void ophPointCloud::genCghPointCloudCPU(uint diff_flag)
 
 void ophPointCloud::ophFree(void)
 {
+	ophGen::ophFree();
 	if (pc_data_.vertices) {
 		delete[] pc_data_.vertices;
 		pc_data_.vertices = nullptr;

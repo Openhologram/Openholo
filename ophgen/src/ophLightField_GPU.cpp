@@ -109,7 +109,7 @@ void ophLF::convertLF2ComplexField_GPU()
 
 	LOG("%lf (s)\n", ELAPSED_TIME(step, CUR_TIME));
 
-	int nThreads = pCUDA->getMaxThreads();
+	int nThreads = pCUDA->getMaxThreads(0);
 	int nBlocks = (R + nThreads - 1) / nThreads;
 	int nBlocks2 = (NR + nThreads - 1) / nThreads;
 	int nBlocks3 = (NR * 4 + nThreads - 1) / nThreads;

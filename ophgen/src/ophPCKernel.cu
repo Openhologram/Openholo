@@ -871,8 +871,25 @@ void cudaKernel_single_FastMath_Fresnel_Diffraction(uint channel, Vertex* vertex
 	}
 }
 
+__global__
+void sumKernel(cuDoubleComplex* dst, cuDoubleComplex* src, int size)
+{
+	int idx = blockIdx.x * blockDim.x + threadIdx.x;
+	if (idx < size) {
+		dst[idx].x += src[idx].x;
+		dst[idx].y += src[idx].y;
+	}
+}
+
 extern "C"
 {
+	void sum_Kernel(
+		const int& nBlocks, const int& nThreads, cuDoubleComplex* dst, cuDoubleComplex* src, int size
+	)
+	{
+		sumKernel << < nBlocks, nThreads >> > (dst, src, size);
+	}
+
 	void cudaPointCloud_RS(
 		const int& nBlocks, const int& nThreads, Vertex* cuda_vertex_data, cuDoubleComplex* cuda_dst,
 		const CudaPointCloudConfigRS* cuda_config, const uint& iColor, const uint& mode

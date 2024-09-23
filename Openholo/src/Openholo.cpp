@@ -804,10 +804,9 @@ int Openholo::getMaxThreadNum()
 
 void Openholo::ophFree(void)
 {
-	ohcHeader header;
-	OHC_encoder->getOHCheader(header);
-	auto wavelength_num = header.fieldInfo.wavlenNum;
-	for (uint i = 0; i < wavelength_num; i++) {
+	int nWave = context_.waveNum;
+
+	for (uint i = 0; i < nWave; i++) {
 		if (complex_H[i]) {
 			delete[] complex_H[i];
 			complex_H[i] = nullptr;

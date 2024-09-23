@@ -491,6 +491,8 @@ Complex<Real>** ophWRP::calculateMWRP(void)
 
 void ophWRP::ophFree(void)
 {
+	ophGen::ophFree();
+
 	if (obj_.vertices) {
 		delete[] obj_.vertices;
 		obj_.vertices = nullptr;

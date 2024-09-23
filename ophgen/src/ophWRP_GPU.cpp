@@ -59,7 +59,7 @@ void ophWRP::calculateWRPGPU()
 	const ulonglong n_points = obj_.n_points;
 
 	
-	int blockSize = cuda->getMaxThreads(); //n_threads
+	int blockSize = cuda->getMaxThreads(0); //n_threads
 
 	ulonglong gridSize = (n_points + blockSize - 1) / blockSize; //n_blocks
 	   
