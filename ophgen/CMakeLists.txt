@@ -7,8 +7,7 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 
 # build file list
 set(SRC_FILES
-    src/CUDA.h
-    src/ophACPAS.h
+    src/cudaWrapper.h
     src/ophDepthMap.h
     src/ophDepthMap_GPU.h
     src/ophGen.h
@@ -17,7 +16,6 @@ set(SRC_FILES
     src/ophLightField_GPU.h
     src/ophNonHogelLF.h
     src/ophPAS.h
-    src/ophPAS_GPU.h
     src/ophPointCloud.h
     src/ophPointCloud_GPU.h
     src/ophTriMesh.h
@@ -25,8 +23,7 @@ set(SRC_FILES
     src/ophWRP.h
     src/ophWRP_GPU.h
     src/tinyxml2.h
-    src/CUDA.cpp
-    src/ophACPAS.cpp
+    src/cudaWrapper.cpp
     src/ophDepthMap.cpp
     src/ophDepthMap_GPU.cpp
     src/ophGen.cpp
@@ -35,7 +32,6 @@ set(SRC_FILES
     src/ophLightField_GPU.cpp
     src/ophNonHogelLF.cpp
     src/ophPAS.cpp
-    src/ophPAS_GPU.cpp
     src/ophPointCloud.cpp
     src/ophPointCloud_GPU.cpp
     src/ophTriMesh.cpp
@@ -48,7 +44,6 @@ set(SRC_FILES
     src/ophLFKernel.cu
     src/ophWRPKernel.cu
     src/ophTriMeshKernel.cu
-    src/ophPASKernel.cu
 )
 
 # *** 컴파일 관련 ***
