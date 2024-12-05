@@ -175,7 +175,7 @@ public:
 	* @param[in] distance the distance from the object to the hologram plane.
 	* @see fft2
 	*/
-	void Fresnel_FFT(Complex<Real> *src, Complex<Real> *dst, Real lambda, Real waveRatio, Real distance);
+	void Fresnel_FFT(Complex<Real> *src, Complex<Real> *dst, Real lambda, Real distance);
 
 
 	/**
@@ -439,7 +439,8 @@ protected:
 	bool getWeightED(const ivec2 holosize, const int type, ivec2* pNw);
 	bool shiftW(ivec2 holosize);
 	void binarization(Complex<Real>* src, Real* dst, const int size, int ENCODE_FLAG, Real threshold);
-	void CorrectionChromaticAberration(uchar* src, uchar* dst, int width, int height, int ch);
+
+	void CorrectionChromaticAberration(uchar* src, uchar* dst, int width, int height, int scaleFactor = 2);
 
 	//public:
 	//bool carrierWaveMultiplexingEncoding(char* dirName, uint ENCODE_METHOD, Real cenFxIdx, Real cenFyIdx, Real stepFx, Real stepFy, int nFx, int nFy);
@@ -452,14 +453,6 @@ protected:
 public:
 	/**
 	* @brief Fresnel propagation
-	* @param[in] context OphContext structure
-	* @param[in] in Input complex field
-	* @param[out] out Output complex field
-	* @param[in] distance Propagation distance
-	*/
-	void fresnelPropagation(OphConfig context, Complex<Real>* in, Complex<Real>* out, Real distance);
-	/**
-	* @brief Fresnel propagation
 	* @param[in] in Input complex field
 	* @param[out] out Output complex field
 	* @param[in] distance Propagation distance
@@ -468,13 +461,11 @@ public:
 	void fresnelPropagation(Complex<Real>* in, Complex<Real>* out, Real distance, uint channel);
 protected:
 	/**
-	* @brief Encode the CGH according to a signal location parameter.
-	* @param[in] bCPU Select whether to operate with CPU or GPU
-	* @param[in] sig_location Signal location@n
-	*			sig_location[0]: upper or lower half, sig_location[1]:left or right half.
+	* @brief Encode the CGH according to a passband parameter.
+	* @param[in] passband direction of passband.
 	* @see encodeSideBand_CPU, encodeSideBand_GPU
 	*/
-	void encodeSideBand(bool bCPU, ivec2 sig_location);
+	void encodeSideBand(unsigned int passband);
 	/**
 	* @brief Encode the CGH according to a signal location parameter on the CPU.
 	* @details The CPU variable, (*complex_H) on CPU has the final result.

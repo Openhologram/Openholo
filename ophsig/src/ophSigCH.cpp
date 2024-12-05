@@ -68,7 +68,7 @@ bool ophSigCH::setCHparam(vector<Real> &z, int maxIter, double tau, double tolA,
 	TvIter = tvIter;
 	Z.resize(z.size());
 	Z = z;
-	Nz = Z.size();
+	Nz = static_cast<int>(Z.size());
 	return true;
 }
 

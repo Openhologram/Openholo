@@ -298,29 +298,12 @@ void ophIFTA::encoding(unsigned int ENCODE_FLAG, unsigned int SSB_PASSBAND)
 		fft2(complex_H[ch], dst, pnX, pnY, OPH_BACKWARD);
 
 		if (ENCODE_FLAG == ophGen::ENCODE_SSB) {
-			ivec2 location;
-			switch (SSB_PASSBAND) {
-			case SSB_TOP:
-				location = ivec2(0, 1);
-				break;
-			case SSB_BOTTOM:
-				location = ivec2(0, -1);
-				break;
-			case SSB_LEFT:
-				location = ivec2(-1, 0);
-				break;
-			case SSB_RIGHT:
-				location = ivec2(1, 0);
-				break;
-			}
-
-			encodeSideBand(true, location);
+			encodeSideBand(SSB_PASSBAND);
 		}
 		else ophGen::encoding(ENCODE_FLAG, SSB_PASSBAND, dst);
 	}
 	delete[] dst;
-	auto end = CUR_TIME;
-	LOG("Elapsed Time: %lf(s)\n", ELAPSED_TIME(begin, end));
+	LOG("Elapsed Time: %lf(s)\n", ELAPSED_TIME(begin, CUR_TIME));
 }
 
 bool ophIFTA::readConfig(const char* fname)

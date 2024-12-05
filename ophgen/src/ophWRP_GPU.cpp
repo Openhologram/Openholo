@@ -43,7 +43,7 @@
 #include "ophWRP.h"
 #include "ophWRP_GPU.h"
 #include "sys.h"
-#include "CUDA.h"
+#include "cudaWrapper.h"
 
 void ophWRP::calculateWRPGPU()
 {
@@ -52,14 +52,14 @@ void ophWRP::calculateWRPGPU()
 	auto begin = CUR_TIME;
 	auto step = CUR_TIME;
 
-	CUDA *cuda = CUDA::getInstance();
+	cudaWrapper *pCudaWrapper = cudaWrapper::getInstance();
 
 	bool bSupportDouble = false;
 
 	const ulonglong n_points = obj_.n_points;
 
 	
-	int blockSize = cuda->getMaxThreads(0); //n_threads
+	int blockSize = pCudaWrapper->getMaxThreads(0); //n_threads
 
 	ulonglong gridSize = (n_points + blockSize - 1) / blockSize; //n_blocks
 	   
@@ -151,7 +151,7 @@ void ophWRP::calculateWRPGPU()
 				gridSize = (n_points + blockSize - 1) / blockSize;
 				gridSize2 = (pnXY + blockSize - 1) / blockSize;
 				gridSize3 = (pnXY * 4 + blockSize - 1) / blockSize;
-				cuda->setCurThreads(blockSize);
+				pCudaWrapper->setCurThreads(blockSize);
 				delete host_config;
 				continue;
 			}

@@ -454,8 +454,9 @@ protected:
 	* @param[in] ny the number of row of the input data.
 	* @param[in] type If type == 1, forward FFT, if type == -1, backward FFT.
 	* @param[in] bNormalized If bNomarlized == true, normalize the result after FFT.
+	* @param[in] bShift If bShift == true, shifts the input and output values before and after the FFT.
 	*/
-	void fft2(Complex<Real>* src, Complex<Real>* dst, int nx, int ny, int type, bool bNormalized = false);
+	void fft2(Complex<Real>* src, Complex<Real>* dst, int nx, int ny, int type, bool bNormalized = false, bool bShift = true);
 
 	/**
 	* @brief Swap the top-left quadrant of data with the bottom-right , and the top-right quadrant with the bottom-left.

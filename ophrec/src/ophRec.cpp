@@ -837,7 +837,7 @@ void ophRec::Propagation_Fresnel_FFT(int chnum)
 void ophRec::Perform_Simulation()
 {
 	LOG("Simulation start\n");
-	FILE *fp;
+
 	const int pnX = context_.pixel_number[_X];
 	const int pnY = context_.pixel_number[_Y];
 	const Real ppX = context_.pixel_pitch[_X];

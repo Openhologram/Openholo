@@ -12,15 +12,31 @@
 
 ophPAS::ophPAS(void)
 	: ophGen()
-	, n_points(-1)
-	, m_pHologram(nullptr)
+	,coefficient_cx(nullptr)
+	,coefficient_cy(nullptr)
+	,compensation_cx(nullptr)
+	,compensation_cy(nullptr)
+	,xc(nullptr)
+	,yc(nullptr)
+	,input(nullptr)
 {
+	LOG("*** PHASE-ADDED STEREOGRAM: BUILD DATE: %s %s ***\n\n", __DATE__, __TIME__);
 }
 
 ophPAS::~ophPAS()
 {
-	if (m_pHologram != nullptr)
-		delete[] m_pHologram;	
+	if (coefficient_cx != nullptr)
+		delete[] coefficient_cx;
+	if (coefficient_cy != nullptr)
+		delete[] coefficient_cy;
+	if (compensation_cx != nullptr)
+		delete[] compensation_cx;
+	if (compensation_cy != nullptr)
+		delete[] compensation_cy;
+	if (xc != nullptr)
+		delete[] xc;
+	if (yc != nullptr)
+		delete[] yc;
 }
 
 bool ophPAS::readConfig(const char* fname)
@@ -92,522 +108,302 @@ bool ophPAS::readConfig(const char* fname)
 
 int ophPAS::loadPoint(const char* _filename)
 {
-	n_points = ophGen::loadPointCloud(_filename, &pc_data);
+	int n_points = ophGen::loadPointCloud(_filename, &pc_data);
 	return n_points;
 }
 
-void ophPAS::init()
-{
-	if (m_pHologram == nullptr)
-		m_pHologram = new double[getContext().pixel_number[_X] * getContext().pixel_number[_Y]];
-	memset(m_pHologram, 0x00, sizeof(double)*getContext().pixel_number[_X] * getContext().pixel_number[_Y]);
-	
-	
-	for (int i = 0; i < NUMTBL; i++) {
-		float theta = (float)M2_PI * (float)(i + i - 1) / (float)(2 * NUMTBL);
-		m_COStbl[i] = (float)cos(theta);
-		m_SINtbl[i] = (float)sin(theta);
-		
-	}// -> gpu 
-	
-}
-
-
-
-void ophPAS::PASCalculation(long voxnum, unsigned char * cghfringe, OphPointCloudData *data, OphPointCloudConfig& conf) {
-	long i, j;
-
-	double Max = -1E9, Min = 1E9;
-	double myBuffer;
-	int cghwidth = getContext().pixel_number[_X];
-	int cghheight = getContext().pixel_number[_Y];
-
-	
-	
-	//DataInit(_CGHE);
-	init();
-
-	//PAS
-	//
-	//PAS(voxnum, h_vox, m_pHologram, _CGHE);
-	PAS(voxnum, data, m_pHologram, conf);
-	//
-	
-	for (i = 0; i < cghheight; i++) {
-		for (j = 0; j < cghwidth; j++) {
-			if (Max < m_pHologram[i*cghwidth + j])	Max = m_pHologram[i*cghwidth + j];
-			if (Min > m_pHologram[i*cghwidth + j])	Min = m_pHologram[i*cghwidth + j];
-			
-		}
-	}
-	
-	for (i = 0; i < cghheight; i++) {
-		for (j = 0; j < cghwidth; j++) {
-			myBuffer = 1.0*(((m_pHologram[i*cghwidth + j] - Min) / (Max - Min))*255. + 0.5);
-			if (myBuffer >= 255.0)  cghfringe[i*cghwidth + j] = 255;
-			else					cghfringe[i*cghwidth + j] = (unsigned char)(myBuffer);
-			
-		}
-	}
-	
-
-	delete[] m_pHologram;
-	
-}
-
-/*
-void ophPAS::PAS(long voxelnum, VoxelStruct * voxel, double * m_pHologram, CGHEnvironmentData* _CGHE)
-{
-	float xiInterval = _CGHE->xiInterval;
-	float etaInterval = _CGHE->etaInterval;
-	float cghScale = _CGHE->CGHScale;
-	float defaultDepth = _CGHE->DefaultDepth;
-
-	DataInit(_CGHE->fftSegmentationSize, _CGHE->CghWidth, _CGHE->CghHeight, xiInterval, etaInterval);
-
-	int  no;			// voxel Number
-
-
-	float	X, Y, Z; ;		// x, y, real distance
-	float	Amplitude;
-	float	sf_base = 1.0 / (xiInterval*_CGHE->fftSegmentationSize);
-
-
-	//CString mm;
-	clock_t start, finish;
-	double  duration;
-	start = clock();
-
-	// Iteration according to the point number
-	for (no = 0; no<voxelnum; no++)
-	{
-		// point coordinate
-		X = (voxel[no].x) * cghScale;
-		Y = (voxel[no].y) * cghScale;
-		Z = voxel[no].z * cghScale - defaultDepth;
-		Amplitude = voxel[no].r;
-
-		CalcSpatialFrequency(X, Y, Z, Amplitude
-			, m_segNumx, m_segNumy
-			, m_segSize, m_hsegSize, m_sf_base
-			, m_xc, m_yc
-			, m_SFrequency_cx, m_SFrequency_cy
-			, m_PickPoint_cx, m_PickPoint_cy
-			, m_Coefficient_cx, m_Coefficient_cy
-			, xiInterval, etaInterval,_CGHE);
-
-		CalcCompensatedPhase(X, Y, Z, Amplitude
-			, m_segNumx, m_segNumy
-			, m_segSize, m_hsegSize, m_sf_base
-			, m_xc, m_yc
-			, m_Coefficient_cx, m_Coefficient_cy
-			, m_COStbl, m_SINtbl
-			, m_inRe, m_inIm,_CGHE);
-
-	}
-
-	RunFFTW(m_segNumx, m_segNumy
-		, m_segSize, m_hsegSize
-		, m_inRe, m_inIm
-		, m_in, m_out
-		, &m_plan, m_pHologram,_CGHE);
-
-	finish = clock();
-
-	duration = (double)(finish - start) / CLOCKS_PER_SEC;
-	//mm.Format("%f", duration);
-	//AfxMessageBox(mm);
-	cout << duration << endl;
-	MemoryRelease();
-}
-*/
-
-void ophPAS::PAS(long voxelnum, OphPointCloudData *data, double * m_pHologram, OphPointCloudConfig& conf)
-{
-	float xiInterval = getContext().pixel_pitch[_X];//_CGHE->xiInterval;
-	float etaInterval = getContext().pixel_pitch[_Y];//_CGHE->etaInterval;
-	float cghScale = conf.scale[_X];// _CGHE->CGHScale;
-	float defaultDepth = conf.distance;//_CGHE->DefaultDepth;
-
-	DataInit(FFT_SEGMENT_SIZE, getContext().pixel_number[_X], getContext().pixel_number[_Y], xiInterval, etaInterval);
-
-	long  no;			// voxel Number
-
-
-	float	X, Y, Z; ;		// x, y, real distance
-	float	Amplitude;
-	float	sf_base = 1.0 / (xiInterval* FFT_SEGMENT_SIZE);
-		
-	// Iteration according to the point number
-	for (no = 0; no < voxelnum*3; no+=3)
-	{
-		// point coordinate
-		X = ((float)data->vertices[no].point.pos[_X]) * cghScale;
-		Y = ((float)data->vertices[no].point.pos[_Y]) * cghScale;
-		Z = ((float)data->vertices[no].point.pos[_Z]) * cghScale - defaultDepth;
-		Amplitude = (float)data->vertices[no].phase;
-
-
-		//std::cout << "X: " << X << ", Y: " << Y << ", Z: " << Z << ", Amp: " << Amplitude << endl;
-
-		/*
-		CalcSpatialFrequency(X, Y, Z, Amplitude
-			, m_segNumx, m_segNumy
-			, m_segSize, m_hsegSize, m_sf_base
-			, m_xc, m_yc
-			, m_SFrequency_cx, m_SFrequency_cy
-			, m_PickPoint_cx, m_PickPoint_cy
-			, m_Coefficient_cx, m_Coefficient_cy
-			, xiInterval, etaInterval, _CGHE);
-		*/
-		CalcSpatialFrequency(X, Y, Z, Amplitude
-			, m_segNumx, m_segNumy
-			, m_segSize, m_hsegSize, m_sf_base
-			, m_xc, m_yc
-			, m_SFrequency_cx, m_SFrequency_cy
-			, m_PickPoint_cx, m_PickPoint_cy
-			, m_Coefficient_cx, m_Coefficient_cy
-			, xiInterval, etaInterval, conf);
-
-		/*
-		CalcCompensatedPhase(X, Y, Z, Amplitude
-			, m_segNumx, m_segNumy
-			, m_segSize, m_hsegSize, m_sf_base
-			, m_xc, m_yc
-			, m_Coefficient_cx, m_Coefficient_cy
-			, m_COStbl, m_SINtbl
-			, m_inRe, m_inIm, _CGHE);
-		*/
-		CalcCompensatedPhase(X, Y, Z, Amplitude
-			, m_segNumx, m_segNumy
-			, m_segSize, m_hsegSize, m_sf_base
-			, m_xc, m_yc
-			, m_Coefficient_cx, m_Coefficient_cy
-			, m_COStbl, m_SINtbl
-			, m_inRe, m_inIm, conf);
-
-	}
-
-	/*
-	RunFFTW(m_segNumx, m_segNumy
-		, m_segSize, m_hsegSize
-		, m_inRe, m_inIm
-		, m_in, m_out
-		, &m_plan, m_pHologram, _CGHE);
-	*/
-	RunFFTW(m_segNumx, m_segNumy
-		, m_segSize, m_hsegSize
-		, m_inRe, m_inIm
-		, m_in, m_out
-		, &m_plan, m_pHologram, conf);
-
-	MemoryRelease();
-}
-
-void ophPAS::PAS_GPU(long voxelnum, OphPointCloudData * data, double * m_pHologram, OphPointCloudConfig & conf)
-{
-	float xiInterval = getContext().pixel_pitch[_X];//_CGHE->xiInterval;
-	float etaInterval = getContext().pixel_pitch[_Y];//_CGHE->etaInterval;
-	float cghScale = conf.scale[_X];// _CGHE->CGHScale;
-	float defaultDepth = conf.distance;//_CGHE->DefaultDepth;
-
-	DataInit(FFT_SEGMENT_SIZE, getContext().pixel_number[_X], getContext().pixel_number[_Y], xiInterval, etaInterval);
-
-	long  no;			// voxel Number
-
-
-	float	X, Y, Z; ;		// x, y, real distance
-	float	Amplitude;
-	float	sf_base = 1.0 / (xiInterval* FFT_SEGMENT_SIZE);
-
-	//CString mm;
-	clock_t start, finish;
-	double  duration;
-	start = clock();
-
-	cout << sf_base << endl;
-	// Iteration according to the point number
-	for (no = 0; no < voxelnum * 3; no += 3)
-	{
-		// point coordinate
-		X = ((float)data->vertices[no].point.pos[_X]) * cghScale;
-		Y = ((float)data->vertices[no].point.pos[_Y]) * cghScale;
-		Z = ((float)data->vertices[no].point.pos[_Z]) * cghScale - defaultDepth;
-		Amplitude = (float)data->vertices[no].phase;
-
-		std::cout << "X: " << X << ", Y: " << Y << ", Z: " << Z << ", Amp: " << Amplitude << endl;
-
-		/*
-		CalcSpatialFrequency(X, Y, Z, Amplitude
-		, m_segNumx, m_segNumy
-		, m_segSize, m_hsegSize, m_sf_base
-		, m_xc, m_yc
-		, m_SFrequency_cx, m_SFrequency_cy
-		, m_PickPoint_cx, m_PickPoint_cy
-		, m_Coefficient_cx, m_Coefficient_cy
-		, xiInterval, etaInterval, _CGHE);
-		*/
-		CalcSpatialFrequency(X, Y, Z, Amplitude
-			, m_segNumx, m_segNumy
-			, m_segSize, m_hsegSize, m_sf_base
-			, m_xc, m_yc
-			, m_SFrequency_cx, m_SFrequency_cy
-			, m_PickPoint_cx, m_PickPoint_cy
-			, m_Coefficient_cx, m_Coefficient_cy
-			, xiInterval, etaInterval, conf);
-
-		/*
-		CalcCompensatedPhase(X, Y, Z, Amplitude
-		, m_segNumx, m_segNumy
-		, m_segSize, m_hsegSize, m_sf_base
-		, m_xc, m_yc
-		, m_Coefficient_cx, m_Coefficient_cy
-		, m_COStbl, m_SINtbl
-		, m_inRe, m_inIm, _CGHE);
-		*/
-		CalcCompensatedPhase(X, Y, Z, Amplitude
-			, m_segNumx, m_segNumy
-			, m_segSize, m_hsegSize, m_sf_base
-			, m_xc, m_yc
-			, m_Coefficient_cx, m_Coefficient_cy
-			, m_COStbl, m_SINtbl
-			, m_inRe, m_inIm, conf);
-
-	}
-
-	/*
-	RunFFTW(m_segNumx, m_segNumy
-	, m_segSize, m_hsegSize
-	, m_inRe, m_inIm
-	, m_in, m_out
-	, &m_plan, m_pHologram, _CGHE);
-	*/
-	RunFFTW(m_segNumx, m_segNumy
-		, m_segSize, m_hsegSize
-		, m_inRe, m_inIm
-		, m_in, m_out
-		, &m_plan, m_pHologram, conf);
-
-	finish = clock();
-
-	duration = (double)(finish - start) / CLOCKS_PER_SEC;
-	//mm.Format("%f", duration);
-	//AfxMessageBox(mm);
-	cout << duration << endl;
-	MemoryRelease();
-}
-
-void ophPAS::DataInit(int segsize, int cghwidth, int cghheight, float xiinter, float etainter)
-{
-	int i, j;
-	/*
-	for (i = 0; i<NUMTBL; i++) {
-	float theta = (float)M2_PI * (float)(i + i - 1) / (float)(2 * NUMTBL);
-	m_COStbl[i] = (float)cos(theta);
-	m_SINtbl[i] = (float)sin(theta);
-	}
-	*/
-	
-
-	// size
-	this->m_segSize = segsize;
-	this->m_hsegSize = (int)(m_segSize / 2);
-	this->m_dsegSize = m_segSize*m_segSize;
-	this->m_segNumx = (int)(cghwidth / m_segSize);
-	this->m_segNumy = (int)(cghheight / m_segSize);
-	this->m_hsegNumx = (int)(m_segNumx / 2);
-	this->m_hsegNumy = (int)(m_segNumy / 2);
-
-	// calculation components
-	this->m_SFrequency_cx = new float[m_segNumx];
-	this->m_SFrequency_cy = new float[m_segNumy];
-	this->m_PickPoint_cx = new int[m_segNumx];
-	this->m_PickPoint_cy = new int[m_segNumy];
-	this->m_Coefficient_cx = new int[m_segNumx];
-	this->m_Coefficient_cy = new int[m_segNumy];
-	this->m_xc = new float[m_segNumx];
-	this->m_yc = new float[m_segNumy];
-
-	// base spatial frequency
-	this->m_sf_base = (float)(1.0 / (xiinter*m_segSize));
-
-	this->m_inRe = new float *[m_segNumy * m_segNumx];
-	this->m_inIm = new float *[m_segNumy * m_segNumx];
-	for (i = 0; i<m_segNumy; i++) {
-		for (j = 0; j<m_segNumx; j++) {
-			m_inRe[i*m_segNumx + j] = new float[m_segSize * m_segSize];
-			m_inIm[i*m_segNumx + j] = new float[m_segSize * m_segSize];
-			memset(m_inRe[i*m_segNumx + j], 0x00, sizeof(float) * m_segSize * m_segSize);
-			memset(m_inIm[i*m_segNumx + j], 0x00, sizeof(float) * m_segSize * m_segSize);
-		}
-	}
-
-	m_in = (fftw_complex *)fftw_malloc(sizeof(fftw_complex) * m_segSize * m_segSize);
-	m_out = (fftw_complex *)fftw_malloc(sizeof(fftw_complex) * m_segSize * m_segSize);
-	memset(m_in, 0x00, sizeof(fftw_complex) * m_segSize * m_segSize);
-
-	// segmentation center point calculation
-	for (i = 0; i<m_segNumy; i++)
-		m_yc[i] = ((i - m_hsegNumy) * m_segSize + m_hsegSize) * etainter;
-	for (i = 0; i<m_segNumx; i++)
-		m_xc[i] = ((i - m_hsegNumx) * m_segSize + m_hsegSize) * xiinter;
-
-	m_plan = fftw_plan_dft_2d(m_segSize, m_segSize, m_in, m_out, FFTW_BACKWARD, FFTW_ESTIMATE);
-}
-
-void ophPAS::MemoryRelease(void)
-{
-	int i, j;
-
-	fftw_destroy_plan(m_plan);
-	fftw_free(m_in);
-	fftw_free(m_out);
-
-	delete[] m_SFrequency_cx;
-	delete[] m_SFrequency_cy;
-	delete[] m_PickPoint_cx;
-	delete[] m_PickPoint_cy;
-	delete[] m_Coefficient_cx;
-	delete[] m_Coefficient_cy;
-	delete[] m_xc;
-	delete[] m_yc;
-
-	for (i = 0; i<m_segNumy; i++) {
-		for (j = 0; j<m_segNumx; j++) {
-			delete[] m_inRe[i*m_segNumx + j];
-			delete[] m_inIm[i*m_segNumx + j];
-		}
-	}
-	delete[] m_inRe;
-	delete[] m_inIm;
-	
-}
 
 void ophPAS::generateHologram()
 {
-	
 	auto begin = CUR_TIME;
-	cgh_fringe = new unsigned char[context_.pixel_number[_X] * context_.pixel_number[_Y]];
-	PASCalculation(n_points, cgh_fringe, &pc_data, pc_config);
-	auto end = CUR_TIME;
-	m_elapsedTime = ((std::chrono::duration<Real>)(end - begin)).count();
-	LOG("Total Elapsed Time: %lf (s)\n", m_elapsedTime);
+	resetBuffer();
+	Init();
+	CreateLookupTables();
+	PAS();
+	LOG("Total Elapsed Time: %lf (s)\n", ELAPSED_TIME(begin, CUR_TIME));
 }
 
 
-
-
-void ophPAS::CalcSpatialFrequency(float cx, float cy, float cz, float amp, int segnumx, int segnumy, int segsize, int hsegsize, float sf_base, float * xc, float * yc, float * sf_cx, float * sf_cy, int * pp_cx, int * pp_cy, int * cf_cx, int * cf_cy, float xiint, float etaint, OphPointCloudConfig& conf)
+void ophPAS::Init()
 {
-	int segx, segy;			// coordinate in a Segment 
-	float theta_cx, theta_cy;
+	const int pnX = context_.pixel_number[_X];
+	const int pnY = context_.pixel_number[_Y];
+	const int segSize = is_accurate ? SEG_SIZE : FFT_SEGMENT_SIZE;
+	const int snX = pnX / segSize;
+	const int snY = pnY / segSize;
 
-	float rWaveLength = context_.wave_length[0];//_CGHE->rWaveLength;
-	float thetaX = 0.0;// _CGHE->ThetaX;
-	float thetaY = 0.0;// _CGHE->ThetaY;
+	if (coefficient_cx == nullptr)
+		coefficient_cx = new int[snX];
+	if (coefficient_cy == nullptr)
+		coefficient_cy = new int[snY];
+	if (compensation_cx == nullptr)
+		compensation_cx = new Real[snX];
+	if (compensation_cy == nullptr)
+		compensation_cy = new Real[snY];
+	if (xc == nullptr)
+		xc = new Real[snX];
+	if (yc == nullptr)
+		yc = new Real[snY];
+}
 
-	for (segx = 0; segx < segnumx; segx++)
-	{
-		theta_cx = (xc[segx] - cx) / cz;
-		sf_cx[segx] = (float)((theta_cx + thetaX) / rWaveLength);
-		(sf_cx[segx] >= 0) ? pp_cx[segx] = (int)(sf_cx[segx] / sf_base + 0.5)
-			: pp_cx[segx] = (int)(sf_cx[segx] / sf_base - 0.5);
-		(abs(pp_cx[segx]) < hsegsize) ? cf_cx[segx] = ((segsize - pp_cx[segx]) % segsize)
-			: cf_cx[segx] = 0;
-	}
-
-	for (segy = 0; segy < segnumy; segy++)
-	{
-		theta_cy = (yc[segy] - cy) / cz;
-		sf_cy[segy] = (float)((theta_cy + thetaY) / rWaveLength);
-		(sf_cy[segy] >= 0) ? pp_cy[segy] = (int)(sf_cy[segy] / sf_base + 0.5)
-			: pp_cy[segy] = (int)(sf_cy[segy] / sf_base - 0.5);
-		(abs(pp_cy[segy]) < hsegsize) ? cf_cy[segy] = ((segsize - pp_cy[segy]) % segsize)
-			: cf_cy[segy] = 0;
+void ophPAS::CreateLookupTables()
+{
+	Real pi2 = M_PI * 2;
+	for (int i = 0; i < NUMTBL; i++) {
+		Real theta = pi2 * (i + i - 1) / (2 * NUMTBL);
+		LUTCos[i] = cos(theta);
+		LUTSin[i] = sin(theta);
 	}
 }
 
-
-
-void ophPAS::CalcCompensatedPhase(float cx, float cy, float cz, float amp
-	, int		segNumx, int segNumy
-	, int		segsize, int hsegsize, float sf_base
-	, float	*xc, float *yc
-	, int		*cf_cx, int *cf_cy
-	, float	*COStbl, float *SINtbl
-	, float	**inRe, float **inIm, OphPointCloudConfig& conf)
+void ophPAS::PAS()
 {
-	int		segx, segy;			// coordinate in a Segment 
-	int		segxx, segyy;
-	float	theta_s, theta_c;
-	int		dtheta_s, dtheta_c;
-	int		idx_c, idx_s;
-	float	theta;
+	const int pnX = context_.pixel_number[_X];
+	const int pnY = context_.pixel_number[_Y];
+	const Real ppX = context_.pixel_pitch[_X];
+	const Real ppY = context_.pixel_pitch[_Y];
 
-	float rWaveNum = 9926043.13930423f;// _CGHE->rWaveNumber;
+	const int hpnX = pnX >> 1;
+	const int hpnY = pnY >> 1;
 
-	float R;
-	auto start = CUR_TIME;
-	
-	for (segy = 0; segy < segNumy; segy++) {
-		for (segx = 0; segx < segNumx; segx++) {
-			segyy = segy * segNumx + segx;
-			segxx = cf_cy[segy] * segsize + cf_cx[segx];
-			
-			R = (float)(sqrt((xc[segx] - cx)*(xc[segx] - cx) + (yc[segy] - cy)*(yc[segy] - cy) + cz * cz));
-			//°°À½
-			theta = rWaveNum * R;
-			theta_c = theta;
-			theta_s = theta + PI;
-			dtheta_c = ((int)(theta_c*NUMTBL / M2_PI));
-			dtheta_s = ((int)(theta_s*NUMTBL / M2_PI));
-			idx_c = (dtheta_c) & (NUMTBL2);
-			idx_s = (dtheta_s) & (NUMTBL2);
-			
-			inRe[segyy][segxx] += (float)(amp * COStbl[idx_c]);
-			inIm[segyy][segxx] += (float)(amp * SINtbl[idx_s]);
+	const Real distance = pc_config.distance;
+	const int N = pnX * pnY;
+	const int segSize = is_accurate ? SEG_SIZE : FFT_SEGMENT_SIZE;
+	const int hSegSize = segSize >> 1;
+	const int sSegSize = segSize * segSize;
+
+	const int fftSegSize = FFT_SEGMENT_SIZE;
+	const int ffthSegSize = fftSegSize >> 1;
+	const int fftsSegSize = fftSegSize * fftSegSize;
+
+	const int snX = pnX / segSize;
+	const int snY = pnY / segSize;
+	const int hsnX = snX >> 1;
+	const int hsnY = snY >> 1;
+
+	const int snXY = snX * snY;
+
+	// base spatial frequency
+
+	int n_points = pc_data.n_points;
+	const Real sf_base = 1.0 / (ppX * fftSegSize);
+
+	input = new Complex<Real>*[snXY];
+	for (int i = 0; i < snXY; i++) {
+		input[i] = new Complex<Real>[fftsSegSize];
+		memset(input[i], 0x00, sizeof(Complex<Real>) * fftsSegSize);
+	}
+
+	Complex<Real>* result = new Complex<Real>[fftsSegSize];
+
+
+	for (int ch = 0; ch < context_.waveNum; ch++)
+	{
+		Real lambda = context_.wave_length[ch];
+
+		for (int i = 0; i < n_points; i++)
+		{
+			Point pt = pc_data.vertices[i].point;
+			//Real ampitude = pc_data.vertices[i].phase; // why phase?
+			Real amplitude = pc_data.vertices[i].color.color[ch]; // red
+			Real phase = pc_data.vertices[i].phase;
+			pt.pos[_X] *= pc_config.scale[_X];
+			pt.pos[_Y] *= pc_config.scale[_Y];
+			pt.pos[_Z] *= pc_config.scale[_Z];
+			pt.pos[_Z] -= distance;
+
+			CalcSpatialFrequency(&pt, lambda, is_accurate);
+			CalcCompensatedPhase(&pt, amplitude, phase, lambda, is_accurate);
+		}
+		if (is_accurate)
+		{
+			for (int y = 0; y < snY; y++) {
+
+				for (int x = 0; x < snX; x++) {
+
+					int segyy = y * snX + x;
+					int segxx = coefficient_cy[y] * fftSegSize + coefficient_cx[x];
+
+					if (segyy < snXY)
+					{
+						fft2(input[segyy], result, fftSegSize, fftSegSize, OPH_BACKWARD, false, false);
+
+						for (int m = 0; m < segSize; m++)
+						{
+							int yy = y * segSize + m;
+							int xx = x * segSize;
+							int mm = m + ffthSegSize;
+							for (int n = 0; n < segSize; n++)
+							{
+								complex_H[ch][yy * pnX + (xx + n)] += result[(m + ffthSegSize - hSegSize) * fftSegSize + (n + ffthSegSize - hSegSize)][_RE];
+							}
+						}
+					}
+				}
+			}
+		}
+		else
+		{
+			for (int y = 0; y < snY; y++) {
+
+				for (int x = 0; x < snX; x++) {
+
+					int segyy = y * snX + x;
+					int segxx = coefficient_cy[y] * segSize + coefficient_cx[x];
+
+					if (segyy < snXY)
+					{
+						fft2(input[segyy], result, segSize, segSize, OPH_BACKWARD, false, false);
+
+						for (int m = 0; m < segSize; m++)
+						{
+							for (int n = 0; n < segSize; n++)
+							{
+								int segxx = m * segSize + n;
+
+								complex_H[ch][(y * segSize + m) * pnX + (x * segSize + n)] = result[m * segSize + n][_RE];
+							}
+						}
+					}
+				}
+			}
 		}
 	}
 
-	auto end = CUR_TIME;
-	auto during = ((chrono::duration<Real>)(end - start)).count();
-	//LOG("%lf (s)..done\n", during);
-	
+
+	//fftFree();
+	delete[] result;
+
+	for (int i = 0; i < snXY; i++) {
+		delete[] input[i];
+	}
+	delete[] input;	
 }
 
 
-
-void ophPAS::RunFFTW(int segnumx, int segnumy, int segsize, int hsegsize, float ** inRe, float ** inIm, fftw_complex * in, fftw_complex * out, fftw_plan * plan, double * pHologram, OphPointCloudConfig& conf)
+void ophPAS::CalcSpatialFrequency(Point *pt, Real lambda, bool accurate)
 {
-	int		i, j;
-	int		segx, segy;			// coordinate in a Segment 
-	int		segxx, segyy;
+	int segSize = FFT_SEGMENT_SIZE;
+	int hSegSize = segSize >> 1;
+	int snX = context_.pixel_number[_X] / segSize;
+	int snY = context_.pixel_number[_Y] / segSize;
+	Real ppX = context_.pixel_pitch[_X];
+	Real ppY = context_.pixel_pitch[_Y];
+	int hsnX = snX >> 1;
+	int hsnY = snY >> 1;
 
-	int cghWidth = getContext().pixel_number[_X];
-	
-	for (segy = 0; segy < segnumy; segy++) {
-		for (segx = 0; segx < segnumx; segx++) {
-			segyy = segy * segnumx + segx;
-			memset(in, 0x00, sizeof(fftw_complex) * segsize * segsize);
-			for (i = 0; i < segsize; i++) {
-				for (j = 0; j < segsize; j++) {
-					segxx = i * segsize + j;
-					
-					in[i*segsize + j][0] = inRe[segyy][segxx];
-					in[i*segsize + j][1] = inIm[segyy][segxx];
-					
-				}
-			}
-			fftw_execute(*plan);
-			for (i = 0; i < segsize; i++) {
-				for (j = 0; j < segsize; j++) {
-					pHologram[(segy*segsize + i)*cghWidth + (segx*segsize + j)] = out[i * segsize + j][0];// - out[l * SEGSIZE + m][1];
-					
-				}
+	Real thetaX = pc_config.tilt_angle[_X];
+	Real thetaY = pc_config.tilt_angle[_Y];
+	Real sf_base = 1.0 / (ppX * segSize);
+
+
+	if (accurate)
+	{
+		Real pi2 = M_PI * 2;
+		Real tempX = sf_base * hSegSize * ppX;
+		Real tempY = sf_base * hSegSize * ppY;
+
+		for (int x = 0; x < snX; x++) {
+			xc[x] = ((x - hsnX) * segSize + hSegSize) * ppX;
+			Real theta_cx = (xc[x] - pt->pos[_X]) / pt->pos[_Z];
+			Real sf_cx = (theta_cx + thetaX) / lambda;
+			Real val = sf_cx >= 0 ? 0.5 : -0.5;
+			int pp_cx = (int)(sf_cx / sf_base + val);
+			coefficient_cx[x] = (abs(pp_cx) < hSegSize) ? ((segSize - pp_cx) % segSize) : 0;
+			compensation_cx[x] = pi2 * ((xc[x] - pt->pos[_X]) * sf_cx + pp_cx * tempX);
+		}
+
+		for (int y = 0; y < snY; y++) {
+			yc[y] = ((y - hsnY) * segSize + hSegSize) * ppY;
+			Real theta_cy = (yc[y] - pt->pos[_Y]) / pt->pos[_Z];
+			Real sf_cy = (theta_cy + thetaY) / lambda;
+			Real val = sf_cy >= 0 ? 0.5 : -0.5;
+			int pp_cy = (int)(sf_cy / sf_base + val);
+			coefficient_cy[y] = (abs(pp_cy) < hSegSize) ? ((segSize - pp_cy) % segSize) : 0;
+			compensation_cy[y] = pi2 * ((yc[y] - pt->pos[_Y]) * sf_cy + pp_cy * tempY);
+		}
+	}
+	else
+	{
+		for (int x = 0; x < snX; x++) {
+			xc[x] = ((x - hsnX) * segSize + hSegSize) * ppX;
+			Real theta_cx = (xc[x] - pt->pos[_X]) / pt->pos[_Z];
+			Real sf_cx = (theta_cx + thetaX) / lambda;
+			Real val = sf_cx >= 0 ? 0.5 : -0.5;
+			int pp_cx = (int)(sf_cx / sf_base + val);
+			coefficient_cx[x] = (abs(pp_cx) < hSegSize) ? ((segSize - pp_cx) % segSize) : 0;
+		}
+
+		for (int y = 0; y < snY; y++) {
+			yc[y] = ((y - hsnY) * segSize + hSegSize) * ppY;
+			Real theta_cy = (yc[y] - pt->pos[_Y]) / pt->pos[_Z];
+			Real sf_cy = (theta_cy + thetaY) / lambda;
+			Real val = sf_cy >= 0 ? 0.5 : -0.5;
+			int pp_cy = (int)(sf_cy / sf_base + val);
+			coefficient_cy[y] = (abs(pp_cy) < hSegSize) ? ((segSize - pp_cy) % segSize) : 0;
+		}
+	}
+}
+
+void ophPAS::CalcCompensatedPhase(Point *pt, Real amplitude, Real phase, Real lambda, bool accurate)
+{
+	int segSize = FFT_SEGMENT_SIZE;
+	int hSegSize = segSize >> 1;
+	int snX = context_.pixel_number[_X] / segSize;
+	int snY = context_.pixel_number[_Y] / segSize;
+	Real ppX = context_.pixel_pitch[_X];
+	Real ppY = context_.pixel_pitch[_Y];
+	int hsnX = snX >> 1;
+	int hsnY = snY >> 1;
+	Real zz = pt->pos[_Z] * pt->pos[_Z];
+	Real pi2 = M_PI * 2;
+
+	if (accurate)
+	{
+		for (int y = 0; y < snY; y++)
+		{
+			Real yy = (yc[y] - pt->pos[_Y]) * (yc[y] - pt->pos[_Y]);
+			for (int x = 0; x < snX; x++)
+			{
+				int segyy = y * snX + x;
+				int segxx = coefficient_cy[y] * segSize + coefficient_cx[x];
+				Real xx = (xc[x] - pt->pos[_X]) * (xc[x] - pt->pos[_X]);
+				Real r = sqrt(xx + yy + zz);
+
+				Real theta = lambda * r + phase + compensation_cy[y] + compensation_cx[x];
+				Real theta_c = theta;
+				Real theta_s = theta + M_PI;
+
+				int idx_c = ((int)(theta_c * NUMTBL / pi2)) & NUMTBL2;
+				int idx_s = ((int)(theta_s * NUMTBL / pi2)) & NUMTBL2;
+				input[segyy][segxx][_RE] += amplitude * LUTCos[idx_c];
+				input[segyy][segxx][_IM] += amplitude * LUTSin[idx_s];
 			}
 		}
 	}
-	
+	else
+	{
+		for (int y = 0; y < snY; y++)
+		{
+			Real yy = (yc[y] - pt->pos[_Y]) * (yc[y] - pt->pos[_Y]);
+			for (int x = 0; x < snX; x++)
+			{
+				int segyy = y * snX + x;
+				int segxx = coefficient_cy[y] * segSize + coefficient_cx[x];
+				Real xx = (xc[x] - pt->pos[_X]) * (xc[x] - pt->pos[_X]);
+				Real r = sqrt(xx + yy + zz);
+
+				Real theta = lambda * r;
+				Real theta_c = theta;
+				Real theta_s = theta + M_PI;
+
+				int idx_c = ((int)(theta_c * NUMTBL / pi2)) & NUMTBL2;
+				int idx_s = ((int)(theta_s * NUMTBL / pi2)) & NUMTBL2;
+				input[segyy][segxx][_RE] += amplitude * LUTCos[idx_c];
+				input[segyy][segxx][_IM] += amplitude * LUTSin[idx_s];
+			}
+		}
+	}
 }
 
 void ophPAS::encodeHologram(const vec2 band_limit, const vec2 spectrum_shift)

@@ -1235,7 +1235,7 @@ void ophTri::reconTest(const char* fname)
 	const int pnXY = context_.pixel_number[_X] * context_.pixel_number[_Y];
 
 	Complex<Real>* recon = new Complex<Real>[pnXY];
-	fresnelPropagation((*complex_H), recon, context_.shift[_Z], 0);
+	Fresnel_FFT(complex_H[0], recon, 0, context_.shift[_Z]);
 	ophGen::encoding(ENCODE_AMPLITUDE, recon, nullptr);
 
 	normalize();

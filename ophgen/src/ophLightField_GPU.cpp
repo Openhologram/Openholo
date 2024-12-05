@@ -44,14 +44,14 @@
 //M*/
 
 #include "ophLightField_GPU.h"
-#include "CUDA.h"
+#include "cudaWrapper.h"
 #include "sys.h"
 
 void ophLF::convertLF2ComplexField_GPU()
 {
 	auto begin = CUR_TIME;
 
-	CUDA *pCUDA = CUDA::getInstance();
+	cudaWrapper *pCudaWrapper = cudaWrapper::getInstance();
 	const uint pnX = context_.pixel_number[_X];
 	const uint pnY = context_.pixel_number[_Y];
 	const long long int pnXY = pnX * pnY;
@@ -109,7 +109,7 @@ void ophLF::convertLF2ComplexField_GPU()
 
 	LOG("%lf (s)\n", ELAPSED_TIME(step, CUR_TIME));
 
-	int nThreads = pCUDA->getMaxThreads(0);
+	int nThreads = pCudaWrapper->getMaxThreads(0);
 	int nBlocks = (R + nThreads - 1) / nThreads;
 	int nBlocks2 = (NR + nThreads - 1) / nThreads;
 	int nBlocks3 = (NR * 4 + nThreads - 1) / nThreads;

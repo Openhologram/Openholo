@@ -695,7 +695,7 @@ void Openholo::fftFree(void)
 	pnz = 1;
 }
 
-void Openholo::fft2(Complex<Real>* src, Complex<Real>* dst, int nx, int ny, int type, bool bNormalized)
+void Openholo::fft2(Complex<Real>* src, Complex<Real>* dst, int nx, int ny, int type, bool bNormalized, bool bShift)
 {
 	const int N = nx * ny;
 	fftw_complex *in, *out;
@@ -712,7 +712,10 @@ void Openholo::fft2(Complex<Real>* src, Complex<Real>* dst, int nx, int ny, int 
 	else
 		out = fft_out;
 
-	fftShift(nx, ny, src, reinterpret_cast<Complex<Real> *>(in));
+	if (bShift)
+		fftShift(nx, ny, src, reinterpret_cast<Complex<Real> *>(in));
+	else
+		memcpy(in, src, sizeof(Complex<Real>) * N);
 
 	fftw_plan plan = nullptr;
 	if (!plan_fwd && !plan_bwd) {
@@ -737,7 +740,10 @@ void Openholo::fft2(Complex<Real>* src, Complex<Real>* dst, int nx, int ny, int 
 	if (plan)
 		fftw_destroy_plan(plan);
 
-	fftShift(nx, ny, reinterpret_cast<Complex<Real> *>(out), dst);
+	if (bShift)
+		fftShift(nx, ny, reinterpret_cast<Complex<Real> *>(out), dst);
+	else
+		memcpy(dst, out, sizeof(Complex<Real>) * N);
 
 	if (bIn)
 		fftw_free(in);
@@ -758,13 +764,13 @@ void Openholo::fftShift(int nx, int ny, Complex<Real>* input, Complex<Real>* out
 	{
 		for (int j = 0; j < ny; j++)
 		{
-			int ti = i - hnx; if (ti < 0) ti += nx;
-			int tj = j - hny; if (tj < 0) tj += ny;
-
+			int ti = i - hnx; 
+			int tj = j - hny; 
+			if (ti < 0) ti += nx;
+			if (tj < 0) tj += ny;
 			output[ti + tj * nx] = input[i + j * nx];
 		}
 	}
-
 }
 
 void Openholo::setWaveNum(int nNum)
@@ -804,7 +810,7 @@ int Openholo::getMaxThreadNum()
 
 void Openholo::ophFree(void)
 {
-	int nWave = context_.waveNum;
+	uint nWave = context_.waveNum;
 
 	for (uint i = 0; i < nWave; i++) {
 		if (complex_H[i]) {

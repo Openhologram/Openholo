@@ -45,7 +45,8 @@
 
 #include "ophPointCloud.h"
 #include "ophPointCloud_GPU.h"
-#include "CUDA.h"
+#include "sys.h"
+#include "cudaWrapper.h"
 
 #ifdef _USE_OPENCL
 #include "OpenCL.h"
@@ -182,11 +183,11 @@ void ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 		LOG("<FAILED> Wrong parameters.");
 		return;
 	}
-	CUDA* pCuda = CUDA::getInstance();
+	cudaWrapper* pCudaWrapper = cudaWrapper::getInstance();
 
 	auto begin = CUR_TIME;
 	const ulonglong pnXY = context_.pixel_number[_X] * context_.pixel_number[_Y];
-	int blockSize = pCuda->getMaxThreads(0); //n_threads // blockSize < devProp.maxThreadsPerBlock
+	int blockSize = pCudaWrapper->getMaxThreads(0); //n_threads // blockSize < devProp.maxThreadsPerBlock
 	ulonglong gridSize = (pnXY + blockSize - 1) / blockSize; //n_blocks
 
 	cout << ">>> All " << blockSize * gridSize << " threads in CUDA" << endl;
@@ -206,11 +207,11 @@ void ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 
 	//threads number
 	const ulonglong bufferSize = pnXY * sizeof(cuDoubleComplex);
-	int gpu_num = pCuda->getActiveGPUs();
+	int gpu_num = pCudaWrapper->getActiveGPUs();
 
 	uint nChannel = context_.waveNum;
 	// cacl workload
-	pCuda->setWorkload(pc_data_.n_points);
+	pCudaWrapper->setWorkload(pc_data_.n_points);
 
 
 	// default
@@ -220,7 +221,7 @@ void ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 		HANDLE_ERROR(cudaMemset(d_dst, 0., bufferSize));
 
 		Vertex* d_vertex_data = nullptr;
-		pCuda->printMemoryInfo(0);
+		pCudaWrapper->printMemoryInfo(0);
 		HANDLE_ERROR(cudaMalloc((void**)&d_vertex_data, pc_data_.n_points * sizeof(Vertex)));
 		CudaPointCloudConfig *base_config = new CudaPointCloudConfig(
 			pc_data_.n_points,
@@ -310,9 +311,9 @@ void ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 
 		for (int devID = 0; devID < gpu_num && devID < MAX_GPU; devID++)
 		{
-			pCuda->printMemoryInfo(devID);
+			pCudaWrapper->printMemoryInfo(devID);
 			HANDLE_ERROR(cudaSetDevice(devID));
-			int n_point = pCuda->getWorkload(devID);
+			int n_point = pCudaWrapper->getWorkload(devID);
 			int n_size = n_point * sizeof(Vertex);
 
 			HANDLE_ERROR(cudaMalloc((void**)&d_vertex_data[devID], n_size));
@@ -342,7 +343,7 @@ void ophPointCloud::genCghPointCloudGPU(uint diff_flag)
 			current_idx = 0;
 			for (int devID = 0; devID < gpu_num && devID < MAX_GPU; devID++)
 			{
-				int n_point = pCuda->getWorkload(devID);
+				int n_point = pCudaWrapper->getWorkload(devID);
 				HANDLE_ERROR(cudaSetDevice(devID));
 				base_config->n_points = n_point;
 

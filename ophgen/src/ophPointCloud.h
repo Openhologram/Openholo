@@ -547,9 +547,9 @@ Fresnel diffraction Anti-alliasing
 class GEN_DLL ophPointCloud : public ophGen
 {
 public:
-	enum PC_DIFF_FLAG {
-		PC_DIFF_RS,
-		PC_DIFF_FRESNEL,
+	enum PC_DIFF_FLAG : int8_t {
+		PC_DIFF_RS = 0x00,
+		PC_DIFF_FRESNEL = 0x01
 	};
 	/**
 	* @brief Constructor
@@ -577,6 +577,8 @@ public:
 	inline void setPointCloudModel(Vertex* vertex)
 	{
 		if (pc_data_.n_points < 1) return;
+
+		if (pc_data_.vertices != nullptr) delete[] pc_data_.vertices;
 		pc_data_.vertices = new Vertex[pc_data_.n_points];
 		memcpy(pc_data_.vertices, vertex, sizeof(Vertex) * pc_data_.n_points);
 	}

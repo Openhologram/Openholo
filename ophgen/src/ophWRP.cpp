@@ -420,7 +420,8 @@ void ophWRP::calculateWRPCPU()
 				}
 			}
 		}
-		fresnelPropagation(p_wrp_, complex_H[ch], distance, ch);
+		Fresnel_FFT(p_wrp_, complex_H[ch], lambda, distance);
+		//fresnelPropagation(p_wrp_, complex_H[ch], distance, ch);
 		memset(p_wrp_, 0.0, sizeof(Complex<Real>) * N);
 	}
 	delete[] p_wrp_;

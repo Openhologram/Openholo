@@ -411,7 +411,7 @@ void ophSigPU::branchCuts(matrix<Real>& inputResidue, matrix<Real>& outputBranch
 							if (countNearbyResidueFlag == 1)
 							{
 								findNZ(adjacentResidue, rAdjacent, cAdjacent);
-								adjacentSize = rAdjacent.size();
+								adjacentSize = static_cast<int>(rAdjacent.size());
 								rActive = rAdjacent[0];
 								cActive = cAdjacent[0];
 								adjacentResidueCount = 1;
@@ -575,7 +575,7 @@ void ophSigPU::floodFill(matrix<Real>& inputBranchCuts)
 			{
 				countLimit = 0;
 			}
-			adjoinStuck = rAdjoin.size();
+			adjoinStuck = static_cast<int>(rAdjoin.size());
 			for (int i = 0; i < rAdjoin.size(); i++)
 			{
 				rActive = rAdjoin[i];

@@ -335,7 +335,8 @@ void ophLF::generateHologram()
 
 		for (uint ch = 0; ch < context_.waveNum; ch++)
 		{
-			fresnelPropagation(m_vecRSplane[ch], complex_H[ch], distanceRS2Holo, ch);
+			Fresnel_FFT(m_vecRSplane[ch], complex_H[ch], context_.wave_length[ch], distanceRS2Holo);
+			//fresnelPropagation(m_vecRSplane[ch], complex_H[ch], distanceRS2Holo, ch);
 		}
 	}
 	fftFree();

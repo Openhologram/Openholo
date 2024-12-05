@@ -44,7 +44,7 @@
 //M*/
 
 #include "ophTriMesh_GPU.h"
-#include "CUDA.h"
+#include "cudaWrapper.h"
 
 using namespace oph;
 
@@ -114,7 +114,7 @@ void ophTri::generateAS_GPU(uint SHADING_FLAG)
 	geometric* device_geom = nullptr;
 	cudaMalloc((void**)&device_geom, sizeof(geometric));
 
-	int nBlockThreads = CUDA::getInstance()->getMaxThreads(0) >> 1;
+	int nBlockThreads = cudaWrapper::getInstance()->getMaxThreads(0) >> 1;
 	int nBlocks = (pnX * pnY + nBlockThreads - 1) / nBlockThreads;
 
 	for (uint ch = 0; ch < nChannel; ch++) {	

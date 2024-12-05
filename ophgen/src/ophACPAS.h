@@ -5,49 +5,10 @@
 
 #include "ophGen.h"
 
-
-#define PI				(3.14159265358979323846f)
-#define M2_PI			(PI*2.0)
-#define RADIANS			(PI/180.0)			// Angle in radians	
-// DEGREE*asin(mytheta)
-#define DEGREE2			(180./PI)			// sin(RADIANS*DEGREE*asin(mytheta))
-
 #define NUMTBL			1024
 #define NUMTBL2			(NUMTBL-1)
-#define MAX_STR_LEN 4000
 #define FFT_SEG_SIZE	64
 #define SEG_SIZE		8
-
-struct GEN_DLL  CGHEnvironmentData
-{
-	int		CghWidth;			// cgh width
-	int		CghHeight;		// cgh height
-	int		SegmentationSize;
-	int		fftSegmentationSize;
-	float	rWaveLength;		// red laser lambda
-	float	rWaveNumber;		// red laser lambda
-	float	ThetaX;
-	float	ThetaY;
-	float	DefaultDepth;
-	float 	xInterval;
-	float 	yInterval;
-	float 	xiInterval;
-	float 	etaInterval;
-	float	CGHScale;
-};
-
-struct GEN_DLL Segment
-{
-	bool	WorkingFlag;
-	long	SegmentIndex;
-	int		SegSize_x;
-	int		SegSize_y;
-	int 	hSegSize_x;		// Half size
-	int 	hSegSize_y;		// Half size
-	double	CenterX;
-	double	CenterY;
-	double	FrequencySlope;
-};
 
 using namespace oph;
 

@@ -253,7 +253,8 @@ void ophNonHogelLF::generateHologram()
 		convertLF2ComplexFieldUsingNonHogelMethod();
 		Real distance = 0.0;
 		for (uint ch = 0; ch < context_.waveNum; ch++)
-			fresnelPropagation(Hologram, complex_H[ch], distance, ch); //distanceRS2Holo
+			Fresnel_FFT(Hologram, complex_H[ch], context_.wave_length[ch], distance);
+			//fresnelPropagation(Hologram, complex_H[ch], distance, ch); //distanceRS2Holo
 	}
 
 	LOG("Total Elapsed Time: %.5lf (sec)\n", ELAPSED_TIME(begin, CUR_TIME));
@@ -287,7 +288,8 @@ void ophNonHogelLF::generateHologram(double thetaX, double thetaY)
 		convertLF2ComplexFieldUsingNonHogelMethod();
 		Real distance = 0.0;
 		for (uint ch = 0; ch < context_.waveNum; ch++)
-			fresnelPropagation(Hologram, complex_H[ch], distance, ch); //distanceRS2Holo
+			Fresnel_FFT(Hologram, complex_H[ch], context_.wave_length[ch], distance);
+			//fresnelPropagation(Hologram, complex_H[ch], distance, ch); //distanceRS2Holo
 	}
 
 	LOG("Total Elapsed Time: %.5lf (sec)\n", ELAPSED_TIME(begin, CUR_TIME));
