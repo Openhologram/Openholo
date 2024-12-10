@@ -1810,7 +1810,8 @@ void ophGen::setResolution(ivec2 resolution)
 	resCfg = resolution;
 
 	// 기존 해상도와 다르면 버퍼를 다시 생성.
-	if (context_.pixel_number != resolution) {
+	if (context_.pixel_number[_X] != resolution[_X] ||
+		context_.pixel_number[_Y] != resolution[_Y]) {
 		setPixelNumber(resolution);
 		Openholo::setPixelNumberOHC(resolution);
 		initialize();
