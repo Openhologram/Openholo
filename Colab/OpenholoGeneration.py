@@ -746,5 +746,6 @@ with gr.Blocks(theme=gr.themes.Soft(), css=".gradio-container {background-color:
         wrpGen.click(fn=wrpGenerate,inputs=[Encoding,pc_mode],outputs=wrpOutput)
 
 if __name__ == "__main__":
-    demo.queue(concurrency_count=10).launch(share=True)
+    demo.queue(max_size=100).launch(share=True)
+    #demo.queue(concurrency_count=10).launch(share=True)
     #demo.launch(share=True)
