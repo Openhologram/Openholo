@@ -34,7 +34,7 @@ target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:
 
 # 추가 포함 디렉터리
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/Reference/include)
-target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE ${CUDAToolkit_INCLUDE_DIR})
+target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE ${CUDAToolkit_INCLUDE_DIRS})
 
 # 추가 정의
 target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE "-DSIG_EXPORT")
