@@ -102,7 +102,7 @@ void ophRec::ASM_Propagation_GPU()
 	HANDLE_ERROR(cudaMalloc((void**)&min_device, sizeof(Real)));
 
 	unsigned char* nppMaxBuffer;
-#if CUDA_VERSION >= 12000
+#if CUDART_VERSION >= 12000
 	size_t nBuffer;
 #else
 	int nBuffer;
