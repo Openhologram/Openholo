@@ -102,8 +102,12 @@ void ophRec::ASM_Propagation_GPU()
 	HANDLE_ERROR(cudaMalloc((void**)&min_device, sizeof(Real)));
 
 	unsigned char* nppMaxBuffer;
+#if CUDA_VERSION >= 12000
 	size_t nBuffer;
-	nppsSumGetBufferSize_64f(N, (int *)&nBuffer);
+#else
+	int nBuffer;
+#endif
+	nppsSumGetBufferSize_64f(N, &nBuffer);
 	HANDLE_ERROR(cudaMalloc((void**)&nppMaxBuffer, nBuffer));
 
 	LOG("%lf (s)\n", ELAPSED_TIME(step, CUR_TIME));
