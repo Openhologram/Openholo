@@ -360,7 +360,11 @@ extern "C"
 		int tid = threadIdx.x + blockIdx.x*blockDim.x;
 		uchar * pDeviceBuffer;
 		Real pM = 0;
+#if CUDART_VERSION >= 12000
+		size_t nBufferSize;
+#else
 		int nBufferSize;
+#endif
 		nppsSumGetBufferSize_64f(nx*ny, &nBufferSize);
 		cudaMalloc((void**)(&pDeviceBuffer), nBufferSize);
 		nppsMin_64f(dst_data, nx*ny, &pM, pDeviceBuffer);
@@ -409,7 +413,11 @@ extern "C"
 	double cudaGetParamSF(cufftHandle *fftplan, cufftDoubleComplex *src_data, cufftDoubleComplex *temp_data, cufftDoubleComplex *dst_data, Real *f, cuDoubleComplex *FH, ophSigConfig *device_config, int nx, int ny, float zMax, float zMin, int sampN, float th, Real wl) {
 		unsigned int nBlocks = (nx * ny + kBlockThreads - 1) / kBlockThreads;
 
+#if CUDART_VERSION >= 12000
+		size_t nBufferSize;
+#else
 		int nBufferSize;
+#endif
 		Real max = MIN_DOUBLE;
 		Real depth = 0;
 		Real nSumHost = 0;
