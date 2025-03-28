@@ -28,10 +28,10 @@ function install_fftw_library(){
 #	sed -i 's/ENABLE_THREADS:BOOL=OFF/ENABLE_THREADS:BOOL=ON/' CMakeCache.txt
 #	make
 #	make install
-	cp ./fftw-3.3.10/lib/* /usr/local/lib/
-	cp ./fftw-3.3.10/lib/cmake/* /usr/local/lib/cmake/
-	cp ./fftw-3.3.10/lib/pkgconfig/* /usr/local/lib/pkgconfig/
-	cp ./fftw-3.3.10/include/* /usr/local/include/
+	cp $ROOT_PATH/Colab/$FFTW_LIBRARY/lib/* /usr/local/lib/
+	cp $ROOT_PATH/Colab/$FFTW_LIBRARY/lib/cmake/* /usr/local/lib/cmake/
+	cp $ROOT_PATH/Colab/$FFTW_LIBRARY/lib/pkgconfig/* /usr/local/lib/pkgconfig/
+	cp $ROOT_PATH/Colab/$FFTW_LIBRARY/include/* /usr/local/include/
 	
 }
 ##############################################
