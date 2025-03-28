@@ -29,6 +29,8 @@ function install_fftw_library(){
 #	make
 #	make install
 	cp ./fftw-3.3.10/lib/* /usr/local/lib/
+	cp ./fftw-3.3.10/lib/cmake/* /usr/local/lib/cmake/
+	cp ./fftw-3.3.10/lib/pkgconfig/* /usr/local/lib/pkgconfig/
 	cp ./fftw-3.3.10/include/* /usr/local/include/
 	
 }
