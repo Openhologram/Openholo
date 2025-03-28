@@ -13,21 +13,22 @@ function print_external_variable(){
 # install fftw library
 ##############################################
 function install_fftw_library(){
-	cd $ROOT_PATH
-	FFTW_LIBRARY="fftw-3.3.10"
+#	cd $ROOT_PATH
+#	FFTW_LIBRARY="fftw-3.3.10"
 
-	if [ -f $FFTW_LIBRARY.tar.gz ]; then
-		echo "exist $FFTW_LIBRARY.tar.gz"
-	else
-		wget https://www.fftw.org/$FFTW_LIBRARY.tar.gz
-	fi
-	tar xzvf $FFTW_LIBRARY.tar.gz
-	cd $ROOT_PATH/$FFTW_LIBRARY
-	./configure --enable-threads --enable-shared --prefix=/usr/local/lib
-	cmake .
-	sed -i 's/ENABLE_THREADS:BOOL=OFF/ENABLE_THREADS:BOOL=ON/' CMakeCache.txt
-	make
-	make install
+#	if [ -f $FFTW_LIBRARY.tar.gz ]; then
+#		echo "exist $FFTW_LIBRARY.tar.gz"
+#	else
+#		wget https://www.fftw.org/$FFTW_LIBRARY.tar.gz
+#	fi
+#	tar xzvf $FFTW_LIBRARY.tar.gz
+#	cd $ROOT_PATH/$FFTW_LIBRARY
+#	./configure --enable-threads --enable-shared --prefix=/usr/local/lib
+#	cmake .
+#	sed -i 's/ENABLE_THREADS:BOOL=OFF/ENABLE_THREADS:BOOL=ON/' CMakeCache.txt
+#	make
+#	make install
+	cp ./lib/* /usr/local/lib/ 
 }
 ##############################################
 # Compile openholo library
