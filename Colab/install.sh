@@ -39,10 +39,16 @@ function compile_openholo_library(){
   DIR_NAME="build"
 	cd $ROOT_PATH
   if [ "$1" = "-d" ] || [ "$1" = "-D" ]; then
-	  cmake -B ./$DIR_NAME/Debug -DCMAKE_BUILD_TYPE=Debug
+	  cmake -B ./$DIR_NAME/Debug -DCMAKE_BUILD_TYPE=Debug \
+	  -DFFTW3_INCLUDE_DIRS=/usr/local/include \
+	  -DFFTW3_LIBRARY_DIRS=/usr/local/lib \
+	  -DFFTW3_LIBRARIES=fftw3
 	  cd $DIR_NAME/Debug
   else
-	  cmake -B ./$DIR_NAME/Release -DCMAKE_BUILD_TYPE=Release
+	  cmake -B ./$DIR_NAME/Release -DCMAKE_BUILD_TYPE=Release \
+	  -DFFTW3_INCLUDE_DIRS=/usr/local/include \
+	  -DFFTW3_LIBRARY_DIRS=/usr/local/lib \
+	  -DFFTW3_LIBRARIES=fftw3
 	  cd $DIR_NAME/Release
   fi
 	make
