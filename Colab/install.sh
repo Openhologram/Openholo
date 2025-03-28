@@ -14,7 +14,7 @@ function print_external_variable(){
 ##############################################
 function install_fftw_library(){
 #	cd $ROOT_PATH
-#	FFTW_LIBRARY="fftw-3.3.10"
+	FFTW_LIBRARY="fftw-3.3.10"
 
 #	if [ -f $FFTW_LIBRARY.tar.gz ]; then
 #		echo "exist $FFTW_LIBRARY.tar.gz"
