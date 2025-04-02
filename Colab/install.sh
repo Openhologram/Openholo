@@ -41,6 +41,7 @@ function install_fftw_library(){
 ##############################################
 function compile_openholo_library(){
   DIR_NAME="build"
+  export USE_COLAB=1
 	cd $ROOT_PATH
   if [ "$1" = "-d" ] || [ "$1" = "-D" ]; then
 	  cmake -B ./$DIR_NAME/Debug -DCMAKE_BUILD_TYPE=Debug \

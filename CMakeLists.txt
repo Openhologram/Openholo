@@ -85,9 +85,11 @@ endif()
 
 add_subdirectory(Openholo)
 add_subdirectory(ophgen)
-add_subdirectory(ophrec)
-add_subdirectory(ophsig)
-
+if(DEFINED ENV{USE_COLAB})
+	message("Detected colab build")
+	add_subdirectory(ophrec)
+	add_subdirectory(ophsig)
+endif()
 
 #add_custom_target(clean-all
 #	COMMAND ${CMAKE_BUILD_TOOL} clean
