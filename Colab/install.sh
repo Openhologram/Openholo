@@ -32,6 +32,8 @@ function install_fftw_library(){
 	cp -r $ROOT_PATH/Colab/$FFTW_LIBRARY/lib/cmake/* /usr/local/lib/cmake/
 	cp -r $ROOT_PATH/Colab/$FFTW_LIBRARY/lib/pkgconfig/* /usr/local/lib/pkgconfig/
 	cp -r $ROOT_PATH/Colab/$FFTW_LIBRARY/include/* /usr/local/include/
+	ln -s /usr/local/lib/libfftw3.so.3.6.9 /usr/local/lib/libfftw3.so
+	ln -s /usr/local/lib/libfftw3_threads.so.3.6.9 /usr/local/lib/libfftw3_threads.so
 	
 }
 ##############################################
