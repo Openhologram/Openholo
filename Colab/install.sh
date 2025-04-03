@@ -13,27 +13,27 @@ function print_external_variable(){
 # install fftw library
 ##############################################
 function install_fftw_library(){
-#	cd $ROOT_PATH
+	cd $ROOT_PATH
 	FFTW_LIBRARY="fftw-3.3.10"
 
-#	if [ -f $FFTW_LIBRARY.tar.gz ]; then
-#		echo "exist $FFTW_LIBRARY.tar.gz"
-#	else
-#		wget https://www.fftw.org/$FFTW_LIBRARY.tar.gz
-#	fi
-#	tar xzvf $FFTW_LIBRARY.tar.gz
-#	cd $ROOT_PATH/$FFTW_LIBRARY
-#	./configure --enable-threads --enable-shared --prefix=/usr/local/lib
-#	cmake .
-#	sed -i 's/ENABLE_THREADS:BOOL=OFF/ENABLE_THREADS:BOOL=ON/' CMakeCache.txt
-#	make
-#	make install
-	cp -r $ROOT_PATH/Colab/$FFTW_LIBRARY/lib/* /usr/local/lib/
-	cp -r $ROOT_PATH/Colab/$FFTW_LIBRARY/lib/cmake/* /usr/local/lib/cmake/
-	cp -r $ROOT_PATH/Colab/$FFTW_LIBRARY/lib/pkgconfig/* /usr/local/lib/pkgconfig/
-	cp -r $ROOT_PATH/Colab/$FFTW_LIBRARY/include/* /usr/local/include/
-	ln -s /usr/local/lib/libfftw3.so.3.6.9 /usr/local/lib/libfftw3.so
-	ln -s /usr/local/lib/libfftw3_threads.so.3.6.9 /usr/local/lib/libfftw3_threads.so
+	if [ -f $FFTW_LIBRARY.tar.gz ]; then
+		echo "exist $FFTW_LIBRARY.tar.gz"
+	else
+		wget https://www.fftw.org/$FFTW_LIBRARY.tar.gz
+	fi
+	tar xzvf $FFTW_LIBRARY.tar.gz
+	cd $ROOT_PATH/$FFTW_LIBRARY
+	./configure --enable-threads --enable-shared --prefix=/usr/local/lib
+	cmake .
+	sed -i 's/ENABLE_THREADS:BOOL=OFF/ENABLE_THREADS:BOOL=ON/' CMakeCache.txt
+	make
+	make install
+#	cp -r $ROOT_PATH/Colab/$FFTW_LIBRARY/lib/* /usr/local/lib/
+#	cp -r $ROOT_PATH/Colab/$FFTW_LIBRARY/lib/cmake/* /usr/local/lib/cmake/
+#	cp -r $ROOT_PATH/Colab/$FFTW_LIBRARY/lib/pkgconfig/* /usr/local/lib/pkgconfig/
+#	cp -r $ROOT_PATH/Colab/$FFTW_LIBRARY/include/* /usr/local/include/
+#	ln -s /usr/local/lib/libfftw3.so.3.6.9 /usr/local/lib/libfftw3.so
+#	ln -s /usr/local/lib/libfftw3_threads.so.3.6.9 /usr/local/lib/libfftw3_threads.so
 	
 }
 ##############################################
@@ -73,7 +73,7 @@ function execute_openholo_test(){
 	OPENHOLO_INCLUDE_DIR=$ROOT_PATH/Reference/include
 	OPENHOLO_LIB_PATH=$ROOT_PATH/bin
   
-  CUDA_INCLUDE_PATH=$CUDA_HOME/targets/x86_64-linux/include/
+    CUDA_INCLUDE_PATH=$CUDA_HOME/targets/x86_64-linux/include/
 	CUDA_INCLUDE_PATH_COLAB=$CUDA_HOME/targets/x86_64-linux/include/
 	LIB_NAME=ophgen
 
