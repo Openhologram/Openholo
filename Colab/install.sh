@@ -16,24 +16,24 @@ function install_fftw_library(){
 	cd $ROOT_PATH
 	FFTW_LIBRARY="fftw-3.3.10"
 
-	if [ -f $FFTW_LIBRARY.tar.gz ]; then
-		echo "exist $FFTW_LIBRARY.tar.gz"
-	else
-		wget https://www.fftw.org/$FFTW_LIBRARY.tar.gz
-	fi
-	tar xzvf $FFTW_LIBRARY.tar.gz
-	cd $ROOT_PATH/$FFTW_LIBRARY
-	./configure --enable-threads --enable-shared --prefix=/usr/local/lib
-	cmake .
-	sed -i 's/ENABLE_THREADS:BOOL=OFF/ENABLE_THREADS:BOOL=ON/' CMakeCache.txt
-	make
-	make install
-#	cp -r $ROOT_PATH/Colab/$FFTW_LIBRARY/lib/* /usr/local/lib/
-#	cp -r $ROOT_PATH/Colab/$FFTW_LIBRARY/lib/cmake/* /usr/local/lib/cmake/
-#	cp -r $ROOT_PATH/Colab/$FFTW_LIBRARY/lib/pkgconfig/* /usr/local/lib/pkgconfig/
-#	cp -r $ROOT_PATH/Colab/$FFTW_LIBRARY/include/* /usr/local/include/
-#	ln -s /usr/local/lib/libfftw3.so.3.6.9 /usr/local/lib/libfftw3.so
-#	ln -s /usr/local/lib/libfftw3_threads.so.3.6.9 /usr/local/lib/libfftw3_threads.so
+#	if [ -f $FFTW_LIBRARY.tar.gz ]; then
+#		echo "exist $FFTW_LIBRARY.tar.gz"
+#	else
+#		wget https://www.fftw.org/$FFTW_LIBRARY.tar.gz
+#	fi
+#	tar xzvf $FFTW_LIBRARY.tar.gz
+#	cd $ROOT_PATH/$FFTW_LIBRARY
+#	./configure --enable-threads --enable-shared --prefix=/usr/local/lib
+#	cmake .
+#	sed -i 's/ENABLE_THREADS:BOOL=OFF/ENABLE_THREADS:BOOL=ON/' CMakeCache.txt
+#	make
+#	make install
+	cp -r $ROOT_PATH/Colab/$FFTW_LIBRARY/lib/* /usr/local/lib/
+	cp -r $ROOT_PATH/Colab/$FFTW_LIBRARY/lib/cmake/* /usr/local/lib/cmake/
+	cp -r $ROOT_PATH/Colab/$FFTW_LIBRARY/lib/pkgconfig/* /usr/local/lib/pkgconfig/
+	cp -r $ROOT_PATH/Colab/$FFTW_LIBRARY/include/* /usr/local/include/
+	ln -s /usr/local/lib/libfftw3.so.3.6.9 /usr/local/lib/libfftw3.so
+	ln -s /usr/local/lib/libfftw3_threads.so.3.6.9 /usr/local/lib/libfftw3_threads.so
 	
 }
 ##############################################
